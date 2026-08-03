@@ -1,7 +1,7 @@
 use crate::builder::config::EngineConfig;
 use crate::{Chromosome, ThreadSync};
-use radiate_core::error::RadiateResult;
 use radiate_core::rate::ExprSet;
+use radiate_core::{ActorSystem, error::RadiateResult};
 use radiate_core::{
     Ecosystem, Front, MetricSet, Objective, Phenotype, Problem, Score, metric, metric_names,
 };
@@ -18,6 +18,7 @@ pub struct EvolutionContext<C: Chromosome, T> {
     pub(crate) problem: Arc<dyn Problem<C, T>>,
     pub(crate) control: Option<ThreadSync>,
     pub(crate) exprs: Option<Arc<Mutex<ExprSet>>>,
+    pub(crate) event_system: ActorSystem,
 }
 
 impl<C: Chromosome, T> EvolutionContext<C, T> {
@@ -39,6 +40,10 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
 
     pub fn front(&self) -> Arc<RwLock<Front<Phenotype<C>>>> {
         self.front.clone()
+    }
+
+    pub fn event_system(&self) -> &ActorSystem {
+        &self.event_system
     }
 
     pub fn get_or_create_control(&mut self) -> ThreadSync {
@@ -94,6 +99,7 @@ where
                 problem: config.problem().clone(),
                 control: sync,
                 exprs: generation.exprs(),
+                event_system: config.event_system(),
             };
         }
 
@@ -113,6 +119,7 @@ where
             problem: config.problem().clone(),
             control: sync,
             exprs: config.exprs(),
+            event_system: config.event_system().clone(),
         }
     }
 }

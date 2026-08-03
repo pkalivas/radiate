@@ -86,10 +86,6 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         (self.ecosystem.population().len() as f32 * self.offspring_fraction) as usize
     }
 
-    pub fn bus_executor(&self) -> Arc<Executor> {
-        Arc::clone(&self.executor.bus_executor)
-    }
-
     pub fn species_executor(&self) -> Arc<Executor> {
         Arc::clone(&self.executor.species_executor)
     }
@@ -163,7 +159,7 @@ where
             generation: params.generation.clone(),
             exprs: params.exprs.clone(),
             filters: params.filter_params.filters.clone(),
-            sync: Some(ThreadSync::new()),
+            sync: Some(params.evaluation_params.sync.clone()),
             event_system: params.event_system.clone(),
         }
     }

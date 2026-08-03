@@ -29,20 +29,33 @@ where
 
         match ctx.objective {
             Objective::Single(_) => {
-                info!(
+                let str = format!(
                     "Epoch {:<4} | Score: {:>8.4} | Time: {:>5.2?}",
                     ctx.index,
                     ctx.score.as_ref().unwrap().as_f32(),
                     time
                 );
+
+                ctx.event_system().send(crate::events::Info(str));
+                // info!(
+                //     "Epoch {:<4} | Score: {:>8.4} | Time: {:>5.2?}",
+                //     ctx.index,
+                //     ctx.score.as_ref().unwrap().as_f32(),
+                //     time
+                // );
             }
             Objective::Multi(_) => {
                 let front_size = ctx.metrics.front_size();
                 let front_size_value = front_size.map(|ent| ent.last_value()).unwrap_or(0.0);
-                info!(
+
+                ctx.event_system().send(crate::events::Info(format!(
                     "Epoch {:<4} | Front Size: {:.3} | Time: {:>5.2?}",
                     ctx.index, front_size_value, time
-                );
+                )));
+                // info!(
+                //     "Epoch {:<4} | Front Size: {:.3} | Time: {:>5.2?}",
+                //     ctx.index, front_size_value, time
+                // );
             }
         }
 

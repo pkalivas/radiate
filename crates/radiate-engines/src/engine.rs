@@ -4,7 +4,7 @@ use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineRuntime, ThreadSync};
 use crate::{EventBus, Generation};
 use crate::{GenerationView, builder::GeneticEngineBuilder};
-use radiate_core::{Engine, engine::EngineState};
+use radiate_core::{Engine, EventHandler, Message, engine::EngineState};
 use radiate_core::{EngineStream, error::Result};
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
@@ -123,7 +123,17 @@ where
     /// The iterator consumes the engine, so you can only iterate once. If you need
     /// to run the engine multiple times, create a new instance using the builder.
     pub fn iter(self) -> EngineRuntime<Self> {
+        self.bus.send(String::from("HI"));
         EngineRuntime::new(self)
+    }
+
+    pub fn subscribe<M, H>(self, handler: H) -> Self
+    where
+        M: Message,
+        H: EventHandler<M> + 'static,
+    {
+        self.bus.subscribe::<M, H>(handler);
+        self
     }
 }
 
@@ -176,9 +186,10 @@ where
         }
 
         if matches!(self.context.index, 0) {
-            self.bus
-                .publish(EngineMessage::<C, T>::Start(&self.context));
+            self.bus.publish(EngineMessage::Start(&self.context));
         }
+
+        self.bus.send(String::from("AHHHHHH"));
 
         self.bus.publish(EngineMessage::EpochStart(&self.context));
         self.pipeline.run(&mut self.context)?;

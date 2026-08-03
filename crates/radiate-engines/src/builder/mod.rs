@@ -32,12 +32,12 @@ use crate::{
 use crate::{Generation, Result};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
-use radiate_core::rate::ExprSet;
 use radiate_core::{
     ActorSystem, Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Valid, metric_names,
 };
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
+use radiate_core::{ThreadSync, rate::ExprSet};
 use radiate_core::{
     expr,
     problem::{BatchEngineProblem, EngineProblem},
@@ -177,6 +177,7 @@ where
         self.build_alterer()?;
         self.build_front()?;
         self.build_rates()?;
+        self.build_event_system()?;
 
         let config = EngineConfig::<C, T>::from(&self.params);
 
@@ -190,17 +191,20 @@ where
         pipeline.add_step(Self::build_species_step(&config));
         pipeline.add_step(Self::build_audit_step(&config));
 
-        let event_bus = EventBus::<T>::from(config.event_system())
-            .set_executor(config.bus_executor())
-            .set_sync(config.sync());
-
-        // event_bus.subscribe_typed(|event: String, _ctx: &EventContext| {
-        //     println!("{:?}", event);
-        // });
-
+        let event_bus = EventBus::<T>::from(config.event_system());
         let context = EvolutionContext::from(config);
 
         Ok(GeneticEngine::<C, T>::new(context, pipeline, event_bus))
+    }
+
+    fn build_event_system(&mut self) -> Result<()> {
+        let system = self.params.event_system.clone();
+        system.set_executor(self.params.evaluation_params.bus_executor.clone());
+        system.set_sync(self.params.evaluation_params.sync.clone());
+
+        self.params.event_system = system;
+
+        Ok(())
     }
 
     /// Build the problem of the genetic engine. This will create a new problem
@@ -494,6 +498,7 @@ where
                     fitness_executor: Arc::new(Executor::default()),
                     species_executor: Arc::new(Executor::default()),
                     bus_executor: Arc::new(Executor::default()),
+                    sync: ThreadSync::new(),
                 },
                 selection_params: SelectionParams {
                     offspring_fraction: 0.8,

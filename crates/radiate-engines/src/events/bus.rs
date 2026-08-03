@@ -41,68 +41,22 @@ impl<T> EventBus<T> {
         self
     }
 
-    pub fn subscribe<H>(&self, handler: H)
+    pub fn subscribe<M, H>(&self, handler: H)
     where
-        H: EventHandler<EngineEvent<T>> + 'static,
-        T: Send + Sync + 'static,
-    {
-        self.core.subscribe::<EngineEvent<T>, _>(handler);
-    }
-
-    /// Escape hatch for message types this engine doesn't know about (a
-    /// custom `Warning`, a `LogMessage`, ...) that still want to ride the
-    /// same `ActorSystem` — same executor, same shared `ThreadSync` — as
-    /// `Started`/`EpochCompleted`/etc. Whoever owns publishing `M` calls
-    /// `send::<M>` directly; nothing about `M` needs to be known to
-    /// `EventBus` itself.
-    pub fn subscribe_typed<M, H>(&self, handler: H)
-    where
-        M: Message,
+        M: Message + 'static,
         H: EventHandler<M> + 'static,
     {
-        self.core.subscribe::<M, _>(handler);
+        self.core.subscribe(handler);
     }
 
+    /// The forward-facing escape hatch for message types this engine
+    /// doesn't know about (a custom `Warning`, a `LogMessage`, ...) — rides
+    /// the same `ActorSystem` as `Started`/`EpochCompleted`/etc. Registration
+    /// happens on the raw `ActorSystem` during the builder chain (see
+    /// `GeneticEngineBuilder::subscribe_typed`); this is purely for whoever
+    /// ends up owning publishing `M` once it's built.
     pub fn send<M: Message + Clone>(&self, message: M) {
         self.core.send(message);
-    }
-
-    pub fn on_start<H>(&self, handler: H)
-    where
-        H: EventHandler<Started> + 'static,
-    {
-        self.core.subscribe::<Started, _>(handler);
-    }
-
-    pub fn on_stop<H>(&self, handler: H)
-    where
-        H: EventHandler<Stopped<T>> + 'static,
-        T: Send + Sync + 'static,
-    {
-        self.core.subscribe::<Stopped<T>, _>(handler);
-    }
-
-    pub fn on_epoch_start<H>(&self, handler: H)
-    where
-        H: EventHandler<EpochStarted> + 'static,
-    {
-        self.core.subscribe::<EpochStarted, _>(handler);
-    }
-
-    pub fn on_epoch_complete<H>(&self, handler: H)
-    where
-        H: EventHandler<EpochCompleted<T>> + 'static,
-        T: Send + Sync + 'static,
-    {
-        self.core.subscribe::<EpochCompleted<T>, _>(handler);
-    }
-
-    pub fn on_improvement<H>(&self, handler: H)
-    where
-        H: EventHandler<Improved<T>> + 'static,
-        T: Send + Sync + 'static,
-    {
-        self.core.subscribe::<Improved<T>, _>(handler);
     }
 
     pub fn publish<C>(&self, message: EngineMessage<C, T>)
@@ -193,7 +147,8 @@ mod tests {
     use super::*;
     use crate::EvolutionContext;
     use radiate_core::{
-        BitChromosome, Ecosystem, EventContext, Front, Objective, Optimize, Phenotype, Problem,
+        BitChromosome, Ecosystem, EventContext, EventHandler, Front, Message, Objective, Optimize,
+        Phenotype, Problem,
     };
     use radiate_test::OneMax;
     use std::sync::Condvar;
@@ -223,7 +178,22 @@ mod tests {
             problem,
             control: None,
             exprs: None,
+            event_system: ActorSystem::default(),
         }
+    }
+
+    // Registration now happens on the raw `ActorSystem` (mirroring what
+    // `GeneticEngineBuilder` actually does), and only gets wrapped into an
+    // `EventBus` afterward — `EventBus` itself no longer offers a subscribe
+    // API, it's purely `publish`/`send` over an already-populated system.
+    fn bus_with<M, H>(handler: H) -> EventBus<Vec<bool>>
+    where
+        M: Message,
+        H: EventHandler<M> + 'static,
+    {
+        let system = ActorSystem::default();
+        system.subscribe::<M, _>(handler);
+        EventBus::from(system)
     }
 
     fn wait_for(signal: &Arc<(StdMutex<usize>, Condvar)>, target: usize) {
@@ -240,13 +210,12 @@ mod tests {
 
     #[test]
     fn on_start_only_fires_for_start_events() {
-        let bus: EventBus<Vec<bool>> = EventBus::default();
         let hits = Arc::new(AtomicUsize::new(0));
         let signal = Arc::new((StdMutex::new(0), Condvar::new()));
 
         let hits2 = Arc::clone(&hits);
         let signal2 = Arc::clone(&signal);
-        bus.on_start(move |_msg: Started, _ctx: &EventContext| {
+        let bus = bus_with::<Started, _>(move |_msg: Started, _ctx: &EventContext| {
             hits2.fetch_add(1, Ordering::SeqCst);
             let (n, cv) = &*signal2;
             *n.lock().unwrap() += 1;
@@ -262,23 +231,23 @@ mod tests {
 
     #[test]
     fn typed_subscriber_does_not_receive_unrelated_event_kinds() {
-        let bus: EventBus<Vec<bool>> = EventBus::default();
-
-        bus.on_start(|_msg: Started, _ctx: &EventContext| {
-            panic!("on_start handler should not fire for an EpochStart event");
+        let system = ActorSystem::default();
+        system.subscribe::<Started, _>(|_msg: Started, _ctx: &EventContext| {
+            panic!("Started handler should not fire for an EpochStart event");
         });
 
         let epoch_hits = Arc::new(AtomicUsize::new(0));
         let signal = Arc::new((StdMutex::new(0), Condvar::new()));
         let epoch_hits2 = Arc::clone(&epoch_hits);
         let signal2 = Arc::clone(&signal);
-        bus.on_epoch_start(move |_msg: EpochStarted, _ctx: &EventContext| {
+        system.subscribe::<EpochStarted, _>(move |_msg: EpochStarted, _ctx: &EventContext| {
             epoch_hits2.fetch_add(1, Ordering::SeqCst);
             let (n, cv) = &*signal2;
             *n.lock().unwrap() += 1;
             cv.notify_all();
         });
 
+        let bus: EventBus<Vec<bool>> = EventBus::from(system);
         let ctx = test_context();
         bus.publish(EngineMessage::EpochStart(&ctx));
 
@@ -288,18 +257,18 @@ mod tests {
 
     #[test]
     fn wildcard_subscriber_receives_events_regardless_of_kind() {
-        let bus: EventBus<Vec<bool>> = EventBus::default();
-
         let hits = Arc::new(AtomicUsize::new(0));
         let signal = Arc::new((StdMutex::new(0), Condvar::new()));
         let hits_clone = Arc::clone(&hits);
         let signal_clone = Arc::clone(&signal);
-        bus.subscribe(move |_event: EngineEvent<Vec<bool>>, _ctx: &EventContext| {
-            hits_clone.fetch_add(1, Ordering::SeqCst);
-            let (n, cv) = &*signal_clone;
-            *n.lock().unwrap() += 1;
-            cv.notify_all();
-        });
+        let bus = bus_with::<EngineEvent<Vec<bool>>, _>(
+            move |_event: EngineEvent<Vec<bool>>, _ctx: &EventContext| {
+                hits_clone.fetch_add(1, Ordering::SeqCst);
+                let (n, cv) = &*signal_clone;
+                *n.lock().unwrap() += 1;
+                cv.notify_all();
+            },
+        );
 
         let ctx = test_context();
         bus.publish(EngineMessage::Start(&ctx));
@@ -317,19 +286,20 @@ mod tests {
 
     #[test]
     fn handler_can_stop_the_run_via_actor_context() {
-        let mut bus: EventBus<Vec<bool>> = EventBus::default();
         let signal = Arc::new((StdMutex::new(0), Condvar::new()));
         let signal_clone = Arc::clone(&signal);
 
-        bus.subscribe(move |_event: EngineEvent<Vec<bool>>, ctx: &EventContext| {
-            ctx.sync.stop();
-            let (n, cv) = &*signal_clone;
-            *n.lock().unwrap() += 1;
-            cv.notify_all();
-        });
+        let bus = bus_with::<EngineEvent<Vec<bool>>, _>(
+            move |_event: EngineEvent<Vec<bool>>, ctx: &EventContext| {
+                ctx.sync.stop();
+                let (n, cv) = &*signal_clone;
+                *n.lock().unwrap() += 1;
+                cv.notify_all();
+            },
+        );
 
         let sync = ThreadSync::new();
-        bus = bus.set_sync(sync.clone());
+        let bus = bus.set_sync(sync.clone());
         assert!(!sync.is_stopped());
 
         let ctx = test_context();
@@ -341,19 +311,20 @@ mod tests {
 
     #[test]
     fn specific_kind_handler_also_reaches_shared_sync() {
-        let mut bus: EventBus<Vec<bool>> = EventBus::default();
         let signal = Arc::new((StdMutex::new(0), Condvar::new()));
         let signal_clone = Arc::clone(&signal);
 
-        bus.on_improvement(move |_msg: Improved<Vec<bool>>, ctx: &EventContext| {
-            ctx.sync.stop();
-            let (n, cv) = &*signal_clone;
-            *n.lock().unwrap() += 1;
-            cv.notify_all();
-        });
+        let bus = bus_with::<Improved<Vec<bool>>, _>(
+            move |_msg: Improved<Vec<bool>>, ctx: &EventContext| {
+                ctx.sync.stop();
+                let (n, cv) = &*signal_clone;
+                *n.lock().unwrap() += 1;
+                cv.notify_all();
+            },
+        );
 
         let sync = ThreadSync::new();
-        bus = bus.set_sync(sync.clone());
+        let bus = bus.set_sync(sync.clone());
 
         let ctx = test_context();
         bus.publish(EngineMessage::Improvement(&ctx));
@@ -363,19 +334,18 @@ mod tests {
     }
 
     #[test]
-    fn subscribe_typed_rides_the_same_bus_as_engine_events() {
+    fn send_rides_the_same_bus_as_engine_events() {
         #[derive(Clone)]
         struct Warning {
             text: &'static str,
         }
 
-        let mut bus: EventBus<Vec<bool>> = EventBus::default();
         let seen = Arc::new(StdMutex::new(Vec::new()));
         let signal = Arc::new((StdMutex::new(0), Condvar::new()));
 
         let seen2 = Arc::clone(&seen);
         let signal2 = Arc::clone(&signal);
-        bus.subscribe_typed::<Warning, _>(move |w: Warning, ctx: &EventContext| {
+        let bus = bus_with::<Warning, _>(move |w: Warning, ctx: &EventContext| {
             seen2.lock().unwrap().push(w.text);
             ctx.sync.stop();
             let (n, cv) = &*signal2;
@@ -384,7 +354,7 @@ mod tests {
         });
 
         let sync = ThreadSync::new();
-        bus = bus.set_sync(sync.clone());
+        let bus = bus.set_sync(sync.clone());
 
         bus.send(Warning {
             text: "population diversity collapsing",

@@ -1,5 +1,5 @@
 use crate::GeneticEngineBuilder;
-use radiate_core::{Chromosome, Evaluator, Executor, FitnessEvaluator};
+use radiate_core::{Chromosome, Evaluator, Executor, FitnessEvaluator, ThreadSync};
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -12,6 +12,7 @@ where
     pub fitness_executor: Arc<Executor>,
     pub species_executor: Arc<Executor>,
     pub bus_executor: Arc<Executor>,
+    pub sync: ThreadSync,
 }
 
 impl<C, T> GeneticEngineBuilder<C, T>
@@ -45,6 +46,7 @@ where
             fitness_executor: executor.clone(),
             species_executor: executor.clone(),
             bus_executor: executor.clone(),
+            sync: self.params.evaluation_params.sync.clone(),
         };
         self
     }

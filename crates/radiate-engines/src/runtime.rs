@@ -1,8 +1,8 @@
-use crate::actions::LoggingAction;
 use crate::generation::GenerationView;
 use crate::{Engine, EvolutionContext, Generation, Limit, init_logging};
 #[cfg(feature = "serde")]
 use crate::{FileWriter, JsonWriter};
+use crate::{LoggingHandler, actions::LoggingAction};
 use radiate_core::error::{RadiateResult, Result};
 use radiate_core::rate::Expr;
 use radiate_core::{Chromosome, EngineState, Score, radiate_err};
@@ -207,6 +207,13 @@ where
 
     pub fn log_every(mut self, every: usize) -> EngineRuntime<E> {
         init_logging();
+        let system = self.engine.context().event_system();
+
+        system.subscribe::<crate::events::Info, LoggingHandler>(LoggingHandler::new());
+        system.subscribe::<crate::events::Warn, LoggingHandler>(LoggingHandler::new());
+        system.subscribe::<crate::events::Error, LoggingHandler>(LoggingHandler::new());
+        system.subscribe::<crate::events::Debug, LoggingHandler>(LoggingHandler::new());
+
         let action = LoggingAction(every);
         self.add_action(action);
         self
