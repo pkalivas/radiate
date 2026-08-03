@@ -1,7 +1,7 @@
-use crate::events::LogWarn;
+use crate::events::LogEvent;
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, MessageBroker, Executor, MetricSet, Objective, Phenotype, Population,
+    Chromosome, Ecosystem, Executor, MessageBroker, MetricSet, Objective, Phenotype, Population,
     RateSet, Species, diversity::Diversity, math::distribution, metric_names, random_provider,
 };
 use radiate_error::Result;
@@ -294,7 +294,7 @@ where
 
         if self.prev_species_count > 1 && s_count <= 1 {
             if !self.warned_collapsed {
-                self.event_system.send(LogWarn(format!(
+                self.event_system.send(LogEvent::warn(format!(
                     "species diversity collapsed from {} species to {} (population size {})",
                     self.prev_species_count, s_count, pop_len
                 )));

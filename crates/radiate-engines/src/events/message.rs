@@ -22,7 +22,7 @@ macro_rules! engine_message {
         impl EngineMessage for $t {}
     )* };
 }
-engine_message!(EngineStart, EpochStart, LimitTriggered, LogInfo, LogWarn);
+engine_message!(EngineStart, EpochStart, LimitTriggered, LogEvent);
 impl<T: Send + Sync + 'static> sealed::Sealed for EngineImproved<T> {}
 impl<T: Send + Sync + 'static> EngineMessage for EngineImproved<T> {}
 
@@ -33,16 +33,51 @@ impl<T: Send + Sync + 'static> sealed::Sealed for EngineStopped<T> {}
 impl<T: Send + Sync + 'static> EngineMessage for EngineStopped<T> {}
 
 #[derive(Clone, Debug)]
-pub struct LogInfo(pub String);
+pub enum LogLevel {
+    Info,
+    Warn,
+}
 
 #[derive(Clone, Debug)]
-pub struct LogWarn(pub String);
+pub struct LogEvent(pub LogLevel, pub String);
+
+impl LogEvent {
+    pub fn info<S: Into<String>>(msg: S) -> Self {
+        LogEvent(LogLevel::Info, msg.into())
+    }
+
+    pub fn warn<S: Into<String>>(msg: S) -> Self {
+        LogEvent(LogLevel::Warn, msg.into())
+    }
+
+    pub fn level(&self) -> LogLevel {
+        self.0.clone()
+    }
+
+    pub fn message(&self) -> &str {
+        &self.1
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct LimitTriggered {
     pub generation: usize,
     pub kind: &'static str,
     pub description: String,
+}
+
+impl LimitTriggered {
+    pub fn index(&self) -> usize {
+        self.generation
+    }
+
+    pub fn kind(&self) -> &'static str {
+        self.kind
+    }
+
+    pub fn description(&self) -> &str {
+        &self.description
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -166,8 +201,7 @@ pub enum EngineEvent<T> {
     EpochCompleted(EpochCompleted<T>),
     Improved(EngineImproved<T>),
     LimitTriggered(LimitTriggered),
-    LogInfo(String),
-    LogWarn(String),
+    Log(LogEvent),
 }
 
 impl<T> EngineEvent<T> {
@@ -211,8 +245,10 @@ impl<T> Debug for EngineEvent<T> {
                 "LimitTriggered(generation={}, kind={}, description={})",
                 l.generation, l.kind, l.description
             ),
-            EngineEvent::LogInfo(msg) => write!(f, "LogInfo({})", msg),
-            EngineEvent::LogWarn(msg) => write!(f, "LogWarn({})", msg),
+            EngineEvent::Log(msg) => match msg.0 {
+                crate::events::LogLevel::Info => write!(f, "LogInfo({})", msg.1),
+                crate::events::LogLevel::Warn => write!(f, "LogWarn({})", msg.1),
+            },
         }
     }
 }

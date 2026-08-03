@@ -15,6 +15,8 @@ class EventType(Enum):
     EPOCH_START = "epoch_start_event"
     EPOCH_COMPLETE = "epoch_complete_event"
     ENGINE_IMPROVEMENT = "engine_improvement_event"
+    LIMIT_TRIGGERED = "limit_triggered_event"
+    LOG = "log_event"
 
 
 class EngineEvent(RsObject):
@@ -53,6 +55,10 @@ class EngineEvent(RsObject):
             return EventType.EPOCH_COMPLETE
         elif event_type_str == "engine_improvement_event":
             return EventType.ENGINE_IMPROVEMENT
+        elif event_type_str == "limit_triggered_event":
+            return EventType.LIMIT_TRIGGERED
+        elif event_type_str == "log_event":
+            return EventType.LOG
         else:
             raise ValueError(f"Unknown event type: {event_type_str}")
 

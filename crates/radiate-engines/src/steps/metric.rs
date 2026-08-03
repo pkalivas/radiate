@@ -1,5 +1,4 @@
-use crate::events::LogWarn;
-use crate::steps::EngineStep;
+use crate::{events::LogEvent, steps::EngineStep};
 use radiate_core::{
     Chromosome, Ecosystem, Evaluate, MessageBroker, MetricSet, MetricUpdate, Objective, Score,
     SmallStr, math::distribution, metric_names, phenotype::PhenotypeId, rate::ExprSet,
@@ -146,7 +145,7 @@ impl MetricStep {
             self.stagnation_count += 1;
 
             if !self.warned_this_streak && self.stagnation_count >= STAGNATION_WARNING_THRESHOLD {
-                self.event_system.send(LogWarn(format!(
+                self.event_system.send(LogEvent::warn(format!(
                     "no improvement in {} generations",
                     self.stagnation_count
                 )));

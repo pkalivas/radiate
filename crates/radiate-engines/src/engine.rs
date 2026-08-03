@@ -1,15 +1,9 @@
-use std::fmt::Debug;
-
 use crate::events::{EngineImproved, EngineMessage, EngineStopped, EpochCompleted, EpochStart};
 use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
 use crate::{GenerationView, builder::GeneticEngineBuilder};
 use crate::{context::EvolutionContext, events::EngineStart};
-use radiate_core::{
-    Engine, EventContext, Message, MessageBroker,
-    actor::{EventSubscriber, SubscriptionBuilder},
-    engine::EngineState,
-};
+use radiate_core::{Engine, MessageBroker, actor::SubscriptionBuilder, engine::EngineState};
 use radiate_core::{EngineStream, error::Result};
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
@@ -131,11 +125,11 @@ where
         EngineRuntime::new(self)
     }
 
-    pub fn subscribe<M>(&mut self, handler: impl FnMut(&M, &EventContext) + Send + Sync + 'static)
+    pub fn on<M>(&self) -> SubscriptionBuilder<'_, M>
     where
         M: EngineMessage,
     {
-        self.broker.on::<M>().handle(handler);
+        self.broker.on::<M>()
     }
 }
 
@@ -221,27 +215,11 @@ where
         F: Fn(&Self::View<'_>) -> bool,
     {
         loop {
-            match self.step().map(|_| GenerationView::new(&self.context)) {
-                Ok(epoch) => {
-                    if limit(&epoch) {
-                        return Ok(epoch.into());
-                    }
-                }
-                Err(e) => {
-                    return Err(e);
-                }
+            let view = self.step().map(|_| GenerationView::new(&self.context))?;
+            if !limit(&view) {
+                break Ok(self.epoch());
             }
         }
-    }
-}
-
-impl<C, T> EventSubscriber for GeneticEngine<C, T>
-where
-    C: Chromosome + Clone,
-    T: Clone + Send + Sync + 'static,
-{
-    fn on<M: Message + Debug>(&self) -> SubscriptionBuilder<'_, M> {
-        self.broker.on::<M>()
     }
 }
 

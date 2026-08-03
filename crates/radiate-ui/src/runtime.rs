@@ -1,10 +1,9 @@
 use crate::app::{App, GenerationEvent, InputEvent};
 use crate::state::LogLevel;
 use color_eyre::{Result, eyre::Context};
-use radiate_engines::events::{LogInfo, LogWarn};
 use radiate_engines::{
     Chromosome, Engine, EngineState, EngineStream, EventContext, Generation, GenerationView,
-    GeneticEngine, error::RadiateResult, sync::ArcExt,
+    GeneticEngine, error::RadiateResult, events::LogEvent, sync::ArcExt,
 };
 use radiate_engines::{EngineRuntime, EvolutionContext, ThreadSync};
 use std::{
@@ -82,23 +81,26 @@ where
         engine: &mut GeneticEngine<C, T>,
         dispatcher: Arc<mpsc::Sender<InputEvent<C>>>,
     ) {
-        let d = Arc::clone(&dispatcher);
-        engine.subscribe::<LogWarn>(move |msg: &LogWarn, _: &EventContext| {
-            d.send(InputEvent::Log(LogLevel::Warn, msg.0.clone()))
-                .unwrap();
-        });
-
-        let d = Arc::clone(&dispatcher);
-        engine.subscribe::<LogInfo>(move |msg: &LogInfo, _: &EventContext| {
-            d.send(InputEvent::Log(LogLevel::Info, msg.0.clone()))
-                .unwrap();
-        });
+        let dispatch = Arc::clone(&dispatcher);
+        engine
+            .on::<LogEvent>()
+            .handle(move |msg: &LogEvent, _: &EventContext| {
+                dispatch
+                    .send(InputEvent::Log(
+                        match msg.level() {
+                            radiate_engines::events::LogLevel::Info => LogLevel::Info,
+                            radiate_engines::events::LogLevel::Warn => LogLevel::Warn,
+                        },
+                        msg.message().to_string(),
+                    ))
+                    .unwrap();
+            });
     }
 }
 
 impl<C, T> Engine for TuiEngine<C, T>
 where
-    C: Chromosome + Clone,
+    C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
     type Ctx = EvolutionContext<C, T>;

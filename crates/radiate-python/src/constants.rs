@@ -73,6 +73,9 @@ pub mod components {
         EPOCH_START_EVENT = "epoch_start_event";
         EPOCH_COMPLETE_EVENT = "epoch_complete_event";
         ENGINE_IMPROVEMENT_EVENT = "engine_improvement_event";
+        LIMIT_TRIGGERED_EVENT = "limit_triggered_event";
+        LOG_EVENT = "log_event";
+
     }
 }
 

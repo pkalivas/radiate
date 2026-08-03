@@ -1,6 +1,6 @@
 #[cfg(feature = "serde")]
 use crate::FileWriter;
-use crate::{EvolutionContext, Generation, runtime::RuntimeAction};
+use crate::{EvolutionContext, Generation, events::LogEvent, runtime::RuntimeAction};
 use radiate_core::{Chromosome, Engine, Objective, error::RadiateResult};
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -35,13 +35,13 @@ where
                     time
                 );
 
-                ctx.send(crate::events::LogInfo(str));
+                ctx.send(LogEvent::info(str));
             }
             Objective::Multi(_) => {
                 let front_size = ctx.metrics.front_size();
                 let front_size_value = front_size.map(|ent| ent.last_value()).unwrap_or(0.0);
 
-                ctx.send(crate::events::LogInfo(format!(
+                ctx.send(LogEvent::info(format!(
                     "Epoch {:<4} | Front Size: {:.3} | Time: {:>5.2?}",
                     ctx.index, front_size_value, time
                 )));

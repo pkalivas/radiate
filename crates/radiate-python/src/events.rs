@@ -79,14 +79,11 @@ impl PyEventHandler {
                     .expect("Failed to convert event.");
                 PyEngineEvent::improvement(s.index, best, s.score.as_ref().to_vec())
             }
-            _ => PyEngineEvent {
-                event_type: crate::constants::components::START_EVENT.into(),
-                index: None,
-                best: None,
-                score: None,
-                metrics: None,
-                objective: None,
-            },
+            EngineEvent::LimitTriggered(trigger) => PyEngineEvent::limit_triggered(
+                trigger.index(),
+                Some(trigger.description().to_string()),
+            ),
+            EngineEvent::Log(log) => PyEngineEvent::log_event(log.1.to_owned()),
         }
     }
 }

@@ -202,13 +202,7 @@ where
         let sync = self.params.evaluation_params.sync.clone();
         let executor = self.params.evaluation_params.event_executor.clone();
 
-        let new_executor = if !executor.is_parallel() {
-            Arc::new(Executor::new_parallel())
-        } else {
-            executor.clone()
-        };
-
-        let new_broker = MessageBroker::from((new_executor, sync, subscribers));
+        let new_broker = MessageBroker::from((executor, sync, subscribers));
 
         if new_broker.has_subscribers::<EngineEvent<T>>() {
             crate::events::event_relay::<T>(&new_broker);

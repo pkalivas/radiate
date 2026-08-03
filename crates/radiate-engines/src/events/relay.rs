@@ -1,9 +1,8 @@
-use radiate_core::{EventContext, MessageBroker, actor::EventSubscriber};
-
 use crate::events::{
     EngineEvent, EngineImproved, EngineStart, EngineStopped, EpochCompleted, EpochStart,
-    LimitTriggered, LogInfo, LogWarn,
+    LimitTriggered, LogEvent,
 };
+use radiate_core::{EventContext, MessageBroker};
 
 /// The fan-in: one subscription per concrete engine-event type, each just
 /// re-wrapping its message into `EngineEvent<T>` and re-publishing it on
@@ -56,14 +55,8 @@ where
         });
 
     system
-        .on::<LogInfo>()
-        .handle(|msg: &LogInfo, ctx: &EventContext| {
-            ctx.send(EngineEvent::<T>::LogInfo(msg.0.clone()));
-        });
-
-    system
-        .on::<LogWarn>()
-        .handle(|msg: &LogWarn, ctx: &EventContext| {
-            ctx.send(EngineEvent::<T>::LogWarn(msg.0.clone()));
+        .on::<LogEvent>()
+        .handle(|msg: &LogEvent, ctx: &EventContext| {
+            ctx.send(EngineEvent::<T>::Log(msg.clone()));
         });
 }

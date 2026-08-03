@@ -47,6 +47,7 @@ pub struct PyEngineEvent {
     pub score: Option<Vec<f32>>,
     pub metrics: Option<PyMetricSet>,
     pub objective: Option<Vec<&'static str>>,
+    pub description: Option<String>,
 }
 
 #[pymethods]
@@ -95,6 +96,7 @@ impl PyEngineEvent {
             score: None,
             metrics: None,
             objective: None,
+            description: None,
         }
     }
 
@@ -111,6 +113,7 @@ impl PyEngineEvent {
             score: Some(score),
             metrics: Some(metrics),
             objective: None,
+            description: None,
         }
     }
 
@@ -122,6 +125,7 @@ impl PyEngineEvent {
             score: None,
             metrics: None,
             objective: None,
+            description: None,
         }
     }
 
@@ -139,6 +143,7 @@ impl PyEngineEvent {
             score: Some(score),
             metrics: Some(metrics),
             objective: Some(objective.into()),
+            description: None,
         }
     }
 
@@ -150,6 +155,31 @@ impl PyEngineEvent {
             score: Some(score),
             metrics: None,
             objective: None,
+            description: None,
+        }
+    }
+
+    pub fn limit_triggered(idx: usize, description: Option<String>) -> PyEngineEvent {
+        PyEngineEvent {
+            event_type: crate::constants::components::LIMIT_TRIGGERED_EVENT.into(),
+            index: Some(idx),
+            best: None,
+            score: None,
+            metrics: None,
+            objective: None,
+            description,
+        }
+    }
+
+    pub fn log_event(description: String) -> PyEngineEvent {
+        PyEngineEvent {
+            event_type: crate::constants::components::LOG_EVENT.into(),
+            index: None,
+            best: None,
+            score: None,
+            metrics: None,
+            objective: None,
+            description: Some(description),
         }
     }
 }

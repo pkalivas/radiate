@@ -32,10 +32,6 @@ pub struct ActorSystemStats {
     pub processed: u64,
 }
 
-pub trait EventSubscriber {
-    fn on<M: Message + Debug>(&self) -> SubscriptionBuilder<'_, M>;
-}
-
 pub struct SubscriptionBuilder<'a, M: Message> {
     pub(crate) system: &'a MessageBroker,
     pub(crate) _marker: PhantomData<M>,
@@ -85,6 +81,13 @@ impl MessageBroker {
             .unwrap()
             .get(&TypeId::of::<M>())
             .is_some_and(|sub| sub.num_actors() > 0)
+    }
+
+    pub fn on<M: Message + Debug>(&self) -> SubscriptionBuilder<'_, M> {
+        SubscriptionBuilder {
+            system: self,
+            _marker: PhantomData,
+        }
     }
 
     /// Register a handler for message type `M`. Takes `&self` — subscribing
@@ -189,15 +192,6 @@ impl MessageBroker {
 
         if let Some(sub) = registry.get(&TypeId::of::<M>()) {
             sub.send(&envelope, ctx, &executor);
-        }
-    }
-}
-
-impl EventSubscriber for MessageBroker {
-    fn on<M: Message + Debug>(&self) -> SubscriptionBuilder<'_, M> {
-        SubscriptionBuilder {
-            system: self,
-            _marker: PhantomData,
         }
     }
 }
