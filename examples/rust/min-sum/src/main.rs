@@ -13,7 +13,7 @@ fn main() {
         .mutator(SwapMutator::new(0.05))
         .crossover(UniformCrossover::new(0.5))
         .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
-        .on_epoch_complete(|event: EpochCompleted<Vec<i32>>, _ctx: &EventContext| {
+        .on_epoch_complete(|_: EpochCompleted<Vec<i32>>, _ctx: &EventContext| {
             // println!(
             //     "Epoch {}: best = {:?}, score = {}, metrics = {:?}, objective = {:?}",
             //     event.index,

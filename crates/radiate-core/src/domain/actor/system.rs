@@ -6,7 +6,7 @@ use crate::ThreadSync;
 use std::any::TypeId;
 use std::collections::HashMap;
 use std::fmt;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 
 /// Everyone subscribed to one concrete message type. `type_name` is captured
 /// once, at first subscription, purely for `Debug` — `TypeId` alone prints
@@ -25,18 +25,26 @@ impl fmt::Debug for Subscription {
     }
 }
 
-type ActorRegistry = Arc<Mutex<HashMap<TypeId, Subscription>>>;
+type ActorRegistry = Arc<RwLock<HashMap<TypeId, Subscription>>>;
 
 /// A small, generic actor system: subscribers are keyed by the concrete
 /// message type they registered for, each with its own mailbox. Sending an
 /// `M` only ever touches actors that subscribed to `M` — unrelated message
 /// types (a different `M2`) live under a different `TypeId` and are never
 /// even looked at.
+///
+/// The registry, executor, and sync handle are all `RwLock`, not `Mutex`:
+/// every one of them is read on every `send` (from potentially many
+/// producer threads concurrently) but written only rarely — `subscribe`
+/// typically only during setup, `set_executor`/`set_sync` typically exactly
+/// once, early, before real traffic starts. A plain `Mutex` would serialize
+/// all of that read-mostly traffic behind one lock regardless of message
+/// type or thread.
 #[derive(Clone)]
 pub struct ActorSystem {
     actors: ActorRegistry,
-    executor: Arc<Mutex<Arc<Executor>>>,
-    sync: Arc<Mutex<ThreadSync>>,
+    executor: Arc<RwLock<Arc<Executor>>>,
+    sync: Arc<RwLock<ThreadSync>>,
 }
 
 impl ActorSystem {
@@ -46,9 +54,9 @@ impl ActorSystem {
 
     pub fn with_sync(executor: Arc<Executor>, sync: ThreadSync) -> Self {
         ActorSystem {
-            actors: Arc::new(Mutex::new(HashMap::new())),
-            executor: Arc::new(Mutex::new(executor)),
-            sync: Arc::new(Mutex::new(sync)),
+            actors: Arc::new(RwLock::new(HashMap::new())),
+            executor: Arc::new(RwLock::new(executor)),
+            sync: Arc::new(RwLock::new(sync)),
         }
     }
 
@@ -56,7 +64,7 @@ impl ActorSystem {
     /// untouched — this only changes how `send` schedules drains from this
     /// point on.
     pub fn set_executor(&self, executor: Arc<Executor>) {
-        *self.executor.lock().unwrap() = executor;
+        *self.executor.write().unwrap() = executor;
     }
 
     /// Swap the `ThreadSync` handed to actors from this point on. Used to
@@ -65,15 +73,15 @@ impl ActorSystem {
     /// so `ctx.sync` in any handler and `engine.control()` are the same
     /// object.
     pub fn set_sync(&self, sync: ThreadSync) {
-        *self.sync.lock().unwrap() = sync;
+        *self.sync.write().unwrap() = sync;
     }
 
     pub fn sync(&self) -> ThreadSync {
-        self.sync.lock().unwrap().clone()
+        self.sync.read().unwrap().clone()
     }
 
     fn current_executor(&self) -> Arc<Executor> {
-        Arc::clone(&self.executor.lock().unwrap())
+        Arc::clone(&self.executor.read().unwrap())
     }
 
     fn current_context(&self) -> EventContext {
@@ -95,7 +103,7 @@ impl ActorSystem {
     {
         let actor: Arc<dyn AnyActor> = Actor::new(Box::new(handler));
         self.actors
-            .lock()
+            .write()
             .unwrap()
             .entry(TypeId::of::<M>())
             .or_insert_with(|| Subscription {
@@ -112,7 +120,7 @@ impl ActorSystem {
     /// help with that since by the time it's called, `M` already exists.
     pub fn has_subscribers<M: Message>(&self) -> bool {
         self.actors
-            .lock()
+            .read()
             .unwrap()
             .get(&TypeId::of::<M>())
             .is_some_and(|sub| !sub.actors.is_empty())
@@ -126,15 +134,12 @@ impl ActorSystem {
     /// message — under a `Serial` executor, `tell` drains the actor's
     /// mailbox (and so runs the handler) inline, on this same call stack.
     /// A handler that calls `EventContext::send`/`has_subscribers` back
-    /// into this same `ActorSystem` would then try to re-lock a `Mutex`
-    /// this thread already holds, which deadlocks instead of blocking
-    /// briefly (`std::sync::Mutex` isn't reentrant).
-    /// Send a message. Only actors subscribed to `TypeId::of::<M>()` are
-    /// touched — if nobody's listening for this kind, this is just a map
-    /// lookup, no payload cloning happens.
+    /// into this same `ActorSystem` would then try to re-lock a lock this
+    /// thread already holds, which deadlocks instead of blocking briefly
+    /// (neither `Mutex` nor `RwLock` in `std` are reentrant).
     pub fn send<M: Message + Clone>(&self, message: M) {
         let actors = {
-            let registry = self.actors.lock().unwrap();
+            let registry = self.actors.read().unwrap();
             match registry.get(&TypeId::of::<M>()) {
                 Some(sub) => sub
                     .actors
@@ -161,10 +166,10 @@ impl Default for ActorSystem {
 
 impl fmt::Debug for ActorSystem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let actors = self.actors.lock().unwrap();
+        let actors = self.actors.read().unwrap();
         f.debug_struct("ActorSystem")
             .field("subscriptions", &actors.values().collect::<Vec<_>>())
-            .field("executor", &self.executor.lock().unwrap())
+            .field("executor", &self.executor.read().unwrap())
             .finish()
     }
 }
@@ -172,7 +177,7 @@ impl fmt::Debug for ActorSystem {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Condvar;
+    use std::sync::{Condvar, Mutex};
     use std::time::Duration;
 
     #[derive(Clone, Debug, PartialEq)]

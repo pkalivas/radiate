@@ -4,7 +4,7 @@ use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineRuntime, ThreadSync};
 use crate::{EventBus, Generation};
 use crate::{GenerationView, builder::GeneticEngineBuilder};
-use radiate_core::{Engine, EventHandler, Message, engine::EngineState};
+use radiate_core::{Engine, EventContext, Message, engine::EngineState};
 use radiate_core::{EngineStream, error::Result};
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
@@ -126,12 +126,11 @@ where
         EngineRuntime::new(self)
     }
 
-    pub fn subscribe<M, H>(self, handler: H) -> Self
+    pub fn subscribe<M>(self, handler: impl FnMut(M, &EventContext) + Send + Sync + 'static) -> Self
     where
         M: Message,
-        H: EventHandler<M> + 'static,
     {
-        self.bus.subscribe::<M, H>(handler);
+        self.bus.subscribe::<M, _>(handler);
         self
     }
 }
