@@ -47,7 +47,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
     }
 
     pub fn send<M: Send + Sync + Clone + 'static>(&self, message: M) {
-        self.actor_system.publish(message);
+        self.actor_system.context().publish(message);
     }
 
     pub fn get_or_create_control(&mut self) -> ThreadSync {

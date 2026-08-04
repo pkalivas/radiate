@@ -9,7 +9,6 @@ mod problem;
 mod selectors;
 mod species;
 
-use crate::builder::filters::FilterParams;
 use crate::builder::objectives::OptimizeParams;
 use crate::builder::population::PopulationParams;
 use crate::builder::problem::ProblemParams;
@@ -30,6 +29,7 @@ use crate::{
     TournamentSelector, context::EvolutionContext,
 };
 use crate::{Generation, Result};
+use crate::{LoggingActor, builder::filters::FilterParams};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::{Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Valid, metric_names};
@@ -203,6 +203,8 @@ where
         let executor = self.params.evaluation_params.broker_executor.clone();
 
         let new_broker = ActorSystem::from((executor, bus));
+
+        new_broker.listen(LoggingActor);
 
         // struct TestActor<T: Send + 'static> {
         //     counter: Arc<Mutex<u32>>,

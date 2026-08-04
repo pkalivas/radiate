@@ -1,15 +1,15 @@
 use crate::{Actor, MessageHandler, actors::context::ActorContext};
 
 pub trait EventHandler<M>: Send + Sync {
-    fn handle(&mut self, message: &M, ctx: &ActorContext);
+    fn handle(&mut self, message: &M);
 }
 
 impl<M, F> EventHandler<M> for F
 where
-    F: FnMut(&M, &ActorContext) + Send + Sync,
+    F: FnMut(&M) + Send + Sync,
 {
-    fn handle(&mut self, message: &M, ctx: &ActorContext) {
-        self(message, ctx)
+    fn handle(&mut self, message: &M) {
+        self(message)
     }
 }
 

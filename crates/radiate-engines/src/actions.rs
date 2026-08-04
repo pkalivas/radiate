@@ -1,4 +1,4 @@
-use crate::{ActorRef, events::LogEvent};
+use crate::{Addr, events::LogEvent};
 use crate::{EvolutionContext, Generation, LoggingActor, events::Log, runtime::RuntimeAction};
 #[cfg(feature = "serde")]
 use crate::{FileWriter, events::CheckpointSaved};
@@ -8,7 +8,7 @@ use serde::Serialize;
 #[cfg(feature = "serde")]
 use std::path::PathBuf;
 
-pub(crate) struct LoggingAction(pub usize, pub ActorRef<LoggingActor>);
+pub(crate) struct LoggingAction(pub usize, pub Addr<LoggingActor>);
 
 impl<C, T, E> RuntimeAction<E> for LoggingAction
 where

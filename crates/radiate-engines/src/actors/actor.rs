@@ -1,7 +1,4 @@
-use crate::{
-    ActorPanicked,
-    actors::{context::ActorContext, message::DeadLetter},
-};
+use crate::actors::{context::ActorContext, message::DeadLetter};
 use radiate_utils::sentry_id;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
@@ -32,15 +29,16 @@ pub trait MessageHandler<M: Send + 'static>: Actor {
 type Envelope<A> = Box<dyn FnOnce(&mut A, &ActorContext) + Send>;
 
 pub struct ActorCell<A: Actor> {
-    pub(crate) id: ActorId,
-    pub(crate) actor: Arc<Mutex<A>>,
-    pub(crate) receiver: Arc<Mutex<Receiver<Envelope<A>>>>,
-    pub(crate) scheduled: AtomicBool,
-    pub(crate) stopped: AtomicBool,
-    pub(crate) context: ActorContext,
+    pub(super) id: ActorId,
+    pub(super) actor: Arc<Mutex<A>>,
+    pub(super) receiver: Arc<Mutex<Receiver<Envelope<A>>>>,
+    pub(super) scheduled: AtomicBool,
+    pub(super) stopped: AtomicBool,
+    pub(super) context: ActorContext,
 }
 
 impl<A: Actor> ActorCell<A> {
+    #[inline]
     fn deliver(&self, actor: &mut A, ctx: &ActorContext, envelope: Envelope<A>) {
         let maybe_success =
             std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| envelope(actor, ctx)))
@@ -51,24 +49,21 @@ impl<A: Actor> ActorCell<A> {
                         .unwrap_or_else(|| "actor panicked".to_string())
                 });
 
-        if let Err(reason) = maybe_success {
-            self.context.publish(ActorPanicked {
-                actor_id: self.id,
-                reason: reason.clone(),
-            });
-
-            if let Some(parent) = &ctx.parent {
-                parent.report_child_failure(reason.clone());
-            }
+        if let Err(reason) = maybe_success
+            && let Some(parent) = &ctx.parent
+        {
+            parent.report_child_failure(reason.clone());
         }
     }
 
+    #[inline]
     fn try_claim(&self) -> bool {
         self.scheduled
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .is_ok()
     }
 
+    #[inline]
     fn process_batch(self: Arc<Self>) {
         loop {
             {
@@ -102,12 +97,12 @@ impl<A: Actor> ActorCell<A> {
     }
 }
 
-pub struct ActorRef<A: Actor> {
+pub struct Addr<A: Actor> {
     pub(crate) sender: Sender<Envelope<A>>,
     pub(crate) cell: Arc<ActorCell<A>>,
 }
 
-impl<A: Actor + 'static> ActorRef<A> {
+impl<A: Actor + 'static> Addr<A> {
     pub fn id(&self) -> ActorId {
         self.cell.id
     }
@@ -194,9 +189,9 @@ impl<A: Actor + 'static> ActorRef<A> {
     }
 }
 
-impl<A: Actor> Clone for ActorRef<A> {
+impl<A: Actor> Clone for Addr<A> {
     fn clone(&self) -> Self {
-        ActorRef {
+        Addr {
             sender: self.sender.clone(),
             cell: Arc::clone(&self.cell),
         }

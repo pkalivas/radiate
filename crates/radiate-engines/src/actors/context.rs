@@ -1,5 +1,5 @@
 use crate::{
-    Actor, ActorRef, Executor, MessageHandler,
+    Actor, Addr, Executor, MessageHandler,
     actors::{actor::AnyActorRef, system::MessageBus},
 };
 use std::{
@@ -16,19 +16,19 @@ pub struct ActorRegistry {
 }
 
 impl ActorRegistry {
-    pub(super) fn insert<A: Actor + 'static>(&self, name: String, actor_ref: ActorRef<A>) {
+    pub(super) fn insert<A: Actor + 'static>(&self, name: String, actor_ref: Addr<A>) {
         self.registry
             .write()
             .unwrap()
             .insert(name, Box::new(actor_ref));
     }
 
-    pub(super) fn get<A: Actor + 'static>(&self, name: &str) -> Option<ActorRef<A>> {
+    pub(super) fn get<A: Actor + 'static>(&self, name: &str) -> Option<Addr<A>> {
         self.registry
             .read()
             .unwrap()
             .get(name)
-            .and_then(|b| b.downcast_ref::<ActorRef<A>>().cloned())
+            .and_then(|b| b.downcast_ref::<Addr<A>>().cloned())
     }
 }
 
@@ -81,11 +81,11 @@ impl ActorContext {
 
     /// The actor registered under its own type name — the singleton case,
     /// where `spawn` (rather than `spawn_named`) chose the name for you.
-    pub fn actor<A: Actor + 'static>(&self) -> Option<ActorRef<A>> {
+    pub fn actor<A: Actor + 'static>(&self) -> Option<Addr<A>> {
         self.named::<A>(std::any::type_name::<A>())
     }
 
-    pub fn named<A: Actor + 'static>(&self, name: &str) -> Option<ActorRef<A>> {
+    pub fn named<A: Actor + 'static>(&self, name: &str) -> Option<Addr<A>> {
         self.registry.get::<A>(name)
     }
 }

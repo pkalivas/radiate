@@ -4,7 +4,7 @@ mod handler;
 mod message;
 mod system;
 
-pub use actor::{Actor, ActorId, ActorRef, MessageHandler, Recipient};
+pub use actor::{Actor, ActorId, Addr, MessageHandler, Recipient};
 pub use context::ActorContext;
 pub use handler::EventHandler;
 pub use message::{ActorPanicked, ActorSubscribed};

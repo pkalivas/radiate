@@ -195,23 +195,26 @@ where
         }
 
         if matches!(self.context.index, 0) {
-            self.broker.publish(EngineStart);
+            self.broker.context().publish(EngineStart);
         }
 
-        self.broker.publish(EpochStart::from(&self.context));
+        self.broker.context().publish(EpochStart::from(&self.context));
         self.pipeline.run(&mut self.context)?;
         if self.context.try_advance_one()? {
             self.broker
+                .context()
                 .lazy_publish(|| Improvement::from(&self.context));
         }
 
         self.broker
+            .context()
             .lazy_publish(|| EpochComplete::from(&self.context));
 
         // Ecosystem is a heavy clone, but this only clones if we have a subscriber
         // and once it is cloned, the snapshot is backed by an Arc<Ecosystem> so
         // we don't pay the clone cost twice.
         self.broker
+            .context()
             .lazy_publish(|| EcosystemSnapshot::from(&self.context));
 
         Ok(EngineState::Running)
@@ -262,6 +265,6 @@ where
     T: Clone + Send + Sync + 'static,
 {
     fn drop(&mut self) {
-        self.broker.publish(EngineStop::from(&self.context));
+        self.broker.context().publish(EngineStop::from(&self.context));
     }
 }

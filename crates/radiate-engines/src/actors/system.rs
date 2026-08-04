@@ -2,7 +2,7 @@ use crate::{
     ActorContext, ActorId, Executor,
     actors::{
         MessageHandler,
-        actor::{Actor, ActorCell, ActorRef, Recipient},
+        actor::{Actor, ActorCell, Addr, Recipient},
         context::ActorRegistry,
         handler::FnActor,
     },
@@ -33,6 +33,22 @@ impl ActorSystem {
         self.context.clone()
     }
 
+    /// Spawns `actor` as the singleton for type `A`, registered under its
+    /// own type name. A second `spawn::<A>` replaces it in the registry —
+    /// same singleton-per-type contract as before, just keyed by name now
+    /// instead of a separate `TypeId` map.
+    pub fn spawn<A: Actor + 'static>(&self, actor: A) -> Addr<A> {
+        self.spawn_named(std::any::type_name::<A>(), actor)
+    }
+
+    pub fn spawn_named<A: Actor + 'static>(&self, name: &str, actor: A) -> Addr<A> {
+        let actor_ref = self.build_addr(actor);
+        self.context
+            .registry
+            .insert(name.to_string(), actor_ref.clone());
+        actor_ref
+    }
+
     /// Spawns `actor` and subscribes it to the bus for `M` — the shared
     /// instance forwards every published `M` into its own mailbox via
     /// `MessageHandler<M>::handle`.
@@ -52,36 +68,6 @@ impl ActorSystem {
         self.subscribe_with::<M, _>(move |message, ctx| handler(&message, ctx));
     }
 
-    /// Spawns `actor` as the singleton for type `A`, registered under its
-    /// own type name. A second `spawn::<A>` replaces it in the registry —
-    /// same singleton-per-type contract as before, just keyed by name now
-    /// instead of a separate `TypeId` map.
-    pub fn spawn<A: Actor + 'static>(&self, actor: A) -> ActorRef<A> {
-        self.spawn_named(std::any::type_name::<A>(), actor)
-    }
-
-    pub fn spawn_named<A: Actor + 'static>(&self, name: &str, actor: A) -> ActorRef<A> {
-        let actor_ref = self.build_ref(actor);
-        self.context
-            .registry
-            .insert(name.to_string(), actor_ref.clone());
-        actor_ref
-    }
-
-    pub fn publish<M: Send + Clone + 'static>(&self, message: M) {
-        self.context.bus.publish(message);
-    }
-
-    pub fn has_subscribers<M: Send + 'static>(&self) -> bool {
-        self.context.bus.has_subscribers::<M>()
-    }
-
-    pub fn lazy_publish<M: Send + Clone + 'static>(&self, func: impl FnOnce() -> M) {
-        if self.has_subscribers::<M>() {
-            self.publish(func());
-        }
-    }
-
     /// Spawns an unregistered `FnActor<M>` wired to call `f` on each
     /// delivery, and subscribes its `Recipient<M>` to the bus. The shared
     /// plumbing behind both `subscribe` (closure reacts inline) and
@@ -94,14 +80,14 @@ impl ActorSystem {
         let actor = FnActor {
             handler: Box::new(f),
         };
-        let actor_ref = self.build_ref(actor);
+        let actor_ref = self.build_addr(actor);
         self.context.bus.subscribe(actor_ref.recipient::<M>());
     }
 
-    fn build_ref<A: Actor + 'static>(&self, actor: A) -> ActorRef<A> {
+    fn build_addr<A: Actor + 'static>(&self, actor: A) -> Addr<A> {
         let (sender, receiver) = std::sync::mpsc::channel();
 
-        ActorRef {
+        Addr {
             sender,
             cell: Arc::new(ActorCell {
                 id: ActorId::new(),
@@ -132,13 +118,6 @@ impl From<(Arc<Executor>, Arc<MessageBus>)> for ActorSystem {
         }
     }
 }
-
-// impl Deref for ActorSystem {
-//     type Target = ActorContext;
-//     fn deref(&self) -> &ActorContext {
-//         &self.context
-//     }
-// }
 
 impl Default for ActorSystem {
     fn default() -> Self {
@@ -438,7 +417,7 @@ mod tests {
             cv.notify_all();
         });
 
-        system.publish(Counted(42));
+        system.context().publish(Counted(42));
         wait_for(&signal, 1);
 
         assert_eq!(*seen.lock().unwrap(), vec![42]);
@@ -460,8 +439,8 @@ mod tests {
         });
 
         // Nobody subscribed to Warning — should be a silent no-op.
-        system.publish(Warning("disk almost full"));
-        system.publish(Counted(1));
+        system.context().publish(Warning("disk almost full"));
+        system.context().publish(Counted(1));
         wait_for(&signal, 1);
 
         assert_eq!(*seen.lock().unwrap(), vec![1]);
@@ -493,7 +472,7 @@ mod tests {
             cv.notify_all();
         });
 
-        system.publish(Counted(9));
+        system.context().publish(Counted(9));
         wait_for(&signal_a, 1);
         wait_for(&signal_b, 1);
 
@@ -504,18 +483,18 @@ mod tests {
     #[test]
     fn publish_with_no_subscribers_does_not_panic() {
         let system = ActorSystem::new(Arc::new(Executor::default()));
-        system.publish(Counted(1)); // should just be dropped
+        system.context().publish(Counted(1)); // should just be dropped
     }
 
     #[test]
     fn has_subscribers_reflects_registration_state() {
         let system = ActorSystem::new(Arc::new(Executor::default()));
-        assert!(!system.has_subscribers::<Counted>());
+        assert!(!system.context().has_subscribers::<Counted>());
 
         system.subscribe::<Counted>(|_msg, _ctx| {});
 
-        assert!(system.has_subscribers::<Counted>());
-        assert!(!system.has_subscribers::<Warning>());
+        assert!(system.context().has_subscribers::<Counted>());
+        assert!(!system.context().has_subscribers::<Warning>());
     }
 
     // ---------------------------------------------------------------
@@ -552,7 +531,7 @@ mod tests {
 
         let start = Instant::now();
         for i in 0..N {
-            system.publish(Counted(i as i32));
+            system.context().publish(Counted(i as i32));
         }
         let ok = wait_until(Duration::from_secs(20), || {
             total_received.load(Ordering::Relaxed) == target

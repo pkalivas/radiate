@@ -46,8 +46,11 @@ impl MetricCollector {
     }
 }
 
-impl<T: Send + Sync + 'static> EventHandler<EpochComplete<T>> for MetricCollector {
-    fn handle(&mut self, message: &EpochComplete<T>, _: &ActorContext) {
+impl<T> EventHandler<EpochComplete<T>> for MetricCollector
+where
+    T: Clone + Send + Sync + 'static,
+{
+    fn handle(&mut self, message: &EpochComplete<T>) {
         self.history.lock().unwrap().push(message.metrics.clone());
     }
 }
@@ -70,13 +73,11 @@ impl MessageHandler<LogEvent> for LoggingActor {
             LogEvent::LimitTriggered(event) => {
                 tracing::info!("Limit triggered: {} - {}", event.kind, event.description);
             }
-            LogEvent::LimitProgress(event) => {
-                tracing::info!("Limit progress: {}", event.description(),);
-            }
             LogEvent::Log(event) => match event.level {
                 crate::events::LogLevel::Info => tracing::info!("{}", event.message),
                 crate::events::LogLevel::Warn => tracing::warn!("{}", event.message),
             },
+            _ => {}
         }
     }
 }
