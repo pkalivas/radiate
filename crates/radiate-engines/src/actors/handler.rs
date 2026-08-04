@@ -1,4 +1,4 @@
-use crate::{Actor, actors::system::ActorContext};
+use crate::{Actor, MessageHandler, actors::context::ActorContext};
 
 pub trait EventHandler<M>: Send + Sync {
     fn handle(&mut self, message: &M, ctx: &ActorContext);
@@ -18,11 +18,11 @@ pub struct FnActor<M: Send> {
 }
 
 impl<M: Send> Actor for FnActor<M> {
-    type Message = M;
+    fn on_child_failure(&mut self, _: String) {}
+}
 
-    fn receive(&mut self, message: Self::Message, ctx: &ActorContext) {
+impl<M: Send + 'static> MessageHandler<M> for FnActor<M> {
+    fn handle(&mut self, message: M, ctx: &ActorContext) {
         (self.handler)(message, ctx);
     }
-
-    fn on_child_failure(&mut self, _: String) {}
 }

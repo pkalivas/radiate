@@ -1,7 +1,7 @@
-use crate::builder::config::EngineConfig;
+use crate::{ActorSystem, builder::config::EngineConfig};
 use crate::{Chromosome, ThreadSync};
+use radiate_core::error::RadiateResult;
 use radiate_core::rate::ExprSet;
-use radiate_core::{ActorSystem, error::RadiateResult};
 use radiate_core::{
     Ecosystem, Front, MetricSet, Objective, Phenotype, Problem, Score, metric, metric_names,
 };
@@ -46,7 +46,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         &self.actor_system
     }
 
-    pub fn send<M: Send + 'static>(&self, message: M) {
+    pub fn send<M: Send + Sync + Clone + 'static>(&self, message: M) {
         self.actor_system.publish(message);
     }
 

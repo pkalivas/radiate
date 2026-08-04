@@ -2,10 +2,10 @@
 
 use radiate_alters::{BlendCrossover, GaussianMutator, UniformCrossover, UniformMutator};
 use radiate_core::{
-    ActorSystem, AlterContext, Alterer, BitChromosome, Chromosome, Codec, Crossover, Ecosystem,
-    Executor, Expr, FloatChromosome, FloatCodec, Gene, Genotype, IntChromosome, Mutate, Objective,
-    Optimize, Phenotype, Population, Score, Species, alter::AlterUpdates, alters,
-    diversity::Diversity, random_provider,
+    AlterContext, Alterer, BitChromosome, Chromosome, Codec, Crossover, Ecosystem, Executor, Expr,
+    FloatChromosome, FloatCodec, Gene, Genotype, IntChromosome, Mutate, Objective, Optimize,
+    Phenotype, Population, Score, Species, alter::AlterUpdates, alters, diversity::Diversity,
+    random_provider,
 };
 use radiate_engines::{OffspringConfig, RecombineStep, SelectConfig, SpeciateStep, SurvivorConfig};
 use radiate_selectors::{BoltzmannSelector, TournamentSelector};
@@ -194,7 +194,6 @@ pub fn mock_speciate_step<C: Chromosome>(
         minimize(),
         Arc::new(distance),
         Arc::new(Executor::Serial),
-        ActorSystem::default(),
     )
 }
 

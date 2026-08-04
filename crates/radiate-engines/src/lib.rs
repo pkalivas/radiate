@@ -1,4 +1,5 @@
 mod actions;
+pub mod actors;
 pub mod builder;
 pub mod context;
 pub mod engine;
@@ -15,6 +16,10 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 
+pub use actors::{
+    Actor, ActorContext, ActorId, ActorPanicked, ActorRef, ActorSubscribed, ActorSystem,
+    EventHandler, MessageHandler, Recipient,
+};
 pub use builder::GeneticEngineBuilder;
 pub use context::EvolutionContext;
 pub use engine::GeneticEngine;

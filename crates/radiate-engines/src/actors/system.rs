@@ -1,88 +1,16 @@
 use crate::{
-    ActorId,
+    ActorContext, ActorId, Executor,
     actors::{
-        actor::{Actor, ActorCell, ActorRef, AnyActorRef},
+        MessageHandler,
+        actor::{Actor, ActorCell, ActorRef, Recipient},
+        context::ActorRegistry,
         handler::FnActor,
-        message::DeadLetterActor,
-        subscriber::{AnySubscriber, SubscriberGroup},
     },
 };
-use crate::{Envelope, Executor};
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
-use std::ops::Deref;
 use std::sync::Mutex;
 use std::sync::{Arc, RwLock, atomic::AtomicBool};
-
-type ActorRegistry<K> = HashMap<K, Box<dyn Any + Send + Sync>>;
-
-#[derive(Clone, Default)]
-pub(crate) struct SystemInner {
-    executor: Arc<Executor>,
-    bus: Arc<DomainBus>,
-    by_type: Arc<RwLock<ActorRegistry<TypeId>>>,
-    by_name: Arc<RwLock<ActorRegistry<String>>>,
-}
-
-#[derive(Clone)]
-pub struct ActorContext {
-    pub(crate) inner: Arc<SystemInner>,
-    pub(crate) parent: Option<AnyActorRef>,
-}
-
-impl ActorContext {
-    pub fn executor(&self) -> Arc<Executor> {
-        Arc::clone(&self.inner.executor)
-    }
-
-    pub fn parent(&self) -> Option<AnyActorRef> {
-        self.parent.clone()
-    }
-
-    pub fn bus(&self) -> Arc<DomainBus> {
-        Arc::clone(&self.inner.bus)
-    }
-
-    pub fn publish<M: Send + 'static>(&self, message: M) {
-        self.inner.bus.publish(message);
-    }
-
-    pub fn lazy_publish<M: Send + 'static>(&self, func: impl FnOnce() -> M) {
-        if self.has_subscribers::<M>() {
-            self.publish(func());
-        }
-    }
-
-    pub fn has_subscribers<M: Send + 'static>(&self) -> bool {
-        self.inner.bus.has_subscribers::<M>()
-    }
-
-    /// Silently drops the message if `A` hasn't been spawned. Use when a
-    /// missing recipient is a legitimate, expected state.
-    pub fn tell<A: Actor + 'static>(&self, message: A::Message) {
-        if let Some(r) = self.actor::<A>() {
-            r.tell(message);
-        }
-    }
-
-    pub fn actor<A: Actor + 'static>(&self) -> Option<ActorRef<A::Message>> {
-        self.inner
-            .by_type
-            .read()
-            .unwrap()
-            .get(&TypeId::of::<A>())
-            .and_then(|b| b.downcast_ref::<ActorRef<A::Message>>().cloned())
-    }
-
-    pub fn named<M: Send + 'static>(&self, name: &str) -> Option<ActorRef<M>> {
-        self.inner
-            .by_name
-            .read()
-            .unwrap()
-            .get(name)
-            .and_then(|b| b.downcast_ref::<ActorRef<M>>().cloned())
-    }
-}
 
 #[derive(Clone)]
 pub struct ActorSystem {
@@ -91,16 +19,11 @@ pub struct ActorSystem {
 
 impl ActorSystem {
     pub fn new(executor: Arc<Executor>) -> Self {
-        let inner = Arc::new(SystemInner {
-            executor,
-            bus: Arc::new(DomainBus::default()),
-            by_type: Arc::new(RwLock::new(HashMap::new())),
-            by_name: Arc::new(RwLock::new(HashMap::new())),
-        });
-
         ActorSystem {
             context: ActorContext {
-                inner,
+                executor,
+                bus: Arc::new(MessageBus::default()),
+                registry: Arc::new(ActorRegistry::default()),
                 parent: None,
             },
         }
@@ -110,110 +33,112 @@ impl ActorSystem {
         self.context.clone()
     }
 
+    /// Spawns `actor` and subscribes it to the bus for `M` — the shared
+    /// instance forwards every published `M` into its own mailbox via
+    /// `MessageHandler<M>::handle`.
     pub fn listen<A, M>(&self, actor: A)
     where
-        A: Actor<Message = M> + 'static,
-        M: Send + Sync + Clone + 'static,
+        A: MessageHandler<M> + 'static,
+        M: Send + Clone + 'static,
     {
         let actor_ref = self.spawn(actor);
-
-        let bridge = FnActor {
-            handler: Box::new(move |envelope: Envelope<M>, _ctx: &ActorContext| {
-                actor_ref.tell((*envelope).clone());
-            }),
-        };
-        let sub_ref = self.build_ref(bridge);
-        self.context.inner.bus.subscribe::<M>(sub_ref);
+        self.context.bus.subscribe(actor_ref.recipient::<M>());
     }
 
-    pub fn subscribe<M: Send + Sync + 'static>(
+    pub fn subscribe<M: Send + Clone + 'static>(
         &self,
         mut handler: impl FnMut(&M, &ActorContext) + Send + Sync + 'static,
     ) {
-        self.subscribe_with::<M, _>(move |envelope, ctx| handler(&envelope, ctx));
+        self.subscribe_with::<M, _>(move |message, ctx| handler(&message, ctx));
     }
 
-    pub fn spawn<A: Actor + 'static>(&self, actor: A) -> ActorRef<A::Message> {
+    /// Spawns `actor` as the singleton for type `A`, registered under its
+    /// own type name. A second `spawn::<A>` replaces it in the registry —
+    /// same singleton-per-type contract as before, just keyed by name now
+    /// instead of a separate `TypeId` map.
+    pub fn spawn<A: Actor + 'static>(&self, actor: A) -> ActorRef<A> {
+        self.spawn_named(std::any::type_name::<A>(), actor)
+    }
+
+    pub fn spawn_named<A: Actor + 'static>(&self, name: &str, actor: A) -> ActorRef<A> {
         let actor_ref = self.build_ref(actor);
         self.context
-            .inner
-            .by_type
-            .write()
-            .unwrap()
-            .insert(TypeId::of::<A>(), Box::new(actor_ref.clone()));
+            .registry
+            .insert(name.to_string(), actor_ref.clone());
         actor_ref
     }
 
-    pub fn spawn_named<A: Actor + 'static>(&self, name: &str, actor: A) -> ActorRef<A::Message> {
-        let actor_ref = self.spawn(actor);
-        self.context
-            .inner
-            .by_name
-            .write()
-            .unwrap()
-            .insert(name.to_string(), Box::new(actor_ref.clone()));
-        actor_ref
+    pub fn publish<M: Send + Clone + 'static>(&self, message: M) {
+        self.context.bus.publish(message);
     }
 
-    /// Spawns an unregistered `FnActor<Envelope<M>>` wired to call `f` on
-    /// each delivery, and subscribes it to the bus for `M`. The shared
+    pub fn has_subscribers<M: Send + 'static>(&self) -> bool {
+        self.context.bus.has_subscribers::<M>()
+    }
+
+    pub fn lazy_publish<M: Send + Clone + 'static>(&self, func: impl FnOnce() -> M) {
+        if self.has_subscribers::<M>() {
+            self.publish(func());
+        }
+    }
+
+    /// Spawns an unregistered `FnActor<M>` wired to call `f` on each
+    /// delivery, and subscribes its `Recipient<M>` to the bus. The shared
     /// plumbing behind both `subscribe` (closure reacts inline) and
     /// `listen` (closure forwards to another actor).
     fn subscribe_with<M, F>(&self, f: F)
     where
-        M: Send + Sync + 'static,
-        F: FnMut(Envelope<M>, &ActorContext) + Send + Sync + 'static,
+        M: Send + Clone + 'static,
+        F: FnMut(M, &ActorContext) + Send + Sync + 'static,
     {
         let actor = FnActor {
             handler: Box::new(f),
         };
-        let sub_ref = self.build_ref(actor);
-        self.context.inner.bus.subscribe::<M>(sub_ref);
+        let actor_ref = self.build_ref(actor);
+        self.context.bus.subscribe(actor_ref.recipient::<M>());
     }
 
-    fn build_ref<A: Actor + 'static>(&self, actor: A) -> ActorRef<A::Message> {
+    fn build_ref<A: Actor + 'static>(&self, actor: A) -> ActorRef<A> {
         let (sender, receiver) = std::sync::mpsc::channel();
-        let cell = Arc::new(ActorCell {
-            actor: Arc::new(Mutex::new(actor)),
-            receiver: Arc::new(Mutex::new(receiver)),
-            scheduled: AtomicBool::new(false),
-            context: self.context(),
-        });
 
         ActorRef {
             sender,
-            cell,
-            executor: self.executor(),
-            bus: self.bus(),
-            actor_id: ActorId::new(),
+            cell: Arc::new(ActorCell {
+                id: ActorId::new(),
+                actor: Arc::new(Mutex::new(actor)),
+                receiver: Arc::new(Mutex::new(receiver)),
+                scheduled: AtomicBool::new(false),
+                stopped: AtomicBool::new(false),
+                context: ActorContext {
+                    bus: Arc::clone(&self.context.bus),
+                    executor: Arc::clone(&self.context.executor),
+                    registry: Arc::clone(&self.context.registry),
+                    parent: None,
+                },
+            }),
         }
     }
 }
 
-impl From<(Arc<Executor>, Arc<DomainBus>)> for ActorSystem {
-    fn from((executor, bus): (Arc<Executor>, Arc<DomainBus>)) -> Self {
-        let inner = Arc::new(SystemInner {
-            executor,
-            bus,
-            by_type: Arc::new(RwLock::new(HashMap::new())),
-            by_name: Arc::new(RwLock::new(HashMap::new())),
-        });
-
+impl From<(Arc<Executor>, Arc<MessageBus>)> for ActorSystem {
+    fn from((executor, bus): (Arc<Executor>, Arc<MessageBus>)) -> Self {
         ActorSystem {
             context: ActorContext {
-                inner,
+                executor,
+                bus,
+                registry: Arc::new(ActorRegistry::default()),
                 parent: None,
             },
         }
     }
 }
 
-impl Deref for ActorSystem {
-    type Target = ActorContext;
-    fn deref(&self) -> &ActorContext {
-        &self.context
-    }
-}
+// impl Deref for ActorSystem {
+//     type Target = ActorContext;
+//     fn deref(&self) -> &ActorContext {
+//         &self.context
+//     }
+// }
 
 impl Default for ActorSystem {
     fn default() -> Self {
@@ -222,30 +147,30 @@ impl Default for ActorSystem {
 }
 
 #[derive(Default)]
-pub struct DomainBus {
-    subscribers: RwLock<HashMap<TypeId, Box<dyn AnySubscriber>>>,
+pub struct MessageBus {
+    subscribers: RwLock<HashMap<TypeId, Box<dyn Any + Send + Sync>>>,
 }
 
-impl DomainBus {
-    pub fn subscribe<M: Send + Sync + 'static>(&self, actor_ref: ActorRef<Envelope<M>>) {
+impl MessageBus {
+    pub fn subscribe<M: Send + 'static>(&self, recipient: Recipient<M>) {
         let mut registry = self.subscribers.write().unwrap();
-        let group = registry
+        registry
             .entry(TypeId::of::<M>())
-            .or_insert_with(|| {
-                Box::new(SubscriberGroup::<M> {
-                    handles: Vec::new(),
-                }) as Box<dyn AnySubscriber>
-            })
-            .as_any_mut()
-            .downcast_mut::<SubscriberGroup<M>>()
-            .expect("TypeId key always matches SubscriberGroup<M> by construction");
-        group.handles.push(actor_ref);
+            .or_insert_with(|| Box::new(Vec::<Recipient<M>>::new()) as Box<dyn Any + Send + Sync>)
+            .downcast_mut::<Vec<Recipient<M>>>()
+            .expect("TypeId key always matches Vec<Recipient<M>> by construction")
+            .push(recipient);
     }
 
-    pub fn publish<M: Send + 'static>(&self, message: M) {
+    pub fn publish<M: Send + Clone + 'static>(&self, message: M) {
         let registry = self.subscribers.read().unwrap();
-        if let Some(group) = registry.get(&TypeId::of::<M>()) {
-            group.dispatch(&Envelope::new(message));
+        if let Some(group) = registry
+            .get(&TypeId::of::<M>())
+            .and_then(|b| b.downcast_ref::<Vec<Recipient<M>>>())
+        {
+            for recipient in group {
+                recipient.tell(message.clone());
+            }
         }
     }
 
@@ -293,16 +218,16 @@ mod tests {
     }
 
     impl Actor for Counter {
-        type Message = i32;
+        fn on_child_failure(&mut self, _reason: String) {}
+    }
 
-        fn receive(&mut self, message: i32, _ctx: &ActorContext) {
+    impl MessageHandler<i32> for Counter {
+        fn handle(&mut self, message: i32, _ctx: &ActorContext) {
             self.seen.lock().unwrap().push(message);
             let (count, cv) = &*self.signal;
             *count.lock().unwrap() += 1;
             cv.notify_all();
         }
-
-        fn on_child_failure(&mut self, _reason: String) {}
     }
 
     #[test]
@@ -379,9 +304,11 @@ mod tests {
     }
 
     impl Actor for Flaky {
-        type Message = i32;
+        fn on_child_failure(&mut self, _reason: String) {}
+    }
 
-        fn receive(&mut self, message: i32, _ctx: &ActorContext) {
+    impl MessageHandler<i32> for Flaky {
+        fn handle(&mut self, message: i32, _ctx: &ActorContext) {
             if message == 2 {
                 panic!("boom");
             }
@@ -390,8 +317,6 @@ mod tests {
             *count.lock().unwrap() += 1;
             cv.notify_all();
         }
-
-        fn on_child_failure(&mut self, _reason: String) {}
     }
 
     #[test]
@@ -412,6 +337,80 @@ mod tests {
         wait_for(&signal, 2); // only 1 and 3 signal
 
         assert_eq!(*seen.lock().unwrap(), vec![1, 3]);
+    }
+
+    // ---------------------------------------------------------------
+    // stop(): on_stop runs once, after everything queued ahead of it;
+    // sends after that dead-letter instead of being delivered.
+    // ---------------------------------------------------------------
+
+    struct Stoppable {
+        seen: Arc<Mutex<Vec<i32>>>,
+        signal: Arc<(Mutex<usize>, Condvar)>,
+        stop_count: Arc<(Mutex<usize>, Condvar)>,
+    }
+
+    impl Actor for Stoppable {
+        fn on_stop(&mut self, _ctx: &ActorContext) {
+            let (count, cv) = &*self.stop_count;
+            *count.lock().unwrap() += 1;
+            cv.notify_all();
+        }
+    }
+
+    impl MessageHandler<i32> for Stoppable {
+        fn handle(&mut self, message: i32, _ctx: &ActorContext) {
+            self.seen.lock().unwrap().push(message);
+            let (count, cv) = &*self.signal;
+            *count.lock().unwrap() += 1;
+            cv.notify_all();
+        }
+    }
+
+    #[test]
+    fn stop_runs_once_after_queued_messages_then_dead_letters_further_sends() {
+        let system = ActorSystem::new(Arc::new(Executor::default()));
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let signal = Arc::new((Mutex::new(0), Condvar::new()));
+        let stop_count = Arc::new((Mutex::new(0), Condvar::new()));
+
+        let dead_letters = Arc::new(Mutex::new(Vec::new()));
+        let dl_signal = Arc::new((Mutex::new(0), Condvar::new()));
+        let dl2 = Arc::clone(&dead_letters);
+        let dls2 = Arc::clone(&dl_signal);
+        system.subscribe::<DeadLetter>(move |dl: &DeadLetter, _ctx: &ActorContext| {
+            dl2.lock().unwrap().push(dl.message_type);
+            let (count, cv) = &*dls2;
+            *count.lock().unwrap() += 1;
+            cv.notify_all();
+        });
+
+        let actor_ref = system.spawn(Stoppable {
+            seen: Arc::clone(&seen),
+            signal: Arc::clone(&signal),
+            stop_count: Arc::clone(&stop_count),
+        });
+
+        actor_ref.tell(1);
+        actor_ref.tell(2);
+        wait_for(&signal, 2);
+
+        actor_ref.stop();
+        wait_for(&stop_count, 1);
+
+        // Idempotent: a second stop() must not run on_stop again.
+        actor_ref.stop();
+        assert_eq!(*stop_count.0.lock().unwrap(), 1);
+
+        // Sends after stop() are dead-lettered, not delivered.
+        actor_ref.tell(3);
+        wait_for(&dl_signal, 1);
+
+        assert_eq!(*seen.lock().unwrap(), vec![1, 2]);
+        assert_eq!(
+            *dead_letters.lock().unwrap(),
+            vec![std::any::type_name::<i32>()]
+        );
     }
 
     // ---------------------------------------------------------------
@@ -523,21 +522,6 @@ mod tests {
     // AnyActorRef: erasure shouldn't break supervision no-ops
     // ---------------------------------------------------------------
 
-    #[test]
-    fn erased_ref_with_no_fail_hook_is_a_safe_no_op() {
-        let system = ActorSystem::new(Arc::new(Executor::default()));
-        let seen = Arc::new(Mutex::new(Vec::new()));
-        let signal = Arc::new((Mutex::new(0), Condvar::new()));
-
-        let actor_ref = system.spawn(Counter {
-            seen: Arc::clone(&seen),
-            signal: Arc::clone(&signal),
-        });
-
-        let any_ref = actor_ref.erased();
-        any_ref.report_child_failure("shouldn't panic".to_string());
-    }
-
     fn wait_until<F: Fn() -> bool>(timeout: Duration, cond: F) -> bool {
         let start = Instant::now();
         while !cond() {
@@ -618,77 +602,3 @@ mod tests {
         assert_eq!(*seen.lock().unwrap(), vec![std::any::type_name::<i32>()]);
     }
 }
-
-// pub fn spawn<A: Actor + 'static>(&self, actor: A) -> ActorRef<A::Message> {
-//     let (sender, receiver) = std::sync::mpsc::channel();
-//     let cell = Arc::new(ActorCell {
-//         actor: Arc::new(Mutex::new(actor)),
-//         receiver: Arc::new(Mutex::new(receiver)),
-//         scheduled: AtomicBool::new(false),
-//         context: self.context(),
-//     });
-
-//     let actor_ref = ActorRef {
-//         sender,
-//         cell,
-//         executor: self.executor(),
-//         bus: self.bus(),
-//         actor_id: ActorId::new(),
-//     };
-
-//     self.context
-//         .inner
-//         .by_type
-//         .write()
-//         .unwrap()
-//         .insert(TypeId::of::<A>(), Box::new(actor_ref.clone()));
-
-//     actor_ref
-// }
-
-// pub fn spawn_named<A: Actor + 'static>(&self, name: &str, actor: A) -> ActorRef<A::Message> {
-//     let actor_ref = self.spawn(actor);
-
-//     self.context
-//         .inner
-//         .by_name
-//         .write()
-//         .unwrap()
-//         .insert(name.to_string(), Box::new(actor_ref.clone()));
-
-//     actor_ref
-// }
-
-// /// Same as `spawn`, but skips `by_type` registration — used by
-// /// `observe` so observer actors are unreachable via `actor::<A>()`.
-// fn spawn_unregistered<A: Actor + 'static>(&self, actor: A) -> ActorRef<A::Message> {
-//     let (sender, receiver) = std::sync::mpsc::channel();
-//     let cell = Arc::new(ActorCell {
-//         actor: Arc::new(Mutex::new(actor)),
-//         receiver: Arc::new(Mutex::new(receiver)),
-//         scheduled: AtomicBool::new(false),
-//         context: self.context(),
-//     });
-
-//     ActorRef {
-//         sender,
-//         cell,
-//         executor: self.executor(),
-//         bus: Arc::clone(&self.context.inner.bus),
-//         actor_id: ActorId::new(),
-//     }
-// }
-
-// pub fn subscribe<M: Send + Sync + 'static>(
-//     &self,
-//     mut handler: impl FnMut(&M, &ActorContext) + Send + Sync + 'static,
-// ) {
-//     let actor = FnActor {
-//         handler: Box::new(move |message: Envelope<M>, ctx: &ActorContext| {
-//             handler(&message, ctx);
-//         }),
-//     };
-
-//     let sub_ref = self.spawn(actor);
-//     self.context.inner.bus.subscribe::<M>(sub_ref);
-// }

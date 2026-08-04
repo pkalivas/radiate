@@ -1,11 +1,14 @@
-use crate::events::{
-    EcosystemSnapshot, EngineMessage, EngineStop, EpochComplete, EpochStart, Improvement,
-};
 use crate::pipeline::Pipeline;
+use crate::{
+    ActorContext,
+    events::{
+        EcosystemSnapshot, EngineMessage, EngineStop, EpochComplete, EpochStart, Improvement,
+    },
+};
 use crate::{ActorSystem, Chromosome, EngineRuntime, Generation, ThreadSync};
 use crate::{GenerationView, builder::GeneticEngineBuilder};
 use crate::{context::EvolutionContext, events::EngineStart};
-use radiate_core::{ActorContext, Engine, engine::EngineState};
+use radiate_core::{Engine, engine::EngineState};
 use radiate_core::{EngineStream, error::Result};
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.

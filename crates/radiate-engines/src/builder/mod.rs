@@ -23,19 +23,16 @@ use crate::pipeline::Pipeline;
 use crate::steps::{
     EngineStep, FilterStep, FrontStep, MetricStep, RecombineStep, SelectConfig, SpeciateStep,
 };
+use crate::{ActorSystem, builder::evaluators::EvaluationParams};
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
     TournamentSelector, context::EvolutionContext,
 };
-use crate::{EpochComplete, builder::evaluators::EvaluationParams};
 use crate::{Generation, Result};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
-use radiate_core::{
-    Actor, ActorContext, ActorSystem, Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Valid,
-    metric_names,
-};
+use radiate_core::{Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Valid, metric_names};
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
 use radiate_core::{ThreadSync, rate::ExprSet};
@@ -460,7 +457,6 @@ where
         Some(Box::new(MetricStep::new(
             config.objective().clone(),
             config.exprs().clone(),
-            config.actor_system(),
         )))
     }
 
@@ -493,7 +489,6 @@ where
             objective: config.objective(),
             distances: Vec::new(),
             assignments: Arc::new(Mutex::new(Vec::new())),
-            event_system: config.actor_system(),
             prev_species_count: 0,
             warned_collapsed: false,
         };

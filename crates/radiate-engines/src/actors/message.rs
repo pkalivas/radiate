@@ -1,5 +1,6 @@
 use crate::Actor;
 use crate::ActorContext;
+use crate::MessageHandler;
 
 use super::actor::ActorId;
 use std::sync::{Arc, Mutex};
@@ -24,10 +25,10 @@ impl DeadLetterActor {
     }
 }
 
-impl Actor for DeadLetterActor {
-    type Message = DeadLetter;
+impl Actor for DeadLetterActor {}
 
-    fn receive(&mut self, message: DeadLetter, _ctx: &ActorContext) {
+impl MessageHandler<DeadLetter> for DeadLetterActor {
+    fn handle(&mut self, message: DeadLetter, _ctx: &ActorContext) {
         let mut queue = self.queue.lock().unwrap();
         if queue.len() < self.max_size {
             queue.push(message);
@@ -70,33 +71,6 @@ pub struct ActorSubscribed {
 /// unbounded chain of `ActorPanicked`-about-`ActorPanicked` events.
 #[derive(Clone, Debug)]
 pub struct ActorPanicked {
-    pub message_type: &'static str,
     pub actor_id: ActorId,
-    pub panic_message: String,
-}
-
-/// A cheaply-clonable message envelope: wraps `D` in an `Arc` so fanning a
-/// message out to many subscribed actors clones a pointer per actor, not the
-/// payload itself. Most concrete message types on the bus should be a type
-/// alias over this rather than hand-rolling their own `Arc` wrapper.
-pub struct Envelope<D>(Arc<D>);
-
-impl<D> Envelope<D> {
-    pub fn new(data: D) -> Self {
-        Envelope(Arc::new(data))
-    }
-}
-
-impl<D> Clone for Envelope<D> {
-    fn clone(&self) -> Self {
-        Envelope(Arc::clone(&self.0))
-    }
-}
-
-impl<D> std::ops::Deref for Envelope<D> {
-    type Target = D;
-
-    fn deref(&self) -> &D {
-        &self.0
-    }
+    pub reason: String,
 }

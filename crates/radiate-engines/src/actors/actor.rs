@@ -1,0 +1,228 @@
+use crate::{
+    ActorPanicked,
+    actors::{context::ActorContext, message::DeadLetter},
+};
+use radiate_utils::sentry_id;
+use std::sync::mpsc::Receiver;
+use std::sync::mpsc::Sender;
+use std::sync::{Arc, Mutex};
+use std::{
+    any::TypeId,
+    sync::atomic::{AtomicBool, AtomicU64, Ordering},
+};
+
+sentry_id!(ActorId);
+
+pub trait Actor: Send {
+    fn on_child_failure(&mut self, _reason: String) {}
+
+    /// Runs once, in place, for the single poison-pill parcel `ActorRef::stop`
+    /// enqueues — after everything queued ahead of it, never concurrently
+    /// with another delivery, same panic isolation as any other message.
+    /// Not vetoable: unlike Actix's `stopping`, nothing in this system has
+    /// in-flight work worth delaying a stop for, so this fires unconditionally
+    /// once the stop parcel is delivered.
+    fn on_stop(&mut self, _ctx: &ActorContext) {}
+}
+
+pub trait MessageHandler<M: Send + 'static>: Actor {
+    fn handle(&mut self, message: M, ctx: &ActorContext);
+}
+
+type Envelope<A> = Box<dyn FnOnce(&mut A, &ActorContext) + Send>;
+
+pub struct ActorCell<A: Actor> {
+    pub(crate) id: ActorId,
+    pub(crate) actor: Arc<Mutex<A>>,
+    pub(crate) receiver: Arc<Mutex<Receiver<Envelope<A>>>>,
+    pub(crate) scheduled: AtomicBool,
+    pub(crate) stopped: AtomicBool,
+    pub(crate) context: ActorContext,
+}
+
+impl<A: Actor> ActorCell<A> {
+    fn deliver(&self, actor: &mut A, ctx: &ActorContext, envelope: Envelope<A>) {
+        let maybe_success =
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| envelope(actor, ctx)))
+                .map_err(|payload| {
+                    payload
+                        .downcast_ref::<&str>()
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| "actor panicked".to_string())
+                });
+
+        if let Err(reason) = maybe_success {
+            self.context.publish(ActorPanicked {
+                actor_id: self.id,
+                reason: reason.clone(),
+            });
+
+            if let Some(parent) = &ctx.parent {
+                parent.report_child_failure(reason.clone());
+            }
+        }
+    }
+
+    fn try_claim(&self) -> bool {
+        self.scheduled
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_ok()
+    }
+
+    fn process_batch(self: Arc<Self>) {
+        loop {
+            {
+                let mut actor = self.actor.lock().unwrap();
+                let receiver = self.receiver.lock().unwrap();
+                while let Ok(msg) = receiver.try_recv() {
+                    self.deliver(&mut *actor, &self.context, msg);
+                }
+            }
+
+            self.scheduled.store(false, Ordering::Release);
+
+            if !self.try_claim() {
+                break;
+            }
+
+            let next = self.receiver.lock().unwrap().try_recv();
+            match next {
+                Ok(msg) => {
+                    let mut actor = self.actor.lock().unwrap();
+                    self.deliver(&mut *actor, &self.context, msg);
+
+                    continue;
+                }
+                Err(_) => {
+                    self.scheduled.store(false, Ordering::Release);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+pub struct ActorRef<A: Actor> {
+    pub(crate) sender: Sender<Envelope<A>>,
+    pub(crate) cell: Arc<ActorCell<A>>,
+}
+
+impl<A: Actor + 'static> ActorRef<A> {
+    pub fn id(&self) -> ActorId {
+        self.cell.id
+    }
+
+    pub fn tell<M>(&self, message: M)
+    where
+        A: MessageHandler<M>,
+        M: Send + 'static,
+    {
+        // A message that loses a race with a concurrent `stop()` — sent just
+        // before `stopped` flips but delivered after the poison pill — may
+        // still reach `on_stop`'s successor. Accepted as a narrow, benign
+        // race rather than gating every delivery on this flag too.
+        if self.cell.stopped.load(Ordering::Acquire) {
+            if TypeId::of::<M>() != TypeId::of::<DeadLetter>() {
+                self.cell.context.bus().publish(DeadLetter {
+                    message_type: std::any::type_name::<M>(),
+                    actor_id: self.id(),
+                });
+            }
+            return;
+        }
+
+        let envelope = Box::new(move |actor: &mut A, ctx: &ActorContext| {
+            actor.handle(message, ctx);
+        });
+        if self.sender.send(envelope).is_err() {
+            if TypeId::of::<M>() != TypeId::of::<DeadLetter>() {
+                self.cell.context.bus().publish(DeadLetter {
+                    message_type: std::any::type_name::<M>(),
+                    actor_id: self.id(),
+                });
+            }
+
+            return;
+        }
+
+        if self.cell.try_claim() {
+            let cell = Arc::clone(&self.cell);
+            self.cell
+                .context
+                .executor()
+                .submit(move || cell.process_batch());
+        }
+    }
+
+    /// Enqueues a poison-pill parcel that calls `Actor::on_stop` and marks
+    /// this actor stopped, so every `ActorRef` clone starts dead-lettering
+    /// instead of accepting new sends. Idempotent — a second `stop()` is a
+    /// no-op, since the flip from `false` to `true` only succeeds once.
+    pub fn stop(&self) {
+        if self.cell.stopped.swap(true, Ordering::AcqRel) {
+            return;
+        }
+
+        self.sender
+            .send(Box::new(|actor: &mut A, ctx: &ActorContext| {
+                actor.on_stop(ctx);
+            }))
+            .ok();
+
+        if self.cell.try_claim() {
+            let cell = Arc::clone(&self.cell);
+            self.cell
+                .context
+                .executor()
+                .submit(move || cell.process_batch());
+        }
+    }
+
+    /// Erases which actor this is while keeping the message type `M`
+    /// concrete — the handle `DomainBus` stores, since a bus subscription
+    /// may be satisfied by any number of different actor types that all
+    /// implement `MessageHandler<M>`.
+    pub(super) fn recipient<M>(&self) -> Recipient<M>
+    where
+        A: MessageHandler<M>,
+        M: Send + 'static,
+    {
+        let this = self.clone();
+        Recipient {
+            send: Arc::new(move |message| this.tell(message)),
+        }
+    }
+}
+
+impl<A: Actor> Clone for ActorRef<A> {
+    fn clone(&self) -> Self {
+        ActorRef {
+            sender: self.sender.clone(),
+            cell: Arc::clone(&self.cell),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct Recipient<M> {
+    send: Arc<dyn Fn(M) + Send + Sync>,
+}
+
+impl<M: Send + 'static> Recipient<M> {
+    pub fn tell(&self, message: M) {
+        (self.send)(message);
+    }
+}
+
+#[derive(Clone)]
+pub struct AnyActorRef {
+    fail_hook: Option<Arc<dyn Fn(String) + Send + Sync>>,
+}
+
+impl AnyActorRef {
+    pub fn report_child_failure(&self, reason: String) {
+        if let Some(hook) = &self.fail_hook {
+            hook(reason);
+        }
+    }
+}

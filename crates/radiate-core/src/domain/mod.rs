@@ -1,14 +1,9 @@
-pub mod actors;
 pub mod executor;
 pub mod math;
 pub mod random_provider;
 pub mod sync;
 pub mod tracker;
 
-pub use actors::{
-    Actor, ActorContext, ActorId, ActorPanicked, ActorRef, ActorSubscribed, ActorSystem,
-    AnySubscriber, Envelope, EventHandler,
-};
 pub use executor::Executor;
 pub use math::SubsetMode;
 pub use math::subset;

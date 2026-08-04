@@ -1,14 +1,12 @@
-use crate::context::EvolutionContext;
-use radiate_core::{
-    ActorPanicked, ActorSubscribed, Chromosome, Ecosystem, MetricSet, Objective, Score,
-};
+use crate::{ActorPanicked, ActorSubscribed, context::EvolutionContext};
+use radiate_core::{Chromosome, Ecosystem, MetricSet, Objective, Score};
 use std::{fmt::Debug, sync::Arc, time::Duration};
 
 mod sealed {
     pub trait Sealed {}
 }
 
-pub trait EngineMessage: sealed::Sealed + std::fmt::Debug {}
+pub trait EngineMessage: sealed::Sealed + std::fmt::Debug + Clone {}
 
 macro_rules! engine_message {
     ($($t:ty),* $(,)?) => { $(
@@ -26,14 +24,14 @@ engine_message!(
     ActorSubscribed,
     ActorPanicked
 );
-impl<T: Send + Sync + 'static> sealed::Sealed for Improvement<T> {}
-impl<T: Send + Sync + 'static> EngineMessage for Improvement<T> {}
+impl<T: Clone + Send + Sync + 'static> sealed::Sealed for Improvement<T> {}
+impl<T: Clone + Send + Sync + 'static> EngineMessage for Improvement<T> {}
 
-impl<T: Send + Sync + 'static> sealed::Sealed for EpochComplete<T> {}
-impl<T: Send + Sync + 'static> EngineMessage for EpochComplete<T> {}
+impl<T: Clone + Send + Sync + 'static> sealed::Sealed for EpochComplete<T> {}
+impl<T: Clone + Send + Sync + 'static> EngineMessage for EpochComplete<T> {}
 
-impl<T: Send + Sync + 'static> sealed::Sealed for EngineStop<T> {}
-impl<T: Send + Sync + 'static> EngineMessage for EngineStop<T> {}
+impl<T: Clone + Send + Sync + 'static> sealed::Sealed for EngineStop<T> {}
+impl<T: Clone + Send + Sync + 'static> EngineMessage for EngineStop<T> {}
 
 impl<C: Chromosome + Clone> sealed::Sealed for EcosystemSnapshot<C> {}
 impl<C: Chromosome + Clone + Send + Sync + 'static> EngineMessage for EcosystemSnapshot<C> {}

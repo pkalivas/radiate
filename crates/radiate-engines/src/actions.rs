@@ -1,14 +1,14 @@
-use crate::events::LogEvent;
-use crate::{EvolutionContext, Generation, events::Log, runtime::RuntimeAction};
+use crate::{ActorRef, events::LogEvent};
+use crate::{EvolutionContext, Generation, LoggingActor, events::Log, runtime::RuntimeAction};
 #[cfg(feature = "serde")]
 use crate::{FileWriter, events::CheckpointSaved};
-use radiate_core::{ActorRef, Chromosome, Engine, Objective, error::RadiateResult};
+use radiate_core::{Chromosome, Engine, Objective, error::RadiateResult};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 #[cfg(feature = "serde")]
 use std::path::PathBuf;
 
-pub(crate) struct LoggingAction(pub usize, pub ActorRef<LogEvent>);
+pub(crate) struct LoggingAction(pub usize, pub ActorRef<LoggingActor>);
 
 impl<C, T, E> RuntimeAction<E> for LoggingAction
 where

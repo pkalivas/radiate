@@ -1,8 +1,8 @@
+use crate::{Actor, ActorContext, EventHandler, MessageHandler, MetricSet};
 use crate::{
     LimitTriggered,
     events::{EpochComplete, LimitProgress, Log},
 };
-use radiate_core::{Actor, ActorContext, EventHandler, MetricSet};
 use std::sync::{Arc, Mutex};
 
 /// Collects the `MetricSet` from every completed generation into a shared,
@@ -62,10 +62,10 @@ pub enum LogEvent {
 #[derive(Clone, Default)]
 pub struct LoggingActor;
 
-impl Actor for LoggingActor {
-    type Message = LogEvent;
+impl Actor for LoggingActor {}
 
-    fn receive(&mut self, message: Self::Message, _: &ActorContext) {
+impl MessageHandler<LogEvent> for LoggingActor {
+    fn handle(&mut self, message: LogEvent, _: &ActorContext) {
         match message {
             LogEvent::LimitTriggered(event) => {
                 tracing::info!("Limit triggered: {} - {}", event.kind, event.description);

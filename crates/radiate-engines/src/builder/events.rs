@@ -1,5 +1,5 @@
-use crate::{GeneticEngineBuilder, events::EngineMessage};
-use radiate_core::{ActorContext, Chromosome};
+use crate::{ActorContext, GeneticEngineBuilder, events::EngineMessage};
+use radiate_core::Chromosome;
 
 impl<C, T> GeneticEngineBuilder<C, T>
 where

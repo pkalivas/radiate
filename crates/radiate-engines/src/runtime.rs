@@ -1,5 +1,5 @@
 use crate::{
-    Engine, EvolutionContext, Generation, Limit,
+    ActorContext, Engine, EvolutionContext, Generation, Limit,
     events::{Log, LogEvent},
     init_logging,
 };
@@ -7,11 +7,8 @@ use crate::{
 use crate::{FileWriter, JsonWriter};
 use crate::{LimitTriggered, generation::GenerationView};
 use crate::{LoggingActor, actions::LoggingAction};
+use radiate_core::error::{RadiateResult, Result};
 use radiate_core::rate::Expr;
-use radiate_core::{
-    ActorContext,
-    error::{RadiateResult, Result},
-};
 use radiate_core::{Chromosome, EngineState, Score, radiate_err};
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -226,8 +223,9 @@ where
         let actor_system = self.engine.context().actor_system();
 
         let actor = actor_system.spawn(LoggingActor);
+
         actor_system.subscribe::<LimitTriggered>(|msg: &LimitTriggered, ctx: &ActorContext| {
-            ctx.tell::<LoggingActor>(LogEvent::Log(Log::info(
+            ctx.tell::<LoggingActor, _>(LogEvent::Log(Log::info(
                 Some(msg.generation),
                 msg.description(),
             )));
@@ -263,7 +261,7 @@ where
             .context()
             .actor_system()
             .subscribe::<CheckpointSaved>(|msg: &CheckpointSaved, ctx: &ActorContext| {
-                ctx.tell::<LoggingActor>(LogEvent::Log(Log::info(
+                ctx.tell::<LoggingActor, _>(LogEvent::Log(Log::info(
                     Some(msg.index),
                     format!("Checkpoint saved at index {}: {}", msg.index, msg.path),
                 )));
@@ -303,7 +301,7 @@ where
             .context()
             .actor_system()
             .subscribe::<CheckpointSaved>(|msg: &CheckpointSaved, ctx: &ActorContext| {
-                ctx.tell::<LoggingActor>(LogEvent::Log(Log::info(
+                ctx.tell::<LoggingActor, _>(LogEvent::Log(Log::info(
                     Some(msg.index),
                     format!("Checkpoint saved at index {}: {}", msg.index, msg.path),
                 )));

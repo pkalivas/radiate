@@ -1,8 +1,7 @@
-use crate::{events::Log, steps::EngineStep};
+use crate::steps::EngineStep;
 use radiate_core::{
-    ActorSystem, Chromosome, Ecosystem, Evaluate, MetricSet, MetricUpdate, Objective, Score,
-    SmallStr, math::distribution, metric_names, phenotype::PhenotypeId, rate::ExprSet,
-    stats::TagType,
+    Chromosome, Ecosystem, Evaluate, MetricSet, MetricUpdate, Objective, Score, SmallStr,
+    math::distribution, metric_names, phenotype::PhenotypeId, rate::ExprSet, stats::TagType,
 };
 use radiate_error::Result;
 use std::{
@@ -24,7 +23,6 @@ pub struct MetricStep {
     best_score: Option<Score>,
 
     expressions: Option<Arc<Mutex<ExprSet>>>,
-    event_system: ActorSystem,
     warned_this_streak: bool,
 
     score_dist_per_dim: Vec<Vec<f32>>,
@@ -52,15 +50,10 @@ pub struct MetricStep {
 }
 
 impl MetricStep {
-    pub fn new(
-        objective: Objective,
-        expressions: Option<Arc<Mutex<ExprSet>>>,
-        event_system: ActorSystem,
-    ) -> Self {
+    pub fn new(objective: Objective, expressions: Option<Arc<Mutex<ExprSet>>>) -> Self {
         Self {
             objective,
             expressions,
-            event_system,
             ..Default::default()
         }
     }
@@ -122,7 +115,6 @@ impl MetricStep {
     #[inline]
     fn calc_improvement_metrics<C: Chromosome>(
         &mut self,
-        generation: usize,
         metrics: &mut MetricSet,
         ecosystem: &Ecosystem<C>,
     ) {
@@ -146,10 +138,10 @@ impl MetricStep {
             self.stagnation_count += 1;
 
             if !self.warned_this_streak && self.stagnation_count >= STAGNATION_WARNING_THRESHOLD {
-                self.event_system.publish(Log::warn(
-                    Some(generation),
-                    format!("no improvement in {} generations", self.stagnation_count),
-                ));
+                // self.event_system.publish(Log::warn(
+                //     Some(generation),
+                //     format!("no improvement in {} generations", self.stagnation_count),
+                // ));
                 self.warned_this_streak = true;
             }
         }
@@ -366,7 +358,7 @@ impl<C: Chromosome> EngineStep<C> for MetricStep {
 
         self.calc_membership_metrics(metrics, ecosystem);
         Self::calc_derived_metrics(metrics, ecosystem);
-        self.calc_improvement_metrics(generation, metrics, ecosystem);
+        self.calc_improvement_metrics(metrics, ecosystem);
         self.calc_expression_metrics(metrics)?;
 
         Ok(())

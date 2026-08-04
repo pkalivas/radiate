@@ -12,14 +12,12 @@ fn main() {
         // ... other parameters ...
         .build();
 
-    engine.on::<EpochComplete<Vec<f32>>>().handle(
-        |event: &EpochComplete<Vec<f32>>, _ctx: &EventContext| {
-            println!(
-                "Printing from event handler! [ {:?} ]: {:?}",
-                event.index, event.score
-            );
-        },
-    );
+    engine.on::<EpochComplete<Vec<f32>>>(|event: &EpochComplete<Vec<f32>>, _ctx: &ActorContext| {
+        println!(
+            "Printing from event handler! [ {:?} ]: {:?}",
+            event.index, event.score
+        );
+    });
 
     // Run the engine
     let result = engine.run(|generation| generation.index() >= 100);
@@ -29,7 +27,7 @@ fn main() {
     struct MyHandler;
 
     impl EventHandler<EpochComplete<Vec<f32>>> for MyHandler {
-        fn handle(&mut self, event: &EpochComplete<Vec<f32>>, _ctx: &EventContext) {
+        fn handle(&mut self, event: &EpochComplete<Vec<f32>>, _ctx: &ActorContext) {
             println!(
                 "Printing from event handler! [ {:?} ]: {:?}",
                 event.index, event.score
@@ -45,7 +43,7 @@ fn main() {
         .build();
 
     // Register the handler
-    engine.on::<EpochComplete<Vec<f32>>>().handle(MyHandler);
+    // engine.on::<EpochComplete<Vec<f32>>>(MyHandler);
 
     // Run the engine
     let result = engine.run(|generation| generation.index() >= 100);
