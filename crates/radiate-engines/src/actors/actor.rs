@@ -1,4 +1,5 @@
 use crate::actors::{context::ActorContext, message::DeadLetter};
+use radiate_core::SmallStr;
 use radiate_utils::sentry_id;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
@@ -11,14 +12,6 @@ use std::{
 sentry_id!(ActorId);
 
 pub trait Actor: Send {
-    fn on_child_failure(&mut self, _reason: String) {}
-
-    /// Runs once, in place, for the single poison-pill parcel `ActorRef::stop`
-    /// enqueues — after everything queued ahead of it, never concurrently
-    /// with another delivery, same panic isolation as any other message.
-    /// Not vetoable: unlike Actix's `stopping`, nothing in this system has
-    /// in-flight work worth delaying a stop for, so this fires unconditionally
-    /// once the stop parcel is delivered.
     fn on_stop(&mut self, _ctx: &ActorContext) {}
 }
 
@@ -30,12 +23,23 @@ type Envelope<A> = Box<dyn FnOnce(&mut A, &ActorContext) + Send>;
 
 pub struct ActorCell<A: Actor> {
     pub(super) id: ActorId,
+    pub(super) pid: Option<SmallStr>,
     pub(super) actor: Arc<Mutex<A>>,
-    pub(super) receiver: Arc<Mutex<Receiver<Envelope<A>>>>,
+    pub(super) receiver: Receiver<Envelope<A>>,
     pub(super) scheduled: AtomicBool,
     pub(super) stopped: AtomicBool,
     pub(super) context: ActorContext,
 }
+
+// SAFETY: `receiver` is a plain `mpsc::Receiver`, which is `Send` but not `Sync` — its
+// `try_recv` is unsound to call concurrently from multiple threads, even though the method
+// only takes `&self`. That never happens here: every call to `self.receiver.try_recv()` lives
+// inside `process_batch`, which only runs between a winning `try_claim()`
+// (`compare_exchange(false, true, AcqRel, Acquire)`) and the matching
+// `scheduled.store(false, Release)`. That Release/Acquire pair is a real happens-before edge,
+// so at most one thread is ever inside that window for a given `ActorCell` at a time, and no
+// other code path touches `receiver` — the exclusion is structural, not just conventional.
+unsafe impl<A: Actor> Sync for ActorCell<A> {}
 
 impl<A: Actor> ActorCell<A> {
     #[inline]
@@ -68,8 +72,7 @@ impl<A: Actor> ActorCell<A> {
         loop {
             {
                 let mut actor = self.actor.lock().unwrap();
-                let receiver = self.receiver.lock().unwrap();
-                while let Ok(msg) = receiver.try_recv() {
+                while let Ok(msg) = self.receiver.try_recv() {
                     self.deliver(&mut *actor, &self.context, msg);
                 }
             }
@@ -80,8 +83,7 @@ impl<A: Actor> ActorCell<A> {
                 break;
             }
 
-            let next = self.receiver.lock().unwrap().try_recv();
-            match next {
+            match self.receiver.try_recv() {
                 Ok(msg) => {
                     let mut actor = self.actor.lock().unwrap();
                     self.deliver(&mut *actor, &self.context, msg);
@@ -107,7 +109,7 @@ impl<A: Actor + 'static> Addr<A> {
         self.cell.id
     }
 
-    pub fn tell<M>(&self, message: M)
+    pub fn send<M>(&self, message: M)
     where
         A: MessageHandler<M>,
         M: Send + 'static,
@@ -158,6 +160,13 @@ impl<A: Actor + 'static> Addr<A> {
             return;
         }
 
+        if let Some(pid) = &self.cell.pid
+            && let Some(removed) = self.cell.context.registry.remove::<A>(pid)
+            && removed.id() != self.id()
+        {
+            self.cell.context.registry.insert(pid.to_string(), removed);
+        }
+
         self.sender
             .send(Box::new(|actor: &mut A, ctx: &ActorContext| {
                 actor.on_stop(ctx);
@@ -184,7 +193,7 @@ impl<A: Actor + 'static> Addr<A> {
     {
         let this = self.clone();
         Recipient {
-            send: Arc::new(move |message| this.tell(message)),
+            send: Arc::new(move |message| this.send(message)),
         }
     }
 }

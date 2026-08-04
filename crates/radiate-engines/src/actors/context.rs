@@ -30,6 +30,14 @@ impl ActorRegistry {
             .get(name)
             .and_then(|b| b.downcast_ref::<Addr<A>>().cloned())
     }
+
+    pub(super) fn remove<A: Actor + 'static>(&self, name: &str) -> Option<Addr<A>> {
+        self.registry
+            .write()
+            .unwrap()
+            .remove(name)
+            .and_then(|b| b.downcast::<Addr<A>>().ok().map(|b| *b))
+    }
 }
 
 #[derive(Clone)]
@@ -75,7 +83,7 @@ impl ActorContext {
         M: Send + 'static,
     {
         if let Some(r) = self.actor::<A>() {
-            r.tell(message);
+            r.send(message);
         }
     }
 

@@ -36,13 +36,13 @@ where
                     time
                 );
 
-                self.1.tell(LogEvent::Log(Log::info(Some(ctx.index), str)));
+                self.1.send(LogEvent::Log(Log::info(Some(ctx.index), str)));
             }
             Objective::Multi(_) => {
                 let front_size = ctx.metrics.front_size();
                 let front_size_value = front_size.map(|ent| ent.last_value()).unwrap_or(0.0);
 
-                self.1.tell(LogEvent::Log(Log::info(
+                self.1.send(LogEvent::Log(Log::info(
                     Some(ctx.index),
                     format!(
                         "Epoch {:<4} | Front Size: {:.3} | Time: {:>5.2?}",

@@ -1,3 +1,5 @@
+use radiate_core::SmallStr;
+
 use crate::{
     ActorContext, ActorId, Executor,
     actors::{
@@ -42,16 +44,13 @@ impl ActorSystem {
     }
 
     pub fn spawn_named<A: Actor + 'static>(&self, name: &str, actor: A) -> Addr<A> {
-        let actor_ref = self.build_addr(actor);
+        let actor_ref = self.build_addr(actor, Some(SmallStr::from(name)));
         self.context
             .registry
             .insert(name.to_string(), actor_ref.clone());
         actor_ref
     }
 
-    /// Spawns `actor` and subscribes it to the bus for `M` — the shared
-    /// instance forwards every published `M` into its own mailbox via
-    /// `MessageHandler<M>::handle`.
     pub fn listen<A, M>(&self, actor: A)
     where
         A: MessageHandler<M> + 'static,
@@ -68,10 +67,6 @@ impl ActorSystem {
         self.subscribe_with::<M, _>(move |message, ctx| handler(&message, ctx));
     }
 
-    /// Spawns an unregistered `FnActor<M>` wired to call `f` on each
-    /// delivery, and subscribes its `Recipient<M>` to the bus. The shared
-    /// plumbing behind both `subscribe` (closure reacts inline) and
-    /// `listen` (closure forwards to another actor).
     fn subscribe_with<M, F>(&self, f: F)
     where
         M: Send + Clone + 'static,
@@ -80,19 +75,20 @@ impl ActorSystem {
         let actor = FnActor {
             handler: Box::new(f),
         };
-        let actor_ref = self.build_addr(actor);
+        let actor_ref = self.build_addr(actor, None);
         self.context.bus.subscribe(actor_ref.recipient::<M>());
     }
 
-    fn build_addr<A: Actor + 'static>(&self, actor: A) -> Addr<A> {
+    fn build_addr<A: Actor + 'static>(&self, actor: A, pid: Option<SmallStr>) -> Addr<A> {
         let (sender, receiver) = std::sync::mpsc::channel();
 
         Addr {
             sender,
             cell: Arc::new(ActorCell {
                 id: ActorId::new(),
+                pid,
                 actor: Arc::new(Mutex::new(actor)),
-                receiver: Arc::new(Mutex::new(receiver)),
+                receiver,
                 scheduled: AtomicBool::new(false),
                 stopped: AtomicBool::new(false),
                 context: ActorContext {
@@ -196,9 +192,7 @@ mod tests {
         signal: Arc<(Mutex<usize>, Condvar)>,
     }
 
-    impl Actor for Counter {
-        fn on_child_failure(&mut self, _reason: String) {}
-    }
+    impl Actor for Counter {}
 
     impl MessageHandler<i32> for Counter {
         fn handle(&mut self, message: i32, _ctx: &ActorContext) {
@@ -220,7 +214,7 @@ mod tests {
             signal: Arc::clone(&signal),
         });
 
-        actor_ref.tell(7);
+        actor_ref.send(7);
         wait_for(&signal, 1);
 
         assert_eq!(*seen.lock().unwrap(), vec![7]);
@@ -239,7 +233,7 @@ mod tests {
 
         const N: usize = 200;
         for i in 0..N as i32 {
-            actor_ref.tell(i);
+            actor_ref.send(i);
         }
         wait_for(&signal, N);
 
@@ -260,8 +254,8 @@ mod tests {
 
         let a = actor_ref.clone();
         let b = actor_ref.clone();
-        let ha = std::thread::spawn(move || a.tell(1));
-        let hb = std::thread::spawn(move || b.tell(2));
+        let ha = std::thread::spawn(move || a.send(1));
+        let hb = std::thread::spawn(move || b.send(2));
         ha.join().unwrap();
         hb.join().unwrap();
 
@@ -282,9 +276,7 @@ mod tests {
         signal: Arc<(Mutex<usize>, Condvar)>,
     }
 
-    impl Actor for Flaky {
-        fn on_child_failure(&mut self, _reason: String) {}
-    }
+    impl Actor for Flaky {}
 
     impl MessageHandler<i32> for Flaky {
         fn handle(&mut self, message: i32, _ctx: &ActorContext) {
@@ -309,9 +301,9 @@ mod tests {
             signal: Arc::clone(&signal),
         });
 
-        actor_ref.tell(1);
-        actor_ref.tell(2); // panics, should not take the actor down
-        actor_ref.tell(3);
+        actor_ref.send(1);
+        actor_ref.send(2); // panics, should not take the actor down
+        actor_ref.send(3);
 
         wait_for(&signal, 2); // only 1 and 3 signal
 
@@ -370,8 +362,8 @@ mod tests {
             stop_count: Arc::clone(&stop_count),
         });
 
-        actor_ref.tell(1);
-        actor_ref.tell(2);
+        actor_ref.send(1);
+        actor_ref.send(2);
         wait_for(&signal, 2);
 
         actor_ref.stop();
@@ -382,7 +374,7 @@ mod tests {
         assert_eq!(*stop_count.0.lock().unwrap(), 1);
 
         // Sends after stop() are dead-lettered, not delivered.
-        actor_ref.tell(3);
+        actor_ref.send(3);
         wait_for(&dl_signal, 1);
 
         assert_eq!(*seen.lock().unwrap(), vec![1, 2]);
@@ -575,9 +567,167 @@ mod tests {
             temp.clone() // clone the ref itself so `sender` outlives the cell — see note
         };
 
-        actor_ref.tell(1);
+        actor_ref.send(1);
         wait_for(&signal, 1);
 
         assert_eq!(*seen.lock().unwrap(), vec![std::any::type_name::<i32>()]);
+    }
+
+    // ---------------------------------------------------------------
+    // Registry-removal identity: stop() on an actor whose registry slot
+    // was already overwritten by a newer spawn::<A>() of the same type
+    // must not evict the newer, still-live occupant.
+    // ---------------------------------------------------------------
+
+    struct Named;
+    impl Actor for Named {}
+
+    #[test]
+    fn stop_on_an_evicted_registry_slot_does_not_delete_the_current_occupant() {
+        let system = ActorSystem::new(Arc::new(Executor::default()));
+
+        let first = system.spawn(Named);
+        let second = system.spawn(Named); // same type -> same registry key, evicts `first`
+
+        first.stop(); // `first` was already evicted from the registry -- must be a no-op there
+
+        let current = system.context().actor::<Named>();
+        assert!(
+            current.is_some(),
+            "second actor's registry entry was wrongly deleted by an unrelated stop()"
+        );
+        assert_eq!(current.unwrap().id(), second.id());
+    }
+
+    // ---------------------------------------------------------------
+    // Cross-"engine" random-routing throughput, mirroring a common actor
+    // framework benchmark shape (e.g. hollywood's engine benchmark): N
+    // independent ActorSystems ("engines"), each with many actors;
+    // concurrent sender threads pick a random engine, a random *other*
+    // engine as target, and a random actor within it, and hammer it with
+    // messages for a fixed duration. Verifies no message loss and reports
+    // throughput.
+    // ---------------------------------------------------------------
+
+    #[derive(Clone)]
+    struct BenchMessage;
+
+    struct BenchActor {
+        received: Arc<AtomicU64>,
+    }
+
+    impl Actor for BenchActor {}
+
+    impl MessageHandler<BenchMessage> for BenchActor {
+        fn handle(&mut self, _message: BenchMessage, _ctx: &ActorContext) {
+            self.received.fetch_add(1, Ordering::Relaxed);
+        }
+    }
+
+    struct BenchEngine {
+        actors: Vec<Addr<BenchActor>>,
+    }
+
+    // Dependency-free xorshift64 so each sender thread gets its own cheap,
+    // deterministic-per-seed index stream without pulling in `rand`.
+    struct Xorshift64(u64);
+
+    impl Xorshift64 {
+        fn next_bounded(&mut self, bound: usize) -> usize {
+            self.0 ^= self.0 << 13;
+            self.0 ^= self.0 >> 7;
+            self.0 ^= self.0 << 17;
+            (self.0 as usize) % bound
+        }
+    }
+
+    #[test]
+    fn cross_engine_random_routing_throughput() {
+        const ENGINES: usize = 10;
+        const ACTORS_PER_ENGINE: usize = 2000;
+        const SENDERS: usize = 20;
+        const DURATION: Duration = Duration::from_secs(10);
+
+        let received = Arc::new(AtomicU64::new(0));
+        let dead_letters = Arc::new(AtomicU64::new(0));
+
+        let worker_pool = Arc::new(Executor::FixedSizedWorkerPool(
+            std::thread::available_parallelism()
+                .map(|n| n.get())
+                .unwrap_or(4),
+        ));
+
+        let engines: Vec<BenchEngine> = (0..ENGINES)
+            .map(|_| {
+                let system = ActorSystem::new(Arc::clone(&worker_pool));
+
+                let dl = Arc::clone(&dead_letters);
+                system.subscribe::<DeadLetter>(move |_msg: &DeadLetter, _ctx: &ActorContext| {
+                    dl.fetch_add(1, Ordering::Relaxed);
+                });
+
+                let actors = (0..ACTORS_PER_ENGINE)
+                    .map(|_| {
+                        system.spawn(BenchActor {
+                            received: Arc::clone(&received),
+                        })
+                    })
+                    .collect();
+
+                BenchEngine { actors }
+            })
+            .collect();
+
+        let engines = Arc::new(engines);
+        let sent = Arc::new(AtomicU64::new(0));
+        let start = Instant::now();
+        let deadline = start + DURATION;
+
+        let handles: Vec<_> = (0..SENDERS)
+            .map(|seed| {
+                let engines = Arc::clone(&engines);
+                let sent = Arc::clone(&sent);
+                std::thread::spawn(move || {
+                    let mut rng = Xorshift64(seed as u64 * 2 + 1);
+                    while Instant::now() < deadline {
+                        let from = rng.next_bounded(engines.len());
+                        let mut to = rng.next_bounded(engines.len());
+                        if engines.len() > 1 {
+                            while to == from {
+                                to = rng.next_bounded(engines.len());
+                            }
+                        }
+
+                        let target_engine = &engines[to];
+                        let actor_idx = rng.next_bounded(target_engine.actors.len());
+                        target_engine.actors[actor_idx].send(BenchMessage);
+                        sent.fetch_add(1, Ordering::Relaxed);
+                    }
+                })
+            })
+            .collect();
+
+        for h in handles {
+            h.join().unwrap();
+        }
+
+        let sent_total = sent.load(Ordering::Relaxed);
+        let drained = wait_until(Duration::from_secs(10), || {
+            received.load(Ordering::Relaxed) == sent_total
+        });
+        let elapsed = start.elapsed();
+        let received_total = received.load(Ordering::Relaxed);
+
+        println!(
+            "[cross-engine] {ENGINES} engines x {ACTORS_PER_ENGINE} actors, {SENDERS} senders, {elapsed:?}: sent={sent_total} received={received_total} ({:.0} msgs/sec) dead_letters={}",
+            received_total as f64 / elapsed.as_secs_f64(),
+            dead_letters.load(Ordering::Relaxed)
+        );
+
+        assert!(
+            drained,
+            "timed out waiting for all sent messages to be received"
+        );
+        assert_eq!(sent_total, received_total, "message loss detected");
     }
 }

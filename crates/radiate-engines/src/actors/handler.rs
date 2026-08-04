@@ -17,9 +17,7 @@ pub struct FnActor<M: Send> {
     pub(crate) handler: Box<dyn FnMut(M, &ActorContext) + Send + Sync>,
 }
 
-impl<M: Send> Actor for FnActor<M> {
-    fn on_child_failure(&mut self, _: String) {}
-}
+impl<M: Send> Actor for FnActor<M> {}
 
 impl<M: Send + 'static> MessageHandler<M> for FnActor<M> {
     fn handle(&mut self, message: M, ctx: &ActorContext) {

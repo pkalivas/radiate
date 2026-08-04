@@ -199,7 +199,6 @@ where
         let context = self.params.actor_system.context();
 
         let bus = context.bus();
-        // let sync = self.params.evaluation_params.sync.clone();
         let executor = self.params.evaluation_params.broker_executor.clone();
 
         let new_broker = ActorSystem::from((executor, bus));
