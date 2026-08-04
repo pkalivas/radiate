@@ -1,8 +1,4 @@
-use crate::{
-    Engine, EvolutionContext, Generation, Limit,
-    events::{LimitProgress, Log},
-    init_logging,
-};
+use crate::{Engine, EvolutionContext, Generation, Limit, events::Log, init_logging};
 #[cfg(feature = "serde")]
 use crate::{FileWriter, JsonWriter};
 use crate::{LimitTriggered, generation::GenerationView};
@@ -223,19 +219,7 @@ where
         broker
             .on::<LimitTriggered>()
             .handle(move |msg: &LimitTriggered, ctx: &EventContext| {
-                ctx.send(Log::info(
-                    Some(msg.generation),
-                    format!(
-                        "{:?} triggered [{}]: {}",
-                        msg.kind, msg.generation, msg.description
-                    ),
-                ));
-            });
-
-        broker
-            .on::<LimitProgress>()
-            .handle(move |msg: &LimitProgress, ctx: &EventContext| {
-                ctx.send(Log::info(Some(msg.index()), msg.description()));
+                ctx.send(Log::info(Some(msg.generation), msg.description()));
             });
 
         self

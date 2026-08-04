@@ -155,7 +155,10 @@ where
         ctx.broker().send(LimitTriggered::new(
             ctx.index,
             GENERATION_LIMIT,
-            format!("reached generation limit of {limit}"),
+            format!(
+                "Generation Limit reached: Current = {}, Limit = {limit}",
+                ctx.index
+            ),
         ));
     } else {
         ctx.broker()
@@ -181,7 +184,7 @@ where
         ctx.broker().send(LimitTriggered::new(
             ctx.index,
             TIME_LIMIT,
-            format!("reached time limit of {total_time:?}"),
+            format!("Time Limit reached: Total Time = {total_time:?}, Limit = {limit:?}"),
         ));
     } else {
         ctx.broker()
@@ -226,7 +229,11 @@ where
         ctx.broker().send(LimitTriggered::new(
             ctx.index,
             SCORE_LIMIT,
-            format!("reached score limit of {:?} (score: {:?})", limit, score),
+            format!(
+                "Score Limit reached. Current = {:.6}, Limit = {:.6}",
+                score.as_f32(),
+                limit.as_f32()
+            ),
         ));
     } else {
         ctx.broker().send(LimitProgress::score(
@@ -288,7 +295,7 @@ where
             generation: ctx.index,
             kind: CONVERGENCE_LIMIT,
             description: format!(
-                "converged: |delta|={:.6} <= epsilon={epsilon} over window={window}",
+                "Convergence Limit reached: Window = {window}, Epsilon = {epsilon}, Improvement = {:.6}",
                 improved.abs()
             ),
         });
@@ -317,7 +324,7 @@ where
             ctx.broker().send(LimitTriggered {
                 generation: ctx.index,
                 kind: EXPR_LIMIT,
-                description: format!("expression limit triggered: {expr:?}"),
+                description: format!("Expression Limit reached: Expression = {:?}", expr.name(),),
             });
         }
         Ok(proceed)

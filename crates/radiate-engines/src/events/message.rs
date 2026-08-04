@@ -58,7 +58,6 @@ pub struct Log {
     pub level: LogLevel,
     pub index: Option<usize>,
     pub message: String,
-    pub title: Option<String>,
 }
 
 impl Log {
@@ -67,7 +66,6 @@ impl Log {
             level: LogLevel::Info,
             index,
             message: msg.into(),
-            title: None,
         }
     }
 
@@ -76,13 +74,7 @@ impl Log {
             level: LogLevel::Warn,
             index,
             message: msg.into(),
-            title: None,
         }
-    }
-
-    pub fn with_title<S: Into<String>>(mut self, title: S) -> Self {
-        self.title = Some(title.into());
-        self
     }
 
     pub fn level(&self) -> LogLevel {
@@ -95,16 +87,6 @@ impl Log {
 
     pub fn message(&self) -> &str {
         &self.message
-    }
-
-    pub fn line(&self) -> String {
-        let mut start = String::new();
-        start
-        // start +
-        // match self.title.as_ref() {
-        //     Some(title) => format!("[{}] {}", title, self.message),
-        //     None => self.message.clone(),
-        // }
     }
 }
 

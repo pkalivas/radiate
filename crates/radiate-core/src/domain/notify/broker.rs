@@ -160,17 +160,10 @@ impl MessageBroker {
         }
     }
 
-    /// Send a message. Only actors subscribed to `TypeId::of::<M>()` are
-    /// touched — if nobody's listening for this kind, this is just a map
-    /// lookup, no payload cloning happens.
-    ///
-    /// The registry lock is dropped before any actor is told about the
-    /// message — under a `Serial` executor, `tell` drains the actor's
-    /// mailbox (and so runs the handler) inline, on this same call stack.
-    /// A handler that calls `EventContext::send`/`has_subscribers` back
-    /// into this same `ActorSystem` would then try to re-lock a lock this
-    /// thread already holds, which deadlocks instead of blocking briefly
-    /// (neither `Mutex` nor `RwLock` in `std` are reentrant).
+    pub fn broadcast_state(&self) {
+        self.lazy_send(|| self.stats());
+    }
+
     #[inline]
     pub fn send<M: Message>(&self, message: M) {
         let ctx = EventContext {

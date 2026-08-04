@@ -133,7 +133,7 @@ impl EventContext {
     /// Publish another message onto the same `ActorSystem` this handler is
     /// running on. Only actors subscribed to `M` are touched, same as
     /// [`ActorSystem::send`].
-    pub fn send<M: Message + Clone>(&self, message: M) {
+    pub fn send<M: Message>(&self, message: M) {
         self.system.trace_send(message, self.id);
     }
 
