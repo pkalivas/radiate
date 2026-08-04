@@ -1,8 +1,8 @@
 use super::actor::ActorId;
 use crate::{MessageBroker, ThreadSync};
 use radiate_utils::sentry_id;
-use std::sync::Arc;
-use std::sync::atomic::AtomicU64;
+use std::{any::Any, sync::Arc};
+use std::{any::TypeId, sync::atomic::AtomicU64};
 
 sentry_id!(EventId);
 
@@ -47,6 +47,28 @@ pub struct ActorPanicked {
 /// requirement is being safe to hand across the `Executor`'s worker threads.
 pub trait Message: Send + Sync + 'static {}
 impl<M: Send + Sync + 'static> Message for M {}
+
+pub struct AnyEnvelope {
+    payload: Box<dyn Any + Send>,
+    type_id: TypeId,
+}
+
+impl AnyEnvelope {
+    pub fn new<M: Message>(message: M) -> Self {
+        AnyEnvelope {
+            payload: Box::new(message),
+            type_id: TypeId::of::<M>(),
+        }
+    }
+
+    pub fn type_id(&self) -> TypeId {
+        self.type_id
+    }
+
+    pub fn downcast_ref<M: Message>(&self) -> Option<&M> {
+        self.payload.downcast_ref::<M>()
+    }
+}
 
 /// A cheaply-clonable message envelope: wraps `D` in an `Arc` so fanning a
 /// message out to many subscribed actors clones a pointer per actor, not the

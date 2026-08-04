@@ -24,6 +24,7 @@ pub trait AnySubscription: Send + Sync + fmt::Debug {
     fn queued(&self) -> usize;
 
     fn processed(&self) -> u64;
+
     fn meta(&self) -> SubscriptionMeta;
 }
 
