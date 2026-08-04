@@ -1,11 +1,3 @@
-//! Throughput/load tests for `ActorSystem`. These aren't micro-benchmarks —
-//! there's no criterion harness in this workspace — they're sanity checks
-//! that the mailbox model (single-flight drain per actor, scheduled via the
-//! executor) holds up under real volume: no lost messages, no broken
-//! per-actor ordering, and no pathological stalls. Throughput numbers are
-//! printed (run with `--nocapture` to see them) but not asserted on, since
-//! absolute numbers vary too much across machines to make a reliable CI gate.
-
 use radiate_core::*;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};

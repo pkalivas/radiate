@@ -202,6 +202,10 @@ where
         }
 
         self.broker.lazy_send(|| EpochComplete::from(&self.context));
+
+        // Ecosystem is a heavy clone, but this only clones if we have a subscriber
+        // and once it is cloned, the snapshot is backed by an Arc<Ecosystem> so
+        // we don't pay the clone cost twice.
         self.broker
             .lazy_send(|| EcosystemSnapshot::from(&self.context));
 

@@ -45,6 +45,52 @@ impl<C: Chromosome, T> PyProblem<C, T> {
         );
     }
 
+    fn call_batch_fitness<'py>(
+        &self,
+        py: Python<'py>,
+        phenotypes: Py<PyAny>,
+    ) -> RadiateResult<Vec<Score>> {
+        let any_value = self
+            .fitness_func
+            .inner
+            .call1(py, (phenotypes,))
+            .map_err(|e| {
+                error::radiate_err!(Evaluation:
+                    "Ensure the function is callable, accepts one argument (list of Genotypes), and returns a valid list of scores. Details: {}",
+                    e
+                )
+            })?;
+
+        if let Ok(vals) = any_value.extract::<Vec<f32>>(py) {
+            return Ok(Self::scores_from_vec(vals));
+        }
+        if let Ok(vals) = any_value.extract::<Vec<i32>>(py) {
+            return Ok(Self::scores_from_vec(vals));
+        }
+        if let Ok(vals) = any_value.extract::<Vec<f64>>(py) {
+            return Ok(Self::scores_from_vec(vals));
+        }
+        if let Ok(vals) = any_value.extract::<Vec<i64>>(py) {
+            return Ok(Self::scores_from_vec(vals));
+        }
+        if let Ok(vals) = any_value.extract::<Vec<Vec<f32>>>(py) {
+            return Ok(Self::scores_from_vec(vals));
+        }
+        if let Ok(vals) = any_value.extract::<Vec<Vec<i32>>>(py) {
+            return Ok(Self::scores_from_vec(vals));
+        }
+        if let Ok(vals) = any_value.extract::<Vec<Vec<f64>>>(py) {
+            return Ok(Self::scores_from_vec(vals));
+        }
+        if let Ok(vals) = any_value.extract::<Vec<Vec<i64>>>(py) {
+            return Ok(Self::scores_from_vec(vals));
+        }
+
+        error::radiate_bail!(Evaluation:
+            "Fitness function did not return a valid list of scores."
+        );
+    }
+
     fn score_from_numpy<'py>(bound: &Bound<'py, PyAny>) -> Option<RadiateResult<Score>> {
         if let Ok(array) = bound.cast::<PyArrayDyn<f32>>() {
             return Some(Self::numpy_f32_score(array));
@@ -129,52 +175,6 @@ impl<C: Chromosome, T> PyProblem<C, T> {
             );
         }
         Ok(Score::from(values))
-    }
-
-    fn call_batch_fitness<'py>(
-        &self,
-        py: Python<'py>,
-        phenotypes: Py<PyAny>,
-    ) -> RadiateResult<Vec<Score>> {
-        let any_value = self
-            .fitness_func
-            .inner
-            .call1(py, (phenotypes,))
-            .map_err(|e| {
-                error::radiate_err!(Evaluation:
-                    "Ensure the function is callable, accepts one argument (list of Genotypes), and returns a valid list of scores. Details: {}",
-                    e
-                )
-            })?;
-
-        if let Ok(vals) = any_value.extract::<Vec<f32>>(py) {
-            return Ok(Self::scores_from_vec(vals));
-        }
-        if let Ok(vals) = any_value.extract::<Vec<i32>>(py) {
-            return Ok(Self::scores_from_vec(vals));
-        }
-        if let Ok(vals) = any_value.extract::<Vec<f64>>(py) {
-            return Ok(Self::scores_from_vec(vals));
-        }
-        if let Ok(vals) = any_value.extract::<Vec<i64>>(py) {
-            return Ok(Self::scores_from_vec(vals));
-        }
-        if let Ok(vals) = any_value.extract::<Vec<Vec<f32>>>(py) {
-            return Ok(Self::scores_from_vec(vals));
-        }
-        if let Ok(vals) = any_value.extract::<Vec<Vec<i32>>>(py) {
-            return Ok(Self::scores_from_vec(vals));
-        }
-        if let Ok(vals) = any_value.extract::<Vec<Vec<f64>>>(py) {
-            return Ok(Self::scores_from_vec(vals));
-        }
-        if let Ok(vals) = any_value.extract::<Vec<Vec<i64>>>(py) {
-            return Ok(Self::scores_from_vec(vals));
-        }
-
-        error::radiate_bail!(Evaluation:
-            "Fitness function did not return a valid list of scores."
-        );
     }
 
     fn scores_from_vec<V>(values: Vec<V>) -> Vec<Score>

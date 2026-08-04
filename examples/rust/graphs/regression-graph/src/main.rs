@@ -17,23 +17,12 @@ fn main() {
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4.0))
-        .parallel()
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
             GraphMutator::new(0.1, 0.1).allow_recurrent(false)
         ))
         .build();
-
-    // engine
-    //     .on::<EpochComplete<Graph<Op<f32>>>>()
-    //     .handle(|event: &EpochComplete<Graph<Op<f32>>>, _: &EventContext| {});
-
-    // engine.on::<EngineStop<Graph<Op<f32>>>>().handle(
-    //     |event: &EngineStop<Graph<Op<f32>>>, _: &EventContext| {
-    //         println!("Engine stopped at epoch {}", event.index);
-    //     },
-    // );
 
     // radiate::ui((engine, true))
     engine
