@@ -78,6 +78,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.metrics
             .replace(metric!(metric_names::INDEX, self.index));
         self.metrics.bump(self.index as u64);
+        self.broker.broadcast_state();
 
         Ok(best_improved)
     }

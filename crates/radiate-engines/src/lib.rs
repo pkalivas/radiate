@@ -18,7 +18,10 @@ use std::sync::{
 pub use builder::GeneticEngineBuilder;
 pub use context::EvolutionContext;
 pub use engine::GeneticEngine;
-pub use events::{EpochComplete, LimitTriggered, LoggingHandler, MetricCollector};
+pub use events::{
+    EngineMessage, EngineStart, EngineStop, EpochComplete, Improvement, LimitTriggered, Log,
+    LogLevel, LoggingHandler, MetricCollector,
+};
 pub use generation::{Generation, GenerationView};
 pub use io::{FileReader, FileWriter, JsonReader, JsonWriter};
 pub use limit::Limit;

@@ -17,6 +17,7 @@ fn main() {
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4.0))
+        .parallel()
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
@@ -24,12 +25,13 @@ fn main() {
         ))
         .build();
 
-    // engine.on::<EpochComplete<Graph<Op<f32>>>>().handle(
-    //     |event: &EpochComplete<Graph<Op<f32>>>, _: &EventContext| {
-    //         println!(
-    //             "Epoch {} completed: score={:?}, objective={:?}",
-    //             event.index, event.score, event.objective
-    //         );
+    // engine
+    //     .on::<EpochComplete<Graph<Op<f32>>>>()
+    //     .handle(|event: &EpochComplete<Graph<Op<f32>>>, _: &EventContext| {});
+
+    // engine.on::<EngineStop<Graph<Op<f32>>>>().handle(
+    //     |event: &EngineStop<Graph<Op<f32>>>, _: &EventContext| {
+    //         println!("Engine stopped at epoch {}", event.index);
     //     },
     // );
 

@@ -1,4 +1,6 @@
-use crate::events::{EngineMessage, EngineStop, EpochComplete, EpochStart, Improvement};
+use crate::events::{
+    EcosystemSnapshot, EngineMessage, EngineStop, EpochComplete, EpochStart, Improvement,
+};
 use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
 use crate::{GenerationView, builder::GeneticEngineBuilder};
@@ -121,7 +123,10 @@ where
     ///
     /// The iterator consumes the engine, so you can only iterate once. If you need
     /// to run the engine multiple times, create a new instance using the builder.
-    pub fn iter(self) -> EngineRuntime<Self> {
+    pub fn iter(self) -> EngineRuntime<Self>
+    where
+        C: 'static,
+    {
         EngineRuntime::new(self)
     }
 
@@ -162,7 +167,7 @@ where
 /// - **Pipeline Optimization**: Evolutionary operators are executed in optimized sequences
 impl<C, T> Engine for GeneticEngine<C, T>
 where
-    C: Chromosome + Clone,
+    C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
     type Epoch = Generation<C, T>;
@@ -197,6 +202,8 @@ where
         }
 
         self.broker.lazy_send(|| EpochComplete::from(&self.context));
+        self.broker
+            .lazy_send(|| EcosystemSnapshot::from(&self.context));
 
         Ok(EngineState::Running)
     }

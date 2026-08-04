@@ -1,8 +1,8 @@
 use crate::context::EvolutionContext;
 use radiate_core::{
-    ActorPanicked, ActorSubscribed, Chromosome, Message, MetricSet, Objective, Score,
+    ActorPanicked, ActorSubscribed, Chromosome, Ecosystem, Message, MetricSet, Objective, Score,
 };
-use std::{fmt::Debug, time::Duration};
+use std::{fmt::Debug, sync::Arc, time::Duration};
 
 mod sealed {
     pub trait Sealed {}
@@ -40,6 +40,9 @@ impl<T: Send + Sync + 'static> EngineMessage for EpochComplete<T> {}
 
 impl<T: Send + Sync + 'static> sealed::Sealed for EngineStop<T> {}
 impl<T: Send + Sync + 'static> EngineMessage for EngineStop<T> {}
+
+impl<C: Chromosome + Clone> sealed::Sealed for EcosystemSnapshot<C> {}
+impl<C: Chromosome + Clone + Send + Sync + 'static> EngineMessage for EcosystemSnapshot<C> {}
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CheckpointSaved {
@@ -366,91 +369,23 @@ impl<T> Debug for EngineStop<T> {
     }
 }
 
-// #[derive(Clone)]
-// pub enum EngineEvent<T> {
-//     Started(EngineStart),
-//     Stopped(EngineStop<T>),
-//     EpochStarted(EpochStart),
-//     EpochCompleted(EpochComplete<T>),
-//     Improved(Improvement<T>),
-//     LimitTriggered(LimitTriggered),
-//     Log(Log),
-// }
+#[derive(Clone)]
+pub struct EcosystemSnapshot<C: Chromosome + 'static> {
+    pub index: usize,
+    pub ecosystem: Arc<Ecosystem<C>>,
+}
 
-// impl<T> EngineEvent<T> {
-//     pub fn is_start(&self) -> bool {
-//         matches!(self, EngineEvent::Started(_))
-//     }
+impl<C: Chromosome + Clone, T> From<&EvolutionContext<C, T>> for EcosystemSnapshot<C> {
+    fn from(ctx: &EvolutionContext<C, T>) -> Self {
+        EcosystemSnapshot {
+            index: ctx.index,
+            ecosystem: Arc::new(ctx.ecosystem.clone()),
+        }
+    }
+}
 
-//     pub fn is_stop(&self) -> bool {
-//         matches!(self, EngineEvent::Stopped(_))
-//     }
-
-//     pub fn is_epoch_start(&self) -> bool {
-//         matches!(self, EngineEvent::EpochStarted(_))
-//     }
-
-//     pub fn is_epoch_complete(&self) -> bool {
-//         matches!(self, EngineEvent::EpochCompleted(_))
-//     }
-
-//     pub fn is_improvement(&self) -> bool {
-//         matches!(self, EngineEvent::Improved(_))
-//     }
-
-//     /// The variant name, independent of the payload it carries — the
-//     /// "kind" half of the generic (kind, index, description) view any
-//     /// listener can pull without matching all seven variants.
-//     pub fn kind(&self) -> &'static str {
-//         match self {
-//             EngineEvent::Started(_) => "Started",
-//             EngineEvent::Stopped(_) => "Stopped",
-//             EngineEvent::EpochStarted(_) => "EpochStarted",
-//             EngineEvent::EpochCompleted(_) => "EpochCompleted",
-//             EngineEvent::Improved(_) => "Improved",
-//             EngineEvent::LimitTriggered(_) => "LimitTriggered",
-//             EngineEvent::Log(_) => "Log",
-//         }
-//     }
-
-//     /// The generation this event pertains to, where one exists. `None`
-//     /// only for `Started` — every other variant, including `Log`, carries
-//     /// the generation it was emitted from.
-//     pub fn index(&self) -> Option<usize> {
-//         match self {
-//             EngineEvent::Started(_) => None,
-//             EngineEvent::Stopped(s) => Some(s.index),
-//             EngineEvent::EpochStarted(s) => Some(s.index),
-//             EngineEvent::EpochCompleted(s) => Some(s.index),
-//             EngineEvent::Improved(s) => Some(s.index),
-//             EngineEvent::LimitTriggered(l) => Some(l.generation),
-//             EngineEvent::Log(l) => l.index,
-//         }
-//     }
-
-//     /// A human-readable summary of the payload, where the payload has
-//     /// anything beyond its `kind`/`index` worth surfacing generically.
-//     pub fn description(&self) -> Option<String> {
-//         match self {
-//             EngineEvent::Started(_) | EngineEvent::EpochStarted(_) => None,
-//             EngineEvent::Stopped(s) => Some(format!("score={:?}", s.score)),
-//             EngineEvent::EpochCompleted(s) => {
-//                 Some(format!("score={:?}, objective={:?}", s.score, s.objective))
-//             }
-//             EngineEvent::Improved(s) => Some(format!("score={:?}", s.score)),
-//             EngineEvent::LimitTriggered(l) => Some(format!("{}: {}", l.kind, l.description)),
-//             EngineEvent::Log(l) => Some(l.message.clone()),
-//         }
-//     }
-// }
-
-// impl<T> Debug for EngineEvent<T> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         match (self.index(), self.description()) {
-//             (Some(i), Some(d)) => write!(f, "{}(index={}, {})", self.kind(), i, d),
-//             (Some(i), None) => write!(f, "{}(index={})", self.kind(), i),
-//             (None, Some(d)) => write!(f, "{}({})", self.kind(), d),
-//             (None, None) => write!(f, "{}", self.kind()),
-//         }
-//     }
-// }
+impl<C: Chromosome> Debug for EcosystemSnapshot<C> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "EcosystemSnapshot(index={})", self.index)
+    }
+}

@@ -25,17 +25,27 @@ fn wait_until<F: Fn() -> bool>(timeout: Duration, cond: F) -> bool {
     true
 }
 
+fn parallel_broker(num_workers: usize) -> MessageBroker {
+    MessageBroker::new(Arc::new(Executor::FixedSizedWorkerPool(num_workers)))
+}
+
+fn serial_broker() -> MessageBroker {
+    MessageBroker::new(Arc::new(Executor::Serial))
+}
+
 #[test]
 fn single_actor_serial_executor_throughput() {
     const N: u64 = 50_000;
 
-    let system = MessageBroker::new(Arc::new(Executor::Serial));
+    let system = serial_broker();
     let received = Arc::new(AtomicU64::new(0));
     let received2 = Arc::clone(&received);
 
-    system.subscribe::<Counted, _>(move |_msg: &Counted, _ctx: &EventContext| {
-        received2.fetch_add(1, Ordering::Relaxed);
-    });
+    system
+        .on::<Counted>()
+        .handle(move |_msg: &Counted, _ctx: &EventContext| {
+            received2.fetch_add(1, Ordering::Relaxed);
+        });
 
     let start = Instant::now();
     for i in 0..N {
@@ -43,26 +53,28 @@ fn single_actor_serial_executor_throughput() {
     }
     let elapsed = start.elapsed();
 
-    assert_eq!(received.load(Ordering::Relaxed), N);
-
     let throughput = N as f64 / elapsed.as_secs_f64();
+
     println!("[serial]     {N} messages in {elapsed:?} ({throughput:.0} msgs/sec)");
+    assert_eq!(received.load(Ordering::Relaxed), N);
 }
 
 #[test]
 fn single_actor_parallel_executor_throughput_preserves_order() {
     const N: u64 = 500_000;
 
-    let system = MessageBroker::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
+    let system = parallel_broker(4);
     let received = Arc::new(AtomicU64::new(0));
     let order = Arc::new(Mutex::new(Vec::with_capacity(N as usize)));
 
     let received2 = Arc::clone(&received);
     let order2 = Arc::clone(&order);
-    system.subscribe::<Counted, _>(move |msg: &Counted, _ctx: &EventContext| {
-        order2.lock().unwrap().push(msg.0);
-        received2.fetch_add(1, Ordering::Relaxed);
-    });
+    system
+        .on::<Counted>()
+        .handle(move |msg: &Counted, _ctx: &EventContext| {
+            order2.lock().unwrap().push(msg.0);
+            received2.fetch_add(1, Ordering::Relaxed);
+        });
 
     let start = Instant::now();
     for i in 0..N {
@@ -98,14 +110,16 @@ fn fan_out_to_many_subscribers_throughput() {
     const N: u64 = 20_000;
     const SUBSCRIBERS: usize = 50;
 
-    let system = MessageBroker::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
+    let system = parallel_broker(4);
     let total_received = Arc::new(AtomicU64::new(0));
 
     for _ in 0..SUBSCRIBERS {
         let total = Arc::clone(&total_received);
-        system.subscribe::<Counted, _>(move |_msg: &Counted, _ctx: &EventContext| {
-            total.fetch_add(1, Ordering::Relaxed);
-        });
+        system
+            .on::<Counted>()
+            .handle(move |_msg: &Counted, _ctx: &EventContext| {
+                total.fetch_add(1, Ordering::Relaxed);
+            });
     }
 
     let target = N * SUBSCRIBERS as u64;
@@ -137,13 +151,15 @@ fn concurrent_producers_lose_no_messages() {
     const PER_PRODUCER: u64 = 10_000;
     const N: u64 = PRODUCERS * PER_PRODUCER;
 
-    let system = MessageBroker::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
+    let system = parallel_broker(4);
     let received = Arc::new(AtomicU64::new(0));
     let received2 = Arc::clone(&received);
 
-    system.subscribe::<Counted, _>(move |_msg: &Counted, _ctx: &EventContext| {
-        received2.fetch_add(1, Ordering::Relaxed);
-    });
+    system
+        .on::<Counted>()
+        .handle(move |_msg: &Counted, _ctx: &EventContext| {
+            received2.fetch_add(1, Ordering::Relaxed);
+        });
 
     let start = Instant::now();
     std::thread::scope(|scope| {
