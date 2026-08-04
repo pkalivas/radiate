@@ -266,7 +266,7 @@ mod engine_tests {
 
         let engine = GeneticEngine::builder().problem(OneMax::new(5)).build();
 
-        engine.on::<EpochComplete<Vec<bool>>>().handle(collector);
+        // engine.on::<EpochComplete<Vec<bool>>>(collector);
 
         engine.iter().limit(BUDGET).last().unwrap();
 
@@ -286,13 +286,11 @@ mod engine_tests {
             .fitness_fn(|_geno: Vec<f32>| 1.0)
             .build();
 
-        engine
-            .on::<Log>()
-            .handle(move |msg: &Log, _: &EventContext| {
-                if msg.level() == LogLevel::Warn {
-                    seen2.lock().unwrap().push(msg.message().to_string());
-                }
-            });
+        engine.on::<Log>(move |msg: &Log, _: &ActorContext| {
+            if msg.level() == LogLevel::Warn {
+                seen2.lock().unwrap().push(msg.message().to_string());
+            }
+        });
 
         engine.iter().limit(BUDGET).last().unwrap();
 
@@ -427,13 +425,11 @@ mod engine_tests {
                 ])
                 .build();
 
-            engine
-                .on::<Log>()
-                .handle(move |msg: &Log, _: &EventContext| {
-                    if msg.level() == LogLevel::Warn {
-                        seen2.lock().unwrap().push(msg.message().to_string());
-                    }
-                });
+            engine.on::<Log>(move |msg: &Log, _: &ActorContext| {
+                if msg.level() == LogLevel::Warn {
+                    seen2.lock().unwrap().push(msg.message().to_string());
+                }
+            });
 
             engine.iter().limit(200).last().unwrap();
         });

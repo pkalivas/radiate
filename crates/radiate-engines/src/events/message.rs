@@ -1,6 +1,6 @@
 use crate::context::EvolutionContext;
 use radiate_core::{
-    ActorPanicked, ActorSubscribed, Chromosome, Ecosystem, Message, MetricSet, Objective, Score,
+    ActorPanicked, ActorSubscribed, Chromosome, Ecosystem, MetricSet, Objective, Score,
 };
 use std::{fmt::Debug, sync::Arc, time::Duration};
 
@@ -8,7 +8,7 @@ mod sealed {
     pub trait Sealed {}
 }
 
-pub trait EngineMessage: sealed::Sealed + Message + std::fmt::Debug {}
+pub trait EngineMessage: sealed::Sealed + std::fmt::Debug {}
 
 macro_rules! engine_message {
     ($($t:ty),* $(,)?) => { $(
@@ -138,6 +138,10 @@ pub enum LimitProgress {
         epsilon: f32,
         diff: f32,
     },
+    Expr {
+        generation: usize,
+        expression: String,
+    },
 }
 
 impl LimitProgress {
@@ -170,12 +174,20 @@ impl LimitProgress {
         }
     }
 
+    pub fn expr(generation: usize, expression: String) -> Self {
+        LimitProgress::Expr {
+            generation,
+            expression,
+        }
+    }
+
     pub fn index(&self) -> usize {
         match self {
             LimitProgress::Generations { current, .. } => *current,
             LimitProgress::Time { generation, .. } => *generation,
             LimitProgress::Score { generation, .. } => *generation,
             LimitProgress::Convergence { generation, .. } => *generation,
+            LimitProgress::Expr { generation, .. } => *generation,
         }
     }
 
@@ -185,6 +197,7 @@ impl LimitProgress {
             LimitProgress::Time { .. } => "Time",
             LimitProgress::Score { .. } => "Score",
             LimitProgress::Convergence { .. } => "Convergence",
+            LimitProgress::Expr { .. } => "Expression",
         }
     }
 
@@ -216,6 +229,12 @@ impl LimitProgress {
                 "[LIMIT] Convergence progress: |delta|={:.6} <= epsilon={epsilon} over window={window} (Generation {generation})",
                 diff
             ),
+            LimitProgress::Expr {
+                generation,
+                expression,
+            } => format!(
+                "[LIMIT] Expression progress: Expression={expression} (Generation {generation})"
+            ),
         }
     }
 
@@ -246,6 +265,7 @@ impl LimitProgress {
                     diff / epsilon
                 }
             }
+            LimitProgress::Expr { .. } => 0.0,
         }
     }
 }

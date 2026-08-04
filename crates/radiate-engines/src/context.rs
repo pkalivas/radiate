@@ -1,10 +1,10 @@
 use crate::builder::config::EngineConfig;
 use crate::{Chromosome, ThreadSync};
+use radiate_core::rate::ExprSet;
+use radiate_core::{ActorSystem, error::RadiateResult};
 use radiate_core::{
     Ecosystem, Front, MetricSet, Objective, Phenotype, Problem, Score, metric, metric_names,
 };
-use radiate_core::{Message, rate::ExprSet};
-use radiate_core::{MessageBroker, error::RadiateResult};
 use std::sync::{Arc, Mutex, RwLock};
 
 pub struct EvolutionContext<C: Chromosome, T> {
@@ -18,7 +18,7 @@ pub struct EvolutionContext<C: Chromosome, T> {
     pub(crate) problem: Arc<dyn Problem<C, T>>,
     pub(crate) control: Option<ThreadSync>,
     pub(crate) exprs: Option<Arc<Mutex<ExprSet>>>,
-    pub(crate) broker: MessageBroker,
+    pub(crate) actor_system: ActorSystem,
 }
 
 impl<C: Chromosome, T> EvolutionContext<C, T> {
@@ -42,12 +42,12 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.front.clone()
     }
 
-    pub fn broker(&self) -> &MessageBroker {
-        &self.broker
+    pub fn actor_system(&self) -> &ActorSystem {
+        &self.actor_system
     }
 
-    pub fn send<M: Message>(&self, message: M) {
-        self.broker.send(message);
+    pub fn send<M: Send + 'static>(&self, message: M) {
+        self.actor_system.publish(message);
     }
 
     pub fn get_or_create_control(&mut self) -> ThreadSync {
@@ -78,7 +78,6 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.metrics
             .replace(metric!(metric_names::INDEX, self.index));
         self.metrics.bump(self.index as u64);
-        self.broker.broadcast_state();
 
         Ok(best_improved)
     }
@@ -104,7 +103,7 @@ where
                 problem: config.problem().clone(),
                 control: sync,
                 exprs: generation.exprs(),
-                broker: config.broker(),
+                actor_system: config.actor_system(),
             };
         }
 
@@ -124,7 +123,7 @@ where
             problem: config.problem().clone(),
             control: sync,
             exprs: config.exprs(),
-            broker: config.broker().clone(),
+            actor_system: config.actor_system().clone(),
         }
     }
 }

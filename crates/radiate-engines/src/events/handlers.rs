@@ -1,5 +1,8 @@
-use crate::events::{EpochComplete, Log};
-use radiate_core::{EventContext, EventHandler, MetricSet};
+use crate::{
+    LimitTriggered,
+    events::{EpochComplete, LimitProgress, Log},
+};
+use radiate_core::{Actor, ActorContext, EventHandler, MetricSet};
 use std::sync::{Arc, Mutex};
 
 /// Collects the `MetricSet` from every completed generation into a shared,
@@ -44,19 +47,36 @@ impl MetricCollector {
 }
 
 impl<T: Send + Sync + 'static> EventHandler<EpochComplete<T>> for MetricCollector {
-    fn handle(&mut self, message: &EpochComplete<T>, _: &EventContext) {
+    fn handle(&mut self, message: &EpochComplete<T>, _: &ActorContext) {
         self.history.lock().unwrap().push(message.metrics.clone());
     }
 }
 
-#[derive(Clone, Default)]
-pub struct LoggingHandler;
+#[derive(Clone)]
+pub enum LogEvent {
+    LimitTriggered(LimitTriggered),
+    LimitProgress(LimitProgress),
+    Log(Log),
+}
 
-impl EventHandler<Log> for LoggingHandler {
-    fn handle(&mut self, message: &Log, _ctx: &EventContext) {
-        match message.level {
-            crate::events::LogLevel::Info => tracing::info!("{}", message.message),
-            crate::events::LogLevel::Warn => tracing::warn!("{}", message.message),
+#[derive(Clone, Default)]
+pub struct LoggingActor;
+
+impl Actor for LoggingActor {
+    type Message = LogEvent;
+
+    fn receive(&mut self, message: Self::Message, _: &ActorContext) {
+        match message {
+            LogEvent::LimitTriggered(event) => {
+                tracing::info!("Limit triggered: {} - {}", event.kind, event.description);
+            }
+            LogEvent::LimitProgress(event) => {
+                tracing::info!("Limit progress: {}", event.description(),);
+            }
+            LogEvent::Log(event) => match event.level {
+                crate::events::LogLevel::Info => tracing::info!("{}", event.message),
+                crate::events::LogLevel::Warn => tracing::warn!("{}", event.message),
+            },
         }
     }
 }

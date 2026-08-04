@@ -1,13 +1,14 @@
+use crate::events::LogEvent;
 use crate::{EvolutionContext, Generation, events::Log, runtime::RuntimeAction};
 #[cfg(feature = "serde")]
 use crate::{FileWriter, events::CheckpointSaved};
-use radiate_core::{Chromosome, Engine, Objective, error::RadiateResult};
+use radiate_core::{ActorRef, Chromosome, Engine, Objective, error::RadiateResult};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 #[cfg(feature = "serde")]
 use std::path::PathBuf;
 
-pub(crate) struct LoggingAction(pub usize);
+pub(crate) struct LoggingAction(pub usize, pub ActorRef<LogEvent>);
 
 impl<C, T, E> RuntimeAction<E> for LoggingAction
 where
@@ -35,19 +36,19 @@ where
                     time
                 );
 
-                ctx.send(Log::info(Some(ctx.index), str));
+                self.1.tell(LogEvent::Log(Log::info(Some(ctx.index), str)));
             }
             Objective::Multi(_) => {
                 let front_size = ctx.metrics.front_size();
                 let front_size_value = front_size.map(|ent| ent.last_value()).unwrap_or(0.0);
 
-                ctx.send(Log::info(
+                self.1.tell(LogEvent::Log(Log::info(
                     Some(ctx.index),
                     format!(
                         "Epoch {:<4} | Front Size: {:.3} | Time: {:>5.2?}",
                         ctx.index, front_size_value, time
                     ),
-                ));
+                )));
             }
         }
 

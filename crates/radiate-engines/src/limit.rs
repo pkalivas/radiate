@@ -121,6 +121,14 @@ pub enum Limit {
     Expr(Expr),
 }
 
+pub(crate) enum LimitOutcome {
+    Proceed(LimitProgress),
+    Stop {
+        kind: &'static str,
+        description: String,
+    },
+}
+
 impl<C, T, E> RuntimeLimit<E> for Limit
 where
     E: Engine<Epoch = Generation<C, T>, Ctx = EvolutionContext<C, T>>,
@@ -128,47 +136,79 @@ where
     T: Clone + Send + Sync,
 {
     fn proceed(&mut self, ctx: &E::Ctx) -> RadiateResult<bool> {
-        match self {
+        let outcome = match self {
             Limit::Generation(gens) => check_generation_limit(ctx, *gens),
             Limit::Seconds(secs) => check_time_limit(ctx, *secs),
             Limit::Score(limit) => check_score_limit(ctx, limit),
             Limit::Convergence(window, epsilon, history) => {
                 check_convergence_limit(ctx, *window, *epsilon, history)
             }
-            Limit::Combined(limits) => limits
-                .iter_mut()
-                .map(|limit| <Limit as RuntimeLimit<E>>::proceed(limit, ctx))
-                .collect::<RadiateResult<Vec<bool>>>()
-                .map(|proceed| proceed.iter().all(|&p| p)),
+            Limit::Combined(limits) => {
+                let proceed = limits
+                    .iter_mut()
+                    .map(|limit| <Limit as RuntimeLimit<E>>::proceed(limit, ctx))
+                    .collect::<RadiateResult<Vec<bool>>>()
+                    .map(|proceed| proceed.iter().all(|&p| p));
+
+                match proceed {
+                    Ok(true) => Ok(LimitOutcome::Proceed(LimitProgress::Generations {
+                        current: ctx.index,
+                        limit: ctx.index, // Placeholder, adjust as needed
+                    })),
+                    Ok(false) => Ok(LimitOutcome::Stop {
+                        kind: "Combined",
+                        description: "One or more combined limits triggered".to_string(),
+                    }),
+                    Err(e) => Err(e),
+                }
+            }
             Limit::Expr(expr) => check_expr_limit(ctx, expr),
+        }?;
+
+        match outcome {
+            LimitOutcome::Proceed(progress) => {
+                ctx.actor_system().publish(progress);
+                return Ok(true);
+            }
+            LimitOutcome::Stop { kind, description } => {
+                ctx.actor_system().publish(LimitTriggered {
+                    generation: ctx.index,
+                    kind,
+                    description,
+                });
+
+                return Ok(false);
+            }
         }
     }
 }
 
-fn check_generation_limit<C, T>(ctx: &EvolutionContext<C, T>, limit: usize) -> RadiateResult<bool>
+fn check_generation_limit<C, T>(
+    ctx: &EvolutionContext<C, T>,
+    limit: usize,
+) -> RadiateResult<LimitOutcome>
 where
     C: Chromosome,
 {
     let proceed = ctx.index < limit;
 
-    if !proceed {
-        ctx.broker().send(LimitTriggered::new(
-            ctx.index,
-            GENERATION_LIMIT,
-            format!(
+    Ok(if proceed {
+        LimitOutcome::Proceed(LimitProgress::generations(ctx.index, limit))
+    } else {
+        LimitOutcome::Stop {
+            kind: GENERATION_LIMIT,
+            description: format!(
                 "Generation Limit reached: Current = {}, Limit = {limit}",
                 ctx.index
             ),
-        ));
-    } else {
-        ctx.broker()
-            .send(LimitProgress::generations(ctx.index, limit));
-    }
-
-    Ok(proceed)
+        }
+    })
 }
 
-fn check_time_limit<C, T>(ctx: &EvolutionContext<C, T>, limit: Duration) -> RadiateResult<bool>
+fn check_time_limit<C, T>(
+    ctx: &EvolutionContext<C, T>,
+    limit: Duration,
+) -> RadiateResult<LimitOutcome>
 where
     C: Chromosome,
 {
@@ -180,26 +220,31 @@ where
 
     let proceed = total_time < limit;
 
-    if !proceed {
-        ctx.broker().send(LimitTriggered::new(
-            ctx.index,
-            TIME_LIMIT,
-            format!("Time Limit reached: Total Time = {total_time:?}, Limit = {limit:?}"),
-        ));
+    Ok(if proceed {
+        LimitOutcome::Proceed(LimitProgress::time(ctx.index, total_time, limit))
     } else {
-        ctx.broker()
-            .send(LimitProgress::time(ctx.index, total_time, limit));
-    }
-
-    Ok(proceed)
+        LimitOutcome::Stop {
+            kind: TIME_LIMIT,
+            description: format!(
+                "Time Limit reached: Total Time = {total_time:?}, Limit = {limit:?}"
+            ),
+        }
+    })
 }
 
-fn check_score_limit<C, T>(ctx: &EvolutionContext<C, T>, limit: &Score) -> RadiateResult<bool>
+fn check_score_limit<C, T>(
+    ctx: &EvolutionContext<C, T>,
+    limit: &Score,
+) -> RadiateResult<LimitOutcome>
 where
     C: Chromosome,
 {
     let Some(score) = &ctx.score else {
-        return Ok(true);
+        return Ok(LimitOutcome::Proceed(LimitProgress::score(
+            ctx.index,
+            Score::default(),
+            limit.clone(),
+        )));
     };
 
     let proceed = match &ctx.objective {
@@ -225,25 +270,24 @@ where
         }
     };
 
-    if !proceed {
-        ctx.broker().send(LimitTriggered::new(
-            ctx.index,
-            SCORE_LIMIT,
-            format!(
-                "Score Limit reached. Current = {:.6}, Limit = {:.6}",
-                score.as_f32(),
-                limit.as_f32()
-            ),
-        ));
-    } else {
-        ctx.broker().send(LimitProgress::score(
+    let outcome = if proceed {
+        LimitOutcome::Proceed(LimitProgress::score(
             ctx.index,
             score.clone(),
             limit.clone(),
-        ));
-    }
+        ))
+    } else {
+        LimitOutcome::Stop {
+            kind: SCORE_LIMIT,
+            description: format!(
+                "Score Limit reached. Current = {:?}, Limit = {:?}",
+                score.as_f32(),
+                limit.as_f32()
+            ),
+        }
+    };
 
-    Ok(proceed)
+    Ok(outcome)
 }
 
 fn check_convergence_limit<C, T>(
@@ -251,12 +295,16 @@ fn check_convergence_limit<C, T>(
     window: usize,
     epsilon: f32,
     history: &mut VecDeque<f32>,
-) -> RadiateResult<bool>
+) -> RadiateResult<LimitOutcome>
 where
     C: Chromosome,
 {
     let Some(current_score) = &ctx.score else {
-        return Ok(true);
+        return Ok(LimitOutcome::Proceed(LimitProgress::score(
+            ctx.index,
+            Score::default(),
+            Score::default(),
+        )));
     };
 
     history.push_back(current_score.as_f32());
@@ -265,7 +313,9 @@ where
     }
 
     if history.len() < window {
-        return Ok(true);
+        return Ok(LimitOutcome::Proceed(LimitProgress::convergence(
+            ctx.index, window, epsilon, 0.0,
+        )));
     }
 
     let first = history.front().unwrap();
@@ -290,28 +340,29 @@ where
     };
 
     let proceed = improved.abs() > epsilon;
-    if !proceed {
-        ctx.broker().send(LimitTriggered {
-            generation: ctx.index,
+
+    Ok(if proceed {
+        LimitOutcome::Proceed(LimitProgress::convergence(
+            ctx.index,
+            window,
+            epsilon,
+            improved.abs(),
+        ))
+    } else {
+        LimitOutcome::Stop {
             kind: CONVERGENCE_LIMIT,
             description: format!(
                 "Convergence Limit reached: Window = {window}, Epsilon = {epsilon}, Improvement = {:.6}",
                 improved.abs()
             ),
-        });
-    } else {
-        ctx.broker().send(LimitProgress::convergence(
-            ctx.index,
-            window,
-            epsilon,
-            improved.abs(),
-        ));
-    }
-
-    Ok(proceed)
+        }
+    })
 }
 
-fn check_expr_limit<C, T>(ctx: &EvolutionContext<C, T>, expr: &mut Expr) -> RadiateResult<bool>
+fn check_expr_limit<C, T>(
+    ctx: &EvolutionContext<C, T>,
+    expr: &mut Expr,
+) -> RadiateResult<LimitOutcome>
 where
     C: Chromosome,
 {
@@ -321,13 +372,20 @@ where
     if let AnyValue::Bool(b) = result {
         let proceed = !b;
         if !proceed {
-            ctx.broker().send(LimitTriggered {
+            ctx.actor_system().publish(LimitTriggered {
                 generation: ctx.index,
                 kind: EXPR_LIMIT,
                 description: format!("Expression Limit reached: Expression = {:?}", expr.name(),),
             });
         }
-        Ok(proceed)
+        Ok(if proceed {
+            LimitOutcome::Proceed(LimitProgress::expr(ctx.index, expr.name().to_string()))
+        } else {
+            LimitOutcome::Stop {
+                kind: EXPR_LIMIT,
+                description: format!("Expression Limit reached: Expression = {:?}", expr.name(),),
+            }
+        })
     } else {
         radiate_bail!(Engine: format!(
             "Expression did not evaluate to a boolean value: {:?}",
@@ -421,7 +479,7 @@ where
         let view = GenerationView::new(ctx);
         let proceed = !(self)(view);
         if !proceed {
-            ctx.broker().send(LimitTriggered {
+            ctx.actor_system().publish(LimitTriggered {
                 generation: ctx.index,
                 kind: "Custom",
                 description: "custom `.until(...)` closure limit triggered".to_string(),

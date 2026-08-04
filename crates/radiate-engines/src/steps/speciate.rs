@@ -1,7 +1,7 @@
 use crate::events::Log;
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, Executor, MessageBroker, MetricSet, Objective, Phenotype, Population,
+    ActorSystem, Chromosome, Ecosystem, Executor, MetricSet, Objective, Phenotype, Population,
     RateSet, Species, diversity::Diversity, math::distribution, metric_names, random_provider,
 };
 use radiate_error::Result;
@@ -19,7 +19,7 @@ where
     pub(crate) executor: Arc<Executor>,
     pub(crate) distances: Vec<f32>,
     pub(crate) assignments: Arc<Mutex<SpeciesAssignments>>,
-    pub(crate) event_system: MessageBroker,
+    pub(crate) event_system: ActorSystem,
     pub(crate) prev_species_count: usize,
     pub(crate) warned_collapsed: bool,
 }
@@ -30,7 +30,7 @@ impl<C: Chromosome> SpeciateStep<C> {
         objective: Objective,
         distance: Arc<dyn Diversity<C>>,
         executor: Arc<Executor>,
-        event_system: MessageBroker,
+        event_system: ActorSystem,
     ) -> Self {
         Self {
             threshold: threshold.into(),
@@ -294,7 +294,7 @@ where
 
         if self.prev_species_count > 1 && s_count <= 1 {
             if !self.warned_collapsed {
-                self.event_system.send(Log::warn(
+                self.event_system.publish(Log::warn(
                     Some(generation),
                     format!(
                         "species diversity collapsed from {} species to {} (population size {})",

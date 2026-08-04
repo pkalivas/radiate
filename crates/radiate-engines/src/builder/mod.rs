@@ -9,7 +9,6 @@ mod problem;
 mod selectors;
 mod species;
 
-use crate::builder::evaluators::EvaluationParams;
 use crate::builder::filters::FilterParams;
 use crate::builder::objectives::OptimizeParams;
 use crate::builder::population::PopulationParams;
@@ -29,11 +28,13 @@ use crate::{
     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
     TournamentSelector, context::EvolutionContext,
 };
+use crate::{EpochComplete, builder::evaluators::EvaluationParams};
 use crate::{Generation, Result};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::{
-    Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, MessageBroker, Valid, metric_names,
+    Actor, ActorContext, ActorSystem, Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Valid,
+    metric_names,
 };
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
@@ -63,7 +64,7 @@ where
 
     pub alterers: Vec<Alterer<C>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-    pub broker: MessageBroker,
+    pub actor_system: ActorSystem,
     pub generation: Option<Generation<C, T>>,
     pub exprs: Option<Arc<Mutex<ExprSet>>>,
 }
@@ -191,20 +192,41 @@ where
         pipeline.add_step(Self::build_species_step(&config));
         pipeline.add_step(Self::build_audit_step(&config));
 
-        let event_system = config.broker();
+        let event_system = config.actor_system();
         let context = EvolutionContext::from(config);
 
         Ok(GeneticEngine::<C, T>::new(context, pipeline, event_system))
     }
 
     fn build_message_broker(&mut self) -> Result<()> {
-        let subscribers = self.params.broker.subscribers();
-        let sync = self.params.evaluation_params.sync.clone();
+        let context = self.params.actor_system.context();
+
+        let bus = context.bus();
+        // let sync = self.params.evaluation_params.sync.clone();
         let executor = self.params.evaluation_params.broker_executor.clone();
 
-        let new_broker = MessageBroker::from((executor, sync, subscribers));
+        let new_broker = ActorSystem::from((executor, bus));
 
-        self.params.broker = new_broker;
+        // struct TestActor<T: Send + 'static> {
+        //     counter: Arc<Mutex<u32>>,
+        //     _phantom: std::marker::PhantomData<T>,
+        // }
+
+        // impl<T: Send + 'static> Actor for TestActor<T> {
+        //     type Message = EpochComplete<T>;
+        //     fn receive(&mut self, _message: EpochComplete<T>, _ctx: &ActorContext) {
+        //         let mut counter = self.counter.lock().unwrap();
+        //         *counter += 1;
+        //         println!("TestActor received message. Counter: {}", *counter);
+        //     }
+        // }
+
+        // new_broker.listen(TestActor {
+        //     counter: Default::default(),
+        //     _phantom: std::marker::PhantomData::<T>,
+        // });
+
+        self.params.actor_system = new_broker;
 
         Ok(())
     }
@@ -438,7 +460,7 @@ where
         Some(Box::new(MetricStep::new(
             config.objective().clone(),
             config.exprs().clone(),
-            config.broker(),
+            config.actor_system(),
         )))
     }
 
@@ -471,7 +493,7 @@ where
             objective: config.objective(),
             distances: Vec::new(),
             assignments: Arc::new(Mutex::new(Vec::new())),
-            event_system: config.broker(),
+            event_system: config.actor_system(),
             prev_species_count: 0,
             warned_collapsed: false,
         };
@@ -530,7 +552,7 @@ where
 
                 replacement_strategy: Arc::new(EncodeReplace),
                 alterers: Vec::new(),
-                broker: MessageBroker::default(),
+                actor_system: ActorSystem::new(Arc::new(Executor::default())),
                 exprs: None,
                 generation: None,
             },

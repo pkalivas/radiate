@@ -1,14 +1,18 @@
-use crate::{Engine, EvolutionContext, Generation, Limit, events::Log, init_logging};
+use crate::{
+    Engine, EvolutionContext, Generation, Limit,
+    events::{Log, LogEvent},
+    init_logging,
+};
 #[cfg(feature = "serde")]
 use crate::{FileWriter, JsonWriter};
 use crate::{LimitTriggered, generation::GenerationView};
-use crate::{LoggingHandler, actions::LoggingAction};
+use crate::{LoggingActor, actions::LoggingAction};
 use radiate_core::rate::Expr;
-use radiate_core::{Chromosome, EngineState, Score, radiate_err};
 use radiate_core::{
-    EventContext,
+    ActorContext,
     error::{RadiateResult, Result},
 };
+use radiate_core::{Chromosome, EngineState, Score, radiate_err};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 use std::collections::VecDeque;
@@ -219,18 +223,17 @@ where
 
     pub fn log_every(mut self, every: usize) -> EngineRuntime<E> {
         init_logging();
+        let actor_system = self.engine.context().actor_system();
 
-        let action = LoggingAction(every);
-        self.add_action(action);
+        let actor = actor_system.spawn(LoggingActor);
+        actor_system.subscribe::<LimitTriggered>(|msg: &LimitTriggered, ctx: &ActorContext| {
+            ctx.tell::<LoggingActor>(LogEvent::Log(Log::info(
+                Some(msg.generation),
+                msg.description(),
+            )));
+        });
 
-        let broker = self.engine.context().broker();
-        broker.on::<Log>().handle(LoggingHandler);
-        broker
-            .on::<LimitTriggered>()
-            .handle(move |msg: &LimitTriggered, ctx: &EventContext| {
-                ctx.send(Log::info(Some(msg.generation), msg.description()));
-            });
-
+        self.add_action(LoggingAction(every, actor));
         self
     }
 
@@ -256,14 +259,14 @@ where
 
         self.add_action(action);
 
-        let broker = self.engine.context().broker();
-        broker
-            .on::<CheckpointSaved>()
-            .handle(move |msg: &CheckpointSaved, ctx: &EventContext| {
-                ctx.send(Log::info(
+        self.engine
+            .context()
+            .actor_system()
+            .subscribe::<CheckpointSaved>(|msg: &CheckpointSaved, ctx: &ActorContext| {
+                ctx.tell::<LoggingActor>(LogEvent::Log(Log::info(
                     Some(msg.index),
                     format!("Checkpoint saved at index {}: {}", msg.index, msg.path),
-                ));
+                )));
             });
 
         self
@@ -296,14 +299,14 @@ where
 
         self.add_action(action);
 
-        let broker = self.engine.context().broker();
-        broker
-            .on::<CheckpointSaved>()
-            .handle(move |msg: &CheckpointSaved, ctx: &EventContext| {
-                ctx.send(Log::info(
+        self.engine
+            .context()
+            .actor_system()
+            .subscribe::<CheckpointSaved>(|msg: &CheckpointSaved, ctx: &ActorContext| {
+                ctx.tell::<LoggingActor>(LogEvent::Log(Log::info(
                     Some(msg.index),
                     format!("Checkpoint saved at index {}: {}", msg.index, msg.path),
-                ));
+                )));
             });
 
         self

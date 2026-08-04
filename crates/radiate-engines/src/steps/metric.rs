@@ -1,6 +1,6 @@
 use crate::{events::Log, steps::EngineStep};
 use radiate_core::{
-    Chromosome, Ecosystem, Evaluate, MessageBroker, MetricSet, MetricUpdate, Objective, Score,
+    ActorSystem, Chromosome, Ecosystem, Evaluate, MetricSet, MetricUpdate, Objective, Score,
     SmallStr, math::distribution, metric_names, phenotype::PhenotypeId, rate::ExprSet,
     stats::TagType,
 };
@@ -24,7 +24,7 @@ pub struct MetricStep {
     best_score: Option<Score>,
 
     expressions: Option<Arc<Mutex<ExprSet>>>,
-    event_system: MessageBroker,
+    event_system: ActorSystem,
     warned_this_streak: bool,
 
     score_dist_per_dim: Vec<Vec<f32>>,
@@ -55,7 +55,7 @@ impl MetricStep {
     pub fn new(
         objective: Objective,
         expressions: Option<Arc<Mutex<ExprSet>>>,
-        event_system: MessageBroker,
+        event_system: ActorSystem,
     ) -> Self {
         Self {
             objective,
@@ -146,7 +146,7 @@ impl MetricStep {
             self.stagnation_count += 1;
 
             if !self.warned_this_streak && self.stagnation_count >= STAGNATION_WARNING_THRESHOLD {
-                self.event_system.send(Log::warn(
+                self.event_system.publish(Log::warn(
                     Some(generation),
                     format!("no improvement in {} generations", self.stagnation_count),
                 ));

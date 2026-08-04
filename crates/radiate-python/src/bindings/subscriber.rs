@@ -2,7 +2,7 @@ use crate::{IntoPyAnyObject, PyAnyObject, PyMetricSet, bindings::subscriber};
 use numpy::PyArray1;
 use pyo3::{IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
-    Chromosome, EpochComplete, EventContext, EventHandler, GeneticEngineBuilder, LimitTriggered,
+    ActorContext, Chromosome, EpochComplete, EventHandler, GeneticEngineBuilder, LimitTriggered,
     Objective,
     events::{
         CheckpointSaved, EngineStart, EngineStop, EpochStart, Improvement, LimitProgress, Log,
@@ -58,7 +58,7 @@ impl Debug for PySubscriber {
 }
 
 impl EventHandler<EngineStart> for PySubscriber {
-    fn handle(&mut self, _: &EngineStart, _: &EventContext) {
+    fn handle(&mut self, _: &EngineStart, _: &ActorContext) {
         Python::attach(|py| {
             let py_event = subscriber::PyEngineEvent::start();
             self.function
@@ -73,7 +73,7 @@ impl<T> EventHandler<EngineStop<T>> for PySubscriber
 where
     T: IntoPyAnyObject + Clone,
 {
-    fn handle(&mut self, event: &EngineStop<T>, _: &EventContext) {
+    fn handle(&mut self, event: &EngineStop<T>, _: &ActorContext) {
         Python::attach(|py| {
             let py_event = subscriber::PyEngineEvent::stop(
                 event.index,
@@ -94,7 +94,7 @@ where
 }
 
 impl EventHandler<EpochStart> for PySubscriber {
-    fn handle(&mut self, event: &EpochStart, _: &EventContext) {
+    fn handle(&mut self, event: &EpochStart, _: &ActorContext) {
         Python::attach(|py| {
             let py_event = subscriber::PyEngineEvent::epoch_start(event.index);
             self.function
@@ -109,7 +109,7 @@ impl<T> EventHandler<EpochComplete<T>> for PySubscriber
 where
     T: IntoPyAnyObject + Clone,
 {
-    fn handle(&mut self, event: &EpochComplete<T>, _: &EventContext) {
+    fn handle(&mut self, event: &EpochComplete<T>, _: &ActorContext) {
         Python::attach(|py| {
             let py_event = subscriber::PyEngineEvent::epoch_complete(
                 event.index,
@@ -134,7 +134,7 @@ impl<T> EventHandler<Improvement<T>> for PySubscriber
 where
     T: IntoPyAnyObject + Clone,
 {
-    fn handle(&mut self, event: &Improvement<T>, _: &EventContext) {
+    fn handle(&mut self, event: &Improvement<T>, _: &ActorContext) {
         Python::attach(|py| {
             let py_event = subscriber::PyEngineEvent::improvement(
                 event.index,
@@ -154,7 +154,7 @@ where
 }
 
 impl EventHandler<LimitTriggered> for PySubscriber {
-    fn handle(&mut self, event: &LimitTriggered, _: &EventContext) {
+    fn handle(&mut self, event: &LimitTriggered, _: &ActorContext) {
         Python::attach(|py| {
             let py_event = subscriber::PyEngineEvent::limit_triggered(
                 event.index(),
@@ -169,7 +169,7 @@ impl EventHandler<LimitTriggered> for PySubscriber {
 }
 
 impl EventHandler<Log> for PySubscriber {
-    fn handle(&mut self, event: &Log, _: &EventContext) {
+    fn handle(&mut self, event: &Log, _: &ActorContext) {
         Python::attach(|py| {
             let py_event = subscriber::PyEngineEvent::log_event(event.message().to_string());
             self.function
@@ -181,7 +181,7 @@ impl EventHandler<Log> for PySubscriber {
 }
 
 impl EventHandler<CheckpointSaved> for PySubscriber {
-    fn handle(&mut self, event: &CheckpointSaved, _: &EventContext) {
+    fn handle(&mut self, event: &CheckpointSaved, _: &ActorContext) {
         Python::attach(|py| {
             let py_event = PyEngineEvent::checkpoint_saved(event.index, event.path.clone());
             self.function
@@ -193,7 +193,7 @@ impl EventHandler<CheckpointSaved> for PySubscriber {
 }
 
 impl EventHandler<LimitProgress> for PySubscriber {
-    fn handle(&mut self, event: &LimitProgress, _: &EventContext) {
+    fn handle(&mut self, event: &LimitProgress, _: &ActorContext) {
         Python::attach(|py| {
             let py_event = PyEngineEvent::limit_progress_event(event.clone());
             self.function
@@ -216,49 +216,47 @@ where
 
     let equals_or_all = |name: &str, target: &str| name == target || name == components::ALL_EVENTS;
 
-    for subscriber in subscribers {
-        let event_type = subscriber
-            .event_name()
-            .map(|name| name.to_string())
-            .unwrap_or_else(|| components::ALL_EVENTS.to_string());
+    // for subscriber in subscribers {
+    //     let event_type = subscriber
+    //         .event_name()
+    //         .map(|name| name.to_string())
+    //         .unwrap_or_else(|| components::ALL_EVENTS.to_string());
 
-        for &event_name in EVENT_TYPES {
-            builder = if equals_or_all(&event_type, event_name) {
-                match event_name {
-                    components::START_EVENT => {
-                        builder.subscribe::<PySubscriber, EngineStart>(subscriber.clone())
-                    }
-                    components::STOP_EVENT => {
-                        builder.subscribe::<PySubscriber, EngineStop<T>>(subscriber.clone())
-                    }
-                    components::EPOCH_START_EVENT => {
-                        builder.subscribe::<PySubscriber, EpochStart>(subscriber.clone())
-                    }
-                    components::EPOCH_COMPLETE_EVENT => {
-                        builder.subscribe::<PySubscriber, EpochComplete<T>>(subscriber.clone())
-                    }
-                    components::ENGINE_IMPROVEMENT_EVENT => {
-                        builder.subscribe::<PySubscriber, Improvement<T>>(subscriber.clone())
-                    }
-                    components::LIMIT_TRIGGERED_EVENT => {
-                        builder.subscribe::<PySubscriber, LimitTriggered>(subscriber.clone())
-                    }
-                    components::LOG_EVENT => {
-                        builder.subscribe::<PySubscriber, Log>(subscriber.clone())
-                    }
-                    components::CHECKPOINT_SAVED_EVENT => {
-                        builder.subscribe::<PySubscriber, CheckpointSaved>(subscriber.clone())
-                    }
-                    components::LIMIT_PROGRESS_EVENT => {
-                        builder.subscribe::<PySubscriber, LimitProgress>(subscriber.clone())
-                    }
-                    _ => builder,
-                }
-            } else {
-                builder
-            };
-        }
-    }
+    //     for &event_name in EVENT_TYPES {
+    //         builder = if equals_or_all(&event_type, event_name) {
+    //             match event_name {
+    //                 components::START_EVENT => builder.subscribe::<EngineStart>(subscriber.clone()),
+    //                 components::STOP_EVENT => {
+    //                     builder.subscribe::<PySubscriber, EngineStop<T>>(subscriber.clone())
+    //                 }
+    //                 components::EPOCH_START_EVENT => {
+    //                     builder.subscribe::<PySubscriber, EpochStart>(subscriber.clone())
+    //                 }
+    //                 components::EPOCH_COMPLETE_EVENT => {
+    //                     builder.subscribe::<PySubscriber, EpochComplete<T>>(subscriber.clone())
+    //                 }
+    //                 components::ENGINE_IMPROVEMENT_EVENT => {
+    //                     builder.subscribe::<PySubscriber, Improvement<T>>(subscriber.clone())
+    //                 }
+    //                 components::LIMIT_TRIGGERED_EVENT => {
+    //                     builder.subscribe::<PySubscriber, LimitTriggered>(subscriber.clone())
+    //                 }
+    //                 components::LOG_EVENT => {
+    //                     builder.subscribe::<PySubscriber, Log>(subscriber.clone())
+    //                 }
+    //                 components::CHECKPOINT_SAVED_EVENT => {
+    //                     builder.subscribe::<PySubscriber, CheckpointSaved>(subscriber.clone())
+    //                 }
+    //                 components::LIMIT_PROGRESS_EVENT => {
+    //                     builder.subscribe::<PySubscriber, LimitProgress>(subscriber.clone())
+    //                 }
+    //                 _ => builder,
+    //             }
+    //         } else {
+    //             builder
+    //         };
+    //     }
+    // }
 
     builder
 }

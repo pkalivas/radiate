@@ -20,7 +20,7 @@ pub use context::EvolutionContext;
 pub use engine::GeneticEngine;
 pub use events::{
     EngineMessage, EngineStart, EngineStop, EpochComplete, Improvement, LimitTriggered, Log,
-    LogLevel, LoggingHandler, MetricCollector,
+    LogLevel, LoggingActor, MetricCollector,
 };
 pub use generation::{Generation, GenerationView};
 pub use io::{FileReader, FileWriter, JsonReader, JsonWriter};
