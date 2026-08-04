@@ -29,7 +29,7 @@ where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
-    pub fn new(mut inner: GeneticEngine<C, T>, render_interval: Duration, manual: bool) -> Self {
+    pub fn new(mut inner: GeneticEngine<C, T>, render_interval: Duration) -> Self {
         let control = inner.control();
         let app = App::new(render_interval, control.clone());
 
@@ -57,11 +57,6 @@ where
 
             Ok(())
         });
-
-        if manual {
-            // control.set_paused(true);
-            control.step_n(10);
-        }
 
         Self {
             inner,

@@ -17,13 +17,12 @@ where
     T: Clone + Send + Sync,
 {
     disable_logging();
-    let (engine, render_interval, manual) = match engine.into() {
-        UiInput::Engine(e) => (e, DEFAULT_RENDER_INTERVAL, false),
-        UiInput::EngineRenderInterval(e, d) => (e, d, false),
-        UiInput::EngineManual(e, d) => (e, d, true),
+    let (engine, render_interval) = match engine.into() {
+        UiInput::Engine(e) => (e, DEFAULT_RENDER_INTERVAL),
+        UiInput::EngineRenderInterval(e, d) => (e, d),
     };
 
-    TuiEngine::new(engine, render_interval, manual)
+    TuiEngine::new(engine, render_interval)
 }
 
 pub enum UiInput<C, T>
@@ -33,7 +32,6 @@ where
 {
     Engine(GeneticEngine<C, T>),
     EngineRenderInterval(GeneticEngine<C, T>, Duration),
-    EngineManual(GeneticEngine<C, T>, Duration),
 }
 
 impl<C, T> From<GeneticEngine<C, T>> for UiInput<C, T>
@@ -63,7 +61,7 @@ where
 {
     fn from(input: (GeneticEngine<C, T>, bool)) -> Self {
         if input.1 {
-            UiInput::EngineManual(input.0, DEFAULT_RENDER_INTERVAL)
+            UiInput::Engine(input.0)
         } else {
             UiInput::EngineRenderInterval(input.0, DEFAULT_RENDER_INTERVAL)
         }

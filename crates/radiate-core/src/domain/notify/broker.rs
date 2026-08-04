@@ -1,4 +1,4 @@
-use super::actor::Actor;
+use super::actor::Actor2;
 use super::handler::EventHandler;
 use super::message::Message;
 use crate::{
@@ -122,7 +122,7 @@ impl MessageBroker {
                 .downcast_mut::<Subscription<M>>()
                 .unwrap();
 
-            let actor = Actor::new(Box::new(handler));
+            let actor = Actor2::new(Box::new(handler));
             let actor_id = actor.id();
             sub.actors.push(actor);
 

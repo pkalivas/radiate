@@ -1,7 +1,7 @@
 use crate::{
     Envelope, Executor, Message,
     notify::{
-        actor::Actor,
+        actor::Actor2,
         broker::{ActorMeta, SubscriptionMeta},
         message::EventContext,
     },
@@ -29,7 +29,7 @@ pub trait AnySubscription: Send + Sync + fmt::Debug {
 
 #[derive(Debug)]
 pub(super) struct Subscription<M: Message> {
-    pub(super) actors: Vec<Arc<Actor<M>>>,
+    pub(super) actors: Vec<Arc<Actor2<M>>>,
 }
 
 impl<M: Message + Debug> AnySubscription for Subscription<M> {

@@ -110,7 +110,8 @@ impl<E: Engine> EngineRuntime<E> {
     }
 }
 
-/// General iter fns for the `EngineRuntime` struct, allowing for a more ergonomic and fluent interface when configuring the runtime.
+/// General iter fns for the `EngineRuntime` struct, allowing for a more ergonomic
+/// and fluent interface when configuring the runtime.
 impl<C, T, E> EngineRuntime<E>
 where
     E: Engine<Epoch = Generation<C, T>, Ctx = EvolutionContext<C, T>>,
@@ -193,6 +194,14 @@ where
 
     pub fn take(self, count: usize) -> EngineRuntime<E> {
         self.until_generation(count)
+    }
+
+    pub fn take_while<F>(self, predicate: F) -> EngineRuntime<E>
+    where
+        C: 'static,
+        F: Fn(GenerationView<C, T>) -> bool + 'static,
+    {
+        self.until(move |view: GenerationView<C, T>| -> bool { !predicate(view) })
     }
 }
 

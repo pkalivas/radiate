@@ -259,6 +259,8 @@ mod engine_tests {
 
     #[test]
     fn subscribers_registered_on_the_builder_actually_fire() {
+        const BUDGET: usize = 10;
+
         let collector = MetricCollector::new();
         let history = collector.history();
 
@@ -266,8 +268,7 @@ mod engine_tests {
 
         engine.on::<EpochComplete<Vec<bool>>>().handle(collector);
 
-        const BUDGET: usize = 10;
-        let _ = engine.iter().limit(BUDGET).last().unwrap();
+        engine.iter().limit(BUDGET).last().unwrap();
 
         assert_eq!(history.lock().unwrap().len(), BUDGET);
     }
@@ -275,15 +276,11 @@ mod engine_tests {
     #[test]
     fn metric_step_publishes_stagnation_warning() {
         use std::sync::{Arc, Mutex};
+        const BUDGET: usize = 60;
 
         let seen = Arc::new(Mutex::new(Vec::new()));
         let seen2 = Arc::clone(&seen);
 
-        // A fitness function that ignores the genotype entirely means every
-        // individual scores identically forever — the first generation sets
-        // the "best" (an improvement over nothing), and every generation
-        // after that is guaranteed stagnant, so this deterministically
-        // crosses the warning threshold rather than depending on chance.
         let engine = GeneticEngine::builder()
             .codec(FloatCodec::vector(4, -5.0..5.0))
             .fitness_fn(|_geno: Vec<f32>| 1.0)
@@ -292,11 +289,12 @@ mod engine_tests {
         engine
             .on::<Log>()
             .handle(move |msg: &Log, _: &EventContext| {
-                seen2.lock().unwrap().push(msg.message().to_string());
+                if msg.level() == LogLevel::Warn {
+                    seen2.lock().unwrap().push(msg.message().to_string());
+                }
             });
 
-        const BUDGET: usize = 60;
-        let _ = engine.iter().limit(BUDGET).last().unwrap();
+        engine.iter().limit(BUDGET).last().unwrap();
 
         let warnings = seen.lock().unwrap();
         assert_eq!(
@@ -432,10 +430,12 @@ mod engine_tests {
             engine
                 .on::<Log>()
                 .handle(move |msg: &Log, _: &EventContext| {
-                    seen2.lock().unwrap().push(msg.message().to_string());
+                    if msg.level() == LogLevel::Warn {
+                        seen2.lock().unwrap().push(msg.message().to_string());
+                    }
                 });
 
-            let _ = engine.iter().limit(200).last().unwrap();
+            engine.iter().limit(200).last().unwrap();
         });
 
         let warnings = seen.lock().unwrap();

@@ -8,12 +8,6 @@ mod sealed {
     pub trait Sealed {}
 }
 
-/// Marks a type as one of radiate-engines's own concrete message kinds,
-/// plus the broker-level `ActorSubscribed`/`ActorPanicked` lifecycle events
-/// (`notify` primitives, not GA concepts, but still something engine users
-/// should be able to reach via `GeneticEngine::on`/
-/// `GeneticEngineBuilder::subscribe` without dropping down to
-/// `radiate_core::MessageBroker` directly).
 pub trait EngineMessage: sealed::Sealed + Message + std::fmt::Debug {}
 
 macro_rules! engine_message {

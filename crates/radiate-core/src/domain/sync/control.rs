@@ -35,7 +35,6 @@ impl ThreadSync {
         (ctl.clone(), ctl)
     }
 
-    // ---- stop ----
     #[inline]
     pub fn stop(&self) {
         self.stop_flag.store(true, Ordering::SeqCst);
@@ -65,7 +64,6 @@ impl ThreadSync {
         cv.notify_all();
     }
 
-    /// Toggle pause. Returns new paused state.
     #[inline]
     pub fn toggle_pause(&self) -> bool {
         let (lock, cv) = &*self.inner;
