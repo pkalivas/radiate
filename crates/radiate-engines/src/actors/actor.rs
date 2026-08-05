@@ -109,6 +109,10 @@ pub struct Addr<A: Actor> {
 }
 
 impl<A: Actor + 'static> Addr<A> {
+    pub fn pid(&self) -> &ProcessId {
+        &self.cell.pid
+    }
+
     pub fn publish<M>(&self, message: M)
     where
         M: Send + Clone + 'static,

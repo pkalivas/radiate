@@ -208,6 +208,10 @@ where
                 .lazy_publish(|| Improvement::from(&self.context));
         }
 
+        if self.context.index > 10 {
+            self.actor.stop();
+        }
+
         self.actor
             .context()
             .publish(EpochComplete::from(&self.context));

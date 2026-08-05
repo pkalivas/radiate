@@ -105,3 +105,6 @@ pub struct ActorStarted {
 pub struct ActorRegistered {
     pub pid: ProcessId,
 }
+
+#[derive(Clone, Debug)]
+pub struct Start;

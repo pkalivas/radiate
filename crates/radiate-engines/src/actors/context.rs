@@ -12,7 +12,10 @@ use std::{
     sync::{Arc, Mutex, RwLock, Weak, atomic::AtomicBool},
 };
 
-type ErasedActorMap = HashMap<ProcessId, Box<dyn Any + Send + Sync>>;
+type BoxedActor = Box<dyn Any + Send + Sync>;
+type StopHook = Arc<dyn Fn() + Send + Sync>;
+
+type ErasedActorMap = HashMap<ProcessId, (BoxedActor, StopHook)>;
 
 #[derive(Default)]
 pub struct ActorRegistry {
@@ -21,10 +24,12 @@ pub struct ActorRegistry {
 
 impl ActorRegistry {
     pub(super) fn insert<A: Actor + 'static>(&self, name: ProcessId, actor_ref: Addr<A>) {
+        let cloned_ref = actor_ref.clone();
+        let stop_hook: StopHook = Arc::new(move || cloned_ref.stop());
         self.registry
             .write()
             .unwrap()
-            .insert(name, Box::new(actor_ref));
+            .insert(name, (Box::new(actor_ref), stop_hook));
     }
 
     pub(super) fn get<A: Actor + 'static>(&self, name: &ProcessId) -> Option<Addr<A>> {
@@ -32,7 +37,15 @@ impl ActorRegistry {
             .read()
             .unwrap()
             .get(name)
-            .and_then(|b| b.downcast_ref::<Addr<A>>().cloned())
+            .and_then(|(b, _)| b.downcast_ref::<Addr<A>>().cloned())
+    }
+
+    pub(super) fn get_stop_hook(&self, name: &ProcessId) -> Option<StopHook> {
+        self.registry
+            .read()
+            .unwrap()
+            .get(name)
+            .map(|(_, hook)| Arc::clone(hook))
     }
 
     pub(super) fn remove<A: Actor + 'static>(&self, name: &ProcessId) -> Option<Addr<A>> {
@@ -40,7 +53,16 @@ impl ActorRegistry {
             .write()
             .unwrap()
             .remove(name)
-            .and_then(|b| b.downcast::<Addr<A>>().ok().map(|b| *b))
+            .and_then(|(b, _)| b.downcast::<Addr<A>>().ok().map(|b| *b))
+    }
+
+    pub(super) fn keys(&self) -> Vec<ProcessId> {
+        self.registry
+            .read()
+            .unwrap()
+            .keys()
+            .cloned()
+            .collect::<Vec<_>>()
     }
 }
 
