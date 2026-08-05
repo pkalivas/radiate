@@ -167,11 +167,11 @@ where
 
         match outcome {
             LimitOutcome::Proceed(progress) => {
-                ctx.actor_system().context().publish(progress);
+                ctx.actor_system().context().send(progress);
                 return Ok(true);
             }
             LimitOutcome::Stop { kind, description } => {
-                ctx.actor_system().context().publish(LimitTriggered {
+                ctx.actor_system().context().send(LimitTriggered {
                     generation: ctx.index,
                     kind,
                     description,
@@ -372,7 +372,7 @@ where
     if let AnyValue::Bool(b) = result {
         let proceed = !b;
         if !proceed {
-            ctx.actor_system().context().publish(LimitTriggered {
+            ctx.actor_system().context().send(LimitTriggered {
                 generation: ctx.index,
                 kind: EXPR_LIMIT,
                 description: format!("Expression Limit reached: Expression = {:?}", expr.name(),),
@@ -479,7 +479,7 @@ where
         let view = GenerationView::new(ctx);
         let proceed = !(self)(view);
         if !proceed {
-            ctx.actor_system().context().publish(LimitTriggered {
+            ctx.actor_system().context().send(LimitTriggered {
                 generation: ctx.index,
                 kind: "Custom",
                 description: "custom `.until(...)` closure limit triggered".to_string(),

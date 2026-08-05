@@ -9,8 +9,6 @@ mod problem;
 mod selectors;
 mod species;
 
-use crate::builder::objectives::OptimizeParams;
-use crate::builder::population::PopulationParams;
 use crate::builder::problem::ProblemParams;
 use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
@@ -28,8 +26,10 @@ use crate::{
     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
     TournamentSelector, context::EvolutionContext,
 };
+use crate::{EpochComplete, builder::population::PopulationParams};
 use crate::{Generation, Result};
 use crate::{LoggingActor, builder::filters::FilterParams};
+use crate::{builder::objectives::OptimizeParams, events::StagnationMonitorActor};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::{Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Valid, metric_names};
@@ -201,30 +201,11 @@ where
         let bus = context.bus();
         let executor = self.params.evaluation_params.broker_executor.clone();
 
-        let new_broker = ActorSystem::from((executor, bus));
+        let system = ActorSystem::from((executor, bus));
 
-        new_broker.listen(LoggingActor);
+        // system.listen::<StagnationMonitorActor, EpochComplete<T>>(StagnationMonitorActor);
 
-        // struct TestActor<T: Send + 'static> {
-        //     counter: Arc<Mutex<u32>>,
-        //     _phantom: std::marker::PhantomData<T>,
-        // }
-
-        // impl<T: Send + 'static> Actor for TestActor<T> {
-        //     type Message = EpochComplete<T>;
-        //     fn receive(&mut self, _message: EpochComplete<T>, _ctx: &ActorContext) {
-        //         let mut counter = self.counter.lock().unwrap();
-        //         *counter += 1;
-        //         println!("TestActor received message. Counter: {}", *counter);
-        //     }
-        // }
-
-        // new_broker.listen(TestActor {
-        //     counter: Default::default(),
-        //     _phantom: std::marker::PhantomData::<T>,
-        // });
-
-        self.params.actor_system = new_broker;
+        self.params.actor_system = system;
 
         Ok(())
     }

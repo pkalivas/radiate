@@ -1,9 +1,12 @@
-use crate::actors::{context::ActorContext, message::DeadLetter};
+use crate::{
+    ActorSystem,
+    actors::{ProcessId, context::ActorContext, message::DeadLetter},
+};
 use radiate_core::SmallStr;
 use radiate_utils::sentry_id;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, Weak};
 use std::{
     any::TypeId,
     sync::atomic::{AtomicBool, AtomicU64, Ordering},
@@ -12,6 +15,7 @@ use std::{
 sentry_id!(ActorId);
 
 pub trait Actor: Send {
+    fn on_init(&mut self, _: &ActorContext) {}
     fn on_stop(&mut self, _ctx: &ActorContext) {}
 }
 
@@ -23,7 +27,7 @@ type Envelope<A> = Box<dyn FnOnce(&mut A, &ActorContext) + Send>;
 
 pub struct ActorCell<A: Actor> {
     pub(super) id: ActorId,
-    pub(super) pid: Option<SmallStr>,
+    pub(super) pid: Option<ProcessId>,
     pub(super) actor: Arc<Mutex<A>>,
     pub(super) receiver: Receiver<Envelope<A>>,
     pub(super) scheduled: AtomicBool,
@@ -120,7 +124,7 @@ impl<A: Actor + 'static> Addr<A> {
         // race rather than gating every delivery on this flag too.
         if self.cell.stopped.load(Ordering::Acquire) {
             if TypeId::of::<M>() != TypeId::of::<DeadLetter>() {
-                self.cell.context.bus().publish(DeadLetter {
+                self.cell.context.bus().send(DeadLetter {
                     message_type: std::any::type_name::<M>(),
                     actor_id: self.id(),
                 });
@@ -133,7 +137,7 @@ impl<A: Actor + 'static> Addr<A> {
         });
         if self.sender.send(envelope).is_err() {
             if TypeId::of::<M>() != TypeId::of::<DeadLetter>() {
-                self.cell.context.bus().publish(DeadLetter {
+                self.cell.context.bus().send(DeadLetter {
                     message_type: std::any::type_name::<M>(),
                     actor_id: self.id(),
                 });
@@ -164,7 +168,7 @@ impl<A: Actor + 'static> Addr<A> {
             && let Some(removed) = self.cell.context.registry.remove::<A>(pid)
             && removed.id() != self.id()
         {
-            self.cell.context.registry.insert(pid.to_string(), removed);
+            self.cell.context.registry.insert(pid.clone(), removed);
         }
 
         self.sender
@@ -203,6 +207,42 @@ impl<A: Actor> Clone for Addr<A> {
         Addr {
             sender: self.sender.clone(),
             cell: Arc::clone(&self.cell),
+        }
+    }
+}
+
+pub struct WeakAddr<A: Actor> {
+    pub(super) sender: Sender<Envelope<A>>,
+    pub(super) cell: Weak<ActorCell<A>>,
+}
+
+impl<A: Actor + 'static> Addr<A> {
+    pub fn downgrade(&self) -> WeakAddr<A> {
+        WeakAddr {
+            sender: self.sender.clone(),
+            cell: Arc::downgrade(&self.cell),
+        }
+    }
+}
+
+impl<A: Actor + 'static> WeakAddr<A> {
+    pub fn upgrade(&self) -> Option<Addr<A>> {
+        let cell = self.cell.upgrade()?;
+        if cell.stopped.load(Ordering::Acquire) {
+            return None;
+        }
+        Some(Addr {
+            sender: self.sender.clone(),
+            cell,
+        })
+    }
+}
+
+impl<A: Actor> Clone for WeakAddr<A> {
+    fn clone(&self) -> Self {
+        WeakAddr {
+            sender: self.sender.clone(),
+            cell: Weak::clone(&self.cell),
         }
     }
 }

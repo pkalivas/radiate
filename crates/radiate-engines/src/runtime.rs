@@ -224,12 +224,12 @@ where
 
         let actor = actor_system.spawn(LoggingActor);
 
-        actor_system.subscribe::<LimitTriggered>(|msg: &LimitTriggered, ctx: &ActorContext| {
-            ctx.tell::<LoggingActor, _>(LogEvent::Log(Log::info(
-                Some(msg.generation),
-                msg.description(),
-            )));
-        });
+        // actor_system.subscribe::<LimitTriggered>(|msg: &LimitTriggered, ctx: &ActorContext| {
+        //     ctx.tell::<LoggingActor, _>(LogEvent::Log(Log::info(
+        //         Some(msg.generation),
+        //         msg.description(),
+        //     )));
+        // });
 
         self.add_action(LoggingAction(every, actor));
         self

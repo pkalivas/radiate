@@ -18,14 +18,14 @@ use std::sync::{
 
 pub use actors::{
     Actor, ActorContext, ActorId, ActorPanicked, ActorSubscribed, ActorSystem, Addr, EventHandler,
-    MessageHandler, Recipient,
+    MessageHandler, Recipient, WeakAddr,
 };
 pub use builder::GeneticEngineBuilder;
 pub use context::EvolutionContext;
 pub use engine::GeneticEngine;
 pub use events::{
     EngineMessage, EngineStart, EngineStop, EpochComplete, Improvement, LimitTriggered, Log,
-    LogLevel, LoggingActor, MetricCollector,
+    LogLevel, LoggingActor,
 };
 pub use generation::{Generation, GenerationView};
 pub use io::{FileReader, FileWriter, JsonReader, JsonWriter};

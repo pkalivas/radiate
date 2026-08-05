@@ -1,14 +1,18 @@
 use crate::{
-    Actor, Addr, Executor, MessageHandler,
-    actors::{actor::AnyActorRef, system::MessageBus},
+    Actor, ActorId, Addr, Executor, MessageHandler,
+    actors::{
+        ProcessId,
+        actor::{ActorCell, AnyActorRef, WeakAddr},
+        system::MessageBus,
+    },
 };
 use std::{
     any::Any,
     collections::HashMap,
-    sync::{Arc, RwLock},
+    sync::{Arc, Mutex, RwLock, Weak, atomic::AtomicBool},
 };
 
-type ErasedActorMap = HashMap<String, Box<dyn Any + Send + Sync>>;
+type ErasedActorMap = HashMap<ProcessId, Box<dyn Any + Send + Sync>>;
 
 #[derive(Default)]
 pub struct ActorRegistry {
@@ -16,14 +20,14 @@ pub struct ActorRegistry {
 }
 
 impl ActorRegistry {
-    pub(super) fn insert<A: Actor + 'static>(&self, name: String, actor_ref: Addr<A>) {
+    pub(super) fn insert<A: Actor + 'static>(&self, name: ProcessId, actor_ref: Addr<A>) {
         self.registry
             .write()
             .unwrap()
             .insert(name, Box::new(actor_ref));
     }
 
-    pub(super) fn get<A: Actor + 'static>(&self, name: &str) -> Option<Addr<A>> {
+    pub(super) fn get<A: Actor + 'static>(&self, name: &ProcessId) -> Option<Addr<A>> {
         self.registry
             .read()
             .unwrap()
@@ -31,7 +35,7 @@ impl ActorRegistry {
             .and_then(|b| b.downcast_ref::<Addr<A>>().cloned())
     }
 
-    pub(super) fn remove<A: Actor + 'static>(&self, name: &str) -> Option<Addr<A>> {
+    pub(super) fn remove<A: Actor + 'static>(&self, name: &ProcessId) -> Option<Addr<A>> {
         self.registry
             .write()
             .unwrap()
@@ -61,13 +65,13 @@ impl ActorContext {
         Arc::clone(&self.bus)
     }
 
-    pub fn publish<M: Send + Clone + 'static>(&self, message: M) {
-        self.bus.publish(message);
+    pub fn send<M: Send + Clone + 'static>(&self, message: M) {
+        self.bus.send(message);
     }
 
-    pub fn lazy_publish<M: Send + Clone + 'static>(&self, func: impl FnOnce() -> M) {
+    pub fn lazy_send<M: Send + Clone + 'static>(&self, func: impl FnOnce() -> M) {
         if self.has_subscribers::<M>() {
-            self.publish(func());
+            self.send(func());
         }
     }
 
@@ -93,7 +97,42 @@ impl ActorContext {
         self.named::<A>(std::any::type_name::<A>())
     }
 
-    pub fn named<A: Actor + 'static>(&self, name: &str) -> Option<Addr<A>> {
-        self.registry.get::<A>(name)
+    pub fn named<A: Actor + 'static>(&self, name: impl Into<ProcessId>) -> Option<Addr<A>> {
+        self.registry.get::<A>(&name.into())
+    }
+
+    pub fn create<A, F>(&self, pid: Option<ProcessId>, f: F) -> Addr<A>
+    where
+        A: Actor + 'static,
+        F: FnOnce(&WeakAddr<A>) -> A,
+    {
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let sender_for_weak = sender.clone();
+        let context = ActorContext {
+            bus: Arc::clone(&self.bus),
+            executor: Arc::clone(&self.executor),
+            registry: Arc::clone(&self.registry),
+            parent: None,
+        };
+
+        let cell = Arc::new_cyclic(|weak: &Weak<ActorCell<A>>| {
+            let self_ref = WeakAddr {
+                sender: sender_for_weak,
+                cell: Weak::clone(weak),
+            };
+            let actor = f(&self_ref);
+
+            ActorCell {
+                id: ActorId::new(),
+                pid: pid.map(|p| p.clone()),
+                actor: Arc::new(Mutex::new(actor)),
+                receiver,
+                scheduled: AtomicBool::new(false),
+                stopped: AtomicBool::new(false),
+                context,
+            }
+        });
+
+        Addr { sender, cell }
     }
 }

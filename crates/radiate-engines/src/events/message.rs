@@ -42,6 +42,12 @@ pub struct CheckpointSaved {
     pub path: String,
 }
 
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Warning {
+    pub index: usize,
+    pub message: String,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LogLevel {
     Info,

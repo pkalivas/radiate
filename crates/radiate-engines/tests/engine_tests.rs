@@ -258,22 +258,6 @@ mod engine_tests {
     }
 
     #[test]
-    fn subscribers_registered_on_the_builder_actually_fire() {
-        const BUDGET: usize = 10;
-
-        let collector = MetricCollector::new();
-        let history = collector.history();
-
-        let engine = GeneticEngine::builder().problem(OneMax::new(5)).build();
-
-        // engine.on::<EpochComplete<Vec<bool>>>(collector);
-
-        engine.iter().limit(BUDGET).last().unwrap();
-
-        assert_eq!(history.lock().unwrap().len(), BUDGET);
-    }
-
-    #[test]
     fn metric_step_publishes_stagnation_warning() {
         use std::sync::{Arc, Mutex};
         const BUDGET: usize = 60;

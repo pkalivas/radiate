@@ -3,8 +3,8 @@ use radiate_core::SmallStr;
 use crate::{
     ActorContext, ActorId, Executor,
     actors::{
-        MessageHandler,
-        actor::{Actor, ActorCell, Addr, Recipient},
+        MessageHandler, ProcessId,
+        actor::{Actor, ActorCell, Addr, Recipient, WeakAddr},
         context::ActorRegistry,
         handler::FnActor,
     },
@@ -35,6 +35,19 @@ impl ActorSystem {
         self.context.clone()
     }
 
+    pub fn spawn_fn<A, F>(&self, pid: impl Into<ProcessId>, f: F) -> Addr<A>
+    where
+        A: Actor + 'static,
+        F: FnOnce() -> A,
+    {
+        let actor = f();
+        let addr = self
+            .context
+            .create(Some(pid.into()), |_: &WeakAddr<A>| actor);
+
+        addr
+    }
+
     /// Spawns `actor` as the singleton for type `A`, registered under its
     /// own type name. A second `spawn::<A>` replaces it in the registry —
     /// same singleton-per-type contract as before, just keyed by name now
@@ -43,21 +56,19 @@ impl ActorSystem {
         self.spawn_named(std::any::type_name::<A>(), actor)
     }
 
-    pub fn spawn_named<A: Actor + 'static>(&self, name: &str, actor: A) -> Addr<A> {
-        let actor_ref = self.build_addr(actor, Some(SmallStr::from(name)));
-        self.context
-            .registry
-            .insert(name.to_string(), actor_ref.clone());
+    pub fn spawn_named<A: Actor + 'static>(&self, name: impl Into<ProcessId>, actor: A) -> Addr<A> {
+        let pid = name.into();
+        let actor_ref = self.build_addr(actor, Some(pid.clone()));
+        self.context.registry.insert(pid, actor_ref.clone());
         actor_ref
     }
 
-    pub fn listen<A, M>(&self, actor: A)
+    pub fn create<A, F>(&self, f: F) -> Addr<A>
     where
-        A: MessageHandler<M> + 'static,
-        M: Send + Clone + 'static,
+        A: Actor + 'static,
+        F: FnOnce(&WeakAddr<A>) -> A,
     {
-        let actor_ref = self.spawn(actor);
-        self.context.bus.subscribe(actor_ref.recipient::<M>());
+        self.context.create(None, f)
     }
 
     pub fn subscribe<M: Send + Clone + 'static>(
@@ -79,14 +90,14 @@ impl ActorSystem {
         self.context.bus.subscribe(actor_ref.recipient::<M>());
     }
 
-    fn build_addr<A: Actor + 'static>(&self, actor: A, pid: Option<SmallStr>) -> Addr<A> {
+    fn build_addr<A: Actor + 'static>(&self, actor: A, pid: Option<ProcessId>) -> Addr<A> {
         let (sender, receiver) = std::sync::mpsc::channel();
 
         Addr {
             sender,
             cell: Arc::new(ActorCell {
                 id: ActorId::new(),
-                pid,
+                pid: pid.map(|p| p.clone()),
                 actor: Arc::new(Mutex::new(actor)),
                 receiver,
                 scheduled: AtomicBool::new(false),
@@ -129,6 +140,7 @@ pub struct MessageBus {
 impl MessageBus {
     pub fn subscribe<M: Send + 'static>(&self, recipient: Recipient<M>) {
         let mut registry = self.subscribers.write().unwrap();
+
         registry
             .entry(TypeId::of::<M>())
             .or_insert_with(|| Box::new(Vec::<Recipient<M>>::new()) as Box<dyn Any + Send + Sync>)
@@ -137,7 +149,7 @@ impl MessageBus {
             .push(recipient);
     }
 
-    pub fn publish<M: Send + Clone + 'static>(&self, message: M) {
+    pub fn send<M: Send + Clone + 'static>(&self, message: M) {
         let registry = self.subscribers.read().unwrap();
         if let Some(group) = registry
             .get(&TypeId::of::<M>())
@@ -171,85 +183,147 @@ mod tests {
         time::Instant,
     };
 
-    fn wait_for(signal: &Arc<(Mutex<usize>, Condvar)>, target: usize) {
-        let (lock, cv) = &**signal;
-        let mut count = lock.lock().unwrap();
-        while *count < target {
-            let (guard, timeout) = cv.wait_timeout(count, Duration::from_secs(2)).unwrap();
-            count = guard;
-            if timeout.timed_out() && *count < target {
-                panic!("timed out waiting for {target} signals, saw {}", *count);
+    // ---------------------------------------------------------------
+    // Shared test helpers.
+    //
+    // `Signal` + `Recorder<T>` replace the "lock a Mutex<usize>, increment,
+    // notify_all" dance that used to be hand-rolled inside every actor's
+    // `handle()` below — tests should read as "record this, then wait for
+    // N," not re-derive a condvar every time.
+    //
+    // `wait_until` is a different tool for a different need: an arbitrary
+    // predicate over something that isn't a `Signal` (e.g. a raw
+    // `AtomicU64` total in the throughput benchmarks) — reach for `Signal`
+    // when waiting on "N of this specific thing happened," and
+    // `wait_until` when the condition doesn't fit that shape.
+    // ---------------------------------------------------------------
+
+    const DEFAULT_TIMEOUT: Duration = Duration::from_secs(2);
+
+    #[derive(Default)]
+    struct Signal {
+        count: Mutex<usize>,
+        cv: Condvar,
+    }
+
+    impl Signal {
+        fn bump(&self) {
+            *self.count.lock().unwrap() += 1;
+            self.cv.notify_all();
+        }
+
+        fn wait_for(&self, target: usize) {
+            let mut count = self.count.lock().unwrap();
+            while *count < target {
+                let (guard, timeout) = self.cv.wait_timeout(count, DEFAULT_TIMEOUT).unwrap();
+                count = guard;
+                if timeout.timed_out() && *count < target {
+                    panic!("timed out waiting for {target} signals, saw {}", *count);
+                }
             }
         }
     }
 
+    /// Records values pushed to it and lets a test block until `target`
+    /// have arrived. Defaults to `T = i32` since that covers most actor
+    /// payloads below; the dead-letter tests use `Recorder<&'static str>`.
+    struct Recorder<T = i32> {
+        seen: Mutex<Vec<T>>,
+        signal: Signal,
+    }
+
+    impl<T> Default for Recorder<T> {
+        fn default() -> Self {
+            Recorder {
+                seen: Mutex::new(Vec::new()),
+                signal: Signal::default(),
+            }
+        }
+    }
+
+    impl<T: Clone> Recorder<T> {
+        fn record(&self, value: T) {
+            self.seen.lock().unwrap().push(value);
+            self.signal.bump();
+        }
+
+        fn wait_for(&self, target: usize) {
+            self.signal.wait_for(target);
+        }
+
+        fn seen(&self) -> Vec<T> {
+            self.seen.lock().unwrap().clone()
+        }
+    }
+
+    fn wait_until<F: Fn() -> bool>(timeout: Duration, cond: F) -> bool {
+        let start = Instant::now();
+        while !cond() {
+            if start.elapsed() > timeout {
+                return false;
+            }
+            std::thread::yield_now();
+        }
+        true
+    }
+
     // ---------------------------------------------------------------
-    // Bare Actor / ActorRef / ActorCell behavior
+    // Bare Actor / Addr / ActorCell behavior
     // ---------------------------------------------------------------
 
     struct Counter {
-        seen: Arc<Mutex<Vec<i32>>>,
-        signal: Arc<(Mutex<usize>, Condvar)>,
+        recorder: Arc<Recorder>,
     }
 
     impl Actor for Counter {}
 
     impl MessageHandler<i32> for Counter {
         fn handle(&mut self, message: i32, _ctx: &ActorContext) {
-            self.seen.lock().unwrap().push(message);
-            let (count, cv) = &*self.signal;
-            *count.lock().unwrap() += 1;
-            cv.notify_all();
+            self.recorder.record(message);
         }
     }
 
     #[test]
     fn tell_delivers_a_single_message() {
         let system = ActorSystem::new(Arc::new(Executor::default()));
-        let seen = Arc::new(Mutex::new(Vec::new()));
-        let signal = Arc::new((Mutex::new(0), Condvar::new()));
+        let recorder = Arc::new(Recorder::default());
 
         let actor_ref = system.spawn(Counter {
-            seen: Arc::clone(&seen),
-            signal: Arc::clone(&signal),
+            recorder: Arc::clone(&recorder),
         });
 
         actor_ref.send(7);
-        wait_for(&signal, 1);
+        recorder.wait_for(1);
 
-        assert_eq!(*seen.lock().unwrap(), vec![7]);
+        assert_eq!(recorder.seen(), vec![7]);
     }
 
     #[test]
     fn messages_are_delivered_in_fifo_order() {
         let system = ActorSystem::new(Arc::new(Executor::default()));
-        let seen = Arc::new(Mutex::new(Vec::new()));
-        let signal = Arc::new((Mutex::new(0), Condvar::new()));
+        let recorder = Arc::new(Recorder::default());
 
         let actor_ref = system.spawn(Counter {
-            seen: Arc::clone(&seen),
-            signal: Arc::clone(&signal),
+            recorder: Arc::clone(&recorder),
         });
 
         const N: usize = 200;
         for i in 0..N as i32 {
             actor_ref.send(i);
         }
-        wait_for(&signal, N);
+        recorder.wait_for(N);
 
         let expected: Vec<i32> = (0..N as i32).collect();
-        assert_eq!(*seen.lock().unwrap(), expected);
+        assert_eq!(recorder.seen(), expected);
     }
 
     #[test]
     fn cloned_refs_all_feed_the_same_mailbox() {
         let system = ActorSystem::new(Arc::new(Executor::default()));
-        let seen = Arc::new(Mutex::new(Vec::new()));
-        let signal = Arc::new((Mutex::new(0), Condvar::new()));
+        let recorder = Arc::new(Recorder::default());
 
         let actor_ref = system.spawn(Counter {
-            seen: Arc::clone(&seen),
-            signal: Arc::clone(&signal),
+            recorder: Arc::clone(&recorder),
         });
 
         let a = actor_ref.clone();
@@ -259,9 +333,9 @@ mod tests {
         ha.join().unwrap();
         hb.join().unwrap();
 
-        wait_for(&signal, 2);
+        recorder.wait_for(2);
 
-        let mut got = seen.lock().unwrap().clone();
+        let mut got = recorder.seen();
         got.sort();
         assert_eq!(got, vec![1, 2]);
     }
@@ -272,8 +346,7 @@ mod tests {
     // ---------------------------------------------------------------
 
     struct Flaky {
-        seen: Arc<Mutex<Vec<i32>>>,
-        signal: Arc<(Mutex<usize>, Condvar)>,
+        recorder: Arc<Recorder>,
     }
 
     impl Actor for Flaky {}
@@ -283,31 +356,26 @@ mod tests {
             if message == 2 {
                 panic!("boom");
             }
-            self.seen.lock().unwrap().push(message);
-            let (count, cv) = &*self.signal;
-            *count.lock().unwrap() += 1;
-            cv.notify_all();
+            self.recorder.record(message);
         }
     }
 
     #[test]
     fn actor_survives_a_panicking_message_and_keeps_processing() {
         let system = ActorSystem::new(Arc::new(Executor::default()));
-        let seen = Arc::new(Mutex::new(Vec::new()));
-        let signal = Arc::new((Mutex::new(0), Condvar::new()));
+        let recorder = Arc::new(Recorder::default());
 
         let actor_ref = system.spawn(Flaky {
-            seen: Arc::clone(&seen),
-            signal: Arc::clone(&signal),
+            recorder: Arc::clone(&recorder),
         });
 
         actor_ref.send(1);
         actor_ref.send(2); // panics, should not take the actor down
         actor_ref.send(3);
 
-        wait_for(&signal, 2); // only 1 and 3 signal
+        recorder.wait_for(2); // only 1 and 3 record
 
-        assert_eq!(*seen.lock().unwrap(), vec![1, 3]);
+        assert_eq!(recorder.seen(), vec![1, 3]);
     }
 
     // ---------------------------------------------------------------
@@ -316,76 +384,60 @@ mod tests {
     // ---------------------------------------------------------------
 
     struct Stoppable {
-        seen: Arc<Mutex<Vec<i32>>>,
-        signal: Arc<(Mutex<usize>, Condvar)>,
-        stop_count: Arc<(Mutex<usize>, Condvar)>,
+        recorder: Arc<Recorder>,
+        stop_signal: Arc<Signal>,
     }
 
     impl Actor for Stoppable {
         fn on_stop(&mut self, _ctx: &ActorContext) {
-            let (count, cv) = &*self.stop_count;
-            *count.lock().unwrap() += 1;
-            cv.notify_all();
+            self.stop_signal.bump();
         }
     }
 
     impl MessageHandler<i32> for Stoppable {
         fn handle(&mut self, message: i32, _ctx: &ActorContext) {
-            self.seen.lock().unwrap().push(message);
-            let (count, cv) = &*self.signal;
-            *count.lock().unwrap() += 1;
-            cv.notify_all();
+            self.recorder.record(message);
         }
     }
 
     #[test]
     fn stop_runs_once_after_queued_messages_then_dead_letters_further_sends() {
         let system = ActorSystem::new(Arc::new(Executor::default()));
-        let seen = Arc::new(Mutex::new(Vec::new()));
-        let signal = Arc::new((Mutex::new(0), Condvar::new()));
-        let stop_count = Arc::new((Mutex::new(0), Condvar::new()));
+        let recorder = Arc::new(Recorder::default());
+        let stop_signal = Arc::new(Signal::default());
+        let dead_letters = Arc::new(Recorder::<&'static str>::default());
 
-        let dead_letters = Arc::new(Mutex::new(Vec::new()));
-        let dl_signal = Arc::new((Mutex::new(0), Condvar::new()));
-        let dl2 = Arc::clone(&dead_letters);
-        let dls2 = Arc::clone(&dl_signal);
-        system.subscribe::<DeadLetter>(move |dl: &DeadLetter, _ctx: &ActorContext| {
-            dl2.lock().unwrap().push(dl.message_type);
-            let (count, cv) = &*dls2;
-            *count.lock().unwrap() += 1;
-            cv.notify_all();
+        let dl = Arc::clone(&dead_letters);
+        system.subscribe::<DeadLetter>(move |msg: &DeadLetter, _ctx: &ActorContext| {
+            dl.record(msg.message_type);
         });
 
         let actor_ref = system.spawn(Stoppable {
-            seen: Arc::clone(&seen),
-            signal: Arc::clone(&signal),
-            stop_count: Arc::clone(&stop_count),
+            recorder: Arc::clone(&recorder),
+            stop_signal: Arc::clone(&stop_signal),
         });
 
         actor_ref.send(1);
         actor_ref.send(2);
-        wait_for(&signal, 2);
+        recorder.wait_for(2);
 
         actor_ref.stop();
-        wait_for(&stop_count, 1);
+        stop_signal.wait_for(1);
 
         // Idempotent: a second stop() must not run on_stop again.
         actor_ref.stop();
-        assert_eq!(*stop_count.0.lock().unwrap(), 1);
+        assert_eq!(*stop_signal.count.lock().unwrap(), 1);
 
         // Sends after stop() are dead-lettered, not delivered.
         actor_ref.send(3);
-        wait_for(&dl_signal, 1);
+        dead_letters.wait_for(1);
 
-        assert_eq!(*seen.lock().unwrap(), vec![1, 2]);
-        assert_eq!(
-            *dead_letters.lock().unwrap(),
-            vec![std::any::type_name::<i32>()]
-        );
+        assert_eq!(recorder.seen(), vec![1, 2]);
+        assert_eq!(dead_letters.seen(), vec![std::any::type_name::<i32>()]);
     }
 
     // ---------------------------------------------------------------
-    // DomainBus: subscribe/publish fan-out
+    // MessageBus: subscribe/publish fan-out
     // ---------------------------------------------------------------
 
     #[derive(Clone, Debug, PartialEq)]
@@ -397,85 +449,57 @@ mod tests {
     #[test]
     fn subscribe_and_publish_delivers_message() {
         let system = ActorSystem::new(Arc::new(Executor::default()));
-        let seen = Arc::new(Mutex::new(Vec::new()));
-        let signal = Arc::new((Mutex::new(0), Condvar::new()));
+        let recorder = Arc::new(Recorder::default());
 
-        let seen2 = Arc::clone(&seen);
-        let signal2 = Arc::clone(&signal);
-        system.subscribe::<Counted>(move |msg, _ctx| {
-            seen2.lock().unwrap().push(msg.0);
-            let (count, cv) = &*signal2;
-            *count.lock().unwrap() += 1;
-            cv.notify_all();
-        });
+        let r = Arc::clone(&recorder);
+        system.subscribe::<Counted>(move |msg, _ctx| r.record(msg.0));
 
-        system.context().publish(Counted(42));
-        wait_for(&signal, 1);
+        system.context().send(Counted(42));
+        recorder.wait_for(1);
 
-        assert_eq!(*seen.lock().unwrap(), vec![42]);
+        assert_eq!(recorder.seen(), vec![42]);
     }
 
     #[test]
     fn unrelated_message_types_do_not_cross_wires() {
         let system = ActorSystem::new(Arc::new(Executor::default()));
-        let seen = Arc::new(Mutex::new(Vec::new()));
-        let signal = Arc::new((Mutex::new(0), Condvar::new()));
+        let recorder = Arc::new(Recorder::default());
 
-        let seen2 = Arc::clone(&seen);
-        let signal2 = Arc::clone(&signal);
-        system.subscribe::<Counted>(move |msg, _ctx| {
-            seen2.lock().unwrap().push(msg.0);
-            let (count, cv) = &*signal2;
-            *count.lock().unwrap() += 1;
-            cv.notify_all();
-        });
+        let r = Arc::clone(&recorder);
+        system.subscribe::<Counted>(move |msg, _ctx| r.record(msg.0));
 
         // Nobody subscribed to Warning — should be a silent no-op.
-        system.context().publish(Warning("disk almost full"));
-        system.context().publish(Counted(1));
-        wait_for(&signal, 1);
+        system.context().send(Warning("disk almost full"));
+        system.context().send(Counted(1));
+        recorder.wait_for(1);
 
-        assert_eq!(*seen.lock().unwrap(), vec![1]);
+        assert_eq!(recorder.seen(), vec![1]);
     }
 
     #[test]
     fn multiple_subscribers_of_same_type_all_receive() {
         let system = ActorSystem::new(Arc::new(Executor::default()));
-        let seen_a = Arc::new(Mutex::new(Vec::new()));
-        let seen_b = Arc::new(Mutex::new(Vec::new()));
-        let signal_a = Arc::new((Mutex::new(0), Condvar::new()));
-        let signal_b = Arc::new((Mutex::new(0), Condvar::new()));
+        let recorder_a = Arc::new(Recorder::default());
+        let recorder_b = Arc::new(Recorder::default());
 
-        let sa = Arc::clone(&seen_a);
-        let siga = Arc::clone(&signal_a);
-        system.subscribe::<Counted>(move |msg, _ctx| {
-            sa.lock().unwrap().push(msg.0);
-            let (count, cv) = &*siga;
-            *count.lock().unwrap() += 1;
-            cv.notify_all();
-        });
+        let ra = Arc::clone(&recorder_a);
+        system.subscribe::<Counted>(move |msg, _ctx| ra.record(msg.0));
 
-        let sb = Arc::clone(&seen_b);
-        let sigb = Arc::clone(&signal_b);
-        system.subscribe::<Counted>(move |msg, _ctx| {
-            sb.lock().unwrap().push(msg.0);
-            let (count, cv) = &*sigb;
-            *count.lock().unwrap() += 1;
-            cv.notify_all();
-        });
+        let rb = Arc::clone(&recorder_b);
+        system.subscribe::<Counted>(move |msg, _ctx| rb.record(msg.0));
 
-        system.context().publish(Counted(9));
-        wait_for(&signal_a, 1);
-        wait_for(&signal_b, 1);
+        system.context().send(Counted(9));
+        recorder_a.wait_for(1);
+        recorder_b.wait_for(1);
 
-        assert_eq!(*seen_a.lock().unwrap(), vec![9]);
-        assert_eq!(*seen_b.lock().unwrap(), vec![9]);
+        assert_eq!(recorder_a.seen(), vec![9]);
+        assert_eq!(recorder_b.seen(), vec![9]);
     }
 
     #[test]
     fn publish_with_no_subscribers_does_not_panic() {
         let system = ActorSystem::new(Arc::new(Executor::default()));
-        system.context().publish(Counted(1)); // should just be dropped
+        system.context().send(Counted(1)); // should just be dropped
     }
 
     #[test]
@@ -490,88 +514,19 @@ mod tests {
     }
 
     // ---------------------------------------------------------------
-    // AnyActorRef: erasure shouldn't break supervision no-ops
+    // Dead letters are reachable only via the `stopped` flag (see
+    // `stop_runs_once_...` above), not via a genuinely-dropped `Receiver`.
+    //
+    // There used to be a test here trying to construct "send to an actor
+    // whose ActorCell has already been dropped elsewhere." It's not
+    // fixable, because it's not reachable: `Addr::send` needs `self.cell`
+    // to run at all (checks `stopped`, calls `try_claim()`), so any `Addr`
+    // capable of calling `.send()` inherently holds a strong reference to
+    // the very `ActorCell`/`Receiver` pair it would need to already be
+    // gone. There's no sequence of drops or clones that produces a
+    // callable `Addr` with an already-dropped cell — removed rather than
+    // left red chasing a scenario the type system doesn't allow.
     // ---------------------------------------------------------------
-
-    fn wait_until<F: Fn() -> bool>(timeout: Duration, cond: F) -> bool {
-        let start = Instant::now();
-        while !cond() {
-            if start.elapsed() > timeout {
-                return false;
-            }
-            std::thread::yield_now();
-        }
-        true
-    }
-
-    #[test]
-    fn fan_out_to_many_subscribers_throughput() {
-        const N: u64 = 20_000;
-        const SUBSCRIBERS: usize = 50;
-
-        let system = ActorSystem::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
-        let total_received = Arc::new(AtomicU64::new(0));
-
-        for _ in 0..SUBSCRIBERS {
-            let total = Arc::clone(&total_received);
-            system.subscribe::<Counted>(move |_msg: &Counted, _ctx: &ActorContext| {
-                total.fetch_add(1, Ordering::Relaxed);
-            });
-        }
-
-        let target = N * SUBSCRIBERS as u64;
-
-        let start = Instant::now();
-        for i in 0..N {
-            system.context().publish(Counted(i as i32));
-        }
-        let ok = wait_until(Duration::from_secs(20), || {
-            total_received.load(Ordering::Relaxed) == target
-        });
-        let elapsed = start.elapsed();
-
-        assert!(
-            ok,
-            "timed out: expected {target} total deliveries, saw {}",
-            total_received.load(Ordering::Relaxed)
-        );
-
-        let throughput = target as f64 / elapsed.as_secs_f64();
-        println!(
-            "[fan-out]    {N} messages x {SUBSCRIBERS} subscribers = {target} deliveries in {elapsed:?} ({throughput:.0} deliveries/sec)"
-        );
-    }
-
-    #[test]
-    fn tell_to_a_dropped_actor_publishes_dead_letter() {
-        let system = ActorSystem::new(Arc::new(Executor::default()));
-        let seen = Arc::new(Mutex::new(Vec::new()));
-        let signal = Arc::new((Mutex::new(0), Condvar::new()));
-
-        let seen2 = Arc::clone(&seen);
-        let signal2 = Arc::clone(&signal);
-        system.subscribe::<DeadLetter>(move |dl: &DeadLetter, _ctx: &ActorContext| {
-            seen2.lock().unwrap().push(dl.message_type);
-            let (count, cv) = &*signal2;
-            *count.lock().unwrap() += 1;
-            cv.notify_all();
-        });
-
-        let actor_ref = {
-            // actor_ref's own scope ends here; nothing else holds a clone, so
-            // its ActorCell (and Receiver) drop once this block exits.
-            let temp = system.spawn(Counter {
-                seen: Arc::new(Mutex::new(Vec::new())),
-                signal: Arc::new((Mutex::new(0), Condvar::new())),
-            });
-            temp.clone() // clone the ref itself so `sender` outlives the cell — see note
-        };
-
-        actor_ref.send(1);
-        wait_for(&signal, 1);
-
-        assert_eq!(*seen.lock().unwrap(), vec![std::any::type_name::<i32>()]);
-    }
 
     // ---------------------------------------------------------------
     // Registry-removal identity: stop() on an actor whose registry slot
@@ -597,6 +552,127 @@ mod tests {
             "second actor's registry entry was wrongly deleted by an unrelated stop()"
         );
         assert_eq!(current.unwrap().id(), second.id());
+    }
+
+    // ---------------------------------------------------------------
+    // WeakAddr: safe self-reference via ActorSystem::create /
+    // ActorContext::create (Arc::new_cyclic under the hood).
+    // ---------------------------------------------------------------
+
+    struct SelfPinger {
+        weak_self: WeakAddr<SelfPinger>,
+        recorder: Arc<Recorder>,
+    }
+
+    impl Actor for SelfPinger {}
+
+    impl MessageHandler<i32> for SelfPinger {
+        fn handle(&mut self, message: i32, _ctx: &ActorContext) {
+            self.recorder.record(message);
+
+            if message < 3
+                && let Some(me) = self.weak_self.upgrade()
+            {
+                me.send(message + 1);
+            }
+        }
+    }
+
+    #[test]
+    fn actor_can_store_and_use_its_own_weak_address() {
+        let system = ActorSystem::new(Arc::new(Executor::default()));
+        let recorder = Arc::new(Recorder::default());
+
+        let r = Arc::clone(&recorder);
+        let addr = system.create(move |weak_self: &WeakAddr<SelfPinger>| SelfPinger {
+            weak_self: weak_self.clone(),
+            recorder: r,
+        });
+
+        addr.send(0);
+        recorder.wait_for(4); // 0, 1, 2, 3 -- each handle() re-sends to itself via the weak addr
+
+        assert_eq!(recorder.seen(), vec![0, 1, 2, 3]);
+    }
+
+    struct Empty;
+    impl Actor for Empty {}
+
+    #[test]
+    fn weak_addr_upgrade_returns_none_once_every_strong_addr_is_dropped() {
+        let system = ActorSystem::new(Arc::new(Executor::default()));
+
+        let weak = {
+            // `create` doesn't touch the registry, so once `addr` drops here
+            // with nothing else holding a clone, the cell is genuinely gone.
+            let addr = system.create(|_weak_self: &WeakAddr<Empty>| Empty);
+            addr.downgrade()
+        };
+
+        assert!(weak.upgrade().is_none());
+    }
+
+    #[test]
+    fn weak_addr_upgrade_returns_none_after_stop_even_if_a_strong_clone_survives() {
+        let system = ActorSystem::new(Arc::new(Executor::default()));
+        let addr = system.create(|_weak_self: &WeakAddr<Empty>| Empty);
+        let weak = addr.downgrade();
+
+        addr.stop(); // `addr` itself is still alive -- strong_count stays > 0
+
+        assert!(
+            weak.upgrade().is_none(),
+            "a stopped actor shouldn't upgrade just because some other clone kept it alive"
+        );
+    }
+
+    // ---------------------------------------------------------------
+    // Throughput benchmarks, not correctness tests: they print a number
+    // and assert loosely (did we hit the target within a generous
+    // timeout) rather than an exact value. Both request a
+    // `FixedSizedWorkerPool` of a specific size, but `get_thread_pool`
+    // (radiate-core) is a single global `OnceLock`, not keyed by size --
+    // whichever of these two tests runs first fixes the pool size for the
+    // rest of the test binary's process. Numbers are indicative, not
+    // exactly reproducible run-to-run if execution order changes.
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn fan_out_to_many_subscribers_throughput() {
+        const N: u64 = 20_000;
+        const SUBSCRIBERS: usize = 50;
+
+        let system = ActorSystem::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
+        let total_received = Arc::new(AtomicU64::new(0));
+
+        for _ in 0..SUBSCRIBERS {
+            let total = Arc::clone(&total_received);
+            system.subscribe::<Counted>(move |_msg: &Counted, _ctx: &ActorContext| {
+                total.fetch_add(1, Ordering::Relaxed);
+            });
+        }
+
+        let target = N * SUBSCRIBERS as u64;
+
+        let start = Instant::now();
+        for i in 0..N {
+            system.context().send(Counted(i as i32));
+        }
+        let ok = wait_until(Duration::from_secs(20), || {
+            total_received.load(Ordering::Relaxed) == target
+        });
+        let elapsed = start.elapsed();
+
+        assert!(
+            ok,
+            "timed out: expected {target} total deliveries, saw {}",
+            total_received.load(Ordering::Relaxed)
+        );
+
+        let throughput = target as f64 / elapsed.as_secs_f64();
+        println!(
+            "[fan-out]    {N} messages x {SUBSCRIBERS} subscribers = {target} deliveries in {elapsed:?} ({throughput:.0} deliveries/sec)"
+        );
     }
 
     // ---------------------------------------------------------------
