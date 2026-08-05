@@ -1,8 +1,13 @@
 use crate::{
     ActorSystem,
-    actors::{ProcessId, context::ActorContext, message::DeadLetter},
+    actors::{
+        ProcessId,
+        context::{ActorContext, ActorRegistry},
+        message::DeadLetter,
+        system::MessageBus,
+    },
 };
-use radiate_core::SmallStr;
+use radiate_core::{Executor, SmallStr};
 use radiate_utils::sentry_id;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
@@ -14,8 +19,8 @@ use std::{
 
 sentry_id!(ActorId);
 
-pub trait Actor: Send {
-    fn on_init(&mut self, _: &ActorContext) {}
+pub trait Actor: Send + Sized {
+    fn on_init(&mut self, _: &Addr<Self>) {}
     fn on_stop(&mut self, _ctx: &ActorContext) {}
 }
 
@@ -28,10 +33,14 @@ type Envelope<A> = Box<dyn FnOnce(&mut A, &ActorContext) + Send>;
 pub struct ActorCell<A: Actor> {
     pub(super) id: ActorId,
     pub(super) pid: Option<ProcessId>,
+
     pub(super) actor: Arc<Mutex<A>>,
     pub(super) receiver: Receiver<Envelope<A>>,
     pub(super) scheduled: AtomicBool,
+
     pub(super) stopped: AtomicBool,
+    pub(super) parent: Option<AnyActorRef>,
+
     pub(super) context: ActorContext,
 }
 
@@ -58,7 +67,7 @@ impl<A: Actor> ActorCell<A> {
                 });
 
         if let Err(reason) = maybe_success
-            && let Some(parent) = &ctx.parent
+            && let Some(parent) = &self.parent
         {
             parent.report_child_failure(reason.clone());
         }
@@ -155,6 +164,22 @@ impl<A: Actor + 'static> Addr<A> {
         }
     }
 
+    pub fn subscribe<M>(&self)
+    where
+        A: MessageHandler<M>,
+        M: Send + 'static,
+    {
+        self.cell.context.bus().subscribe(self.recipient())
+    }
+
+    pub fn start(&self) {
+        let cell = Arc::clone(&self.cell);
+        self.cell
+            .context
+            .executor()
+            .submit(move || cell.process_batch());
+    }
+
     /// Enqueues a poison-pill parcel that calls `Actor::on_stop` and marks
     /// this actor stopped, so every `ActorRef` clone starts dead-lettering
     /// instead of accepting new sends. Idempotent — a second `stop()` is a
@@ -231,6 +256,7 @@ impl<A: Actor + 'static> WeakAddr<A> {
         if cell.stopped.load(Ordering::Acquire) {
             return None;
         }
+
         Some(Addr {
             sender: self.sender.clone(),
             cell,

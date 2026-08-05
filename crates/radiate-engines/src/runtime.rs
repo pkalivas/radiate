@@ -1,3 +1,4 @@
+use crate::generation::GenerationView;
 use crate::{
     ActorContext, Engine, EvolutionContext, Generation, Limit,
     events::{Log, LogEvent},
@@ -5,7 +6,6 @@ use crate::{
 };
 #[cfg(feature = "serde")]
 use crate::{FileWriter, JsonWriter};
-use crate::{LimitTriggered, generation::GenerationView};
 use crate::{LoggingActor, actions::LoggingAction};
 use radiate_core::error::{RadiateResult, Result};
 use radiate_core::rate::Expr;
@@ -222,14 +222,7 @@ where
         init_logging();
         let actor_system = self.engine.context().actor_system();
 
-        let actor = actor_system.spawn(LoggingActor);
-
-        // actor_system.subscribe::<LimitTriggered>(|msg: &LimitTriggered, ctx: &ActorContext| {
-        //     ctx.tell::<LoggingActor, _>(LogEvent::Log(Log::info(
-        //         Some(msg.generation),
-        //         msg.description(),
-        //     )));
-        // });
+        let actor = actor_system.spawn_fn("logging_actor", || LoggingActor);
 
         self.add_action(LoggingAction(every, actor));
         self

@@ -6,6 +6,10 @@ const SEPARATOR: &str = "/";
 pub struct ProcessId(SmallStr);
 
 impl ProcessId {
+    pub const fn new_const(id: SmallStr) -> Self {
+        ProcessId(id)
+    }
+
     pub fn new(id: impl AsRef<str>) -> Self {
         ProcessId(SmallStr::from(id.as_ref()))
     }

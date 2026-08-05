@@ -18,7 +18,7 @@ use std::sync::{
 
 pub use actors::{
     Actor, ActorContext, ActorId, ActorPanicked, ActorSubscribed, ActorSystem, Addr, EventHandler,
-    MessageHandler, Recipient, WeakAddr,
+    MessageHandler, Recipient,
 };
 pub use builder::GeneticEngineBuilder;
 pub use context::EvolutionContext;

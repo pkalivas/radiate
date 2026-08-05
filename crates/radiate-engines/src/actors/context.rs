@@ -49,16 +49,11 @@ pub struct ActorContext {
     pub(crate) executor: Arc<Executor>,
     pub(crate) bus: Arc<MessageBus>,
     pub(crate) registry: Arc<ActorRegistry>,
-    pub(crate) parent: Option<AnyActorRef>,
 }
 
 impl ActorContext {
     pub fn executor(&self) -> Arc<Executor> {
         Arc::clone(&self.executor)
-    }
-
-    pub fn parent(&self) -> Option<AnyActorRef> {
-        self.parent.clone()
     }
 
     pub fn bus(&self) -> Arc<MessageBus> {
@@ -112,7 +107,6 @@ impl ActorContext {
             bus: Arc::clone(&self.bus),
             executor: Arc::clone(&self.executor),
             registry: Arc::clone(&self.registry),
-            parent: None,
         };
 
         let cell = Arc::new_cyclic(|weak: &Weak<ActorCell<A>>| {
@@ -129,7 +123,8 @@ impl ActorContext {
                 receiver,
                 scheduled: AtomicBool::new(false),
                 stopped: AtomicBool::new(false),
-                context,
+                parent: None,
+                context: context.clone(),
             }
         });
 

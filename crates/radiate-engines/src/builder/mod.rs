@@ -9,6 +9,9 @@ mod problem;
 mod selectors;
 mod species;
 
+use crate::builder::filters::FilterParams;
+use crate::builder::objectives::OptimizeParams;
+use crate::builder::population::PopulationParams;
 use crate::builder::problem::ProblemParams;
 use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
@@ -26,10 +29,7 @@ use crate::{
     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
     TournamentSelector, context::EvolutionContext,
 };
-use crate::{EpochComplete, builder::population::PopulationParams};
 use crate::{Generation, Result};
-use crate::{LoggingActor, builder::filters::FilterParams};
-use crate::{builder::objectives::OptimizeParams, events::StagnationMonitorActor};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::{Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Valid, metric_names};
@@ -529,7 +529,7 @@ where
 
                 replacement_strategy: Arc::new(EncodeReplace),
                 alterers: Vec::new(),
-                actor_system: ActorSystem::new(Arc::new(Executor::default())),
+                actor_system: ActorSystem::default(),
                 exprs: None,
                 generation: None,
             },

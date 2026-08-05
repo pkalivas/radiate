@@ -1,34 +1,42 @@
-use radiate_core::SmallStr;
-
 use crate::{
     ActorContext, ActorId, Executor,
     actors::{
-        MessageHandler, ProcessId,
+        ProcessId,
         actor::{Actor, ActorCell, Addr, Recipient, WeakAddr},
         context::ActorRegistry,
         handler::FnActor,
     },
 };
+use radiate_core::SmallStr;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::sync::{Arc, RwLock, atomic::AtomicBool};
 
+const DEFAULT_ACTOR_SYSTEM_NAME: ProcessId =
+    ProcessId::new_const(SmallStr::from_static("actor_system"));
+
 #[derive(Clone)]
 pub struct ActorSystem {
+    pid: ProcessId,
     context: ActorContext,
 }
 
 impl ActorSystem {
-    pub fn new(executor: Arc<Executor>) -> Self {
+    pub fn new(pid: ProcessId, executor: Arc<Executor>) -> Self {
         ActorSystem {
+            pid,
             context: ActorContext {
                 executor,
                 bus: Arc::new(MessageBus::default()),
                 registry: Arc::new(ActorRegistry::default()),
-                parent: None,
             },
         }
+    }
+
+    pub fn set_bus(mut self, bus: Arc<MessageBus>) -> Self {
+        self.context.bus = bus;
+        self
     }
 
     pub fn context(&self) -> ActorContext {
@@ -45,13 +53,11 @@ impl ActorSystem {
             .context
             .create(Some(pid.into()), |_: &WeakAddr<A>| actor);
 
+        addr.cell.actor.lock().unwrap().on_init(&addr);
+
         addr
     }
 
-    /// Spawns `actor` as the singleton for type `A`, registered under its
-    /// own type name. A second `spawn::<A>` replaces it in the registry —
-    /// same singleton-per-type contract as before, just keyed by name now
-    /// instead of a separate `TypeId` map.
     pub fn spawn<A: Actor + 'static>(&self, actor: A) -> Addr<A> {
         self.spawn_named(std::any::type_name::<A>(), actor)
     }
@@ -102,11 +108,11 @@ impl ActorSystem {
                 receiver,
                 scheduled: AtomicBool::new(false),
                 stopped: AtomicBool::new(false),
+                parent: None,
                 context: ActorContext {
                     bus: Arc::clone(&self.context.bus),
                     executor: Arc::clone(&self.context.executor),
                     registry: Arc::clone(&self.context.registry),
-                    parent: None,
                 },
             }),
         }
@@ -115,20 +121,13 @@ impl ActorSystem {
 
 impl From<(Arc<Executor>, Arc<MessageBus>)> for ActorSystem {
     fn from((executor, bus): (Arc<Executor>, Arc<MessageBus>)) -> Self {
-        ActorSystem {
-            context: ActorContext {
-                executor,
-                bus,
-                registry: Arc::new(ActorRegistry::default()),
-                parent: None,
-            },
-        }
+        ActorSystem::new(DEFAULT_ACTOR_SYSTEM_NAME, executor).set_bus(bus)
     }
 }
 
 impl Default for ActorSystem {
     fn default() -> Self {
-        ActorSystem::new(Arc::new(Executor::default()))
+        ActorSystem::new(DEFAULT_ACTOR_SYSTEM_NAME, Arc::new(Executor::default()))
     }
 }
 
@@ -171,7 +170,7 @@ impl MessageBus {
 
 #[cfg(test)]
 mod tests {
-    use crate::actors::message::DeadLetter;
+    use crate::{MessageHandler, actors::message::DeadLetter};
 
     use super::*;
     use std::{
@@ -285,7 +284,7 @@ mod tests {
 
     #[test]
     fn tell_delivers_a_single_message() {
-        let system = ActorSystem::new(Arc::new(Executor::default()));
+        let system = ActorSystem::default();
         let recorder = Arc::new(Recorder::default());
 
         let actor_ref = system.spawn(Counter {
@@ -300,7 +299,7 @@ mod tests {
 
     #[test]
     fn messages_are_delivered_in_fifo_order() {
-        let system = ActorSystem::new(Arc::new(Executor::default()));
+        let system = ActorSystem::default();
         let recorder = Arc::new(Recorder::default());
 
         let actor_ref = system.spawn(Counter {
@@ -319,7 +318,7 @@ mod tests {
 
     #[test]
     fn cloned_refs_all_feed_the_same_mailbox() {
-        let system = ActorSystem::new(Arc::new(Executor::default()));
+        let system = ActorSystem::default();
         let recorder = Arc::new(Recorder::default());
 
         let actor_ref = system.spawn(Counter {
@@ -362,7 +361,7 @@ mod tests {
 
     #[test]
     fn actor_survives_a_panicking_message_and_keeps_processing() {
-        let system = ActorSystem::new(Arc::new(Executor::default()));
+        let system = ActorSystem::default();
         let recorder = Arc::new(Recorder::default());
 
         let actor_ref = system.spawn(Flaky {
@@ -402,7 +401,7 @@ mod tests {
 
     #[test]
     fn stop_runs_once_after_queued_messages_then_dead_letters_further_sends() {
-        let system = ActorSystem::new(Arc::new(Executor::default()));
+        let system = ActorSystem::default();
         let recorder = Arc::new(Recorder::default());
         let stop_signal = Arc::new(Signal::default());
         let dead_letters = Arc::new(Recorder::<&'static str>::default());
@@ -448,7 +447,7 @@ mod tests {
 
     #[test]
     fn subscribe_and_publish_delivers_message() {
-        let system = ActorSystem::new(Arc::new(Executor::default()));
+        let system = ActorSystem::default();
         let recorder = Arc::new(Recorder::default());
 
         let r = Arc::clone(&recorder);
@@ -462,7 +461,7 @@ mod tests {
 
     #[test]
     fn unrelated_message_types_do_not_cross_wires() {
-        let system = ActorSystem::new(Arc::new(Executor::default()));
+        let system = ActorSystem::default();
         let recorder = Arc::new(Recorder::default());
 
         let r = Arc::clone(&recorder);
@@ -478,7 +477,7 @@ mod tests {
 
     #[test]
     fn multiple_subscribers_of_same_type_all_receive() {
-        let system = ActorSystem::new(Arc::new(Executor::default()));
+        let system = ActorSystem::default();
         let recorder_a = Arc::new(Recorder::default());
         let recorder_b = Arc::new(Recorder::default());
 
@@ -498,13 +497,13 @@ mod tests {
 
     #[test]
     fn publish_with_no_subscribers_does_not_panic() {
-        let system = ActorSystem::new(Arc::new(Executor::default()));
+        let system = ActorSystem::default();
         system.context().send(Counted(1)); // should just be dropped
     }
 
     #[test]
     fn has_subscribers_reflects_registration_state() {
-        let system = ActorSystem::new(Arc::new(Executor::default()));
+        let system = ActorSystem::default();
         assert!(!system.context().has_subscribers::<Counted>());
 
         system.subscribe::<Counted>(|_msg, _ctx| {});
@@ -539,7 +538,7 @@ mod tests {
 
     #[test]
     fn stop_on_an_evicted_registry_slot_does_not_delete_the_current_occupant() {
-        let system = ActorSystem::new(Arc::new(Executor::default()));
+        let system = ActorSystem::default();
 
         let first = system.spawn(Named);
         let second = system.spawn(Named); // same type -> same registry key, evicts `first`
@@ -580,7 +579,7 @@ mod tests {
 
     #[test]
     fn actor_can_store_and_use_its_own_weak_address() {
-        let system = ActorSystem::new(Arc::new(Executor::default()));
+        let system = ActorSystem::default();
         let recorder = Arc::new(Recorder::default());
 
         let r = Arc::clone(&recorder);
@@ -600,7 +599,7 @@ mod tests {
 
     #[test]
     fn weak_addr_upgrade_returns_none_once_every_strong_addr_is_dropped() {
-        let system = ActorSystem::new(Arc::new(Executor::default()));
+        let system = ActorSystem::default();
 
         let weak = {
             // `create` doesn't touch the registry, so once `addr` drops here
@@ -614,7 +613,7 @@ mod tests {
 
     #[test]
     fn weak_addr_upgrade_returns_none_after_stop_even_if_a_strong_clone_survives() {
-        let system = ActorSystem::new(Arc::new(Executor::default()));
+        let system = ActorSystem::default();
         let addr = system.create(|_weak_self: &WeakAddr<Empty>| Empty);
         let weak = addr.downgrade();
 
@@ -642,7 +641,10 @@ mod tests {
         const N: u64 = 20_000;
         const SUBSCRIBERS: usize = 50;
 
-        let system = ActorSystem::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
+        let system = ActorSystem::new(
+            DEFAULT_ACTOR_SYSTEM_NAME,
+            Arc::new(Executor::FixedSizedWorkerPool(4)),
+        );
         let total_received = Arc::new(AtomicU64::new(0));
 
         for _ in 0..SUBSCRIBERS {
@@ -735,7 +737,7 @@ mod tests {
 
         let engines: Vec<BenchEngine> = (0..ENGINES)
             .map(|_| {
-                let system = ActorSystem::new(Arc::clone(&worker_pool));
+                let system = ActorSystem::new(DEFAULT_ACTOR_SYSTEM_NAME, Arc::clone(&worker_pool));
 
                 let dl = Arc::clone(&dead_letters);
                 system.subscribe::<DeadLetter>(move |_msg: &DeadLetter, _ctx: &ActorContext| {

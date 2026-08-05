@@ -1,4 +1,4 @@
-use crate::{Actor, ActorContext, MessageHandler, events::Warning};
+use crate::{Actor, ActorContext, Addr, MessageHandler, events::Warning};
 use crate::{
     LimitTriggered,
     events::{EpochComplete, LimitProgress, Log},
@@ -45,7 +45,11 @@ pub enum LogEvent {
 pub struct LoggingActor;
 
 impl Actor for LoggingActor {
-    fn on_init(&mut self, ctx: &ActorContext) {}
+    fn on_init(&mut self, addr: &Addr<Self>) {
+        addr.subscribe::<LimitTriggered>();
+        addr.subscribe::<Warning>();
+        addr.subscribe::<LogEvent>();
+    }
 }
 
 impl MessageHandler<LogEvent> for LoggingActor {
