@@ -1,47 +1,35 @@
-use crate::{
-    ActorSystem,
-    actors::{
-        ProcessId,
-        context::{ActorContext, ActorRegistry},
-        message::DeadLetter,
-        system::MessageBus,
-    },
-};
-use radiate_core::{Executor, SmallStr};
-use radiate_utils::sentry_id;
+use crate::actors::{ProcessId, context::SystemCtx, message::DeadLetter};
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex, Weak};
 use std::{
     any::TypeId,
-    sync::atomic::{AtomicBool, AtomicU64, Ordering},
+    sync::atomic::{AtomicBool, Ordering},
 };
 
-sentry_id!(ActorId);
+type Envelope<A> = Box<dyn FnOnce(&mut A, &Addr<A>) + Send>;
 
 pub trait Actor: Send + Sized {
     fn on_init(&mut self, _: &Addr<Self>) {}
-    fn on_stop(&mut self, _ctx: &ActorContext) {}
+    fn on_stop(&mut self, _: &Addr<Self>) {}
 }
 
 pub trait MessageHandler<M: Send + 'static>: Actor {
-    fn handle(&mut self, message: M, ctx: &ActorContext);
+    fn handle(&mut self, message: M, ctx: &Addr<Self>);
 }
 
-type Envelope<A> = Box<dyn FnOnce(&mut A, &ActorContext) + Send>;
-
-pub struct ActorCell<A: Actor> {
-    pub(super) id: ActorId,
-    pub(super) pid: Option<ProcessId>,
+pub struct ActorCtx<A: Actor> {
+    pub(super) pid: ProcessId,
 
     pub(super) actor: Arc<Mutex<A>>,
+    pub(super) sender: Sender<Envelope<A>>,
     pub(super) receiver: Receiver<Envelope<A>>,
     pub(super) scheduled: AtomicBool,
 
     pub(super) stopped: AtomicBool,
     pub(super) parent: Option<AnyActorRef>,
 
-    pub(super) context: ActorContext,
+    pub(super) context: SystemCtx,
 }
 
 // SAFETY: `receiver` is a plain `mpsc::Receiver`, which is `Send` but not `Sync` — its
@@ -52,11 +40,11 @@ pub struct ActorCell<A: Actor> {
 // `scheduled.store(false, Release)`. That Release/Acquire pair is a real happens-before edge,
 // so at most one thread is ever inside that window for a given `ActorCell` at a time, and no
 // other code path touches `receiver` — the exclusion is structural, not just conventional.
-unsafe impl<A: Actor> Sync for ActorCell<A> {}
+unsafe impl<A: Actor> Sync for ActorCtx<A> {}
 
-impl<A: Actor> ActorCell<A> {
+impl<A: Actor> ActorCtx<A> {
     #[inline]
-    fn deliver(&self, actor: &mut A, ctx: &ActorContext, envelope: Envelope<A>) {
+    fn deliver(&self, actor: &mut A, ctx: &Addr<A>, envelope: Envelope<A>) {
         let maybe_success =
             std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| envelope(actor, ctx)))
                 .map_err(|payload| {
@@ -82,11 +70,15 @@ impl<A: Actor> ActorCell<A> {
 
     #[inline]
     fn process_batch(self: Arc<Self>) {
+        let addr = Addr {
+            cell: Arc::clone(&self),
+        };
+
         loop {
             {
                 let mut actor = self.actor.lock().unwrap();
                 while let Ok(msg) = self.receiver.try_recv() {
-                    self.deliver(&mut *actor, &self.context, msg);
+                    self.deliver(&mut *actor, &addr, msg);
                 }
             }
 
@@ -99,7 +91,7 @@ impl<A: Actor> ActorCell<A> {
             match self.receiver.try_recv() {
                 Ok(msg) => {
                     let mut actor = self.actor.lock().unwrap();
-                    self.deliver(&mut *actor, &self.context, msg);
+                    self.deliver(&mut *actor, &addr, msg);
 
                     continue;
                 }
@@ -113,13 +105,15 @@ impl<A: Actor> ActorCell<A> {
 }
 
 pub struct Addr<A: Actor> {
-    pub(crate) sender: Sender<Envelope<A>>,
-    pub(crate) cell: Arc<ActorCell<A>>,
+    pub(crate) cell: Arc<ActorCtx<A>>,
 }
 
 impl<A: Actor + 'static> Addr<A> {
-    pub fn id(&self) -> ActorId {
-        self.cell.id
+    pub fn publish<M>(&self, message: M)
+    where
+        M: Send + Clone + 'static,
+    {
+        self.cell.context.publish(message);
     }
 
     pub fn send<M>(&self, message: M)
@@ -133,22 +127,22 @@ impl<A: Actor + 'static> Addr<A> {
         // race rather than gating every delivery on this flag too.
         if self.cell.stopped.load(Ordering::Acquire) {
             if TypeId::of::<M>() != TypeId::of::<DeadLetter>() {
-                self.cell.context.bus().send(DeadLetter {
+                self.cell.context.bus().publish(DeadLetter {
                     message_type: std::any::type_name::<M>(),
-                    actor_id: self.id(),
+                    pid: self.cell.pid.clone(),
                 });
             }
             return;
         }
 
-        let envelope = Box::new(move |actor: &mut A, ctx: &ActorContext| {
+        let envelope = Box::new(move |actor: &mut A, ctx: &Addr<A>| {
             actor.handle(message, ctx);
         });
-        if self.sender.send(envelope).is_err() {
+        if self.cell.sender.send(envelope).is_err() {
             if TypeId::of::<M>() != TypeId::of::<DeadLetter>() {
-                self.cell.context.bus().send(DeadLetter {
+                self.cell.context.bus().publish(DeadLetter {
                     message_type: std::any::type_name::<M>(),
-                    actor_id: self.id(),
+                    pid: self.cell.pid.clone(),
                 });
             }
 
@@ -189,15 +183,14 @@ impl<A: Actor + 'static> Addr<A> {
             return;
         }
 
-        if let Some(pid) = &self.cell.pid
-            && let Some(removed) = self.cell.context.registry.remove::<A>(pid)
-            && removed.id() != self.id()
-        {
+        let pid = &self.cell.pid;
+        if let Some(removed) = self.cell.context.registry.remove::<A>(pid) {
             self.cell.context.registry.insert(pid.clone(), removed);
         }
 
-        self.sender
-            .send(Box::new(|actor: &mut A, ctx: &ActorContext| {
+        self.cell
+            .sender
+            .send(Box::new(|actor: &mut A, ctx: &Addr<A>| {
                 actor.on_stop(ctx);
             }))
             .ok();
@@ -230,21 +223,18 @@ impl<A: Actor + 'static> Addr<A> {
 impl<A: Actor> Clone for Addr<A> {
     fn clone(&self) -> Self {
         Addr {
-            sender: self.sender.clone(),
             cell: Arc::clone(&self.cell),
         }
     }
 }
 
 pub struct WeakAddr<A: Actor> {
-    pub(super) sender: Sender<Envelope<A>>,
-    pub(super) cell: Weak<ActorCell<A>>,
+    pub(super) cell: Weak<ActorCtx<A>>,
 }
 
 impl<A: Actor + 'static> Addr<A> {
     pub fn downgrade(&self) -> WeakAddr<A> {
         WeakAddr {
-            sender: self.sender.clone(),
             cell: Arc::downgrade(&self.cell),
         }
     }
@@ -257,17 +247,13 @@ impl<A: Actor + 'static> WeakAddr<A> {
             return None;
         }
 
-        Some(Addr {
-            sender: self.sender.clone(),
-            cell,
-        })
+        Some(Addr { cell })
     }
 }
 
 impl<A: Actor> Clone for WeakAddr<A> {
     fn clone(&self) -> Self {
         WeakAddr {
-            sender: self.sender.clone(),
             cell: Weak::clone(&self.cell),
         }
     }

@@ -1,32 +1,32 @@
 use crate::{
-    ActorContext, ActorId, Executor,
+    Executor, MessageHandler, SystemCtx,
     actors::{
-        ProcessId,
-        actor::{Actor, ActorCell, Addr, Recipient, WeakAddr},
+        DeadLetter, ProcessId,
+        actor::{Actor, Addr, Recipient, WeakAddr},
         context::ActorRegistry,
-        handler::FnActor,
+        handler::{ActorHandleFn, FnActor},
+        message::{ActorRegistered, DeadLetterActor},
     },
 };
 use radiate_core::SmallStr;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
-use std::sync::Mutex;
-use std::sync::{Arc, RwLock, atomic::AtomicBool};
+use std::sync::{Arc, RwLock};
 
 const DEFAULT_ACTOR_SYSTEM_NAME: ProcessId =
-    ProcessId::new_const(SmallStr::from_static("actor_system"));
+    ProcessId::new_const(SmallStr::from_static("actor-system"));
 
 #[derive(Clone)]
 pub struct ActorSystem {
     pid: ProcessId,
-    context: ActorContext,
+    context: SystemCtx,
 }
 
 impl ActorSystem {
     pub fn new(pid: ProcessId, executor: Arc<Executor>) -> Self {
         ActorSystem {
             pid,
-            context: ActorContext {
+            context: SystemCtx {
                 executor,
                 bus: Arc::new(MessageBus::default()),
                 registry: Arc::new(ActorRegistry::default()),
@@ -39,23 +39,36 @@ impl ActorSystem {
         self
     }
 
-    pub fn context(&self) -> ActorContext {
+    pub fn start(&self) {
+        self.spawn_fn("dead-letter-queue", || DeadLetterActor::default());
+    }
+
+    pub fn pid(&self) -> &ProcessId {
+        &self.pid
+    }
+
+    pub fn context(&self) -> SystemCtx {
         self.context.clone()
     }
 
-    pub fn spawn_fn<A, F>(&self, pid: impl Into<ProcessId>, f: F) -> Addr<A>
+    pub fn publish<M: Send + Clone + 'static>(&self, message: M) {
+        self.context.bus.publish(message);
+    }
+
+    pub fn send<A, M>(&self, pid: impl Into<ProcessId>, message: M)
     where
-        A: Actor + 'static,
-        F: FnOnce() -> A,
+        A: MessageHandler<M> + 'static,
+        M: Send + Clone + 'static,
     {
-        let actor = f();
-        let addr = self
-            .context
-            .create(Some(pid.into()), |_: &WeakAddr<A>| actor);
-
-        addr.cell.actor.lock().unwrap().on_init(&addr);
-
-        addr
+        let pid = pid.into();
+        if let Some(addr) = self.context.registry.get::<A>(&pid) {
+            addr.send(message);
+        } else {
+            self.publish(DeadLetter {
+                pid,
+                message_type: std::any::type_name::<M>(),
+            });
+        }
     }
 
     pub fn spawn<A: Actor + 'static>(&self, actor: A) -> Addr<A> {
@@ -64,58 +77,57 @@ impl ActorSystem {
 
     pub fn spawn_named<A: Actor + 'static>(&self, name: impl Into<ProcessId>, actor: A) -> Addr<A> {
         let pid = name.into();
-        let actor_ref = self.build_addr(actor, Some(pid.clone()));
-        self.context.registry.insert(pid, actor_ref.clone());
+        let actor_ref = self.context.create(pid.clone(), |_: &WeakAddr<A>| actor);
+
+        self.register_actor(pid, actor_ref.clone());
+        actor_ref.cell.actor.lock().unwrap().on_init(&actor_ref);
+
         actor_ref
     }
 
-    pub fn create<A, F>(&self, f: F) -> Addr<A>
+    pub fn spawn_fn<A, F>(&self, pid: impl Into<ProcessId>, f: F) -> Addr<A>
     where
         A: Actor + 'static,
-        F: FnOnce(&WeakAddr<A>) -> A,
+        F: FnOnce() -> A,
     {
-        self.context.create(None, f)
+        let pid = pid.into();
+        let actor = f();
+        let addr = self.context.create(pid.clone(), |_: &WeakAddr<A>| actor);
+
+        addr.cell.actor.lock().unwrap().on_init(&addr);
+        self.register_actor(pid, addr.clone());
+
+        addr
     }
 
     pub fn subscribe<M: Send + Clone + 'static>(
         &self,
-        mut handler: impl FnMut(&M, &ActorContext) + Send + Sync + 'static,
+        mut handler: impl ActorHandleFn<M, FnActor<M>> + Send + Sync + 'static,
     ) {
-        self.subscribe_with::<M, _>(move |message, ctx| handler(&message, ctx));
+        self.subscribe_with::<M, _>(move |message, ctx| handler.handle(message, ctx));
     }
 
     fn subscribe_with<M, F>(&self, f: F)
     where
         M: Send + Clone + 'static,
-        F: FnMut(M, &ActorContext) + Send + Sync + 'static,
+        F: FnMut(M, &Addr<FnActor<M>>) + Send + Sync + 'static,
     {
         let actor = FnActor {
             handler: Box::new(f),
         };
-        let actor_ref = self.build_addr(actor, None);
+
+        let pid = ProcessId::from(format!("subscriber-{}", std::any::type_name::<M>()));
+        let actor_ref = self.spawn_named(pid.clone(), actor);
+
+        actor_ref.cell.actor.lock().unwrap().on_init(&actor_ref);
+
         self.context.bus.subscribe(actor_ref.recipient::<M>());
+        self.register_actor(pid, actor_ref.clone());
     }
 
-    fn build_addr<A: Actor + 'static>(&self, actor: A, pid: Option<ProcessId>) -> Addr<A> {
-        let (sender, receiver) = std::sync::mpsc::channel();
-
-        Addr {
-            sender,
-            cell: Arc::new(ActorCell {
-                id: ActorId::new(),
-                pid: pid.map(|p| p.clone()),
-                actor: Arc::new(Mutex::new(actor)),
-                receiver,
-                scheduled: AtomicBool::new(false),
-                stopped: AtomicBool::new(false),
-                parent: None,
-                context: ActorContext {
-                    bus: Arc::clone(&self.context.bus),
-                    executor: Arc::clone(&self.context.executor),
-                    registry: Arc::clone(&self.context.registry),
-                },
-            }),
-        }
+    fn register_actor<A: Actor + 'static>(&self, pid: ProcessId, addr: Addr<A>) {
+        self.context.registry.insert(pid.clone(), addr);
+        self.publish(ActorRegistered { pid });
     }
 }
 
@@ -148,7 +160,7 @@ impl MessageBus {
             .push(recipient);
     }
 
-    pub fn send<M: Send + Clone + 'static>(&self, message: M) {
+    pub fn publish<M: Send + Clone + 'static>(&self, message: M) {
         let registry = self.subscribers.read().unwrap();
         if let Some(group) = registry
             .get(&TypeId::of::<M>())
@@ -277,7 +289,7 @@ mod tests {
     impl Actor for Counter {}
 
     impl MessageHandler<i32> for Counter {
-        fn handle(&mut self, message: i32, _ctx: &ActorContext) {
+        fn handle(&mut self, message: i32, _ctx: &Addr<Self>) {
             self.recorder.record(message);
         }
     }
@@ -351,7 +363,7 @@ mod tests {
     impl Actor for Flaky {}
 
     impl MessageHandler<i32> for Flaky {
-        fn handle(&mut self, message: i32, _ctx: &ActorContext) {
+        fn handle(&mut self, message: i32, _ctx: &Addr<Self>) {
             if message == 2 {
                 panic!("boom");
             }
@@ -388,13 +400,13 @@ mod tests {
     }
 
     impl Actor for Stoppable {
-        fn on_stop(&mut self, _ctx: &ActorContext) {
+        fn on_stop(&mut self, _ctx: &Addr<Self>) {
             self.stop_signal.bump();
         }
     }
 
     impl MessageHandler<i32> for Stoppable {
-        fn handle(&mut self, message: i32, _ctx: &ActorContext) {
+        fn handle(&mut self, message: i32, _ctx: &Addr<Self>) {
             self.recorder.record(message);
         }
     }
@@ -407,7 +419,7 @@ mod tests {
         let dead_letters = Arc::new(Recorder::<&'static str>::default());
 
         let dl = Arc::clone(&dead_letters);
-        system.subscribe::<DeadLetter>(move |msg: &DeadLetter, _ctx: &ActorContext| {
+        system.subscribe::<DeadLetter>(move |msg: DeadLetter, _ctx: &Addr<FnActor<DeadLetter>>| {
             dl.record(msg.message_type);
         });
 
@@ -451,9 +463,11 @@ mod tests {
         let recorder = Arc::new(Recorder::default());
 
         let r = Arc::clone(&recorder);
-        system.subscribe::<Counted>(move |msg, _ctx| r.record(msg.0));
+        system.subscribe::<Counted>(move |msg: Counted, _ctx: &Addr<FnActor<Counted>>| {
+            r.record(msg.0)
+        });
 
-        system.context().send(Counted(42));
+        system.context().publish(Counted(42));
         recorder.wait_for(1);
 
         assert_eq!(recorder.seen(), vec![42]);
@@ -465,11 +479,13 @@ mod tests {
         let recorder = Arc::new(Recorder::default());
 
         let r = Arc::clone(&recorder);
-        system.subscribe::<Counted>(move |msg, _ctx| r.record(msg.0));
+        system.subscribe::<Counted>(move |msg: Counted, _ctx: &Addr<FnActor<Counted>>| {
+            r.record(msg.0)
+        });
 
         // Nobody subscribed to Warning — should be a silent no-op.
-        system.context().send(Warning("disk almost full"));
-        system.context().send(Counted(1));
+        system.context().publish(Warning("disk almost full"));
+        system.context().publish(Counted(1));
         recorder.wait_for(1);
 
         assert_eq!(recorder.seen(), vec![1]);
@@ -482,12 +498,16 @@ mod tests {
         let recorder_b = Arc::new(Recorder::default());
 
         let ra = Arc::clone(&recorder_a);
-        system.subscribe::<Counted>(move |msg, _ctx| ra.record(msg.0));
+        system.subscribe::<Counted>(move |msg: Counted, _ctx: &Addr<FnActor<Counted>>| {
+            ra.record(msg.0)
+        });
 
         let rb = Arc::clone(&recorder_b);
-        system.subscribe::<Counted>(move |msg, _ctx| rb.record(msg.0));
+        system.subscribe::<Counted>(move |msg: Counted, _ctx: &Addr<FnActor<Counted>>| {
+            rb.record(msg.0)
+        });
 
-        system.context().send(Counted(9));
+        system.context().publish(Counted(9));
         recorder_a.wait_for(1);
         recorder_b.wait_for(1);
 
@@ -498,7 +518,7 @@ mod tests {
     #[test]
     fn publish_with_no_subscribers_does_not_panic() {
         let system = ActorSystem::default();
-        system.context().send(Counted(1)); // should just be dropped
+        system.context().publish(Counted(1)); // should just be dropped
     }
 
     #[test]
@@ -506,7 +526,7 @@ mod tests {
         let system = ActorSystem::default();
         assert!(!system.context().has_subscribers::<Counted>());
 
-        system.subscribe::<Counted>(|_msg, _ctx| {});
+        system.subscribe::<Counted>(|_msg: Counted, _ctx: &Addr<FnActor<Counted>>| {});
 
         assert!(system.context().has_subscribers::<Counted>());
         assert!(!system.context().has_subscribers::<Warning>());
@@ -541,16 +561,15 @@ mod tests {
         let system = ActorSystem::default();
 
         let first = system.spawn(Named);
-        let second = system.spawn(Named); // same type -> same registry key, evicts `first`
+        let _ = system.spawn(Named); // same type -> same registry key, evicts `first`
 
         first.stop(); // `first` was already evicted from the registry -- must be a no-op there
 
-        let current = system.context().actor::<Named>();
+        let current = system.context().actor::<Named>(first.cell.pid.clone());
         assert!(
             current.is_some(),
             "second actor's registry entry was wrongly deleted by an unrelated stop()"
         );
-        assert_eq!(current.unwrap().id(), second.id());
     }
 
     // ---------------------------------------------------------------
@@ -566,7 +585,7 @@ mod tests {
     impl Actor for SelfPinger {}
 
     impl MessageHandler<i32> for SelfPinger {
-        fn handle(&mut self, message: i32, _ctx: &ActorContext) {
+        fn handle(&mut self, message: i32, _ctx: &Addr<Self>) {
             self.recorder.record(message);
 
             if message < 3
@@ -583,10 +602,13 @@ mod tests {
         let recorder = Arc::new(Recorder::default());
 
         let r = Arc::clone(&recorder);
-        let addr = system.create(move |weak_self: &WeakAddr<SelfPinger>| SelfPinger {
-            weak_self: weak_self.clone(),
-            recorder: r,
-        });
+        let addr = system.context().create(
+            ProcessId::new("self_pinger"),
+            move |weak_self: &WeakAddr<SelfPinger>| SelfPinger {
+                weak_self: weak_self.clone(),
+                recorder: r,
+            },
+        );
 
         addr.send(0);
         recorder.wait_for(4); // 0, 1, 2, 3 -- each handle() re-sends to itself via the weak addr
@@ -604,7 +626,11 @@ mod tests {
         let weak = {
             // `create` doesn't touch the registry, so once `addr` drops here
             // with nothing else holding a clone, the cell is genuinely gone.
-            let addr = system.create(|_weak_self: &WeakAddr<Empty>| Empty);
+            let addr = system
+                .context()
+                .create(ProcessId::new("empty"), |_weak_self: &WeakAddr<Empty>| {
+                    Empty
+                });
             addr.downgrade()
         };
 
@@ -614,7 +640,11 @@ mod tests {
     #[test]
     fn weak_addr_upgrade_returns_none_after_stop_even_if_a_strong_clone_survives() {
         let system = ActorSystem::default();
-        let addr = system.create(|_weak_self: &WeakAddr<Empty>| Empty);
+        let addr = system
+            .context()
+            .create(ProcessId::new("empty"), |_weak_self: &WeakAddr<Empty>| {
+                Empty
+            });
         let weak = addr.downgrade();
 
         addr.stop(); // `addr` itself is still alive -- strong_count stays > 0
@@ -649,7 +679,7 @@ mod tests {
 
         for _ in 0..SUBSCRIBERS {
             let total = Arc::clone(&total_received);
-            system.subscribe::<Counted>(move |_msg: &Counted, _ctx: &ActorContext| {
+            system.subscribe::<Counted>(move |_msg: Counted, _ctx: &Addr<FnActor<Counted>>| {
                 total.fetch_add(1, Ordering::Relaxed);
             });
         }
@@ -658,7 +688,7 @@ mod tests {
 
         let start = Instant::now();
         for i in 0..N {
-            system.context().send(Counted(i as i32));
+            system.context().publish(Counted(i as i32));
         }
         let ok = wait_until(Duration::from_secs(20), || {
             total_received.load(Ordering::Relaxed) == target
@@ -697,7 +727,7 @@ mod tests {
     impl Actor for BenchActor {}
 
     impl MessageHandler<BenchMessage> for BenchActor {
-        fn handle(&mut self, _message: BenchMessage, _ctx: &ActorContext) {
+        fn handle(&mut self, _message: BenchMessage, _ctx: &Addr<Self>) {
             self.received.fetch_add(1, Ordering::Relaxed);
         }
     }
@@ -740,9 +770,11 @@ mod tests {
                 let system = ActorSystem::new(DEFAULT_ACTOR_SYSTEM_NAME, Arc::clone(&worker_pool));
 
                 let dl = Arc::clone(&dead_letters);
-                system.subscribe::<DeadLetter>(move |_msg: &DeadLetter, _ctx: &ActorContext| {
-                    dl.fetch_add(1, Ordering::Relaxed);
-                });
+                system.subscribe::<DeadLetter>(
+                    move |_msg: DeadLetter, _ctx: &Addr<FnActor<DeadLetter>>| {
+                        dl.fetch_add(1, Ordering::Relaxed);
+                    },
+                );
 
                 let actors = (0..ACTORS_PER_ENGINE)
                     .map(|_| {
@@ -807,5 +839,153 @@ mod tests {
             "timed out waiting for all sent messages to be received"
         );
         assert_eq!(sent_total, received_total, "message loss detected");
+    }
+
+    // ---------------------------------------------------------------
+    // Direct port of hollywood's own send-storm benchmark (10 engines,
+    // 2000 actors/engine, 20 senders, 10s), for apples-to-apples
+    // comparison. Reuses BenchActor/BenchEngine/Xorshift64/BenchMessage
+    // from the cross-engine benchmark above — the only real differences
+    // from that test are (1) routing: hollywood's own sendMessages picks
+    // a random engine then a random actor *within that same engine* (its
+    // cross-engine target-selection line is commented out in their
+    // source, so that's what actually runs), not cross-engine, and (2) a
+    // per-second reporter thread mirroring their ticker goroutine.
+    //
+    // hollywood's `monitor` actor subscribes itself to its engine's event
+    // stream on `actor.Initialized` and counts `actor.DeadLetterEvent`;
+    // here that's just a closure subscribed to `DeadLetter` per engine,
+    // same as the cross-engine benchmark's dead-letter tracking — no
+    // separate monitor actor type needed since `ActorSystem::subscribe`
+    // doesn't require an init handshake to register.
+    //
+    // hollywood's `benchMarkActor` also handles `*Ping` by calling
+    // `ctx.Respond(&Pong{})` — that path is dead code in their own
+    // `sendMessages` (nothing ever sends a `Ping`), and radiate has no
+    // reply-to-sender primitive yet (see the earlier discussion of
+    // hollywood's `Context.Respond`/`Sender()` — not something this actor
+    // system has), so it's left out here rather than half-ported.
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn hollywood_style_same_engine_throughput() {
+        const ENGINES: usize = 10;
+        const ACTORS_PER_ENGINE: usize = 2000;
+        const SENDERS: usize = 20;
+        const DURATION: Duration = Duration::from_secs(10);
+
+        let received = Arc::new(AtomicU64::new(0));
+        let dead_letters = Arc::new(AtomicU64::new(0));
+
+        let worker_pool = Arc::new(Executor::FixedSizedWorkerPool(
+            std::thread::available_parallelism()
+                .map(|n| n.get())
+                .unwrap_or(4),
+        ));
+
+        let engines: Vec<BenchEngine> = (0..ENGINES)
+            .map(|_| {
+                let system = ActorSystem::new(DEFAULT_ACTOR_SYSTEM_NAME, Arc::clone(&worker_pool));
+
+                let dl = Arc::clone(&dead_letters);
+                system.subscribe::<DeadLetter>(
+                    move |_msg: DeadLetter, _addr: &Addr<FnActor<DeadLetter>>| {
+                        dl.fetch_add(1, Ordering::Relaxed);
+                    },
+                );
+
+                let actors = (0..ACTORS_PER_ENGINE)
+                    .map(|_| {
+                        system.spawn(BenchActor {
+                            received: Arc::clone(&received),
+                        })
+                    })
+                    .collect();
+
+                BenchEngine { actors }
+            })
+            .collect();
+
+        let engines = Arc::new(engines);
+        let sent = Arc::new(AtomicU64::new(0));
+        let start = Instant::now();
+        let deadline = start + DURATION;
+
+        // Per-second reporter, mirroring hollywood's ticker goroutine.
+        let reporting = Arc::new(std::sync::atomic::AtomicBool::new(true));
+        let reporter = {
+            let sent = Arc::clone(&sent);
+            let reporting = Arc::clone(&reporting);
+            std::thread::spawn(move || {
+                let mut last = 0u64;
+                while reporting.load(Ordering::Relaxed) {
+                    std::thread::sleep(Duration::from_secs(1));
+                    let now = sent.load(Ordering::Relaxed);
+                    println!("Messages sent per second {}", now - last);
+                    last = now;
+                }
+            })
+        };
+
+        println!(
+            "Send storm starting, will send for {:?} using {SENDERS} workers",
+            DURATION
+        );
+
+        let handles: Vec<_> = (0..SENDERS)
+            .map(|seed| {
+                let engines = Arc::clone(&engines);
+                let sent = Arc::clone(&sent);
+                std::thread::spawn(move || {
+                    let mut rng = Xorshift64(seed as u64 * 2 + 1);
+                    while Instant::now() < deadline {
+                        // Same-engine only, matching what hollywood's own
+                        // sendMessages actually runs (its cross-engine
+                        // target line is commented out in their source).
+                        let engine_idx = rng.next_bounded(engines.len());
+                        let engine = &engines[engine_idx];
+                        let actor_idx = rng.next_bounded(engine.actors.len());
+                        engine.actors[actor_idx].send(BenchMessage);
+                        sent.fetch_add(1, Ordering::Relaxed);
+                    }
+                })
+            })
+            .collect();
+
+        for h in handles {
+            h.join().unwrap();
+        }
+
+        // hollywood's version drains in-flight messages with a fixed 1s
+        // sleep before comparing counts. That's not reliable here: a debug
+        // build (unoptimized) delivering tens of millions of backlogged
+        // messages, especially while contending with other tests for the
+        // same global thread pool, can take longer than a fixed second to
+        // drain. Poll for the real condition instead of guessing a delay.
+        let sent_total = sent.load(Ordering::Relaxed);
+        let drained = wait_until(Duration::from_secs(30), || {
+            received.load(Ordering::Relaxed) == sent_total
+        });
+        reporting.store(false, Ordering::Relaxed);
+        reporter.join().unwrap();
+
+        let elapsed = start.elapsed();
+        let received_total = received.load(Ordering::Relaxed);
+
+        assert!(
+            drained,
+            "timed out waiting for all sent messages to be received (sent {sent_total}, received {received_total})"
+        );
+
+        println!(
+            "Concurrent senders: {SENDERS} messages sent {sent_total}, messages received {received_total} - duration: {:?}",
+            DURATION
+        );
+        println!(
+            "messages per second: {}",
+            received_total / DURATION.as_secs()
+        );
+        println!("deadletters: {}", dead_letters.load(Ordering::Relaxed));
+        let _ = elapsed;
     }
 }

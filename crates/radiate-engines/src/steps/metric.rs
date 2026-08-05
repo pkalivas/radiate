@@ -12,11 +12,6 @@ use std::{
 
 const EPS: f32 = 1e-9;
 
-// Placeholder threshold — fires once per stagnant streak, not configurable
-// yet. Worth revisiting if/when stagnation warnings want to be tunable the
-// same way `UniqueScoreFilter`'s `max_stagnation` already is.
-const STAGNATION_WARNING_THRESHOLD: usize = 50;
-
 #[derive(Default)]
 pub struct MetricStep {
     objective: Objective,
@@ -136,14 +131,6 @@ impl MetricStep {
             self.warned_this_streak = false;
         } else {
             self.stagnation_count += 1;
-
-            if !self.warned_this_streak && self.stagnation_count >= STAGNATION_WARNING_THRESHOLD {
-                // self.event_system.publish(Log::warn(
-                //     Some(generation),
-                //     format!("no improvement in {} generations", self.stagnation_count),
-                // ));
-                self.warned_this_streak = true;
-            }
         }
 
         metrics.upsert(metric_names::STAGNATION_COUNT, self.stagnation_count);

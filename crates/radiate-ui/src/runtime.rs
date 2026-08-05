@@ -1,8 +1,8 @@
 use crate::app::{App, GenerationEvent, InputEvent};
 use color_eyre::{Result, eyre::Context};
 use radiate_engines::{
-    ActorContext, Chromosome, Engine, EngineState, EngineStream, Generation, GenerationView,
-    GeneticEngine, error::RadiateResult, events::Log, sync::ArcExt,
+    Chromosome, Engine, EngineState, EngineStream, Generation, GenerationView, GeneticEngine,
+    error::RadiateResult, events::Log, sync::ArcExt,
 };
 use radiate_engines::{EngineRuntime, EvolutionContext, ThreadSync};
 use std::{
@@ -76,7 +76,7 @@ where
         dispatcher: Arc<mpsc::Sender<InputEvent<C>>>,
     ) {
         let dispatch = Arc::clone(&dispatcher);
-        engine.on::<Log>(move |msg: &Log, _: &ActorContext| {
+        engine.on::<Log>(move |msg: Log| {
             dispatch
                 .send(InputEvent::Log(msg.level(), msg.message().to_string()))
                 .unwrap();

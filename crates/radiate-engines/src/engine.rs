@@ -1,12 +1,9 @@
-use crate::pipeline::Pipeline;
-use crate::{
-    ActorContext,
-    events::{
-        EcosystemSnapshot, EngineMessage, EngineStop, EpochComplete, EpochStart, Improvement,
-    },
+use crate::events::{
+    EcosystemSnapshot, EngineMessage, EngineStop, EpochComplete, EpochStart, Improvement,
 };
-use crate::{ActorSystem, Chromosome, EngineRuntime, Generation, ThreadSync};
+use crate::{ActorSystem, Addr, Chromosome, EngineRuntime, Generation, ThreadSync};
 use crate::{GenerationView, builder::GeneticEngineBuilder};
+use crate::{actors::FnActor, pipeline::Pipeline};
 use crate::{context::EvolutionContext, events::EngineStart};
 use radiate_core::{Engine, engine::EngineState};
 use radiate_core::{EngineStream, error::Result};
@@ -64,7 +61,7 @@ where
 {
     context: EvolutionContext<C, T>,
     pipeline: Pipeline<C>,
-    broker: ActorSystem,
+    actor: ActorSystem,
 }
 
 impl<C, T> GeneticEngine<C, T>
@@ -79,12 +76,12 @@ where
     pub(crate) fn new(
         context: EvolutionContext<C, T>,
         pipeline: Pipeline<C>,
-        broker: ActorSystem,
+        actor: ActorSystem,
     ) -> Self {
         GeneticEngine {
             context,
             pipeline,
-            broker,
+            actor,
         }
     }
 
@@ -138,11 +135,14 @@ where
     /// This method returns a [SubscriptionBuilder] that allows you to define
     /// how to handle messages of type `M`. You can use this to listen for events
     /// such as epoch completions, improvements, or custom messages emitted during the evolutionary process.
-    pub fn on<M>(&self, handler: impl Fn(&M, &ActorContext) + Send + Sync + 'static)
+    pub fn on<M>(&self, handler: impl Fn(M) + Send + Sync + 'static)
     where
         M: EngineMessage + Send + Sync + 'static,
     {
-        self.broker.subscribe(handler);
+        self.actor
+            .subscribe(move |message: M, _: &Addr<FnActor<M>>| {
+                handler(message);
+            });
     }
 }
 
@@ -195,27 +195,29 @@ where
         }
 
         if matches!(self.context.index, 0) {
-            self.broker.context().send(EngineStart);
+            self.actor.context().publish(EngineStart);
         }
 
-        self.broker.context().send(EpochStart::from(&self.context));
+        self.actor
+            .context()
+            .publish(EpochStart::from(&self.context));
         self.pipeline.run(&mut self.context)?;
         if self.context.try_advance_one()? {
-            self.broker
+            self.actor
                 .context()
-                .lazy_send(|| Improvement::from(&self.context));
+                .lazy_publish(|| Improvement::from(&self.context));
         }
 
-        self.broker
+        self.actor
             .context()
-            .send(EpochComplete::from(&self.context));
+            .publish(EpochComplete::from(&self.context));
 
         // Ecosystem is a heavy clone, but this only clones if we have a subscriber
         // and once it is cloned, the snapshot is backed by an Arc<Ecosystem> so
         // we don't pay the clone cost twice.
-        self.broker
+        self.actor
             .context()
-            .lazy_send(|| EcosystemSnapshot::from(&self.context));
+            .lazy_publish(|| EcosystemSnapshot::from(&self.context));
 
         Ok(EngineState::Running)
     }
@@ -265,6 +267,8 @@ where
     T: Clone + Send + Sync + 'static,
 {
     fn drop(&mut self) {
-        self.broker.context().send(EngineStop::from(&self.context));
+        self.actor
+            .context()
+            .publish(EngineStop::from(&self.context));
     }
 }

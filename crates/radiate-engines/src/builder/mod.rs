@@ -9,7 +9,6 @@ mod problem;
 mod selectors;
 mod species;
 
-use crate::builder::filters::FilterParams;
 use crate::builder::objectives::OptimizeParams;
 use crate::builder::population::PopulationParams;
 use crate::builder::problem::ProblemParams;
@@ -30,6 +29,7 @@ use crate::{
     TournamentSelector, context::EvolutionContext,
 };
 use crate::{Generation, Result};
+use crate::{builder::filters::FilterParams, events::StagnationMonitorActor};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::{Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Valid, metric_names};
@@ -203,7 +203,9 @@ where
 
         let system = ActorSystem::from((executor, bus));
 
-        // system.listen::<StagnationMonitorActor, EpochComplete<T>>(StagnationMonitorActor);
+        system.spawn_fn("monitor-stagnation", || StagnationMonitorActor::<T> {
+            _marker: std::marker::PhantomData,
+        });
 
         self.params.actor_system = system;
 

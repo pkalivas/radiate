@@ -46,10 +46,6 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         &self.actor_system
     }
 
-    pub fn send<M: Send + Sync + Clone + 'static>(&self, message: M) {
-        self.actor_system.context().send(message);
-    }
-
     pub fn get_or_create_control(&mut self) -> ThreadSync {
         if self.control.is_none() {
             let (one, two) = ThreadSync::pair();

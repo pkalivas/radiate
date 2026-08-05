@@ -12,7 +12,7 @@ fn main() {
         // ... other parameters ...
         .build();
 
-    engine.on::<EpochComplete<Vec<f32>>>(|event: &EpochComplete<Vec<f32>>, _ctx: &ActorContext| {
+    engine.on::<EpochComplete<Vec<f32>>>(|event: EpochComplete<Vec<f32>>| {
         println!(
             "Printing from event handler! [ {:?} ]: {:?}",
             event.index, event.score

@@ -2,8 +2,7 @@ use crate::{IntoPyAnyObject, PyAnyObject, PyMetricSet, bindings::subscriber};
 use numpy::PyArray1;
 use pyo3::{IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
-    ActorContext, Chromosome, EpochComplete, EventHandler, GeneticEngineBuilder, LimitTriggered,
-    Objective,
+    Chromosome, EpochComplete, EventHandler, GeneticEngineBuilder, LimitTriggered, Objective,
     events::{
         CheckpointSaved, EngineStart, EngineStop, EpochStart, Improvement, LimitProgress, Log,
     },
@@ -216,47 +215,45 @@ where
 
     let equals_or_all = |name: &str, target: &str| name == target || name == components::ALL_EVENTS;
 
-    // for subscriber in subscribers {
-    //     let event_type = subscriber
-    //         .event_name()
-    //         .map(|name| name.to_string())
-    //         .unwrap_or_else(|| components::ALL_EVENTS.to_string());
+    for subscriber in subscribers {
+        let event_type = subscriber
+            .event_name()
+            .map(|name| name.to_string())
+            .unwrap_or_else(|| components::ALL_EVENTS.to_string());
 
-    //     for &event_name in EVENT_TYPES {
-    //         builder = if equals_or_all(&event_type, event_name) {
-    //             match event_name {
-    //                 components::START_EVENT => builder.subscribe::<EngineStart>(subscriber.clone()),
-    //                 components::STOP_EVENT => {
-    //                     builder.subscribe::<PySubscriber, EngineStop<T>>(subscriber.clone())
-    //                 }
-    //                 components::EPOCH_START_EVENT => {
-    //                     builder.subscribe::<PySubscriber, EpochStart>(subscriber.clone())
-    //                 }
-    //                 components::EPOCH_COMPLETE_EVENT => {
-    //                     builder.subscribe::<PySubscriber, EpochComplete<T>>(subscriber.clone())
-    //                 }
-    //                 components::ENGINE_IMPROVEMENT_EVENT => {
-    //                     builder.subscribe::<PySubscriber, Improvement<T>>(subscriber.clone())
-    //                 }
-    //                 components::LIMIT_TRIGGERED_EVENT => {
-    //                     builder.subscribe::<PySubscriber, LimitTriggered>(subscriber.clone())
-    //                 }
-    //                 components::LOG_EVENT => {
-    //                     builder.subscribe::<PySubscriber, Log>(subscriber.clone())
-    //                 }
-    //                 components::CHECKPOINT_SAVED_EVENT => {
-    //                     builder.subscribe::<PySubscriber, CheckpointSaved>(subscriber.clone())
-    //                 }
-    //                 components::LIMIT_PROGRESS_EVENT => {
-    //                     builder.subscribe::<PySubscriber, LimitProgress>(subscriber.clone())
-    //                 }
-    //                 _ => builder,
-    //             }
-    //         } else {
-    //             builder
-    //         };
-    //     }
-    // }
+        for &event_name in EVENT_TYPES {
+            builder = if equals_or_all(&event_type, event_name) {
+                match event_name {
+                    components::START_EVENT => builder.subscribe::<EngineStart>(subscriber.clone()),
+                    components::STOP_EVENT => {
+                        builder.subscribe::<EngineStop<T>>(subscriber.clone())
+                    }
+                    components::EPOCH_START_EVENT => {
+                        builder.subscribe::<EpochStart>(subscriber.clone())
+                    }
+                    components::EPOCH_COMPLETE_EVENT => {
+                        builder.subscribe::<EpochComplete<T>>(subscriber.clone())
+                    }
+                    components::ENGINE_IMPROVEMENT_EVENT => {
+                        builder.subscribe::<Improvement<T>>(subscriber.clone())
+                    }
+                    components::LIMIT_TRIGGERED_EVENT => {
+                        builder.subscribe::<LimitTriggered>(subscriber.clone())
+                    }
+                    components::LOG_EVENT => builder.subscribe::<Log>(subscriber.clone()),
+                    components::CHECKPOINT_SAVED_EVENT => {
+                        builder.subscribe::<CheckpointSaved>(subscriber.clone())
+                    }
+                    components::LIMIT_PROGRESS_EVENT => {
+                        builder.subscribe::<LimitProgress>(subscriber.clone())
+                    }
+                    _ => builder,
+                }
+            } else {
+                builder
+            };
+        }
+    }
 
     builder
 }

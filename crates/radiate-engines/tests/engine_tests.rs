@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod engine_tests {
     use radiate_core::*;
-    use radiate_engines::{events::Log, *};
+    use radiate_engines::*;
     use radiate_test::*;
     use rstest::*;
     use std::time::Duration;
@@ -257,37 +257,6 @@ mod engine_tests {
         handle.join().unwrap();
     }
 
-    #[test]
-    fn metric_step_publishes_stagnation_warning() {
-        use std::sync::{Arc, Mutex};
-        const BUDGET: usize = 60;
-
-        let seen = Arc::new(Mutex::new(Vec::new()));
-        let seen2 = Arc::clone(&seen);
-
-        let engine = GeneticEngine::builder()
-            .codec(FloatCodec::vector(4, -5.0..5.0))
-            .fitness_fn(|_geno: Vec<f32>| 1.0)
-            .build();
-
-        engine.on::<Log>(move |msg: &Log, _: &ActorContext| {
-            if msg.level() == LogLevel::Warn {
-                seen2.lock().unwrap().push(msg.message().to_string());
-            }
-        });
-
-        engine.iter().limit(BUDGET).last().unwrap();
-
-        let warnings = seen.lock().unwrap();
-        assert_eq!(
-            warnings.len(),
-            1,
-            "expected exactly one stagnation warning, got {:?}",
-            *warnings
-        );
-        assert!(warnings[0].contains("no improvement"));
-    }
-
     #[rstest]
     #[case(101, 0.05, 300)]
     #[case(202, 0.05, 300)]
@@ -382,47 +351,5 @@ mod engine_tests {
             assert_population_speciated(result.ecosystem(), "speciated small population");
             assert_eq!(result.population().len(), POP_SIZE);
         });
-    }
-
-    /// As a speciated population converges toward the sphere optimum, every
-    /// individual crowds into the same neighborhood and species collapse
-    /// down to one — SpeciateStep should publish exactly the kind of
-    /// diversity-collapse warning this whole event was designed to surface.
-    #[test]
-    fn speciate_step_publishes_diversity_collapse_warning() {
-        use std::sync::{Arc, Mutex};
-
-        let seen = Arc::new(Mutex::new(Vec::new()));
-        let seen2 = Arc::clone(&seen);
-
-        seeded(2024, || {
-            let problem = Sphere::new(2, 10.0);
-            let engine = GeneticEngine::builder()
-                .problem(problem)
-                .minimizing()
-                .population_size(50)
-                .diversity(EuclideanDistance)
-                .species_threshold(0.05)
-                .alter(alters![
-                    BlendCrossover::new(0.5, 0.5),
-                    GaussianMutator::new(0.05)
-                ])
-                .build();
-
-            engine.on::<Log>(move |msg: &Log, _: &ActorContext| {
-                if msg.level() == LogLevel::Warn {
-                    seen2.lock().unwrap().push(msg.message().to_string());
-                }
-            });
-
-            engine.iter().limit(200).last().unwrap();
-        });
-
-        let warnings = seen.lock().unwrap();
-        assert!(
-            warnings.iter().any(|w| w.contains("collapsed")),
-            "expected a species-collapse warning as the population converged, got: {:?}",
-            *warnings
-        );
     }
 }

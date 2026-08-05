@@ -1,9 +1,5 @@
 use crate::generation::GenerationView;
-use crate::{
-    ActorContext, Engine, EvolutionContext, Generation, Limit,
-    events::{Log, LogEvent},
-    init_logging,
-};
+use crate::{Engine, EvolutionContext, Generation, Limit, init_logging};
 #[cfg(feature = "serde")]
 use crate::{FileWriter, JsonWriter};
 use crate::{LoggingActor, actions::LoggingAction};
@@ -222,7 +218,7 @@ where
         init_logging();
         let actor_system = self.engine.context().actor_system();
 
-        let actor = actor_system.spawn_fn("logging_actor", || LoggingActor);
+        let actor = actor_system.spawn_fn("logging-actor", || LoggingActor);
 
         self.add_action(LoggingAction(every, actor));
         self
@@ -234,7 +230,7 @@ where
         E: Engine + 'static,
         E::Epoch: Serialize,
     {
-        use crate::{actions::CheckpointAction, events::CheckpointSaved};
+        use crate::actions::CheckpointAction;
 
         let path_without_extension = folder_path
             .as_ref()
@@ -250,16 +246,6 @@ where
 
         self.add_action(action);
 
-        self.engine
-            .context()
-            .actor_system()
-            .subscribe::<CheckpointSaved>(|msg: &CheckpointSaved, ctx: &ActorContext| {
-                ctx.tell::<LoggingActor, _>(LogEvent::Log(Log::info(
-                    Some(msg.index),
-                    format!("Checkpoint saved at index {}: {}", msg.index, msg.path),
-                )));
-            });
-
         self
     }
 
@@ -274,7 +260,7 @@ where
         E: Engine + 'static,
         E::Epoch: Serialize,
     {
-        use crate::{actions::CheckpointAction, events::CheckpointSaved};
+        use crate::actions::CheckpointAction;
 
         let path_without_extension = folder_path
             .as_ref()
@@ -289,16 +275,6 @@ where
         };
 
         self.add_action(action);
-
-        self.engine
-            .context()
-            .actor_system()
-            .subscribe::<CheckpointSaved>(|msg: &CheckpointSaved, ctx: &ActorContext| {
-                ctx.tell::<LoggingActor, _>(LogEvent::Log(Log::info(
-                    Some(msg.index),
-                    format!("Checkpoint saved at index {}: {}", msg.index, msg.path),
-                )));
-            });
 
         self
     }

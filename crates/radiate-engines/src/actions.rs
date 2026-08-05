@@ -83,7 +83,7 @@ where
 
             self.writer.write(file_path.clone(), &E::Epoch::from(ctx))?;
 
-            ctx.send(CheckpointSaved {
+            ctx.actor_system.publish(CheckpointSaved {
                 index: ctx.index,
                 path: file_path.to_string_lossy().to_string(),
             });
