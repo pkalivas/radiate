@@ -1,14 +1,14 @@
-use crate::{Addr, events::LogEvent};
-use crate::{EvolutionContext, Generation, LoggingActor, events::Log, runtime::RuntimeAction};
 #[cfg(feature = "serde")]
-use crate::{FileWriter, events::CheckpointSaved};
+use crate::FileWriter;
+use crate::message::LogEvent;
+use crate::{EvolutionContext, Generation, runtime::RuntimeAction};
 use radiate_core::{Chromosome, Engine, Objective, error::RadiateResult};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 #[cfg(feature = "serde")]
 use std::path::PathBuf;
 
-pub(crate) struct LoggingAction(pub usize, pub Addr<LoggingActor>);
+pub(crate) struct LoggingAction(pub usize);
 
 impl<C, T, E> RuntimeAction<E> for LoggingAction
 where
@@ -36,19 +36,24 @@ where
                     time
                 );
 
-                self.1.send(LogEvent::Log(Log::info(Some(ctx.index), str)));
+                ctx.event_bus().publish(LogEvent {
+                    level: crate::message::LogLevel::Info,
+                    index: Some(ctx.index),
+                    message: str,
+                });
             }
             Objective::Multi(_) => {
                 let front_size = ctx.metrics.front_size();
                 let front_size_value = front_size.map(|ent| ent.last_value()).unwrap_or(0.0);
 
-                self.1.send(LogEvent::Log(Log::info(
-                    Some(ctx.index),
-                    format!(
+                ctx.event_bus().publish(LogEvent {
+                    level: crate::message::LogLevel::Info,
+                    index: Some(ctx.index),
+                    message: format!(
                         "Epoch {:<4} | Front Size: {:.3} | Time: {:>5.2?}",
                         ctx.index, front_size_value, time
                     ),
-                )));
+                });
             }
         }
 
@@ -83,10 +88,10 @@ where
 
             self.writer.write(file_path.clone(), &E::Epoch::from(ctx))?;
 
-            ctx.actor_system.publish(CheckpointSaved {
-                index: ctx.index,
-                path: file_path.to_string_lossy().to_string(),
-            });
+            // ctx.actor_system.publish(CheckpointSaved {
+            //     index: ctx.index,
+            //     path: file_path.to_string_lossy().to_string(),
+            // });
         }
 
         Ok(())

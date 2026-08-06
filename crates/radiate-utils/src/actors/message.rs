@@ -55,16 +55,6 @@ impl Default for DeadLetterActor {
     }
 }
 
-/// Fired by [`MessageBroker::subscribe`] every time a new actor is
-/// registered — a lifecycle fact about the broker itself, independent of
-/// whatever domain-specific messages (`EngineStart`, `Log`, ...) are
-/// actually flowing through it. `subscriber_count` is the number of actors
-/// now registered for `message_type`, including the one that just joined.
-///
-/// Subscribing to `ActorSubscribed` itself is not a special case: it goes
-/// through the same `subscribe()` path as anything else, so the very call
-/// that registers your `ActorSubscribed` listener immediately fires one
-/// event describing that registration.
 #[derive(Clone, Debug)]
 pub struct ActorSubscribed {
     pub message_type: &'static str,
@@ -72,19 +62,6 @@ pub struct ActorSubscribed {
     pub subscriber_count: usize,
 }
 
-/// Fired when an actor's handler panics while processing a message. See
-/// [`super::actor::Actor::drain`] for why the panic is caught in place
-/// (before the `MutexGuard` around the handler would be dropped mid-unwind)
-/// rather than being left to poison that actor's `Mutex` and silently kill
-/// it for the rest of the process — the actor keeps handling later
-/// messages after this fires. `panic_message` is best-effort: only
-/// `&str`/`String` panic payloads become readable text, anything else
-/// becomes a generic message.
-///
-/// Not re-emitted for a panic that happens while handling an
-/// `ActorPanicked` itself — without that cutoff, a subscriber whose own
-/// `ActorPanicked` handler always panics would flood the bus with an
-/// unbounded chain of `ActorPanicked`-about-`ActorPanicked` events.
 #[derive(Clone, Debug)]
 pub struct ActorPanicked {
     pub pid: ProcessId,
@@ -106,5 +83,6 @@ pub struct ActorRegistered {
     pub pid: ProcessId,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub struct Start;

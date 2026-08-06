@@ -20,9 +20,11 @@ impl Executor {
         }
         #[cfg(not(feature = "rayon"))]
         {
+            use crate::env_vars;
+
             let num_cpus = std::thread::available_parallelism()
                 .map(|n| n.get())
-                .unwrap_or(4);
+                .unwrap_or(env_vars::max_threads().unwrap_or(1));
             Executor::FixedSizedWorkerPool(num_cpus)
         }
     }

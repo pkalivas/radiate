@@ -1,8 +1,8 @@
+use crate::actions::LoggingAction;
 use crate::generation::GenerationView;
-use crate::{Engine, EvolutionContext, Generation, Limit, init_logging};
+use crate::{Engine, EvolutionContext, Generation, Limit};
 #[cfg(feature = "serde")]
 use crate::{FileWriter, JsonWriter};
-use crate::{LoggingActor, actions::LoggingAction};
 use radiate_core::error::{RadiateResult, Result};
 use radiate_core::rate::Expr;
 use radiate_core::{Chromosome, EngineState, Score, radiate_err};
@@ -186,6 +186,7 @@ where
             Limit::Combined(lims) => lims
                 .into_iter()
                 .fold(self, |runtime, limit| runtime.limit(limit)),
+            Limit::Fn => self,
         }
     }
 
@@ -215,12 +216,7 @@ where
     }
 
     pub fn log_every(mut self, every: usize) -> EngineRuntime<E> {
-        init_logging();
-        let actor_system = self.engine.context().actor_system();
-
-        let actor = actor_system.spawn_fn("logging-actor", || LoggingActor);
-
-        self.add_action(LoggingAction(every, actor));
+        self.add_action(LoggingAction(every));
         self
     }
 

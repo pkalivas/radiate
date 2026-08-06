@@ -1,4 +1,4 @@
-use crate::{ActorPanicked, ActorSubscribed, context::EvolutionContext};
+use crate::{Limit, context::EvolutionContext, message::LogEvent};
 use radiate_core::{Chromosome, Ecosystem, MetricSet, Objective, Score};
 use std::{fmt::Debug, sync::Arc, time::Duration};
 
@@ -19,10 +19,8 @@ engine_message!(
     EpochStart,
     LimitTriggered,
     LimitProgress,
-    Log,
+    LogEvent,
     CheckpointSaved,
-    ActorSubscribed,
-    ActorPanicked
 );
 impl<T: Clone + Send + Sync + 'static> sealed::Sealed for Improvement<T> {}
 impl<T: Clone + Send + Sync + 'static> EngineMessage for Improvement<T> {}
@@ -43,82 +41,10 @@ pub struct CheckpointSaved {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Warning {
-    pub index: usize,
-    pub message: String,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum LogLevel {
-    Info,
-    Warn,
-}
+pub struct Warning(pub String);
 
 #[derive(Clone, Debug)]
-pub struct Log {
-    pub level: LogLevel,
-    pub index: Option<usize>,
-    pub message: String,
-}
-
-impl Log {
-    pub fn info<S: Into<String>>(index: Option<usize>, msg: S) -> Self {
-        Log {
-            level: LogLevel::Info,
-            index,
-            message: msg.into(),
-        }
-    }
-
-    pub fn warn<S: Into<String>>(index: Option<usize>, msg: S) -> Self {
-        Log {
-            level: LogLevel::Warn,
-            index,
-            message: msg.into(),
-        }
-    }
-
-    pub fn level(&self) -> LogLevel {
-        self.level
-    }
-
-    pub fn index(&self) -> Option<usize> {
-        self.index
-    }
-
-    pub fn message(&self) -> &str {
-        &self.message
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct LimitTriggered {
-    pub generation: usize,
-    pub kind: &'static str,
-    pub description: String,
-}
-
-impl LimitTriggered {
-    pub fn new<S: Into<String>>(generation: usize, kind: &'static str, description: S) -> Self {
-        LimitTriggered {
-            generation,
-            kind,
-            description: description.into(),
-        }
-    }
-
-    pub fn index(&self) -> usize {
-        self.generation
-    }
-
-    pub fn kind(&self) -> &'static str {
-        self.kind
-    }
-
-    pub fn description(&self) -> &str {
-        &self.description
-    }
-}
+pub struct LimitTriggered(pub usize, pub Limit);
 
 #[derive(Clone, Debug)]
 pub enum LimitProgress {

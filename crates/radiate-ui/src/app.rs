@@ -4,7 +4,7 @@ use color_eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use radiate_engines::{
     Chromosome, CommandChannel, Ecosystem, EvolutionContext, Front, MetricSet, Phenotype, Score,
-    ThreadSync, events::LogLevel,
+    ThreadSync, message::LogLevel,
 };
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;

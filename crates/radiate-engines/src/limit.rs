@@ -15,8 +15,8 @@
 
 use crate::{
     EvolutionContext, Generation,
-    events::{LimitProgress, LimitTriggered},
     generation::GenerationView,
+    message::{LimitProgress, LimitTriggered},
     runtime::RuntimeLimit,
 };
 use radiate_core::{
@@ -26,12 +26,6 @@ use radiate_core::{
 };
 use radiate_error::radiate_bail;
 use std::{collections::VecDeque, fmt::Debug, time::Duration};
-
-const GENERATION_LIMIT: &str = "Generation";
-const TIME_LIMIT: &str = "Seconds";
-const SCORE_LIMIT: &str = "Score";
-const CONVERGENCE_LIMIT: &str = "Convergence";
-const EXPR_LIMIT: &str = "Expr";
 
 /// Defines various types of limits for controlling genetic algorithm execution.
 ///
@@ -119,14 +113,12 @@ pub enum Limit {
     Convergence(usize, f32, VecDeque<f32>),
     Combined(Vec<Limit>),
     Expr(Expr),
+    Fn,
 }
 
 pub(crate) enum LimitOutcome {
     Proceed(LimitProgress),
-    Stop {
-        kind: &'static str,
-        description: String,
-    },
+    Stop,
 }
 
 impl<C, T, E> RuntimeLimit<E> for Limit
@@ -155,28 +147,22 @@ where
                         current: ctx.index,
                         limit: ctx.index, // Placeholder, adjust as needed
                     })),
-                    Ok(false) => Ok(LimitOutcome::Stop {
-                        kind: "Combined",
-                        description: "One or more combined limits triggered".to_string(),
-                    }),
+                    Ok(false) => Ok(LimitOutcome::Stop),
                     Err(e) => Err(e),
                 }
             }
             Limit::Expr(expr) => check_expr_limit(ctx, expr),
+            Limit::Fn => return Ok(true), // Custom function limits are handled externally
         }?;
 
         match outcome {
             LimitOutcome::Proceed(progress) => {
-                ctx.actor_system().context().publish(progress);
+                ctx.event_bus().publish(progress);
                 return Ok(true);
             }
-            LimitOutcome::Stop { kind, description } => {
-                ctx.actor_system().context().publish(LimitTriggered {
-                    generation: ctx.index,
-                    kind,
-                    description,
-                });
-
+            LimitOutcome::Stop => {
+                ctx.event_bus()
+                    .publish(LimitTriggered(ctx.index, self.clone()));
                 return Ok(false);
             }
         }
@@ -195,13 +181,7 @@ where
     Ok(if proceed {
         LimitOutcome::Proceed(LimitProgress::generations(ctx.index, limit))
     } else {
-        LimitOutcome::Stop {
-            kind: GENERATION_LIMIT,
-            description: format!(
-                "Generation Limit reached: Current = {}, Limit = {limit}",
-                ctx.index
-            ),
-        }
+        LimitOutcome::Stop
     })
 }
 
@@ -223,12 +203,7 @@ where
     Ok(if proceed {
         LimitOutcome::Proceed(LimitProgress::time(ctx.index, total_time, limit))
     } else {
-        LimitOutcome::Stop {
-            kind: TIME_LIMIT,
-            description: format!(
-                "Time Limit reached: Total Time = {total_time:?}, Limit = {limit:?}"
-            ),
-        }
+        LimitOutcome::Stop
     })
 }
 
@@ -277,14 +252,7 @@ where
             limit.clone(),
         ))
     } else {
-        LimitOutcome::Stop {
-            kind: SCORE_LIMIT,
-            description: format!(
-                "Score Limit reached. Current = {:?}, Limit = {:?}",
-                score.as_f32(),
-                limit.as_f32()
-            ),
-        }
+        LimitOutcome::Stop
     };
 
     Ok(outcome)
@@ -349,13 +317,7 @@ where
             improved.abs(),
         ))
     } else {
-        LimitOutcome::Stop {
-            kind: CONVERGENCE_LIMIT,
-            description: format!(
-                "Convergence Limit reached: Window = {window}, Epsilon = {epsilon}, Improvement = {:.6}",
-                improved.abs()
-            ),
-        }
+        LimitOutcome::Stop
     })
 }
 
@@ -372,19 +334,13 @@ where
     if let AnyValue::Bool(b) = result {
         let proceed = !b;
         if !proceed {
-            ctx.actor_system().context().publish(LimitTriggered {
-                generation: ctx.index,
-                kind: EXPR_LIMIT,
-                description: format!("Expression Limit reached: Expression = {:?}", expr.name(),),
-            });
+            ctx.event_bus()
+                .publish(LimitTriggered(ctx.index, Limit::Expr(expr.clone())));
         }
         Ok(if proceed {
             LimitOutcome::Proceed(LimitProgress::expr(ctx.index, expr.name().to_string()))
         } else {
-            LimitOutcome::Stop {
-                kind: EXPR_LIMIT,
-                description: format!("Expression Limit reached: Expression = {:?}", expr.name(),),
-            }
+            LimitOutcome::Stop
         })
     } else {
         radiate_bail!(Engine: format!(
@@ -465,6 +421,7 @@ impl Debug for Limit {
             }
             Limit::Combined(limits) => write!(f, "Combined({limits:?})"),
             Limit::Expr(expr) => write!(f, "ExprLimit({expr:?})"),
+            Limit::Fn => write!(f, "CustomFnLimit"),
         }
     }
 }
@@ -479,11 +436,8 @@ where
         let view = GenerationView::new(ctx);
         let proceed = !(self)(view);
         if !proceed {
-            ctx.actor_system().context().publish(LimitTriggered {
-                generation: ctx.index,
-                kind: "Custom",
-                description: "custom `.until(...)` closure limit triggered".to_string(),
-            });
+            ctx.event_bus()
+                .publish(LimitTriggered(ctx.index, Limit::Fn));
         }
         Ok(proceed)
     }

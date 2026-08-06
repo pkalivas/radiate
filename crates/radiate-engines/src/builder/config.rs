@@ -1,10 +1,10 @@
-use crate::Generation;
+use crate::Chromosome;
 use crate::builder::EngineParams;
 use crate::builder::evaluators::EvaluationParams;
 use crate::genome::phenotype::Phenotype;
 use crate::objectives::Objective;
-use crate::{ActorSystem, Chromosome};
 use crate::{Front, Problem, ReplacementStrategy, Select};
+use crate::{Generation, message::EventBus};
 use radiate_core::rate::ExprSet;
 use radiate_core::{Alterer, Diversity, Ecosystem, Evaluator, Executor, Genotype};
 use radiate_core::{EcosystemFilter, ThreadSync};
@@ -30,7 +30,7 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     exprs: Option<Arc<Mutex<ExprSet>>>,
     generation: Option<Generation<C, T>>,
     sync: Option<ThreadSync>,
-    actor_system: ActorSystem,
+    event_bus: EventBus,
 }
 
 impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
@@ -90,8 +90,8 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         Arc::clone(&self.executor.species_executor)
     }
 
-    pub fn actor_system(&self) -> ActorSystem {
-        self.actor_system.clone()
+    pub fn event_bus(&self) -> EventBus {
+        self.event_bus.clone()
     }
 
     /// The single `ThreadSync` this engine (and every actor subscribed on
@@ -160,7 +160,7 @@ where
             exprs: params.exprs.clone(),
             filters: params.filter_params.filters.clone(),
             sync: Some(params.evaluation_params.sync.clone()),
-            actor_system: params.actor_system.clone(),
+            event_bus: params.event_bus.clone(),
         }
     }
 }

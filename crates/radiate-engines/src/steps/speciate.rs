@@ -18,8 +18,6 @@ where
     pub(crate) executor: Arc<Executor>,
     pub(crate) distances: Vec<f32>,
     pub(crate) assignments: Arc<Mutex<SpeciesAssignments>>,
-    pub(crate) prev_species_count: usize,
-    pub(crate) warned_collapsed: bool,
 }
 
 impl<C: Chromosome> SpeciateStep<C> {
@@ -36,8 +34,6 @@ impl<C: Chromosome> SpeciateStep<C> {
             executor,
             distances: Vec::new(),
             assignments: Arc::new(Mutex::new(Vec::new())),
-            prev_species_count: 0,
-            warned_collapsed: false,
         }
     }
 }
@@ -287,22 +283,6 @@ where
         metrics.upsert(metric_names::SPECIES_EVENNESS, evenness);
         metrics.upsert(metric_names::SPECIES_NEW_RATIO, churn);
         metrics.upsert(metric_names::LARGEST_SPECIES_SHARE, largest_share);
-
-        if self.prev_species_count > 1 && s_count <= 1 {
-            if !self.warned_collapsed {
-                // self.event_system.publish(Log::warn(
-                //     Some(generation),
-                //     format!(
-                //         "species diversity collapsed from {} species to {} (population size {})",
-                //         self.prev_species_count, s_count, pop_len
-                //     ),
-                // ));
-                self.warned_collapsed = true;
-            }
-        } else if s_count > 1 {
-            self.warned_collapsed = false;
-        }
-        self.prev_species_count = s_count;
     }
 }
 

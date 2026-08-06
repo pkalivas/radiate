@@ -1,5 +1,5 @@
-use crate::{ActorSystem, builder::config::EngineConfig};
 use crate::{Chromosome, ThreadSync};
+use crate::{builder::config::EngineConfig, message::EventBus};
 use radiate_core::error::RadiateResult;
 use radiate_core::rate::ExprSet;
 use radiate_core::{
@@ -18,7 +18,7 @@ pub struct EvolutionContext<C: Chromosome, T> {
     pub(crate) problem: Arc<dyn Problem<C, T>>,
     pub(crate) control: Option<ThreadSync>,
     pub(crate) exprs: Option<Arc<Mutex<ExprSet>>>,
-    pub(crate) actor_system: ActorSystem,
+    pub(crate) event_bus: EventBus,
 }
 
 impl<C: Chromosome, T> EvolutionContext<C, T> {
@@ -42,8 +42,8 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.front.clone()
     }
 
-    pub fn actor_system(&self) -> &ActorSystem {
-        &self.actor_system
+    pub fn event_bus(&self) -> &EventBus {
+        &self.event_bus
     }
 
     pub fn get_or_create_control(&mut self) -> ThreadSync {
@@ -99,7 +99,7 @@ where
                 problem: config.problem().clone(),
                 control: sync,
                 exprs: generation.exprs(),
-                actor_system: config.actor_system(),
+                event_bus: config.event_bus(),
             };
         }
 
@@ -119,7 +119,7 @@ where
             problem: config.problem().clone(),
             control: sync,
             exprs: config.exprs(),
-            actor_system: config.actor_system().clone(),
+            event_bus: config.event_bus(),
         }
     }
 }

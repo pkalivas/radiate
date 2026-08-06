@@ -9,11 +9,6 @@ mod problem;
 mod selectors;
 mod species;
 
-use crate::builder::objectives::OptimizeParams;
-use crate::builder::population::PopulationParams;
-use crate::builder::problem::ProblemParams;
-use crate::builder::selectors::SelectionParams;
-use crate::builder::species::SpeciesParams;
 use crate::genome::phenotype::Phenotype;
 #[cfg(feature = "serde")]
 use crate::io::FileReader;
@@ -22,14 +17,19 @@ use crate::pipeline::Pipeline;
 use crate::steps::{
     EngineStep, FilterStep, FrontStep, MetricStep, RecombineStep, SelectConfig, SpeciateStep,
 };
-use crate::{ActorSystem, builder::evaluators::EvaluationParams};
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
     TournamentSelector, context::EvolutionContext,
 };
 use crate::{Generation, Result};
-use crate::{builder::filters::FilterParams, events::StagnationMonitorActor};
+use crate::{LimitTriggered, builder::selectors::SelectionParams};
+use crate::{LoggingHandler, builder::population::PopulationParams};
+use crate::{builder::evaluators::EvaluationParams, message::StagnationMonitorActor};
+use crate::{builder::filters::FilterParams, init_logging};
+use crate::{builder::objectives::OptimizeParams, message::EventBus};
+use crate::{builder::problem::ProblemParams, message::LogEvent};
+use crate::{builder::species::SpeciesParams, message::Warning};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::{Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Valid, metric_names};
@@ -61,7 +61,7 @@ where
 
     pub alterers: Vec<Alterer<C>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-    pub actor_system: ActorSystem,
+    pub event_bus: EventBus,
     pub generation: Option<Generation<C, T>>,
     pub exprs: Option<Arc<Mutex<ExprSet>>>,
 }
@@ -175,7 +175,7 @@ where
         self.build_alterer()?;
         self.build_front()?;
         self.build_rates()?;
-        self.build_message_broker()?;
+        self.build_event_bus()?;
 
         let config = EngineConfig::<C, T>::from(&self.params);
 
@@ -189,25 +189,24 @@ where
         pipeline.add_step(Self::build_species_step(&config));
         pipeline.add_step(Self::build_audit_step(&config));
 
-        let event_system = config.actor_system();
+        let event_system = config.event_bus();
         let context = EvolutionContext::from(config);
 
         Ok(GeneticEngine::<C, T>::new(context, pipeline, event_system))
     }
 
-    fn build_message_broker(&mut self) -> Result<()> {
-        let context = self.params.actor_system.context();
+    fn build_event_bus(&mut self) -> Result<()> {
+        let mut bus = self.params.event_bus.clone();
+        let executor = self.params.evaluation_params.event_bus_executor.clone();
 
-        let bus = context.bus();
-        let executor = self.params.evaluation_params.broker_executor.clone();
+        bus.subscribe(StagnationMonitorActor::<T>::default());
+        bus.subscribe::<LogEvent>(LoggingHandler);
+        bus.subscribe::<LimitTriggered>(LoggingHandler);
+        bus.subscribe::<Warning>(LoggingHandler);
 
-        let system = ActorSystem::from((executor, bus));
+        bus.set_executor(executor);
 
-        system.spawn_fn("monitor-stagnation", || StagnationMonitorActor::<T> {
-            _marker: std::marker::PhantomData,
-        });
-
-        self.params.actor_system = system;
+        self.params.event_bus = bus;
 
         Ok(())
     }
@@ -473,8 +472,6 @@ where
             objective: config.objective(),
             distances: Vec::new(),
             assignments: Arc::new(Mutex::new(Vec::new())),
-            prev_species_count: 0,
-            warned_collapsed: false,
         };
 
         Some(Box::new(species_step))
@@ -487,6 +484,7 @@ where
     T: Clone + Send + 'static,
 {
     fn default() -> Self {
+        init_logging();
         GeneticEngineBuilder {
             params: EngineParams {
                 population_params: PopulationParams {
@@ -504,7 +502,7 @@ where
                     evaluator: Arc::new(FitnessEvaluator::default()),
                     fitness_executor: Arc::new(Executor::default()),
                     species_executor: Arc::new(Executor::default()),
-                    broker_executor: Arc::new(Executor::default()),
+                    event_bus_executor: Arc::new(Executor::default()),
                     sync: ThreadSync::new(),
                 },
                 selection_params: SelectionParams {
@@ -531,7 +529,7 @@ where
 
                 replacement_strategy: Arc::new(EncodeReplace),
                 alterers: Vec::new(),
-                actor_system: ActorSystem::default(),
+                event_bus: EventBus::default(),
                 exprs: None,
                 generation: None,
             },

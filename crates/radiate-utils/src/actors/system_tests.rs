@@ -1,5 +1,5 @@
 use radiate_engines::{
-    Actor, ActorSystem, Addr, DeadLetter, Executor, FnActor, MessageHandler, ProcessId, WeakAddr,
+    Actor, ActorSystem, Addr, DeadLetter, Executor, MessageHandler, ProcessId, WeakAddr,
 };
 use std::{
     sync::Arc,
@@ -10,21 +10,6 @@ use std::{
     sync::{Condvar, Mutex},
     time::Instant,
 };
-
-// ---------------------------------------------------------------
-// Shared test helpers.
-//
-// `Signal` + `Recorder<T>` replace the "lock a Mutex<usize>, increment,
-// notify_all" dance that used to be hand-rolled inside every actor's
-// `handle()` below — tests should read as "record this, then wait for
-// N," not re-derive a condvar every time.
-//
-// `wait_until` is a different tool for a different need: an arbitrary
-// predicate over something that isn't a `Signal` (e.g. a raw
-// `AtomicU64` total in the throughput benchmarks) — reach for `Signal`
-// when waiting on "N of this specific thing happened," and
-// `wait_until` when the condition doesn't fit that shape.
-// ---------------------------------------------------------------
 
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(2);
 
@@ -52,9 +37,6 @@ impl Signal {
     }
 }
 
-/// Records values pushed to it and lets a test block until `target`
-/// have arrived. Defaults to `T = i32` since that covers most actor
-/// payloads below; the dead-letter tests use `Recorder<&'static str>`.
 struct Recorder<T = i32> {
     seen: Mutex<Vec<T>>,
     signal: Signal,
@@ -94,10 +76,6 @@ fn wait_until<F: Fn() -> bool>(timeout: Duration, cond: F) -> bool {
     }
     true
 }
-
-// ---------------------------------------------------------------
-// Bare Actor / Addr / ActorCell behavior
-// ---------------------------------------------------------------
 
 struct Counter {
     recorder: Arc<Recorder>,
@@ -236,7 +214,7 @@ fn stop_runs_once_after_queued_messages_then_dead_letters_further_sends() {
     let dead_letters = Arc::new(Recorder::<&'static str>::default());
 
     let dl = Arc::clone(&dead_letters);
-    system.subscribe::<DeadLetter>(move |msg: DeadLetter, _ctx: &Addr<FnActor<DeadLetter>>| {
+    system.subscribe::<DeadLetter>(move |msg: &DeadLetter| {
         dl.record(msg.message_type);
     });
 
@@ -280,7 +258,7 @@ fn unrelated_message_types_do_not_cross_wires() {
     let recorder = Arc::new(Recorder::default());
 
     let r = Arc::clone(&recorder);
-    system.subscribe::<Counted>(move |msg: Counted, _ctx: &Addr<FnActor<Counted>>| r.record(msg.0));
+    system.subscribe::<Counted>(move |msg: &Counted| r.record(msg.0));
 
     // Nobody subscribed to Warning — should be a silent no-op.
     system.context().publish(Warning("disk almost full"));
@@ -300,8 +278,7 @@ fn subscribe_and_publish_fans_out_to_all_subscribers() {
     let recorder_a = Arc::new(Recorder::default());
 
     let ra = Arc::clone(&recorder_a);
-    system
-        .subscribe::<Counted>(move |msg: Counted, _ctx: &Addr<FnActor<Counted>>| ra.record(msg.0));
+    system.subscribe::<Counted>(move |msg: &Counted| ra.record(msg.0));
 
     system.context().publish(Counted(1));
     recorder_a.wait_for(1);
@@ -309,8 +286,7 @@ fn subscribe_and_publish_fans_out_to_all_subscribers() {
 
     let recorder_b = Arc::new(Recorder::default());
     let rb = Arc::clone(&recorder_b);
-    system
-        .subscribe::<Counted>(move |msg: Counted, _ctx: &Addr<FnActor<Counted>>| rb.record(msg.0));
+    system.subscribe::<Counted>(move |msg: &Counted| rb.record(msg.0));
 
     system.context().publish(Counted(9));
     recorder_a.wait_for(2);
@@ -331,7 +307,7 @@ fn has_subscribers_reflects_registration_state() {
     let system = ActorSystem::default();
     assert!(!system.context().has_subscribers::<Counted>());
 
-    system.subscribe::<Counted>(|_msg: Counted, _ctx: &Addr<FnActor<Counted>>| {});
+    system.subscribe::<Counted>(|_msg: &Counted| {});
 
     assert!(system.context().has_subscribers::<Counted>());
     assert!(!system.context().has_subscribers::<Warning>());
@@ -484,7 +460,7 @@ fn fan_out_to_many_subscribers_throughput() {
 
     for _ in 0..SUBSCRIBERS {
         let total = Arc::clone(&total_received);
-        system.subscribe::<Counted>(move |_msg: Counted, _ctx: &Addr<FnActor<Counted>>| {
+        system.subscribe::<Counted>(move |_: &Counted| {
             total.fetch_add(1, Ordering::Relaxed);
         });
     }
@@ -572,11 +548,9 @@ fn spawn_bench_engines(
             let system = ActorSystem::new(ProcessId::new("bench-engine"), Arc::clone(worker_pool));
 
             let dl = Arc::clone(dead_letters);
-            system.subscribe::<DeadLetter>(
-                move |_msg: DeadLetter, _ctx: &Addr<FnActor<DeadLetter>>| {
-                    dl.fetch_add(1, Ordering::Relaxed);
-                },
-            );
+            system.subscribe::<DeadLetter>(move |_: &DeadLetter| {
+                dl.fetch_add(1, Ordering::Relaxed);
+            });
 
             let actors = (0..actors_per_engine)
                 .map(|_| {

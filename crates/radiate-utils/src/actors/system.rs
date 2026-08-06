@@ -1,10 +1,10 @@
 use crate::{
-    Executor, MessageHandler, SystemCtx,
+    EventHandler, Executor, MessageHandler, SystemCtx,
     actors::{
         DeadLetter, ProcessId,
         actor::{Actor, Addr, Recipient, WeakAddr},
         context::ActorRegistry,
-        handler::{ActorHandleFn, FnActor},
+        handler::FnActor,
         message::{ActorRegistered, DeadLetterActor},
     },
 };
@@ -12,7 +12,6 @@ use radiate_core::SmallStr;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-use tracing_subscriber::registry;
 
 const DEFAULT_ACTOR_SYSTEM_NAME: ProcessId =
     ProcessId::new_const(SmallStr::from_static("actor-system"));
@@ -48,7 +47,8 @@ impl ActorSystem {
         let keys = self.context.registry.keys();
         for key in keys {
             if let Some(stop_hook) = self.context.registry.get_stop_hook(&key) {
-                stop_hook();
+                let actor_report = stop_hook();
+                self.context.registry.remove(&actor_report.pid);
             }
         }
     }
@@ -112,9 +112,9 @@ impl ActorSystem {
 
     pub fn subscribe<M: Send + Clone + 'static>(
         &self,
-        mut handler: impl ActorHandleFn<M, FnActor<M>> + Send + Sync + 'static,
+        mut handler: impl EventHandler<M> + Send + Sync + 'static,
     ) {
-        self.subscribe_with::<M, _>(move |message, ctx| handler.handle(message, ctx));
+        self.subscribe_with::<M, _>(move |message, _| handler.handle(&message));
     }
 
     fn subscribe_with<M, F>(&self, f: F)

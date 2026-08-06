@@ -2,19 +2,21 @@ use crate::{
     Actor, Addr, Executor,
     actors::{
         ProcessId,
-        actor::{ActorCtx, WeakAddr},
+        actor::{ActorCtx, ActorReport, WeakAddr},
         system::MessageBus,
     },
 };
 use std::{
     any::Any,
     collections::HashMap,
-    sync::{Arc, Mutex, RwLock, Weak, atomic::AtomicBool},
+    sync::{
+        Arc, Mutex, RwLock, Weak,
+        atomic::{AtomicBool, AtomicU64},
+    },
 };
 
 type BoxedActor = Box<dyn Any + Send + Sync>;
-type StopHook = Arc<dyn Fn() + Send + Sync>;
-
+type StopHook = Arc<dyn Fn() -> ActorReport + Send + Sync>;
 type ErasedActorMap = HashMap<ProcessId, (BoxedActor, StopHook)>;
 
 #[derive(Default)]
@@ -25,7 +27,7 @@ pub struct ActorRegistry {
 impl ActorRegistry {
     pub(super) fn insert<A: Actor + 'static>(&self, name: ProcessId, actor_ref: Addr<A>) {
         let cloned_ref = actor_ref.clone();
-        let stop_hook: StopHook = Arc::new(move || cloned_ref.stop());
+        let stop_hook = Arc::new(move || cloned_ref.stop());
         self.registry
             .write()
             .unwrap()
@@ -48,12 +50,8 @@ impl ActorRegistry {
             .map(|(_, hook)| Arc::clone(hook))
     }
 
-    pub(super) fn remove<A: Actor + 'static>(&self, name: &ProcessId) -> Option<Addr<A>> {
-        self.registry
-            .write()
-            .unwrap()
-            .remove(name)
-            .and_then(|(b, _)| b.downcast::<Addr<A>>().ok().map(|b| *b))
+    pub(super) fn remove(&self, name: &ProcessId) {
+        self.registry.write().unwrap().remove(name);
     }
 
     pub(super) fn keys(&self) -> Vec<ProcessId> {
@@ -96,8 +94,6 @@ impl SystemCtx {
         self.bus.has_subscribers::<M>()
     }
 
-    /// The actor registered under its own type name — the singleton case,
-    /// where `spawn` (rather than `spawn_named`) chose the name for you.
     pub fn actor<A: Actor + 'static>(&self, pid: impl Into<ProcessId>) -> Option<Addr<A>> {
         self.registry.get::<A>(&pid.into())
     }
@@ -122,12 +118,13 @@ impl SystemCtx {
 
             ActorCtx {
                 pid,
+                processed: AtomicU64::new(0),
                 actor: Arc::new(Mutex::new(actor)),
                 sender,
                 receiver,
                 scheduled: AtomicBool::new(false),
                 stopped: AtomicBool::new(false),
-                parent: None,
+                hooks: None,
                 context: context.clone(),
             }
         });

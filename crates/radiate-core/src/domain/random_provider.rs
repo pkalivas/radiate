@@ -1,3 +1,4 @@
+use crate::domain::env_vars;
 use rand::distr::{Distribution, StandardUniform, uniform::SampleUniform};
 use rand::rngs::SmallRng;
 use rand::rngs::SysRng;
@@ -7,8 +8,13 @@ use std::cell::RefCell;
 use std::ops::Range;
 use std::sync::{Arc, LazyLock, Mutex};
 
-static GLOBAL_RNG: LazyLock<Arc<Mutex<SmallRng>>> =
-    LazyLock::new(|| Arc::new(Mutex::new(SmallRng::try_from_rng(&mut SysRng).unwrap())));
+static GLOBAL_RNG: LazyLock<Arc<Mutex<SmallRng>>> = LazyLock::new(|| {
+    let maybe_seed = env_vars::seed();
+    Arc::new(Mutex::new(match maybe_seed {
+        Some(seed) => SmallRng::seed_from_u64(seed),
+        None => SmallRng::try_from_rng(&mut SysRng).unwrap(),
+    }))
+});
 
 thread_local! {
     static TLS_RNG: RefCell<SmallRng> = RefCell::new({
