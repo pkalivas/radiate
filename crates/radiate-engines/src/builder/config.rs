@@ -4,7 +4,7 @@ use crate::builder::evaluators::EvaluationParams;
 use crate::genome::phenotype::Phenotype;
 use crate::objectives::Objective;
 use crate::{Front, Problem, ReplacementStrategy, Select};
-use crate::{Generation, message::EventBus};
+use crate::{Generation, message::EventStream};
 use radiate_core::rate::ExprSet;
 use radiate_core::{Alterer, Diversity, Ecosystem, Evaluator, Executor, Genotype};
 use radiate_core::{EcosystemFilter, ThreadSync};
@@ -30,7 +30,7 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     exprs: Option<Arc<Mutex<ExprSet>>>,
     generation: Option<Generation<C, T>>,
     sync: Option<ThreadSync>,
-    event_bus: EventBus,
+    event_bus: EventStream,
 }
 
 impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
@@ -87,10 +87,10 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
     }
 
     pub fn species_executor(&self) -> Arc<Executor> {
-        Arc::clone(&self.executor.species_executor)
+        Arc::clone(&self.executor.species_executor.executor)
     }
 
-    pub fn event_bus(&self) -> EventBus {
+    pub fn event_bus(&self) -> EventStream {
         self.event_bus.clone()
     }
 

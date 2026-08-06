@@ -3,19 +3,32 @@ use radiate_utils::sentry_id;
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
+    fmt::Debug,
     sync::{Arc, Mutex, RwLock, atomic::AtomicU64},
 };
 
 sentry_id!(EventId);
 
-type Subscriber<E> = Box<dyn EventHandler<E>>;
-type SubscriberMap = HashMap<TypeId, Vec<Arc<Mutex<dyn Any + Send + Sync>>>>;
+type SubscriberMap = HashMap<TypeId, Vec<Arc<Mutex<dyn ErasedEventHandler>>>>;
 
 pub trait Event: Send + Sync + 'static {}
 impl<T: Send + Sync + 'static> Event for T {}
 
 pub trait EventHandler<E>: Send + Sync + 'static {
     fn handle(&mut self, event: &E, ctx: &EventCtx);
+}
+
+pub trait ErasedEventHandler: Send + Sync + 'static {
+    fn handle(&mut self, event: &dyn Any, ctx: &EventCtx);
+}
+
+pub struct HandleWrapper<E, H>
+where
+    E: Event + 'static,
+    H: EventHandler<E>,
+{
+    handler: H,
+    _marker: std::marker::PhantomData<E>,
 }
 
 impl<E, F> EventHandler<E> for F
@@ -27,9 +40,21 @@ where
     }
 }
 
+impl<E, H> ErasedEventHandler for HandleWrapper<E, H>
+where
+    E: Event + 'static,
+    H: EventHandler<E>,
+{
+    fn handle(&mut self, event: &dyn Any, ctx: &EventCtx) {
+        if let Some(event) = event.downcast_ref::<E>() {
+            self.handler.handle(event, ctx);
+        }
+    }
+}
+
 pub struct EventCtx {
     id: EventId,
-    bus: EventBus,
+    bus: EventStream,
 }
 
 impl EventCtx {
@@ -43,14 +68,14 @@ impl EventCtx {
 }
 
 #[derive(Clone, Default)]
-pub struct EventBus {
+pub struct EventStream {
     executor: Arc<Executor>,
     subscribers: Arc<RwLock<SubscriberMap>>,
 }
 
-impl EventBus {
+impl EventStream {
     pub fn new(executor: Arc<Executor>) -> Self {
-        EventBus {
+        EventStream {
             executor,
             subscribers: Arc::default(),
         }
@@ -61,15 +86,18 @@ impl EventBus {
     }
 
     pub fn subscribe<M: Event>(&self, handler: impl EventHandler<M>) {
-        let subscriber: Subscriber<M> = Box::new(handler);
         let type_id = TypeId::of::<M>();
+        let handler = HandleWrapper {
+            handler,
+            _marker: std::marker::PhantomData,
+        };
 
         self.subscribers
             .write()
             .unwrap()
             .entry(type_id)
             .or_insert_with(Vec::new)
-            .push(Arc::new(Mutex::new(subscriber)));
+            .push(Arc::new(Mutex::new(handler)));
     }
 
     pub fn lazy_publish<M: Event>(&self, f: impl FnOnce() -> M) {
@@ -82,20 +110,19 @@ impl EventBus {
         let type_id = TypeId::of::<M>();
         if let Some(subscribers) = self.subscribers.read().unwrap().get(&type_id) {
             let arc_msg = Arc::new(message);
+            let id = EventId::new();
 
             for sub in subscribers.iter() {
                 let cloned_subs = Arc::clone(sub);
                 let message = Arc::clone(&arc_msg);
                 let ctx = EventCtx {
-                    id: EventId::new(),
+                    id,
                     bus: self.clone(),
                 };
 
                 self.executor.submit(move || {
                     let mut subs = cloned_subs.lock().unwrap();
-                    if let Some(handler) = subs.downcast_mut::<Subscriber<M>>() {
-                        handler.handle(&message, &ctx);
-                    }
+                    subs.handle(message.as_ref(), &ctx);
                 });
             }
         }
@@ -106,5 +133,17 @@ impl EventBus {
             .read()
             .unwrap()
             .contains_key(&TypeId::of::<M>())
+    }
+}
+
+impl Debug for EventStream {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let subscribers = self.subscribers.read().unwrap();
+        write!(
+            f,
+            "EventStream(subscribers={}, executor={:?})",
+            subscribers.len(),
+            self.executor
+        )
     }
 }

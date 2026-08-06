@@ -169,7 +169,7 @@ impl EventHandler<LimitTriggered> for PySubscriber {
 impl EventHandler<LogEvent> for PySubscriber {
     fn handle(&mut self, event: &LogEvent, _: &EventCtx) {
         Python::attach(|py| {
-            let py_event = subscriber::PyEngineEvent::log_event(event.message.to_string());
+            let py_event = subscriber::PyEngineEvent::log_event(event.1.clone());
             self.function
                 .inner
                 .call1(py, (py_event,))
@@ -259,7 +259,6 @@ where
 
 pub struct PyLimitEvent {
     pub kind: String,
-    pub progress: f32,
 }
 
 #[pyclass]
@@ -316,10 +315,6 @@ impl PyEngineEvent {
 
     pub fn limit(&self) -> Option<String> {
         self.limit_progress.as_ref().map(|lim| lim.kind.clone())
-    }
-
-    pub fn limit_progress(&self) -> Option<f32> {
-        self.limit_progress.as_ref().map(|lim| lim.progress)
     }
 }
 
@@ -450,7 +445,6 @@ impl PyEngineEvent {
             description: Some(lim.description()),
             limit_progress: Some(PyLimitEvent {
                 kind: lim.kind().to_string(),
-                progress: lim.progress(),
             }),
         }
     }

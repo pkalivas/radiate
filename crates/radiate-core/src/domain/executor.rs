@@ -22,9 +22,12 @@ impl Executor {
         {
             use crate::env_vars;
 
-            let num_cpus = std::thread::available_parallelism()
-                .map(|n| n.get())
-                .unwrap_or(env_vars::max_threads().unwrap_or(1));
+            let num_cpus = env_vars::max_threads().unwrap_or(
+                std::thread::available_parallelism()
+                    .map(|n| n.get())
+                    .unwrap_or(4),
+            );
+
             Executor::FixedSizedWorkerPool(num_cpus)
         }
     }

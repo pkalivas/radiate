@@ -216,7 +216,7 @@ where
     }
 
     pub fn log_every(mut self, every: usize) -> EngineRuntime<E> {
-        self.add_action(LoggingAction(every));
+        // self.add_action(LoggingAction(every));
         self
     }
 

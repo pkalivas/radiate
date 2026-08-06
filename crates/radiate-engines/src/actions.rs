@@ -36,24 +36,20 @@ where
                     time
                 );
 
-                ctx.event_bus().publish(LogEvent {
-                    level: crate::message::LogLevel::Info,
-                    index: Some(ctx.index),
-                    message: str,
-                });
+                ctx.event_bus()
+                    .publish(LogEvent(crate::message::LogLevel::Info, str));
             }
             Objective::Multi(_) => {
                 let front_size = ctx.metrics.front_size();
                 let front_size_value = front_size.map(|ent| ent.last_value()).unwrap_or(0.0);
 
-                ctx.event_bus().publish(LogEvent {
-                    level: crate::message::LogLevel::Info,
-                    index: Some(ctx.index),
-                    message: format!(
+                ctx.event_bus().publish(LogEvent(
+                    crate::message::LogLevel::Info,
+                    format!(
                         "Epoch {:<4} | Front Size: {:.3} | Time: {:>5.2?}",
                         ctx.index, front_size_value, time
                     ),
-                });
+                ));
             }
         }
 
@@ -87,11 +83,6 @@ where
                     .join(format!("chckpnt_{}.{}", ctx.index, self.writer.extension()));
 
             self.writer.write(file_path.clone(), &E::Epoch::from(ctx))?;
-
-            // ctx.actor_system.publish(CheckpointSaved {
-            //     index: ctx.index,
-            //     path: file_path.to_string_lossy().to_string(),
-            // });
         }
 
         Ok(())

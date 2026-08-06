@@ -1,10 +1,10 @@
-mod bus;
 mod handlers;
 mod message;
+mod stream;
 
-pub use bus::{EventBus, EventCtx, EventHandler, EventId};
-pub use handlers::{LogEvent, LogLevel, LoggingHandler, StagnationMonitorActor};
+pub use handlers::{HealthMonitorHandler, LogEvent, LogLevel, LoggingHandler};
 pub use message::{
     CheckpointSaved, EcosystemSnapshot, EngineMessage, EngineStart, EngineStop, EpochComplete,
     EpochStart, Improvement, LimitProgress, LimitTriggered, Warning,
 };
+pub use stream::{EventCtx, EventHandler, EventId, EventStream};

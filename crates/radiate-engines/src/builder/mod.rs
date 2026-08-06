@@ -9,30 +9,38 @@ mod problem;
 mod selectors;
 mod species;
 
-use crate::genome::phenotype::Phenotype;
 #[cfg(feature = "serde")]
 use crate::io::FileReader;
-use crate::objectives::{Objective, Optimize};
-use crate::pipeline::Pipeline;
-use crate::steps::{
-    EngineStep, FilterStep, FrontStep, MetricStep, RecombineStep, SelectConfig, SpeciateStep,
-};
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
     TournamentSelector, context::EvolutionContext,
 };
+use crate::{
+    EngineStart,
+    objectives::{Objective, Optimize},
+};
+use crate::{EngineStop, pipeline::Pipeline};
+use crate::{EpochComplete, genome::phenotype::Phenotype};
 use crate::{Generation, Result};
 use crate::{LimitTriggered, builder::selectors::SelectionParams};
 use crate::{LoggingHandler, builder::population::PopulationParams};
-use crate::{builder::evaluators::EvaluationParams, message::StagnationMonitorActor};
+use crate::{builder::evaluators::EvaluationParams, message::HealthMonitorHandler};
+use crate::{
+    builder::evaluators::ExecutorParams,
+    steps::{
+        EngineStep, FilterStep, FrontStep, MetricStep, RecombineStep, SelectConfig, SpeciateStep,
+    },
+};
 use crate::{builder::filters::FilterParams, init_logging};
-use crate::{builder::objectives::OptimizeParams, message::EventBus};
+use crate::{builder::objectives::OptimizeParams, message::EventStream};
 use crate::{builder::problem::ProblemParams, message::LogEvent};
 use crate::{builder::species::SpeciesParams, message::Warning};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
-use radiate_core::{Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Valid, metric_names};
+use radiate_core::{
+    Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Valid, env_vars, metric_names,
+};
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
 use radiate_core::{ThreadSync, rate::ExprSet};
@@ -43,7 +51,10 @@ use radiate_core::{
 use radiate_utils::VersionedCounts;
 #[cfg(feature = "serde")]
 use serde::Deserialize;
-use std::sync::{Arc, Mutex};
+use std::{
+    env,
+    sync::{Arc, Mutex},
+};
 
 #[derive(Clone)]
 pub struct EngineParams<C, T>
@@ -61,7 +72,7 @@ where
 
     pub alterers: Vec<Alterer<C>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-    pub event_bus: EventBus,
+    pub event_bus: EventStream,
     pub generation: Option<Generation<C, T>>,
     pub exprs: Option<Arc<Mutex<ExprSet>>>,
 }
@@ -170,12 +181,12 @@ where
             ));
         }
 
+        self.build_event_bus()?;
         self.build_problem()?;
         self.build_population()?;
         self.build_alterer()?;
         self.build_front()?;
         self.build_rates()?;
-        self.build_event_bus()?;
 
         let config = EngineConfig::<C, T>::from(&self.params);
 
@@ -199,12 +210,22 @@ where
         let mut bus = self.params.event_bus.clone();
         let executor = self.params.evaluation_params.event_bus_executor.clone();
 
-        bus.subscribe(StagnationMonitorActor::<T>::default());
-        bus.subscribe::<LogEvent>(LoggingHandler);
-        bus.subscribe::<LimitTriggered>(LoggingHandler);
-        bus.subscribe::<Warning>(LoggingHandler);
+        if let Some(workers) = env_vars::max_threads() {
+            if workers > 1 && !executor.changed {
+                bus.set_executor(Arc::new(Executor::new_parallel()));
+            }
+        }
 
-        bus.set_executor(executor);
+        bus.subscribe(HealthMonitorHandler::<T>::default());
+
+        if env_vars::log_enabled().unwrap_or(false) {
+            bus.subscribe::<EngineStop<T>>(LoggingHandler);
+            bus.subscribe::<EpochComplete<T>>(LoggingHandler);
+            bus.subscribe::<EngineStart>(LoggingHandler);
+            bus.subscribe::<LogEvent>(LoggingHandler);
+            bus.subscribe::<LimitTriggered>(LoggingHandler);
+            bus.subscribe::<Warning>(LoggingHandler);
+        }
 
         self.params.event_bus = bus;
 
@@ -241,7 +262,11 @@ where
 
             // Replace the evaluator with BatchFitnessEvaluator
             self.params.evaluation_params.evaluator = Arc::new(BatchFitnessEvaluator::new(
-                self.params.evaluation_params.fitness_executor.clone(),
+                self.params
+                    .evaluation_params
+                    .fitness_executor
+                    .executor
+                    .clone(),
             ));
 
             Ok(())
@@ -485,6 +510,7 @@ where
 {
     fn default() -> Self {
         init_logging();
+
         GeneticEngineBuilder {
             params: EngineParams {
                 population_params: PopulationParams {
@@ -500,9 +526,9 @@ where
                 },
                 evaluation_params: EvaluationParams {
                     evaluator: Arc::new(FitnessEvaluator::default()),
-                    fitness_executor: Arc::new(Executor::default()),
-                    species_executor: Arc::new(Executor::default()),
-                    event_bus_executor: Arc::new(Executor::default()),
+                    fitness_executor: ExecutorParams::default(),
+                    species_executor: ExecutorParams::default(),
+                    event_bus_executor: ExecutorParams::default(),
                     sync: ThreadSync::new(),
                 },
                 selection_params: SelectionParams {
@@ -529,7 +555,7 @@ where
 
                 replacement_strategy: Arc::new(EncodeReplace),
                 alterers: Vec::new(),
-                event_bus: EventBus::default(),
+                event_bus: EventStream::default(),
                 exprs: None,
                 generation: None,
             },

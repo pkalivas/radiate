@@ -415,7 +415,7 @@ impl Debug for Limit {
         match self {
             Limit::Generation(gens) => write!(f, "Generation({gens})"),
             Limit::Seconds(secs) => write!(f, "Seconds({secs:?})"),
-            Limit::Score(score) => write!(f, "Score({:?})", score.as_f32()),
+            Limit::Score(score) => write!(f, "Score({:?})", score),
             Limit::Convergence(window, epsilon, _) => {
                 write!(f, "Convergence(window: {window}, epsilon: {epsilon})")
             }

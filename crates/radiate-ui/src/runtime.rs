@@ -78,7 +78,7 @@ where
         let dispatch = Arc::clone(&dispatcher);
         engine.subscribe::<LogEvent>(move |msg: &LogEvent| {
             dispatch
-                .send(InputEvent::Log(msg.level, msg.message.to_string()))
+                .send(InputEvent::Log(msg.0, msg.1.clone()))
                 .unwrap();
         });
     }

@@ -23,6 +23,10 @@ macro_rules! sentry_id {
             pub const fn get(&self) -> u64 {
                 self.0
             }
+
+            pub fn next(&self) -> Self {
+                Self::new()
+            }
         }
 
         #[allow(clippy::from_over_into)]

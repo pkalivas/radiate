@@ -72,132 +72,10 @@ pub enum LimitProgress {
         generation: usize,
         expression: String,
     },
-}
-
-impl LimitProgress {
-    pub fn generations(current: usize, limit: usize) -> Self {
-        LimitProgress::Generations { current, limit }
-    }
-
-    pub fn time(generation: usize, elapsed: Duration, limit: Duration) -> Self {
-        LimitProgress::Time {
-            generation,
-            elapsed,
-            limit,
-        }
-    }
-
-    pub fn score(generation: usize, current: Score, limit: Score) -> Self {
-        LimitProgress::Score {
-            generation,
-            current,
-            limit,
-        }
-    }
-
-    pub fn convergence(generation: usize, window: usize, epsilon: f32, diff: f32) -> Self {
-        LimitProgress::Convergence {
-            generation,
-            window,
-            epsilon,
-            diff,
-        }
-    }
-
-    pub fn expr(generation: usize, expression: String) -> Self {
-        LimitProgress::Expr {
-            generation,
-            expression,
-        }
-    }
-
-    pub fn index(&self) -> usize {
-        match self {
-            LimitProgress::Generations { current, .. } => *current,
-            LimitProgress::Time { generation, .. } => *generation,
-            LimitProgress::Score { generation, .. } => *generation,
-            LimitProgress::Convergence { generation, .. } => *generation,
-            LimitProgress::Expr { generation, .. } => *generation,
-        }
-    }
-
-    pub fn kind(&self) -> &'static str {
-        match self {
-            LimitProgress::Generations { .. } => "Generations",
-            LimitProgress::Time { .. } => "Time",
-            LimitProgress::Score { .. } => "Score",
-            LimitProgress::Convergence { .. } => "Convergence",
-            LimitProgress::Expr { .. } => "Expression",
-        }
-    }
-
-    pub fn description(&self) -> String {
-        match self {
-            LimitProgress::Generations { current, limit } => {
-                format!("[LIMIT] Generation progress: {current}/{limit}")
-            }
-            LimitProgress::Time {
-                generation,
-                elapsed,
-                limit,
-            } => {
-                format!("[LIMIT] Time progress: {elapsed:?}/{limit:?} (Generation {generation})")
-            }
-            LimitProgress::Score {
-                generation,
-                current,
-                limit,
-            } => {
-                format!("[LIMIT] Score progress: {current:?}/{limit:?} (Generation {generation})")
-            }
-            LimitProgress::Convergence {
-                generation,
-                window,
-                epsilon,
-                diff,
-            } => format!(
-                "[LIMIT] Convergence progress: |delta|={:.6} <= epsilon={epsilon} over window={window} (Generation {generation})",
-                diff
-            ),
-            LimitProgress::Expr {
-                generation,
-                expression,
-            } => format!(
-                "[LIMIT] Expression progress: Expression={expression} (Generation {generation})"
-            ),
-        }
-    }
-
-    pub fn progress(&self) -> f32 {
-        match self {
-            LimitProgress::Generations { current, limit } => *current as f32 / *limit as f32,
-            LimitProgress::Time {
-                generation: _,
-                elapsed,
-                limit,
-            } => elapsed.as_secs_f32() / limit.as_secs_f32(),
-            LimitProgress::Score {
-                generation: _,
-                current,
-                limit,
-            } => {
-                let mut total = 0.0;
-
-                for (c, l) in current.iter().zip(limit.iter()) {
-                    total += l - c;
-                }
-                if total == 0.0 { 0.0 } else { total }
-            }
-            LimitProgress::Convergence { diff, epsilon, .. } => {
-                if *epsilon == 0.0 {
-                    0.0
-                } else {
-                    diff / epsilon
-                }
-            }
-            LimitProgress::Expr { .. } => 0.0,
-        }
-    }
+    Combined {
+        generation: usize,
+        progress: Vec<LimitProgress>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -331,5 +209,113 @@ impl<C: Chromosome + Clone, T> From<&EvolutionContext<C, T>> for EcosystemSnapsh
 impl<C: Chromosome> Debug for EcosystemSnapshot<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "EcosystemSnapshot(index={})", self.index)
+    }
+}
+
+impl LimitProgress {
+    pub fn generations(current: usize, limit: usize) -> Self {
+        LimitProgress::Generations { current, limit }
+    }
+
+    pub fn time(generation: usize, elapsed: Duration, limit: Duration) -> Self {
+        LimitProgress::Time {
+            generation,
+            elapsed,
+            limit,
+        }
+    }
+
+    pub fn score(generation: usize, current: Score, limit: Score) -> Self {
+        LimitProgress::Score {
+            generation,
+            current,
+            limit,
+        }
+    }
+
+    pub fn convergence(generation: usize, window: usize, epsilon: f32, diff: f32) -> Self {
+        LimitProgress::Convergence {
+            generation,
+            window,
+            epsilon,
+            diff,
+        }
+    }
+
+    pub fn expr(generation: usize, expression: String) -> Self {
+        LimitProgress::Expr {
+            generation,
+            expression,
+        }
+    }
+
+    pub fn index(&self) -> usize {
+        match self {
+            LimitProgress::Generations { current, .. } => *current,
+            LimitProgress::Time { generation, .. } => *generation,
+            LimitProgress::Score { generation, .. } => *generation,
+            LimitProgress::Convergence { generation, .. } => *generation,
+            LimitProgress::Expr { generation, .. } => *generation,
+            LimitProgress::Combined { generation, .. } => *generation,
+        }
+    }
+
+    pub fn kind(&self) -> &'static str {
+        match self {
+            LimitProgress::Generations { .. } => "Generations",
+            LimitProgress::Time { .. } => "Time",
+            LimitProgress::Score { .. } => "Score",
+            LimitProgress::Convergence { .. } => "Convergence",
+            LimitProgress::Expr { .. } => "Expression",
+            LimitProgress::Combined { .. } => "Combined",
+        }
+    }
+
+    pub fn description(&self) -> String {
+        match self {
+            LimitProgress::Generations { current, limit } => {
+                format!("[LIMIT] Generation progress: {current}/{limit}")
+            }
+            LimitProgress::Time {
+                generation,
+                elapsed,
+                limit,
+            } => {
+                format!("[LIMIT] Time progress: {elapsed:?}/{limit:?} (Generation {generation})")
+            }
+            LimitProgress::Score {
+                generation,
+                current,
+                limit,
+            } => {
+                format!("[LIMIT] Score progress: {current:?}/{limit:?} (Generation {generation})")
+            }
+            LimitProgress::Convergence {
+                generation,
+                window,
+                epsilon,
+                diff,
+            } => format!(
+                "[LIMIT] Convergence progress: |delta|={:.6} <= epsilon={epsilon} over window={window} (Generation {generation})",
+                diff
+            ),
+            LimitProgress::Expr {
+                generation,
+                expression,
+            } => format!(
+                "[LIMIT] Expression progress: Expression={expression} (Generation {generation})"
+            ),
+            LimitProgress::Combined {
+                generation,
+                progress,
+            } => {
+                let progress_descriptions: Vec<String> =
+                    progress.iter().map(|p| p.description()).collect();
+                format!(
+                    "[LIMIT] Combined progress (Generation {generation}):\n{}",
+                    progress_descriptions.join("\n")
+                )
+            }
+        }
     }
 }

@@ -1,6 +1,6 @@
 use crate::message::{
-    EcosystemSnapshot, EngineMessage, EngineStop, EpochComplete, EpochStart, EventBus,
-    EventHandler, Improvement,
+    EcosystemSnapshot, EngineMessage, EngineStop, EpochComplete, EpochStart, EventHandler,
+    EventStream, Improvement,
 };
 use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
@@ -62,7 +62,7 @@ where
 {
     context: EvolutionContext<C, T>,
     pipeline: Pipeline<C>,
-    actor: EventBus,
+    actor: EventStream,
 }
 
 impl<C, T> GeneticEngine<C, T>
@@ -77,7 +77,7 @@ where
     pub(crate) fn new(
         context: EvolutionContext<C, T>,
         pipeline: Pipeline<C>,
-        actor: EventBus,
+        actor: EventStream,
     ) -> Self {
         GeneticEngine {
             context,
