@@ -42,7 +42,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.front.clone()
     }
 
-    pub fn event_bus(&self) -> &EventStream {
+    pub fn events(&self) -> &EventStream {
         &self.event_bus
     }
 

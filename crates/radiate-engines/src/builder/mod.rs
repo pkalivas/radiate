@@ -209,9 +209,8 @@ where
         let executor = self.params.evaluation_params.event_bus_executor.clone();
 
         if let Some(workers) = env_vars::max_threads() {
-            if workers > 1 && !executor.changed {
-                bus.set_executor(Arc::new(Executor::new_parallel()));
-            }
+            bus.set_executor(Arc::new(Executor::new_parallel()));
+            if workers > 1 && !executor.changed {}
         }
 
         bus.subscribe(HealthMonitorHandler::<T>::default());
@@ -223,6 +222,8 @@ where
         bus.subscribe::<LimitTriggered>(LoggingHandler);
         bus.subscribe::<Warning>(LoggingHandler);
         bus.subscribe::<EngineState>(LoggingHandler);
+
+        println!("Event bus executor: {:?}", bus);
 
         self.params.event_bus = bus;
 

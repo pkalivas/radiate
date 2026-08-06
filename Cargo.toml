@@ -91,6 +91,7 @@ num-traits = "0.2.19"
 num-order = "1.2.0"
 tracing = "0.1.44"
 dotenvy = "0.15.7"
+crossbeam = "0.8"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt", "ansi", "json"] }
 radiate = { version = "1.3.0", path = "crates/radiate", default-features = false }
 radiate-core = { version = "1.3.0", path = "crates/radiate-core", default-features = false }

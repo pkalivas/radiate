@@ -17,6 +17,7 @@ fn main() {
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4.0))
+        .parallel()
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
@@ -35,7 +36,7 @@ fn main() {
     //         });
     // });
 
-    engine
+    radiate::ui(engine)
         .iter()
         .logging()
         .until_score(MIN_SCORE)

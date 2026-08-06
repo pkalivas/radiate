@@ -81,7 +81,7 @@ where
         engine.subscribe::<LogEvent>(move |msg: &LogEvent| {
             dispatch
                 .send(InputEvent::Log(msg.0, msg.1.clone()))
-                .map_err(|e| eprintln!("Failed to send log event: {:?}", msg))
+                .map_err(|_| eprintln!("Failed to send log event: {:?}", msg))
                 .unwrap();
         });
 

@@ -189,12 +189,11 @@ impl<A: Actor> ActorCtx<A> {
         let addr = Addr {
             cell: Arc::clone(&self),
         };
-
         loop {
             {
                 let mut actor = self.actor.lock().unwrap();
                 while let Ok(msg) = self.receiver.try_recv() {
-                    self.deliver(&mut *actor, &addr, msg);
+                    self.deliver(&mut actor, &addr, msg);
                 }
             }
 
@@ -204,18 +203,13 @@ impl<A: Actor> ActorCtx<A> {
                 break;
             }
 
-            match self.receiver.try_recv() {
-                Ok(msg) => {
-                    let mut actor = self.actor.lock().unwrap();
-                    self.deliver(&mut *actor, &addr, msg);
+            let Ok(msg) = self.receiver.try_recv() else {
+                self.scheduled.store(false, Ordering::Release);
+                break;
+            };
 
-                    continue;
-                }
-                Err(_) => {
-                    self.scheduled.store(false, Ordering::Release);
-                    break;
-                }
-            }
+            let mut actor = self.actor.lock().unwrap();
+            self.deliver(&mut actor, &addr, msg);
         }
     }
 }
