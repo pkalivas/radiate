@@ -14,9 +14,7 @@
 //! - **Combined Limits**: Apply multiple limits simultaneously
 
 use crate::{
-    EvolutionContext, Generation,
-    generation::GenerationView,
-    message::{LimitProgress, LimitTriggered},
+    EvolutionContext, Generation, generation::GenerationView, message::LimitTriggered,
     runtime::RuntimeLimit,
 };
 use radiate_core::{
@@ -117,7 +115,7 @@ pub enum Limit {
 }
 
 pub(crate) enum LimitOutcome {
-    Proceed(LimitProgress),
+    Proceed,
     Stop,
 }
 
@@ -143,10 +141,7 @@ where
                     .map(|proceed| proceed.iter().all(|&p| p));
 
                 match proceed {
-                    Ok(true) => Ok(LimitOutcome::Proceed(LimitProgress::Generations {
-                        current: ctx.index,
-                        limit: ctx.index, // Placeholder, adjust as needed
-                    })),
+                    Ok(true) => Ok(LimitOutcome::Proceed),
                     Ok(false) => Ok(LimitOutcome::Stop),
                     Err(e) => Err(e),
                 }
@@ -156,8 +151,7 @@ where
         }?;
 
         match outcome {
-            LimitOutcome::Proceed(progress) => {
-                ctx.events().publish(progress);
+            LimitOutcome::Proceed => {
                 return Ok(true);
             }
             LimitOutcome::Stop => {
@@ -179,7 +173,7 @@ where
     let proceed = ctx.index < limit;
 
     Ok(if proceed {
-        LimitOutcome::Proceed(LimitProgress::generations(ctx.index, limit))
+        LimitOutcome::Proceed
     } else {
         LimitOutcome::Stop
     })
@@ -201,7 +195,7 @@ where
     let proceed = total_time < limit;
 
     Ok(if proceed {
-        LimitOutcome::Proceed(LimitProgress::time(ctx.index, total_time, limit))
+        LimitOutcome::Proceed
     } else {
         LimitOutcome::Stop
     })
@@ -215,11 +209,7 @@ where
     C: Chromosome,
 {
     let Some(score) = &ctx.score else {
-        return Ok(LimitOutcome::Proceed(LimitProgress::score(
-            ctx.index,
-            Score::default(),
-            limit.clone(),
-        )));
+        return Ok(LimitOutcome::Proceed);
     };
 
     let proceed = match &ctx.objective {
@@ -246,11 +236,7 @@ where
     };
 
     let outcome = if proceed {
-        LimitOutcome::Proceed(LimitProgress::score(
-            ctx.index,
-            score.clone(),
-            limit.clone(),
-        ))
+        LimitOutcome::Proceed
     } else {
         LimitOutcome::Stop
     };
@@ -268,11 +254,7 @@ where
     C: Chromosome,
 {
     let Some(current_score) = &ctx.score else {
-        return Ok(LimitOutcome::Proceed(LimitProgress::score(
-            ctx.index,
-            Score::default(),
-            Score::default(),
-        )));
+        return Ok(LimitOutcome::Proceed);
     };
 
     history.push_back(current_score.as_f32());
@@ -281,9 +263,7 @@ where
     }
 
     if history.len() < window {
-        return Ok(LimitOutcome::Proceed(LimitProgress::convergence(
-            ctx.index, window, epsilon, 0.0,
-        )));
+        return Ok(LimitOutcome::Proceed);
     }
 
     let first = history.front().unwrap();
@@ -310,12 +290,7 @@ where
     let proceed = improved.abs() > epsilon;
 
     Ok(if proceed {
-        LimitOutcome::Proceed(LimitProgress::convergence(
-            ctx.index,
-            window,
-            epsilon,
-            improved.abs(),
-        ))
+        LimitOutcome::Proceed
     } else {
         LimitOutcome::Stop
     })
@@ -338,7 +313,7 @@ where
                 .publish(LimitTriggered(ctx.index, Limit::Expr(expr.clone())));
         }
         Ok(if proceed {
-            LimitOutcome::Proceed(LimitProgress::expr(ctx.index, expr.name().to_string()))
+            LimitOutcome::Proceed
         } else {
             LimitOutcome::Stop
         })

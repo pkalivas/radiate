@@ -3,10 +3,7 @@ use numpy::PyArray1;
 use pyo3::{IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     Chromosome, EpochComplete, EventCtx, GeneticEngineBuilder, LimitTriggered, Objective,
-    message::{
-        CheckpointSaved, EngineStart, EngineStop, EpochStart, EventHandler, Improvement,
-        LimitProgress, LogEvent,
-    },
+    message::{CheckpointSaved, EngineStop, EpochStart, EventHandler, Improvement, LogEvent},
 };
 use std::fmt::Debug;
 
@@ -19,7 +16,6 @@ const EVENT_TYPES: &[&str] = &[
     crate::constants::components::LIMIT_TRIGGERED_EVENT,
     crate::constants::components::LOG_EVENT,
     crate::constants::components::CHECKPOINT_SAVED_EVENT,
-    crate::constants::components::LIMIT_PROGRESS_EVENT,
 ];
 
 #[pyclass(from_py_object)]
@@ -57,18 +53,6 @@ impl Debug for PySubscriber {
     }
 }
 
-impl EventHandler<EngineStart> for PySubscriber {
-    fn handle(&mut self, _: &EngineStart, _: &EventCtx) {
-        Python::attach(|py| {
-            let py_event = subscriber::PyEngineEvent::start();
-            self.function
-                .inner
-                .call1(py, (py_event,))
-                .expect("Failed to call subscriber function");
-        })
-    }
-}
-
 impl<T> EventHandler<EngineStop<T>> for PySubscriber
 where
     T: IntoPyAnyObject + Clone,
@@ -96,7 +80,7 @@ where
 impl EventHandler<EpochStart> for PySubscriber {
     fn handle(&mut self, event: &EpochStart, _: &EventCtx) {
         Python::attach(|py| {
-            let py_event = subscriber::PyEngineEvent::epoch_start(event.index);
+            let py_event = subscriber::PyEngineEvent::epoch_start(event.0);
             self.function
                 .inner
                 .call1(py, (py_event,))
@@ -190,18 +174,6 @@ impl EventHandler<CheckpointSaved> for PySubscriber {
     }
 }
 
-impl EventHandler<LimitProgress> for PySubscriber {
-    fn handle(&mut self, event: &LimitProgress, _: &EventCtx) {
-        Python::attach(|py| {
-            let py_event = PyEngineEvent::limit_progress_event(event.clone());
-            self.function
-                .inner
-                .call1(py, (py_event,))
-                .expect("Failed to call subscriber function");
-        })
-    }
-}
-
 pub(crate) fn subscribe_python<C, T>(
     mut builder: GeneticEngineBuilder<C, T>,
     subscribers: Vec<PySubscriber>,
@@ -223,7 +195,6 @@ where
         for &event_name in EVENT_TYPES {
             builder = if equals_or_all(&event_type, event_name) {
                 match event_name {
-                    components::START_EVENT => builder.subscribe::<EngineStart>(subscriber.clone()),
                     components::STOP_EVENT => {
                         builder.subscribe::<EngineStop<T>>(subscriber.clone())
                     }
@@ -243,9 +214,7 @@ where
                     components::CHECKPOINT_SAVED_EVENT => {
                         builder.subscribe::<CheckpointSaved>(subscriber.clone())
                     }
-                    components::LIMIT_PROGRESS_EVENT => {
-                        builder.subscribe::<LimitProgress>(subscriber.clone())
-                    }
+
                     _ => builder,
                 }
             } else {
@@ -431,21 +400,6 @@ impl PyEngineEvent {
             objective: None,
             description: Some(path),
             limit_progress: None,
-        }
-    }
-
-    pub fn limit_progress_event(lim: LimitProgress) -> PyEngineEvent {
-        PyEngineEvent {
-            event_type: crate::constants::components::LIMIT_PROGRESS_EVENT.into(),
-            index: Some(lim.index()),
-            best: None,
-            score: None,
-            metrics: None,
-            objective: None,
-            description: Some(lim.description()),
-            limit_progress: Some(PyLimitEvent {
-                kind: lim.kind().to_string(),
-            }),
         }
     }
 }

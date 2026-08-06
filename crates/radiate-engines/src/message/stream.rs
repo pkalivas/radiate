@@ -1,23 +1,39 @@
-use crossbeam::channel::unbounded;
-use radiate_core::{Executor, SmallStr, WaitGroup};
+use crossbeam::channel::{bounded, unbounded};
+use radiate_core::{Executor, WaitGroup};
 use radiate_utils::sentry_id;
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
     fmt::Debug,
     sync::{
-        Arc, Mutex, RwLock, Weak,
+        Arc, Mutex, RwLock,
         atomic::{AtomicBool, AtomicU64, Ordering},
     },
 };
 
 sentry_id!(EventId);
+sentry_id!(MailboxId);
 
 type Callback = Arc<Mutex<dyn FnMut(&dyn Any, &EventCtx) + Send + Sync>>;
 type MailboxGroup = Arc<Vec<Arc<Mailbox>>>;
 type MailboxMap = HashMap<TypeId, MailboxGroup>;
 
-pub trait Event: Send + Sync + 'static {}
+pub trait Event: Send + Sync + 'static {
+    fn type_id(&self) -> TypeId {
+        TypeId::of::<Self>()
+    }
+
+    fn type_name(&self) -> &'static str {
+        std::any::type_name::<Self>()
+    }
+
+    fn into_arc(self) -> Arc<dyn Any + Send + Sync>
+    where
+        Self: Sized,
+    {
+        Arc::new(self)
+    }
+}
 impl<T: Send + Sync + 'static> Event for T {}
 
 pub trait EventHandler<E>: Send + Sync + 'static {
@@ -34,6 +50,7 @@ where
 }
 
 pub struct Subscription {
+    id: MailboxId,
     active: Arc<AtomicBool>,
 }
 
@@ -43,24 +60,22 @@ impl Subscription {
     }
 }
 
-pub struct EventCtx {
-    id: EventId,
-    bus: EventStream,
-}
+pub struct EventCtx(EventId, EventStream);
 
 impl EventCtx {
     pub fn id(&self) -> &EventId {
-        &self.id
+        &self.0
     }
 
     pub fn publish<M: Event>(&self, message: M) {
-        self.bus.publish(message);
+        self.1.publish(message);
     }
 }
 
 struct QueuedMessage(Arc<dyn Any + Send + Sync>);
 
 struct Mailbox {
+    id: MailboxId,
     sender: crossbeam::channel::Sender<QueuedMessage>,
     receiver: crossbeam::channel::Receiver<QueuedMessage>,
     handler: Callback,
@@ -105,7 +120,12 @@ impl Mailbox {
         }
 
         if processed > 0 {
-            println!("Mailbox processed {} messages", processed);
+            tracing::info!(
+                "Mailbox {} processed {} messages - Thread: {:?}",
+                self.id,
+                processed,
+                std::thread::current().id()
+            );
         }
     }
 }
@@ -133,9 +153,11 @@ impl EventStream {
     pub fn subscribe<M: Event>(&self, mut handler: impl EventHandler<M>) -> Subscription {
         let type_id = TypeId::of::<M>();
         let active = Arc::new(AtomicBool::new(true));
+        let id = MailboxId::new();
 
         let (sender, receiver) = unbounded();
         let mailbox = Arc::new(Mailbox {
+            id,
             sender,
             receiver,
             handler: Arc::new(Mutex::new(move |event: &dyn Any, ctx: &EventCtx| {
@@ -151,11 +173,12 @@ impl EventStream {
         let list = mailboxes.entry(type_id).or_insert_with(|| Arc::default());
         Arc::make_mut(list).push(mailbox);
 
-        Subscription { active }
+        Subscription { id, active }
     }
 
     pub fn publish<M: Event>(&self, message: M) {
-        let type_id = TypeId::of::<M>();
+        let type_id = message.type_id();
+
         let group = {
             let mailboxes = self.mailboxes.read().unwrap();
             match mailboxes.get(&type_id) {
@@ -164,24 +187,23 @@ impl EventStream {
             }
         };
 
-        let arc_msg: Arc<dyn Any + Send + Sync> = Arc::new(message);
-        let id = EventId::new();
+        tracing::info!("Publishing event: {:?}", std::any::type_name::<M>());
 
-        let ctx = Arc::new(EventCtx {
-            id,
-            bus: self.clone(),
-        });
+        let id = EventId::new();
+        let ctx = Arc::new(EventCtx(id, self.clone()));
+        let arc_msg = message.into_arc();
+
         for mailbox in group.iter() {
             if !mailbox.active.load(Ordering::Acquire) {
                 continue;
             }
 
-            let cloned_ctx = Arc::clone(&ctx);
             mailbox
                 .sender
                 .send(QueuedMessage(Arc::clone(&arc_msg)))
                 .unwrap();
 
+            let cloned_ctx = Arc::clone(&ctx);
             if mailbox.try_claim() {
                 let mailbox = Arc::clone(mailbox);
                 let guard = self.wg.guard();
@@ -221,8 +243,8 @@ impl EventStream {
             .unwrap_or(0)
     }
 
-    pub fn wait_for_all(&self) {
-        self.wg.wait();
+    pub fn wait_for_all(&self) -> usize {
+        self.wg.wait()
     }
 }
 

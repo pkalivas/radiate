@@ -25,6 +25,7 @@ pub struct EngineRuntime<E: Engine> {
     actions: Option<Vec<Box<dyn RuntimeAction<E>>>>,
     limits: Option<Vec<Box<dyn RuntimeLimit<E>>>>,
     done: bool,
+    state: EngineState,
 }
 
 impl<E: Engine> EngineRuntime<E> {
@@ -34,13 +35,18 @@ impl<E: Engine> EngineRuntime<E> {
             actions: None,
             limits: None,
             done: false,
+            state: EngineState::PreStart,
         }
     }
 
     #[inline]
     pub fn run(mut self) -> Result<E::Epoch> {
+        if matches!(self.state, EngineState::PreStart) {
+            self.state = self.engine.start()?;
+        }
+
         loop {
-            if self.done {
+            if matches!(self.state, EngineState::Stopped) {
                 return Ok(self.engine.epoch());
             }
 
@@ -50,33 +56,33 @@ impl<E: Engine> EngineRuntime<E> {
 
     #[inline]
     fn step(&mut self) -> Result<()> {
-        if self.done {
+        if matches!(self.state, EngineState::Stopped) {
             return Err(radiate_err!(Engine: "Engine has already completed"));
         }
 
-        let state = self.engine.step()?;
-
-        if matches!(state, EngineState::Stopped) {
-            self.done = true;
-            return Ok(());
-        }
-
-        if let Some(actions) = &mut self.actions {
-            let ctx = self.engine.context();
-            for action in actions.iter_mut() {
-                action.execute(ctx)?;
-            }
-        }
-
-        if let Some(limits) = &mut self.limits {
-            let ctx = self.engine.context();
-            for limit in limits.iter_mut() {
-                if !limit.proceed(ctx)? {
-                    self.done = true;
-                    return Ok(());
+        self.state = match self.engine.step()? {
+            EngineState::Stopped => self.engine.stop()?,
+            state @ _ => {
+                if let Some(actions) = &mut self.actions {
+                    let ctx = self.engine.context();
+                    for action in actions.iter_mut() {
+                        action.execute(ctx)?;
+                    }
                 }
+
+                if let Some(limits) = &mut self.limits {
+                    let ctx = self.engine.context();
+                    for limit in limits.iter_mut() {
+                        if !limit.proceed(ctx)? {
+                            self.state = self.engine.stop()?;
+                            return Ok(());
+                        }
+                    }
+                }
+
+                state
             }
-        }
+        };
 
         Ok(())
     }
@@ -278,7 +284,7 @@ where
     type Item = E::Epoch;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.done {
+        if matches!(self.state, EngineState::Stopped) {
             return None;
         }
 

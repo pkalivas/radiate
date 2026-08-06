@@ -1,12 +1,12 @@
 use crate::message::{
-    EcosystemSnapshot, EngineMessage, EngineStop, EpochComplete, EpochStart, EventHandler,
-    EventStream, Improvement, Subscription,
+    EcosystemSnapshot, EngineStop, EpochComplete, EpochStart, EventHandler, EventStream,
+    Improvement, Subscription,
 };
 use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
 use crate::{GenerationView, builder::GeneticEngineBuilder};
-use crate::{context::EvolutionContext, message::EngineStart, message::Event};
-use radiate_core::{Engine, engine::EngineState};
+use crate::{context::EvolutionContext, message::Event};
+use radiate_core::{Engine, EngineState};
 use radiate_core::{EngineStream, error::Result};
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
@@ -179,21 +179,30 @@ where
         Generation::from(&self.context)
     }
 
+    fn start(&mut self) -> Result<EngineState> {
+        let running = EngineState::Running;
+        self.stream.publish(running);
+        Ok(running)
+    }
+
+    fn stop(&mut self) -> Result<EngineState> {
+        self.stream.publish(EngineStop::from(&self.context));
+        Ok(EngineState::Stopped)
+    }
+
     #[inline]
     fn step(&mut self) -> Result<EngineState> {
-        if let Some(control) = &self.context.control {
-            if control.is_stopped() {
-                return Ok(EngineState::Stopped);
-            } else if control.is_paused() {
-                self.stream.publish(EngineState::Paused);
-                control.wait();
-                self.stream.publish(EngineState::Running);
-            }
+        if self.context.is_stopped() {
+            return Ok(EngineState::Stopped);
+        } else if self.context.is_paused() {
+            self.stream.publish(EngineState::Paused);
+            self.context.wait();
+            self.stream.publish(EngineState::Running);
         }
 
-        if matches!(self.context.index, 0) {
-            self.stream.publish(EngineStart);
-        }
+        // if matches!(self.context.index, 0) {
+        //     self.stream.publish(EngineStart);
+        // }
 
         self.stream.publish(EpochStart::from(&self.context));
         self.pipeline.run(&mut self.context)?;
@@ -238,27 +247,31 @@ where
     }
 }
 
-/// Custom drop implementation for proper cleanup and event emission.
-///
-/// When the engine is dropped, it emits a stop event to notify any listeners
-/// that the evolutionary process has ended. This allows external systems to
-/// perform cleanup operations or finalize results.
-///
-/// # Event Emission
-///
-/// The stop event includes the final context state, allowing listeners to:
-/// - Record final metrics and statistics
-/// - Save final population state
-/// - Perform cleanup operations
-/// - Generate final reports
-/// - Integrate with external systems
-impl<C, T> Drop for GeneticEngine<C, T>
-where
-    C: Chromosome,
-    T: Clone + Send + Sync + 'static,
-{
-    fn drop(&mut self) {
-        self.stream.publish(EngineStop::from(&self.context));
-        self.stream.wait_for_all();
-    }
-}
+// /// Custom drop implementation for proper cleanup and event emission.
+// ///
+// /// When the engine is dropped, it emits a stop event to notify any listeners
+// /// that the evolutionary process has ended. This allows external systems to
+// /// perform cleanup operations or finalize results.
+// ///
+// /// # Event Emission
+// ///
+// /// The stop event includes the final context state, allowing listeners to:
+// /// - Record final metrics and statistics
+// /// - Save final population state
+// /// - Perform cleanup operations
+// /// - Generate final reports
+// /// - Integrate with external systems
+// impl<C, T> Drop for GeneticEngine<C, T>
+// where
+//     C: Chromosome,
+//     T: Clone + Send + Sync + 'static,
+// {
+//     fn drop(&mut self) {
+//         let is_stopped = self.context.is_stopped();
+//         if !is_stopped {
+//             self.stream.publish(EngineStop::from(&self.context));
+//             self.stream.wait_for_all();
+//             self.context.stop();
+//         }
+//     }
+// }

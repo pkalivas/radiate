@@ -1,11 +1,10 @@
-use radiate_core::{EngineState, Objective};
-
 use crate::{
-    EngineStart, EngineStop, EventId,
+    EngineStop, EventId,
     message::{CheckpointSaved, Warning},
 };
 use crate::{EventHandler, message::stream::EventCtx};
 use crate::{LimitTriggered, message::EpochComplete};
+use radiate_core::{EngineState, Objective};
 
 const STAGNATION_WARNING_THRESHOLD: usize = 5;
 const DIVERSITY_WARNING_THRESHOLD: f32 = 0.1;
@@ -158,9 +157,12 @@ where
     }
 }
 
-impl EventHandler<EngineStart> for LoggingHandler {
-    fn handle(&mut self, _: &EngineStart, ctx: &EventCtx) {
-        ctx.publish(LogEvent(LogLevel::Info, format!("Engine started")));
+impl EventHandler<EngineState> for LoggingHandler {
+    fn handle(&mut self, event: &EngineState, ctx: &EventCtx) {
+        ctx.publish(LogEvent(
+            LogLevel::Info,
+            format!("State Change: {:?}", event),
+        ));
     }
 }
 
@@ -170,15 +172,6 @@ where
 {
     fn handle(&mut self, _: &EngineStop<T>, ctx: &EventCtx) {
         ctx.publish(LogEvent(LogLevel::Info, format!("Engine stopped")));
-    }
-}
-
-impl EventHandler<EngineState> for LoggingHandler {
-    fn handle(&mut self, state: &EngineState, ctx: &EventCtx) {
-        ctx.publish(LogEvent(
-            LogLevel::Info,
-            format!("Engine state changed: {:?}", state),
-        ));
     }
 }
 

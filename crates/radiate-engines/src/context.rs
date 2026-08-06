@@ -12,13 +12,13 @@ pub struct EvolutionContext<C: Chromosome, T> {
     pub(crate) best: T,
     pub(crate) index: usize,
     pub(crate) metrics: MetricSet,
+    pub(crate) objective: Objective,
+    pub(crate) sync: ThreadSync,
     pub(crate) score: Option<Score>,
     pub(crate) front: Arc<RwLock<Front<Phenotype<C>>>>,
-    pub(crate) objective: Objective,
     pub(crate) problem: Arc<dyn Problem<C, T>>,
-    pub(crate) control: Option<ThreadSync>,
     pub(crate) exprs: Option<Arc<Mutex<ExprSet>>>,
-    pub(crate) event_bus: EventStream,
+    pub(crate) events: EventStream,
 }
 
 impl<C: Chromosome, T> EvolutionContext<C, T> {
@@ -43,17 +43,27 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
     }
 
     pub fn events(&self) -> &EventStream {
-        &self.event_bus
+        &self.events
+    }
+
+    pub fn is_stopped(&self) -> bool {
+        self.sync.is_stopped()
+    }
+
+    pub fn stop(&mut self) {
+        self.sync.stop();
+    }
+
+    pub fn is_paused(&self) -> bool {
+        self.sync.is_paused()
+    }
+
+    pub fn wait(&self) {
+        self.sync.wait()
     }
 
     pub fn get_or_create_control(&mut self) -> ThreadSync {
-        if self.control.is_none() {
-            let (one, two) = ThreadSync::pair();
-            self.control = Some(one);
-            return two;
-        }
-
-        self.control.as_ref().unwrap().clone()
+        self.sync.clone()
     }
 
     pub(crate) fn try_advance_one(&mut self) -> RadiateResult<bool> {
@@ -85,8 +95,6 @@ where
     T: Clone,
 {
     fn from(config: EngineConfig<C, T>) -> Self {
-        let sync = Some(config.sync());
-
         if let Some(generation) = config.generation() {
             return EvolutionContext {
                 ecosystem: generation.ecosystem().clone(),
@@ -97,9 +105,9 @@ where
                 front: config.front(),
                 objective: config.objective().clone(),
                 problem: config.problem().clone(),
-                control: sync,
+                sync: config.sync(),
                 exprs: generation.exprs(),
-                event_bus: config.event_bus(),
+                events: config.event_bus(),
             };
         }
 
@@ -117,9 +125,9 @@ where
             front: config.front(),
             objective: config.objective().clone(),
             problem: config.problem().clone(),
-            control: sync,
+            sync: config.sync(),
             exprs: config.exprs(),
-            event_bus: config.event_bus(),
+            events: config.event_bus(),
         }
     }
 }

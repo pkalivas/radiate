@@ -14,14 +14,7 @@ macro_rules! engine_message {
         impl EngineMessage for $t {}
     )* };
 }
-engine_message!(
-    EngineStart,
-    EpochStart,
-    LimitTriggered,
-    LimitProgress,
-    LogEvent,
-    CheckpointSaved,
-);
+engine_message!(EpochStart, LimitTriggered, LogEvent, CheckpointSaved,);
 impl<T: Clone + Send + Sync + 'static> sealed::Sealed for Improvement<T> {}
 impl<T: Clone + Send + Sync + 'static> EngineMessage for Improvement<T> {}
 
@@ -33,6 +26,14 @@ impl<T: Clone + Send + Sync + 'static> EngineMessage for EngineStop<T> {}
 
 impl<C: Chromosome + Clone> sealed::Sealed for EcosystemSnapshot<C> {}
 impl<C: Chromosome + Clone + Send + Sync + 'static> EngineMessage for EcosystemSnapshot<C> {}
+
+#[derive(Clone, Debug)]
+pub enum EngineState {
+    Start,
+    Running,
+    Paused,
+    Stopped,
+}
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CheckpointSaved {
@@ -47,44 +48,7 @@ pub struct Warning(pub String);
 pub struct LimitTriggered(pub usize, pub Limit);
 
 #[derive(Clone, Debug)]
-pub enum LimitProgress {
-    Generations {
-        current: usize,
-        limit: usize,
-    },
-    Time {
-        generation: usize,
-        elapsed: Duration,
-        limit: Duration,
-    },
-    Score {
-        generation: usize,
-        current: Score,
-        limit: Score,
-    },
-    Convergence {
-        generation: usize,
-        window: usize,
-        epsilon: f32,
-        diff: f32,
-    },
-    Expr {
-        generation: usize,
-        expression: String,
-    },
-    Combined {
-        generation: usize,
-        progress: Vec<LimitProgress>,
-    },
-}
-
-#[derive(Clone, Debug)]
-pub struct EngineStart;
-
-#[derive(Clone, Debug)]
-pub struct EpochStart {
-    pub index: usize,
-}
+pub struct EpochStart(pub usize);
 
 impl<C, T> From<&EvolutionContext<C, T>> for EpochStart
 where
@@ -92,7 +56,7 @@ where
     T: Clone,
 {
     fn from(ctx: &EvolutionContext<C, T>) -> Self {
-        EpochStart { index: ctx.index }
+        EpochStart(ctx.index)
     }
 }
 
@@ -209,113 +173,5 @@ impl<C: Chromosome + Clone, T> From<&EvolutionContext<C, T>> for EcosystemSnapsh
 impl<C: Chromosome> Debug for EcosystemSnapshot<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "EcosystemSnapshot(index={})", self.index)
-    }
-}
-
-impl LimitProgress {
-    pub fn generations(current: usize, limit: usize) -> Self {
-        LimitProgress::Generations { current, limit }
-    }
-
-    pub fn time(generation: usize, elapsed: Duration, limit: Duration) -> Self {
-        LimitProgress::Time {
-            generation,
-            elapsed,
-            limit,
-        }
-    }
-
-    pub fn score(generation: usize, current: Score, limit: Score) -> Self {
-        LimitProgress::Score {
-            generation,
-            current,
-            limit,
-        }
-    }
-
-    pub fn convergence(generation: usize, window: usize, epsilon: f32, diff: f32) -> Self {
-        LimitProgress::Convergence {
-            generation,
-            window,
-            epsilon,
-            diff,
-        }
-    }
-
-    pub fn expr(generation: usize, expression: String) -> Self {
-        LimitProgress::Expr {
-            generation,
-            expression,
-        }
-    }
-
-    pub fn index(&self) -> usize {
-        match self {
-            LimitProgress::Generations { current, .. } => *current,
-            LimitProgress::Time { generation, .. } => *generation,
-            LimitProgress::Score { generation, .. } => *generation,
-            LimitProgress::Convergence { generation, .. } => *generation,
-            LimitProgress::Expr { generation, .. } => *generation,
-            LimitProgress::Combined { generation, .. } => *generation,
-        }
-    }
-
-    pub fn kind(&self) -> &'static str {
-        match self {
-            LimitProgress::Generations { .. } => "Generations",
-            LimitProgress::Time { .. } => "Time",
-            LimitProgress::Score { .. } => "Score",
-            LimitProgress::Convergence { .. } => "Convergence",
-            LimitProgress::Expr { .. } => "Expression",
-            LimitProgress::Combined { .. } => "Combined",
-        }
-    }
-
-    pub fn description(&self) -> String {
-        match self {
-            LimitProgress::Generations { current, limit } => {
-                format!("[LIMIT] Generation progress: {current}/{limit}")
-            }
-            LimitProgress::Time {
-                generation,
-                elapsed,
-                limit,
-            } => {
-                format!("[LIMIT] Time progress: {elapsed:?}/{limit:?} (Generation {generation})")
-            }
-            LimitProgress::Score {
-                generation,
-                current,
-                limit,
-            } => {
-                format!("[LIMIT] Score progress: {current:?}/{limit:?} (Generation {generation})")
-            }
-            LimitProgress::Convergence {
-                generation,
-                window,
-                epsilon,
-                diff,
-            } => format!(
-                "[LIMIT] Convergence progress: |delta|={:.6} <= epsilon={epsilon} over window={window} (Generation {generation})",
-                diff
-            ),
-            LimitProgress::Expr {
-                generation,
-                expression,
-            } => format!(
-                "[LIMIT] Expression progress: Expression={expression} (Generation {generation})"
-            ),
-            LimitProgress::Combined {
-                generation,
-                progress,
-            } => {
-                let progress_descriptions: Vec<String> =
-                    progress.iter().map(|p| p.description()).collect();
-                format!(
-                    "[LIMIT] Combined progress (Generation {generation}):\n{}",
-                    progress_descriptions.join("\n")
-                )
-            }
-        }
     }
 }

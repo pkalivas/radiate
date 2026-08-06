@@ -13,9 +13,10 @@ use radiate_error::Result;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum EngineState {
+    PreStart,
     Running,
     Paused,
     Stopped,
@@ -118,6 +119,14 @@ pub trait Engine {
     /// can advance the engine without having to clone or create any new data, and possibly perform operations
     /// outside of the engine which don't require a snapshot of the engine state.
     fn step(&mut self) -> Result<EngineState>;
+
+    fn start(&mut self) -> Result<EngineState> {
+        Ok(EngineState::Running)
+    }
+
+    fn stop(&mut self) -> Result<EngineState> {
+        Ok(EngineState::Stopped)
+    }
 }
 
 pub trait EngineStream: Engine {

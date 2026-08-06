@@ -12,14 +12,11 @@ mod species;
 use crate::builder::filters::FilterParams;
 #[cfg(feature = "serde")]
 use crate::io::FileReader;
+use crate::objectives::{Objective, Optimize};
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
     TournamentSelector, context::EvolutionContext,
-};
-use crate::{
-    EngineStart,
-    objectives::{Objective, Optimize},
 };
 use crate::{EngineStop, pipeline::Pipeline};
 use crate::{EpochComplete, genome::phenotype::Phenotype};
@@ -217,7 +214,6 @@ where
 
         bus.subscribe::<EngineStop<T>>(LoggingHandler);
         bus.subscribe::<EpochComplete<T>>(LoggingHandler);
-        bus.subscribe::<EngineStart>(LoggingHandler);
         bus.subscribe::<LogEvent>(LoggingHandler);
         bus.subscribe::<LimitTriggered>(LoggingHandler);
         bus.subscribe::<Warning>(LoggingHandler);
