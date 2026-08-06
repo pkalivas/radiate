@@ -9,6 +9,7 @@ mod problem;
 mod selectors;
 mod species;
 
+use crate::builder::filters::FilterParams;
 #[cfg(feature = "serde")]
 use crate::io::FileReader;
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
@@ -32,14 +33,14 @@ use crate::{
         EngineStep, FilterStep, FrontStep, MetricStep, RecombineStep, SelectConfig, SpeciateStep,
     },
 };
-use crate::{builder::filters::FilterParams, init_logging};
 use crate::{builder::objectives::OptimizeParams, message::EventStream};
 use crate::{builder::problem::ProblemParams, message::LogEvent};
 use crate::{builder::species::SpeciesParams, message::Warning};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::{
-    Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Valid, env_vars, metric_names,
+    Alterer, Ecosystem, EngineState, Executor, Expr, FitnessEvaluator, Valid, env_vars,
+    metric_names,
 };
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
@@ -51,10 +52,7 @@ use radiate_core::{
 use radiate_utils::VersionedCounts;
 #[cfg(feature = "serde")]
 use serde::Deserialize;
-use std::{
-    env,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
 pub struct EngineParams<C, T>
@@ -218,14 +216,13 @@ where
 
         bus.subscribe(HealthMonitorHandler::<T>::default());
 
-        if env_vars::log_enabled().unwrap_or(false) {
-            bus.subscribe::<EngineStop<T>>(LoggingHandler);
-            bus.subscribe::<EpochComplete<T>>(LoggingHandler);
-            bus.subscribe::<EngineStart>(LoggingHandler);
-            bus.subscribe::<LogEvent>(LoggingHandler);
-            bus.subscribe::<LimitTriggered>(LoggingHandler);
-            bus.subscribe::<Warning>(LoggingHandler);
-        }
+        bus.subscribe::<EngineStop<T>>(LoggingHandler);
+        bus.subscribe::<EpochComplete<T>>(LoggingHandler);
+        bus.subscribe::<EngineStart>(LoggingHandler);
+        bus.subscribe::<LogEvent>(LoggingHandler);
+        bus.subscribe::<LimitTriggered>(LoggingHandler);
+        bus.subscribe::<Warning>(LoggingHandler);
+        bus.subscribe::<EngineState>(LoggingHandler);
 
         self.params.event_bus = bus;
 
@@ -509,8 +506,6 @@ where
     T: Clone + Send + 'static,
 {
     fn default() -> Self {
-        init_logging();
-
         GeneticEngineBuilder {
             params: EngineParams {
                 population_params: PopulationParams {

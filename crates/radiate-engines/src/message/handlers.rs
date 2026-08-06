@@ -1,4 +1,4 @@
-use radiate_core::Objective;
+use radiate_core::{EngineState, Objective};
 
 use crate::{
     EngineStart, EngineStop, EventId,
@@ -94,30 +94,37 @@ impl EventHandler<LogEvent> for LoggingHandler {
 
 impl EventHandler<LimitTriggered> for LoggingHandler {
     fn handle(&mut self, message: &LimitTriggered, ctx: &EventCtx) {
-        log_event(
-            ctx.id(),
+        ctx.publish(LogEvent(
             LogLevel::Info,
             format!("Limit triggered: {:?}", message.1),
-        );
+        ));
     }
 }
 
 impl EventHandler<Warning> for LoggingHandler {
     fn handle(&mut self, message: &Warning, ctx: &EventCtx) {
-        log_event(ctx.id(), LogLevel::Warn, message.0.clone());
+        ctx.publish(LogEvent(LogLevel::Warn, message.0.clone()));
+        // log_event(ctx.id(), LogLevel::Warn, message.0.clone());
     }
 }
 
 impl EventHandler<CheckpointSaved> for LoggingHandler {
     fn handle(&mut self, message: &CheckpointSaved, ctx: &EventCtx) {
-        log_event(
-            ctx.id(),
+        ctx.publish(LogEvent(
             LogLevel::Info,
             format!(
                 "Checkpoint saved at index {}: {}",
                 message.index, message.path
             ),
-        );
+        ));
+        // log_event(
+        //     ctx.id(),
+        //     LogLevel::Info,
+        //     format!(
+        //         "Checkpoint saved at index {}: {}",
+        //         message.index, message.path
+        //     ),
+        // );
     }
 }
 
@@ -134,8 +141,7 @@ where
 
         match event.objective {
             Objective::Single(_) => {
-                log_event(
-                    ctx.id(),
+                ctx.publish(LogEvent(
                     LogLevel::Info,
                     format!(
                         "Epoch {:<4} | Score: {:>8.4} | Time: {:>5.2?}",
@@ -143,20 +149,38 @@ where
                         event.score.as_f32(),
                         time
                     ),
-                );
+                ));
+                // log_event(
+                //     ctx.id(),
+                //     LogLevel::Info,
+                //     format!(
+                //         "Epoch {:<4} | Score: {:>8.4} | Time: {:>5.2?}",
+                //         event.index,
+                //         event.score.as_f32(),
+                //         time
+                //     ),
+                // );
             }
             Objective::Multi(_) => {
                 let front_size = event.metrics.front_size();
                 let front_size_value = front_size.map(|ent| ent.last_value()).unwrap_or(0.0);
 
-                log_event(
-                    ctx.id(),
+                ctx.publish(LogEvent(
                     LogLevel::Info,
                     format!(
                         "Epoch {:<4} | Front Size: {:.3} | Time: {:>5.2?}",
                         event.index, front_size_value, time
                     ),
-                );
+                ));
+
+                // log_event(
+                //     ctx.id(),
+                //     LogLevel::Info,
+                //     format!(
+                //         "Epoch {:<4} | Front Size: {:.3} | Time: {:>5.2?}",
+                //         event.index, front_size_value, time
+                //     ),
+                // );
             }
         }
     }
@@ -164,7 +188,8 @@ where
 
 impl EventHandler<EngineStart> for LoggingHandler {
     fn handle(&mut self, _: &EngineStart, ctx: &EventCtx) {
-        log_event(ctx.id(), LogLevel::Info, format!("Engine started"));
+        ctx.publish(LogEvent(LogLevel::Info, format!("Engine started")));
+        // log_event(ctx.id(), LogLevel::Info, format!("Engine started"));
     }
 }
 
@@ -173,7 +198,22 @@ where
     T: Send + Sync + 'static,
 {
     fn handle(&mut self, _: &EngineStop<T>, ctx: &EventCtx) {
-        log_event(ctx.id(), LogLevel::Info, format!("Engine stopped"));
+        ctx.publish(LogEvent(LogLevel::Info, format!("Engine stopped")));
+        // log_event(ctx.id(), LogLevel::Info, format!("Engine stopped"));
+    }
+}
+
+impl EventHandler<EngineState> for LoggingHandler {
+    fn handle(&mut self, state: &EngineState, ctx: &EventCtx) {
+        ctx.publish(LogEvent(
+            LogLevel::Info,
+            format!("Engine state changed: {:?}", state),
+        ));
+        // log_event(
+        //     ctx.id(),
+        //     LogLevel::Info,
+        //     format!("Engine state changed: {:?}", state),
+        // );
     }
 }
 

@@ -5,7 +5,7 @@ use crate::message::{
 use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
 use crate::{GenerationView, builder::GeneticEngineBuilder};
-use crate::{context::EvolutionContext, message::EngineStart};
+use crate::{context::EvolutionContext, message::EngineStart, message::Event};
 use radiate_core::{Engine, engine::EngineState};
 use radiate_core::{EngineStream, error::Result};
 
@@ -138,7 +138,7 @@ where
     /// such as epoch completions, improvements, or custom messages emitted during the evolutionary process.
     pub fn subscribe<M>(&self, handler: impl EventHandler<M> + Send + Sync + 'static)
     where
-        M: EngineMessage + Send + Sync + 'static,
+        M: Event + Send + Sync + 'static,
     {
         self.actor.subscribe(handler);
     }
@@ -188,7 +188,9 @@ where
             if control.is_stopped() {
                 return Ok(EngineState::Stopped);
             } else if control.is_paused() {
+                self.actor.publish(EngineState::Paused);
                 control.wait();
+                self.actor.publish(EngineState::Running);
             }
         }
 

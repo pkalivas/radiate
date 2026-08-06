@@ -2,7 +2,7 @@ use crate::app::{App, GenerationEvent, InputEvent};
 use color_eyre::{Result, eyre::Context};
 use radiate_engines::{
     Chromosome, Engine, EngineState, EngineStream, Generation, GenerationView, GeneticEngine,
-    error::RadiateResult, message::LogEvent, sync::ArcExt,
+    error::RadiateResult, message::LogEvent, sync::IntoPair,
 };
 use radiate_engines::{EngineRuntime, EvolutionContext, ThreadSync};
 use std::{
@@ -19,7 +19,7 @@ where
 {
     inner: GeneticEngine<C, T>,
     control: ThreadSync,
-    dispatcher: Arc<mpsc::Sender<InputEvent<C>>>,
+    dispatcher: mpsc::Sender<InputEvent<C>>,
     app_thread: Option<std::thread::JoinHandle<Result<()>>>,
     key_thread: Option<std::thread::JoinHandle<Result<()>>>,
 }
@@ -36,7 +36,7 @@ where
         let (dispatch_one, dispatch_two) = app.dispatcher().into_pair();
         let stop_flag = control.stop_flag();
 
-        Self::setup_subscriptions(&mut inner, Arc::clone(&dispatch_one));
+        Self::setup_subscriptions(&mut inner, &dispatch_one);
 
         let app_thread = std::thread::spawn(move || {
             let terminal = ratatui::init();
@@ -58,6 +58,8 @@ where
             Ok(())
         });
 
+        control.set_paused(true);
+
         Self {
             inner,
             control,
@@ -73,14 +75,25 @@ where
 
     fn setup_subscriptions(
         engine: &mut GeneticEngine<C, T>,
-        dispatcher: Arc<mpsc::Sender<InputEvent<C>>>,
+        dispatcher: &mpsc::Sender<InputEvent<C>>,
     ) {
-        let dispatch = Arc::clone(&dispatcher);
+        let dispatch = dispatcher.clone();
         engine.subscribe::<LogEvent>(move |msg: &LogEvent| {
             dispatch
                 .send(InputEvent::Log(msg.0, msg.1.clone()))
+                .map_err(|e| eprintln!("Failed to send log event: {:?}", msg))
                 .unwrap();
         });
+
+        // let dispatch = dispatcher.clone();
+        // engine.subscribe::<EngineState>(move |state: &EngineState| {
+        //     dispatch
+        //         .send(InputEvent::Log(
+        //             radiate_engines::LogLevel::Info,
+        //             format!("{:?}", state),
+        //         ))
+        //         .unwrap();
+        // });
     }
 }
 

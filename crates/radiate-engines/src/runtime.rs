@@ -1,8 +1,7 @@
-use crate::actions::LoggingAction;
-use crate::generation::GenerationView;
 use crate::{Engine, EvolutionContext, Generation, Limit};
 #[cfg(feature = "serde")]
 use crate::{FileWriter, JsonWriter};
+use crate::{generation::GenerationView, init_logging};
 use radiate_core::error::{RadiateResult, Result};
 use radiate_core::rate::Expr;
 use radiate_core::{Chromosome, EngineState, Score, radiate_err};
@@ -212,11 +211,7 @@ where
     T: Clone + Send + Sync + 'static,
 {
     pub fn logging(self) -> EngineRuntime<E> {
-        self.log_every(1)
-    }
-
-    pub fn log_every(mut self, every: usize) -> EngineRuntime<E> {
-        // self.add_action(LoggingAction(every));
+        init_logging();
         self
     }
 

@@ -86,7 +86,7 @@ where
         }
     }
 
-    pub fn dispatcher(&self) -> Arc<mpsc::Sender<InputEvent<C>>> {
+    pub fn dispatcher(&self) -> mpsc::Sender<InputEvent<C>> {
         self.channel.dispatcher()
     }
 
