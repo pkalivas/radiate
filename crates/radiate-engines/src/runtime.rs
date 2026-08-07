@@ -24,7 +24,6 @@ pub struct EngineRuntime<E: Engine> {
     engine: E,
     actions: Option<Vec<Box<dyn RuntimeAction<E>>>>,
     limits: Option<Vec<Box<dyn RuntimeLimit<E>>>>,
-    done: bool,
     state: EngineState,
 }
 
@@ -34,7 +33,6 @@ impl<E: Engine> EngineRuntime<E> {
             engine,
             actions: None,
             limits: None,
-            done: false,
             state: EngineState::PreStart,
         }
     }

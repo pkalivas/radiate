@@ -1,6 +1,6 @@
 use crate::{Limit, context::EvolutionContext, message::LogEvent};
 use radiate_core::{Chromosome, Ecosystem, MetricSet, Objective, Score};
-use std::{fmt::Debug, sync::Arc, time::Duration};
+use std::{fmt::Debug, sync::Arc};
 
 mod sealed {
     pub trait Sealed {}
@@ -26,14 +26,6 @@ impl<T: Clone + Send + Sync + 'static> EngineMessage for EngineStop<T> {}
 
 impl<C: Chromosome + Clone> sealed::Sealed for EcosystemSnapshot<C> {}
 impl<C: Chromosome + Clone + Send + Sync + 'static> EngineMessage for EcosystemSnapshot<C> {}
-
-#[derive(Clone, Debug)]
-pub enum EngineState {
-    Start,
-    Running,
-    Paused,
-    Stopped,
-}
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CheckpointSaved {

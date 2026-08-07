@@ -210,14 +210,14 @@ where
             if workers > 1 && !executor.changed {}
         }
 
-        bus.subscribe(HealthMonitorHandler::<T>::default());
+        // bus.subscribe(HealthMonitorHandler::<T>::default());
 
-        bus.subscribe::<EngineStop<T>>(LoggingHandler);
-        bus.subscribe::<EpochComplete<T>>(LoggingHandler);
-        bus.subscribe::<LogEvent>(LoggingHandler);
-        bus.subscribe::<LimitTriggered>(LoggingHandler);
-        bus.subscribe::<Warning>(LoggingHandler);
-        bus.subscribe::<EngineState>(LoggingHandler);
+        // bus.subscribe::<EngineStop<T>>(LoggingHandler);
+        // bus.subscribe::<EpochComplete<T>>(LoggingHandler);
+        // bus.subscribe::<LogEvent>(LoggingHandler);
+        // bus.subscribe::<LimitTriggered>(LoggingHandler);
+        // bus.subscribe::<Warning>(LoggingHandler);
+        // bus.subscribe::<EngineState>(LoggingHandler);
 
         println!("Event bus executor: {:?}", bus);
 

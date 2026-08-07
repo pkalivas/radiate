@@ -22,7 +22,7 @@ pub use generation::{Generation, GenerationView};
 pub use io::{FileReader, FileWriter, JsonReader, JsonWriter};
 pub use limit::Limit;
 pub use message::{
-    EngineMessage, EngineStop, EpochComplete, EventCtx, EventHandler, EventId, Improvement,
+    Actor, EngineMessage, EngineStop, EpochComplete, EventCtx, EventHandler, EventId, Improvement,
     LimitTriggered, LogLevel, LoggingHandler,
 };
 pub use runtime::EngineRuntime;
@@ -37,7 +37,7 @@ pub use radiate_core::*;
 pub use radiate_error::{RadiateError, ensure, radiate_err};
 pub use radiate_selectors::*;
 pub use radiate_utils::Shape;
-use tracing_subscriber::EnvFilter;
+use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
 pub(crate) type Result<T> = std::result::Result<T, RadiateError>;
 
@@ -75,6 +75,7 @@ pub fn init_logging() {
             {
                 "json" => init_json_logging(filter),
                 "pretty" => init_pretty_logging(filter),
+                "tree" => init_tree_logging(filter),
                 _ => init_compact_logging(filter),
             }
         }
@@ -86,6 +87,15 @@ pub fn init_logging() {
     std::panic::set_hook(Box::new(|info| {
         tracing::error!("{}", info);
     }));
+}
+
+fn init_tree_logging(filter: EnvFilter) {
+    INIT_LOGGING.lock().unwrap().call_once(|| {
+        tracing_subscriber::registry()
+            .with(filter)
+            .with(tracing_forest::ForestLayer::default())
+            .init();
+    });
 }
 
 fn init_compact_logging(filter: EnvFilter) {

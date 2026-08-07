@@ -23,6 +23,7 @@ serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 rayon = { workspace = true, optional = true }
 dotenvy = { workspace = true }
+crossbeam = { workspace = true }
 
 [dev-dependencies]
 serde = { workspace = true }
