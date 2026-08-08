@@ -1,38 +1,44 @@
 use crate::{
-    EngineStop, EventId,
-    message::{CheckpointSaved, Warning},
+    Actor, EngineStop, EventHandler,
+    message::{CheckpointSaved, MessageHandler, Warning, actor::ActorContext},
 };
-use crate::{EventHandler, message::stream::EventCtx};
 use crate::{LimitTriggered, message::EpochComplete};
+use radiate_core::MetricSet;
 use radiate_core::{EngineState, Objective};
+use std::marker::PhantomData;
+use std::sync::Arc;
 
 const STAGNATION_WARNING_THRESHOLD: usize = 5;
 const DIVERSITY_WARNING_THRESHOLD: f32 = 0.1;
 const LARGEST_SPECIES_SHARE_WARNING_THRESHOLD: f32 = 0.9;
 
-#[derive(Clone)]
-pub struct HealthMonitorHandler<T>(std::marker::PhantomData<T>);
+pub struct HealthMonitor<T> {
+    _marker: PhantomData<T>,
+}
 
-impl<T> EventHandler<EpochComplete<T>> for HealthMonitorHandler<T>
+impl<T> Default for HealthMonitor<T> {
+    fn default() -> Self {
+        HealthMonitor {
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<T> Actor for HealthMonitor<T> where T: Send + Sync + 'static {}
+
+impl<T> MessageHandler<Arc<EpochComplete<T>>> for HealthMonitor<T>
 where
     T: Send + Sync + 'static,
 {
-    fn handle(&mut self, message: &EpochComplete<T>, ctx: &EventCtx) {
-        check_stagnation(message, ctx);
-        check_diversity(message, ctx);
-        check_species_collapse(message, ctx);
+    fn handle(&mut self, message: Arc<EpochComplete<T>>, ctx: &ActorContext<Self>) {
+        check_stagnation(&message.metrics, ctx);
+        check_diversity(&message.metrics, ctx);
+        check_species_collapse(&message.metrics, ctx);
     }
 }
 
-impl<T> Default for HealthMonitorHandler<T> {
-    fn default() -> Self {
-        HealthMonitorHandler(std::marker::PhantomData)
-    }
-}
-
-fn check_stagnation<T>(message: &EpochComplete<T>, ctx: &EventCtx) {
-    let stag_count = message
-        .metrics
+fn check_stagnation<A: Actor>(metrics: &MetricSet, ctx: &ActorContext<A>) {
+    let stag_count = metrics
         .stagnation_count()
         .map(|met| met.last_value() as usize)
         .unwrap_or_default();
@@ -45,8 +51,8 @@ fn check_stagnation<T>(message: &EpochComplete<T>, ctx: &EventCtx) {
     }
 }
 
-fn check_diversity<T>(message: &EpochComplete<T>, ctx: &EventCtx) {
-    let Some(ratio) = message.metrics.diversity_ratio() else {
+fn check_diversity<A: Actor>(metrics: &MetricSet, ctx: &ActorContext<A>) {
+    let Some(ratio) = metrics.diversity_ratio() else {
         return;
     };
 
@@ -59,8 +65,8 @@ fn check_diversity<T>(message: &EpochComplete<T>, ctx: &EventCtx) {
     }
 }
 
-fn check_species_collapse<T>(message: &EpochComplete<T>, ctx: &EventCtx) {
-    let Some(share) = message.metrics.largest_species_share() else {
+fn check_species_collapse<A: Actor>(metrics: &MetricSet, ctx: &ActorContext<A>) {
+    let Some(share) = metrics.largest_species_share() else {
         return;
     };
 
@@ -86,13 +92,33 @@ pub struct LogEvent(pub LogLevel, pub String);
 pub struct LoggingHandler;
 
 impl EventHandler<LogEvent> for LoggingHandler {
-    fn handle(&mut self, message: &LogEvent, ctx: &EventCtx) {
-        log_event(ctx.id(), message.0, message.1.clone());
+    fn handle(&mut self, message: &LogEvent) {
+        match message.0 {
+            LogLevel::Info => tracing::info!("{}", message.1),
+            LogLevel::Warn => tracing::warn!("{}", message.1),
+        }
     }
 }
 
-impl EventHandler<LimitTriggered> for LoggingHandler {
-    fn handle(&mut self, message: &LimitTriggered, ctx: &EventCtx) {
+pub struct EngineLogger<T> {
+    _marker: PhantomData<T>,
+}
+
+impl<T> EngineLogger<T> {
+    pub fn new() -> Self {
+        EngineLogger {
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<T> Actor for EngineLogger<T> where T: Send + Sync + 'static {}
+
+impl<T> MessageHandler<Arc<LimitTriggered>> for EngineLogger<T>
+where
+    T: Send + Sync + 'static,
+{
+    fn handle(&mut self, message: Arc<LimitTriggered>, ctx: &ActorContext<Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
             format!("Limit triggered: {:?}", message.1),
@@ -100,14 +126,20 @@ impl EventHandler<LimitTriggered> for LoggingHandler {
     }
 }
 
-impl EventHandler<Warning> for LoggingHandler {
-    fn handle(&mut self, message: &Warning, ctx: &EventCtx) {
+impl<T> MessageHandler<Arc<Warning>> for EngineLogger<T>
+where
+    T: Send + Sync + 'static,
+{
+    fn handle(&mut self, message: Arc<Warning>, ctx: &ActorContext<Self>) {
         ctx.publish(LogEvent(LogLevel::Warn, message.0.clone()));
     }
 }
 
-impl EventHandler<CheckpointSaved> for LoggingHandler {
-    fn handle(&mut self, message: &CheckpointSaved, ctx: &EventCtx) {
+impl<T> MessageHandler<Arc<CheckpointSaved>> for EngineLogger<T>
+where
+    T: Send + Sync + 'static,
+{
+    fn handle(&mut self, message: Arc<CheckpointSaved>, ctx: &ActorContext<Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
             format!(
@@ -118,66 +150,58 @@ impl EventHandler<CheckpointSaved> for LoggingHandler {
     }
 }
 
-impl<T> EventHandler<EpochComplete<T>> for LoggingHandler
+impl<T> MessageHandler<Arc<EpochComplete<T>>> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
-    fn handle(&mut self, event: &EpochComplete<T>, ctx: &EventCtx) {
+    fn handle(&mut self, event: Arc<EpochComplete<T>>, ctx: &ActorContext<Self>) {
         let time = event
             .metrics
             .time()
             .and_then(|m| m.times().map(|t| t.sum()))
             .unwrap_or_default();
 
-        match event.objective {
-            Objective::Single(_) => {
-                ctx.publish(LogEvent(
-                    LogLevel::Info,
-                    format!(
-                        "Epoch {:<4} | Score: {:>8.4} | Time: {:>5.2?}",
-                        event.index,
-                        event.score.as_f32(),
-                        time
-                    ),
-                ));
-            }
+        let msg = match event.objective {
+            Objective::Single(_) => format!(
+                "Epoch {:<4} | Score: {:>8.4} | Time: {:>5.2?}",
+                event.index,
+                event.score.as_f32(),
+                time
+            ),
             Objective::Multi(_) => {
-                let front_size = event.metrics.front_size();
-                let front_size_value = front_size.map(|ent| ent.last_value()).unwrap_or(0.0);
-
-                ctx.publish(LogEvent(
-                    LogLevel::Info,
-                    format!(
-                        "Epoch {:<4} | Front Size: {:.3} | Time: {:>5.2?}",
-                        event.index, front_size_value, time
-                    ),
-                ));
+                let front_size = event
+                    .metrics
+                    .front_size()
+                    .map(|ent| ent.last_value())
+                    .unwrap_or(0.0);
+                format!(
+                    "Epoch {:<4} | Front Size: {:.3} | Time: {:>5.2?}",
+                    event.index, front_size, time
+                )
             }
-        }
+        };
+
+        ctx.publish(LogEvent(LogLevel::Info, msg));
     }
 }
 
-impl EventHandler<EngineState> for LoggingHandler {
-    fn handle(&mut self, event: &EngineState, ctx: &EventCtx) {
+impl<T> MessageHandler<Arc<EngineState>> for EngineLogger<T>
+where
+    T: Send + Sync + 'static,
+{
+    fn handle(&mut self, event: Arc<EngineState>, ctx: &ActorContext<Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
-            format!("State Change: {:?}", event),
+            format!("State Change: {:?}", *event),
         ));
     }
 }
 
-impl<T> EventHandler<EngineStop<T>> for LoggingHandler
+impl<T> MessageHandler<Arc<EngineStop<T>>> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
-    fn handle(&mut self, _: &EngineStop<T>, ctx: &EventCtx) {
-        ctx.publish(LogEvent(LogLevel::Info, format!("Engine stopped")));
-    }
-}
-
-fn log_event(id: &EventId, level: LogLevel, message: String) {
-    match level {
-        LogLevel::Info => tracing::info!("{} - {}", id, message),
-        LogLevel::Warn => tracing::warn!("{} - {}", id, message),
+    fn handle(&mut self, _: Arc<EngineStop<T>>, ctx: &ActorContext<Self>) {
+        ctx.publish(LogEvent(LogLevel::Info, "Engine stopped".into()));
     }
 }

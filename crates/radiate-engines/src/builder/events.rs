@@ -9,9 +9,9 @@ where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
 {
-    pub fn subscribe<M>(self, handler: impl EventHandler<M> + Send + Sync + 'static) -> Self
+    pub fn subscribe<M>(self, handler: impl EventHandler<M>) -> Self
     where
-        M: Event + Send + Sync + 'static,
+        M: Event,
     {
         self.params.event_bus.subscribe(handler);
         self

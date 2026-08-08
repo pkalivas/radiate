@@ -2,7 +2,7 @@ use crate::{IntoPyAnyObject, PyAnyObject, PyMetricSet, bindings::subscriber};
 use numpy::PyArray1;
 use pyo3::{IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
-    Chromosome, EpochComplete, EventCtx, GeneticEngineBuilder, LimitTriggered, Objective,
+    Chromosome, EpochComplete, GeneticEngineBuilder, LimitTriggered, Objective,
     message::{CheckpointSaved, EngineStop, EpochStart, EventHandler, Improvement, LogEvent},
 };
 use std::fmt::Debug;
@@ -57,7 +57,7 @@ impl<T> EventHandler<EngineStop<T>> for PySubscriber
 where
     T: IntoPyAnyObject + Clone,
 {
-    fn handle(&mut self, event: &EngineStop<T>, _: &EventCtx) {
+    fn handle(&mut self, event: &EngineStop<T>) {
         Python::attach(|py| {
             let py_event = subscriber::PyEngineEvent::stop(
                 event.index,
@@ -78,7 +78,7 @@ where
 }
 
 impl EventHandler<EpochStart> for PySubscriber {
-    fn handle(&mut self, event: &EpochStart, _: &EventCtx) {
+    fn handle(&mut self, event: &EpochStart) {
         Python::attach(|py| {
             let py_event = subscriber::PyEngineEvent::epoch_start(event.0);
             self.function
@@ -93,7 +93,7 @@ impl<T> EventHandler<EpochComplete<T>> for PySubscriber
 where
     T: IntoPyAnyObject + Clone,
 {
-    fn handle(&mut self, event: &EpochComplete<T>, _: &EventCtx) {
+    fn handle(&mut self, event: &EpochComplete<T>) {
         Python::attach(|py| {
             let py_event = subscriber::PyEngineEvent::epoch_complete(
                 event.index,
@@ -118,7 +118,7 @@ impl<T> EventHandler<Improvement<T>> for PySubscriber
 where
     T: IntoPyAnyObject + Clone,
 {
-    fn handle(&mut self, event: &Improvement<T>, _: &EventCtx) {
+    fn handle(&mut self, event: &Improvement<T>) {
         Python::attach(|py| {
             let py_event = subscriber::PyEngineEvent::improvement(
                 event.index,
@@ -138,7 +138,7 @@ where
 }
 
 impl EventHandler<LimitTriggered> for PySubscriber {
-    fn handle(&mut self, event: &LimitTriggered, _: &EventCtx) {
+    fn handle(&mut self, event: &LimitTriggered) {
         Python::attach(|py| {
             let py_event =
                 subscriber::PyEngineEvent::limit_triggered(event.0, Some(format!("{:?}", event.1)));
@@ -151,7 +151,7 @@ impl EventHandler<LimitTriggered> for PySubscriber {
 }
 
 impl EventHandler<LogEvent> for PySubscriber {
-    fn handle(&mut self, event: &LogEvent, _: &EventCtx) {
+    fn handle(&mut self, event: &LogEvent) {
         Python::attach(|py| {
             let py_event = subscriber::PyEngineEvent::log_event(event.1.clone());
             self.function
@@ -163,7 +163,7 @@ impl EventHandler<LogEvent> for PySubscriber {
 }
 
 impl EventHandler<CheckpointSaved> for PySubscriber {
-    fn handle(&mut self, event: &CheckpointSaved, _: &EventCtx) {
+    fn handle(&mut self, event: &CheckpointSaved) {
         Python::attach(|py| {
             let py_event = PyEngineEvent::checkpoint_saved(event.index, event.path.clone());
             self.function

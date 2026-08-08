@@ -9,10 +9,8 @@ mod problem;
 mod selectors;
 mod species;
 
-use crate::builder::filters::FilterParams;
 #[cfg(feature = "serde")]
 use crate::io::FileReader;
-use crate::objectives::{Objective, Optimize};
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
@@ -22,17 +20,22 @@ use crate::{EngineStop, pipeline::Pipeline};
 use crate::{EpochComplete, genome::phenotype::Phenotype};
 use crate::{Generation, Result};
 use crate::{LimitTriggered, builder::selectors::SelectionParams};
-use crate::{LoggingHandler, builder::population::PopulationParams};
-use crate::{builder::evaluators::EvaluationParams, message::HealthMonitorHandler};
+use crate::{builder::evaluators::EvaluationParams, message::Addr};
 use crate::{
     builder::evaluators::ExecutorParams,
     steps::{
         EngineStep, FilterStep, FrontStep, MetricStep, RecombineStep, SelectConfig, SpeciateStep,
     },
 };
+use crate::{builder::filters::FilterParams, message::EngineLogger};
 use crate::{builder::objectives::OptimizeParams, message::EventStream};
-use crate::{builder::problem::ProblemParams, message::LogEvent};
+use crate::{builder::population::PopulationParams, message::CheckpointSaved};
+use crate::{builder::problem::ProblemParams, message::LoggingHandler};
 use crate::{builder::species::SpeciesParams, message::Warning};
+use crate::{
+    message::HealthMonitor,
+    objectives::{Objective, Optimize},
+};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::{
@@ -210,14 +213,28 @@ where
             if workers > 1 && !executor.changed {}
         }
 
-        // bus.subscribe(HealthMonitorHandler::<T>::default());
+        let logger = Addr::spawn_with_bus(
+            EngineLogger::<T>::new(),
+            executor.executor.clone(),
+            Some(bus.clone()),
+        );
 
-        // bus.subscribe::<EngineStop<T>>(LoggingHandler);
-        // bus.subscribe::<EpochComplete<T>>(LoggingHandler);
-        // bus.subscribe::<LogEvent>(LoggingHandler);
-        // bus.subscribe::<LimitTriggered>(LoggingHandler);
-        // bus.subscribe::<Warning>(LoggingHandler);
-        // bus.subscribe::<EngineState>(LoggingHandler);
+        let health = Addr::spawn_with_bus(
+            HealthMonitor::<T>::default(),
+            executor.executor.clone(),
+            Some(bus.clone()),
+        );
+
+        logger.subscribe::<LimitTriggered>();
+        logger.subscribe::<Warning>();
+        logger.subscribe::<CheckpointSaved>();
+        logger.subscribe::<EpochComplete<T>>();
+        logger.subscribe::<EngineState>();
+        logger.subscribe::<EngineStop<T>>();
+
+        health.subscribe::<EpochComplete<T>>();
+
+        bus.subscribe(LoggingHandler);
 
         println!("Event bus executor: {:?}", bus);
 

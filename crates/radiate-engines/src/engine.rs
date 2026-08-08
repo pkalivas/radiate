@@ -1,9 +1,12 @@
-use crate::message::{
-    EcosystemSnapshot, EngineStop, EpochComplete, EpochStart, EventHandler, EventStream,
-    Improvement, Subscription,
-};
 use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
+use crate::{
+    EventHandler,
+    message::{
+        EcosystemSnapshot, EngineStop, EpochComplete, EpochStart, EventStream, Improvement,
+        Subscription,
+    },
+};
 use crate::{GenerationView, builder::GeneticEngineBuilder};
 use crate::{context::EvolutionContext, message::Event};
 use radiate_core::{Engine, EngineState};
@@ -199,10 +202,6 @@ where
             self.context.wait();
             self.stream.publish(EngineState::Running);
         }
-
-        // if matches!(self.context.index, 0) {
-        //     self.stream.publish(EngineStart);
-        // }
 
         self.stream.publish(EpochStart::from(&self.context));
         self.pipeline.run(&mut self.context)?;

@@ -1,31 +1,6 @@
-use crate::{Limit, context::EvolutionContext, message::LogEvent};
+use crate::{Limit, context::EvolutionContext};
 use radiate_core::{Chromosome, Ecosystem, MetricSet, Objective, Score};
 use std::{fmt::Debug, sync::Arc};
-
-mod sealed {
-    pub trait Sealed {}
-}
-
-pub trait EngineMessage: sealed::Sealed + std::fmt::Debug + Clone {}
-
-macro_rules! engine_message {
-    ($($t:ty),* $(,)?) => { $(
-        impl sealed::Sealed for $t {}
-        impl EngineMessage for $t {}
-    )* };
-}
-engine_message!(EpochStart, LimitTriggered, LogEvent, CheckpointSaved,);
-impl<T: Clone + Send + Sync + 'static> sealed::Sealed for Improvement<T> {}
-impl<T: Clone + Send + Sync + 'static> EngineMessage for Improvement<T> {}
-
-impl<T: Clone + Send + Sync + 'static> sealed::Sealed for EpochComplete<T> {}
-impl<T: Clone + Send + Sync + 'static> EngineMessage for EpochComplete<T> {}
-
-impl<T: Clone + Send + Sync + 'static> sealed::Sealed for EngineStop<T> {}
-impl<T: Clone + Send + Sync + 'static> EngineMessage for EngineStop<T> {}
-
-impl<C: Chromosome + Clone> sealed::Sealed for EcosystemSnapshot<C> {}
-impl<C: Chromosome + Clone + Send + Sync + 'static> EngineMessage for EcosystemSnapshot<C> {}
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CheckpointSaved {

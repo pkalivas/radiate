@@ -49,10 +49,11 @@ where
         let executor = Arc::new(executor);
         let param = ExecutorParams {
             changed: true,
-            executor: executor.clone(),
+            executor: Arc::clone(&executor),
         };
+
         self.params.evaluation_params = EvaluationParams {
-            evaluator: Arc::new(FitnessEvaluator::new(executor.clone())),
+            evaluator: Arc::new(FitnessEvaluator::new(Arc::clone(&executor))),
             fitness_executor: param.clone(),
             species_executor: param.clone(),
             event_bus_executor: param,

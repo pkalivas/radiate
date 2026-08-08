@@ -22,8 +22,8 @@ pub use generation::{Generation, GenerationView};
 pub use io::{FileReader, FileWriter, JsonReader, JsonWriter};
 pub use limit::Limit;
 pub use message::{
-    Actor, EngineMessage, EngineStop, EpochComplete, EventCtx, EventHandler, EventId, Improvement,
-    LimitTriggered, LogLevel, LoggingHandler,
+    Actor, EngineStop, EpochComplete, EventHandler, EventId, Improvement, LimitTriggered,
+    Subscription,
 };
 pub use runtime::EngineRuntime;
 
