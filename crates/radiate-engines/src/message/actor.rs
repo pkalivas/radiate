@@ -135,8 +135,10 @@ impl<T> Mailbox<T> {
     }
 }
 
+type ProcessFn<A> = Box<dyn FnOnce(&mut A, &ActorContext<A>) + Send>;
+
 struct Envelope<A> {
-    run: Box<dyn FnOnce(&mut A, &ActorContext<A>) + Send>,
+    run: ProcessFn<A>,
     span: tracing::Span,
 }
 

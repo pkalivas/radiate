@@ -152,12 +152,12 @@ where
 
         match outcome {
             LimitOutcome::Proceed => {
-                return Ok(true);
+                Ok(true)
             }
             LimitOutcome::Stop => {
                 ctx.events()
                     .publish(LimitTriggered(ctx.index, self.clone()));
-                return Ok(false);
+                Ok(false)
             }
         }
     }

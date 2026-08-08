@@ -104,6 +104,12 @@ pub struct EngineLogger<T> {
     _marker: PhantomData<T>,
 }
 
+impl<T> Default for EngineLogger<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> EngineLogger<T> {
     pub fn new() -> Self {
         EngineLogger {

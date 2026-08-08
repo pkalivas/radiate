@@ -160,7 +160,7 @@ impl EventStream {
 
     fn register(&self, type_id: TypeId, registration: Registration) {
         let mut subscribers = self.subscribers.write().unwrap();
-        let list = subscribers.entry(type_id).or_insert_with(Arc::default);
+        let list = subscribers.entry(type_id).or_default();
         Arc::make_mut(list).push(registration);
     }
 

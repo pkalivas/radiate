@@ -210,10 +210,11 @@ where
         let mut stream = self.params.event_stream.clone();
         let executor = self.params.evaluation_params.event_stream_executor.clone();
 
-        if let Some(workers) = env_vars::num_threads() {
-            if workers > 1 && !executor.changed {
-                stream.set_executor(Arc::new(Executor::new_parallel()));
-            }
+        if let Some(workers) = env_vars::num_threads()
+            && workers > 1
+            && !executor.changed
+        {
+            stream.set_executor(Arc::new(Executor::new_parallel()));
         }
 
         let logger = stream.spawn(EngineLogger::<T>::new());

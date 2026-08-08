@@ -60,7 +60,7 @@ impl<E: Engine> EngineRuntime<E> {
 
         self.state = match self.engine.step()? {
             EngineState::Stopped => self.engine.stop()?,
-            state @ _ => {
+            state => {
                 if let Some(actions) = &mut self.actions {
                     let ctx = self.engine.context();
                     for action in actions.iter_mut() {
