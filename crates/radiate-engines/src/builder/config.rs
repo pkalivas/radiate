@@ -30,7 +30,7 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     exprs: Option<Arc<Mutex<ExprSet>>>,
     generation: Option<Generation<C, T>>,
     sync: Option<ThreadSync>,
-    event_bus: EventStream,
+    event_stream: EventStream,
 }
 
 impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
@@ -90,8 +90,8 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         Arc::clone(&self.executor.species_executor.executor)
     }
 
-    pub fn event_bus(&self) -> EventStream {
-        self.event_bus.clone()
+    pub fn event_stream(&self) -> EventStream {
+        self.event_stream.clone()
     }
 
     /// The single `ThreadSync` this engine (and every actor subscribed on
@@ -160,7 +160,7 @@ where
             exprs: params.exprs.clone(),
             filters: params.filter_params.filters.clone(),
             sync: Some(params.evaluation_params.sync.clone()),
-            event_bus: params.event_bus.clone(),
+            event_stream: params.event_stream.clone(),
         }
     }
 }

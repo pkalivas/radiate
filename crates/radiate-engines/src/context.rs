@@ -107,7 +107,7 @@ where
                 problem: config.problem().clone(),
                 sync: config.sync(),
                 exprs: generation.exprs(),
-                events: config.event_bus(),
+                events: config.event_stream(),
             };
         }
 
@@ -127,7 +127,7 @@ where
             problem: config.problem().clone(),
             sync: config.sync(),
             exprs: config.exprs(),
-            events: config.event_bus(),
+            events: config.event_stream(),
         }
     }
 }

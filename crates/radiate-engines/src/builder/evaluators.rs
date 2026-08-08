@@ -17,7 +17,7 @@ where
     pub evaluator: Arc<dyn Evaluator<C, T>>,
     pub fitness_executor: ExecutorParams,
     pub species_executor: ExecutorParams,
-    pub event_bus_executor: ExecutorParams,
+    pub event_stream_executor: ExecutorParams,
     pub sync: ThreadSync,
 }
 
@@ -56,7 +56,7 @@ where
             evaluator: Arc::new(FitnessEvaluator::new(Arc::clone(&executor))),
             fitness_executor: param.clone(),
             species_executor: param.clone(),
-            event_bus_executor: param,
+            event_stream_executor: param,
             sync: self.params.evaluation_params.sync.clone(),
         };
         self
@@ -79,7 +79,7 @@ where
     }
 
     pub fn broker_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
-        self.params.evaluation_params.event_bus_executor = ExecutorParams {
+        self.params.evaluation_params.event_stream_executor = ExecutorParams {
             changed: true,
             executor: executor.into(),
         };

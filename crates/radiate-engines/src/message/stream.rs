@@ -75,6 +75,10 @@ impl EventStream {
         }
     }
 
+    pub fn spawn<A: Actor>(&self, actor: A) -> Addr<A> {
+        Addr::spawn_with_bus(actor, Arc::clone(&self.executor), Some(self.clone()))
+    }
+
     pub fn set_executor(&mut self, executor: Arc<Executor>) {
         self.executor = executor;
     }

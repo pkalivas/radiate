@@ -9,8 +9,7 @@ mod problem;
 mod selectors;
 mod species;
 
-#[cfg(feature = "serde")]
-use crate::io::FileReader;
+use crate::builder::evaluators::EvaluationParams;
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
@@ -20,13 +19,14 @@ use crate::{EngineStop, pipeline::Pipeline};
 use crate::{EpochComplete, genome::phenotype::Phenotype};
 use crate::{Generation, Result};
 use crate::{LimitTriggered, builder::selectors::SelectionParams};
-use crate::{builder::evaluators::EvaluationParams, message::Addr};
 use crate::{
     builder::evaluators::ExecutorParams,
     steps::{
         EngineStep, FilterStep, FrontStep, MetricStep, RecombineStep, SelectConfig, SpeciateStep,
     },
 };
+#[cfg(feature = "serde")]
+use crate::{builder::events::CheckpointParams, io::FileReader};
 use crate::{builder::filters::FilterParams, message::EngineLogger};
 use crate::{builder::objectives::OptimizeParams, message::EventStream};
 use crate::{builder::population::PopulationParams, message::CheckpointSaved};
@@ -67,10 +67,12 @@ where
     pub optimization_params: OptimizeParams<C>,
     pub problem_params: ProblemParams<C, T>,
     pub filter_params: FilterParams<C>,
+    #[cfg(feature = "serde")]
+    pub checkpoint_params: CheckpointParams<C, T>,
 
     pub alterers: Vec<Alterer<C>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-    pub event_bus: EventStream,
+    pub event_stream: EventStream,
     pub generation: Option<Generation<C, T>>,
     pub exprs: Option<Arc<Mutex<ExprSet>>>,
 }
@@ -198,33 +200,23 @@ where
         pipeline.add_step(Self::build_species_step(&config));
         pipeline.add_step(Self::build_audit_step(&config));
 
-        let event_system = config.event_bus();
+        let event_system = config.event_stream();
         let context = EvolutionContext::from(config);
 
         Ok(GeneticEngine::<C, T>::new(context, pipeline, event_system))
     }
 
     fn build_event_bus(&mut self) -> Result<()> {
-        let mut bus = self.params.event_bus.clone();
-        let executor = self.params.evaluation_params.event_bus_executor.clone();
+        let mut stream = self.params.event_stream.clone();
+        let executor = self.params.evaluation_params.event_stream_executor.clone();
 
-        if let Some(workers) = env_vars::max_threads() {
-            bus.set_executor(Arc::new(Executor::new_parallel()));
-            if workers > 1 && !executor.changed {}
+        if let Some(workers) = env_vars::num_threads() {
+            if workers > 1 && !executor.changed {
+                stream.set_executor(Arc::new(Executor::new_parallel()));
+            }
         }
 
-        let logger = Addr::spawn_with_bus(
-            EngineLogger::<T>::new(),
-            executor.executor.clone(),
-            Some(bus.clone()),
-        );
-
-        let health = Addr::spawn_with_bus(
-            HealthMonitor::<T>::default(),
-            executor.executor.clone(),
-            Some(bus.clone()),
-        );
-
+        let logger = stream.spawn(EngineLogger::<T>::new());
         logger.subscribe::<LimitTriggered>();
         logger.subscribe::<Warning>();
         logger.subscribe::<CheckpointSaved>();
@@ -232,13 +224,12 @@ where
         logger.subscribe::<EngineState>();
         logger.subscribe::<EngineStop<T>>();
 
+        let health = stream.spawn(HealthMonitor::<T>::default());
         health.subscribe::<EpochComplete<T>>();
 
-        bus.subscribe(LoggingHandler);
+        stream.subscribe(LoggingHandler);
 
-        println!("Event bus executor: {:?}", bus);
-
-        self.params.event_bus = bus;
+        self.params.event_stream = stream;
 
         Ok(())
     }
@@ -537,7 +528,7 @@ where
                     evaluator: Arc::new(FitnessEvaluator::default()),
                     fitness_executor: ExecutorParams::default(),
                     species_executor: ExecutorParams::default(),
-                    event_bus_executor: ExecutorParams::default(),
+                    event_stream_executor: ExecutorParams::default(),
                     sync: ThreadSync::new(),
                 },
                 selection_params: SelectionParams {
@@ -561,10 +552,16 @@ where
                 filter_params: FilterParams {
                     filters: Vec::new(),
                 },
+                #[cfg(feature = "serde")]
+                checkpoint_params: CheckpointParams {
+                    interval: None,
+                    path: None,
+                    writer: None,
+                },
 
                 replacement_strategy: Arc::new(EncodeReplace),
                 alterers: Vec::new(),
-                event_bus: EventStream::default(),
+                event_stream: EventStream::default(),
                 exprs: None,
                 generation: None,
             },

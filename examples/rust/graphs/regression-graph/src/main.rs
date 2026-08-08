@@ -25,17 +25,6 @@ fn main() {
         ))
         .build();
 
-    // engine.subscribe::<EngineStop<Graph<Op<f32>>>>(|event: &EngineStop<Graph<Op<f32>>>| {
-    //     Accuracy::default()
-    //         .named("Regression Graph")
-    //         .on(&dataset().into())
-    //         .loss(Loss::MSE)
-    //         .eval(&event.best)
-    //         .inspect(|acc| {
-    //             println!("{:?}\n{acc:?}\n{}", event.best, event.metrics.dashboard());
-    //         });
-    // });
-
     engine
         .iter()
         .logging()

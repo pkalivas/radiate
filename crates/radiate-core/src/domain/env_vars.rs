@@ -8,7 +8,7 @@ pub struct EnvConfig {
     log_level: Option<String>,
     log_format: Option<String>,
     seed: Option<u64>,
-    max_threads: Option<usize>,
+    num_threads: Option<usize>,
 }
 
 impl EnvConfig {
@@ -33,10 +33,10 @@ impl EnvConfig {
                 }
                 parsed
             }),
-            max_threads: std::env::var("RADIATE_MAX_THREADS").ok().and_then(|s| {
+            num_threads: std::env::var("RADIATE_NUM_THREADS").ok().and_then(|s| {
                 let parsed = s.parse().ok();
                 if parsed.is_none() {
-                    eprintln!("RADIATE_MAX_THREADS={s:?} is not a valid usize, ignoring");
+                    eprintln!("RADIATE_NUM_THREADS={s:?} is not a valid usize, ignoring");
                 }
                 parsed
             }),
@@ -64,6 +64,6 @@ pub fn seed() -> Option<u64> {
     ENV_CONFIG.seed
 }
 
-pub fn max_threads() -> Option<usize> {
-    ENV_CONFIG.max_threads
+pub fn num_threads() -> Option<usize> {
+    ENV_CONFIG.num_threads
 }
