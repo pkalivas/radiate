@@ -54,7 +54,7 @@ pub struct PyCheckpointReader(pub String);
 
 impl<C: Chromosome, T> FileReader<Generation<C, T>> for PyCheckpointReader
 where
-    Generation<C, T>: for<'de> DeserializeOwned + From<EpochHandle>,
+    Generation<C, T>: DeserializeOwned + From<EpochHandle>,
     C: Chromosome + Clone,
     T: Clone,
 {
