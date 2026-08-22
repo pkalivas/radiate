@@ -18,7 +18,6 @@ class EventType(Enum):
     LIMIT_TRIGGERED = "limit_triggered_event"
     LOG = "log_event"
     CHECKPOINT_SAVED = "checkpoint_saved_event"
-    LIMIT_PROGRESS = "limit_progress_event"
 
 
 class EngineEvent(RsObject):
@@ -63,8 +62,6 @@ class EngineEvent(RsObject):
             return EventType.LOG
         elif event_type_str == "checkpoint_saved_event":
             return EventType.CHECKPOINT_SAVED
-        elif event_type_str == "limit_progress_event":
-            return EventType.LIMIT_PROGRESS
         else:
             raise ValueError(f"Unknown event type: {event_type_str}")
 
@@ -296,15 +293,6 @@ def on_limit_triggered(func: Callable[["EngineEvent"], None]) -> CallableEventHa
     :return: A CallableEventHandler instance.
     """
     return CallableEventHandler(func, EventType.LIMIT_TRIGGERED)
-
-
-def on_limit_progress(func: Callable[["EngineEvent"], None]) -> CallableEventHandler:
-    """
-    Decorator to register a function as an event handler for the LIMIT_PROGRESS event.
-    :param func: The function to register as an event handler.
-    :return: A CallableEventHandler instance.
-    """
-    return CallableEventHandler(func, EventType.LIMIT_PROGRESS)
 
 
 def on_log(func: Callable[["EngineEvent"], None]) -> CallableEventHandler:

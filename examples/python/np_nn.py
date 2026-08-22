@@ -62,11 +62,6 @@ def metrics_dashboard(event: rd.EngineEvent):
     print(event.metrics().dashboard())
 
 
-@rd.on_limit_progress
-def prog(event: rd.EngineEvent):
-    print(f"Limit progress: {event.limit_progress()}%")
-
-
 engine = (
     rd.Engine.float(
         # Create an engine that evolves genomes with 3 chromosomes, one for each
@@ -84,14 +79,14 @@ engine = (
     )
     .fitness(fit)
     .minimizing()
-    # .subscribe(metrics_dashboard, prog)
+    # .subscribe(metrics_dashboard)
     .select(rd.Select.boltzmann(temp=4.0))
     .alters(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
     .limit(
         rd.Limit.score(0.01),
         rd.Limit.generations(500),
         rd.Limit.seconds(30),
-        rd.Limit.expr((rd.Expr.select("index") > 10).alias("index_limit")),
+        # rd.Limit.expr((rd.Expr.select("index") > 10).alias("index_limit")),
     )
 )
 

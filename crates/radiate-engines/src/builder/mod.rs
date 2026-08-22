@@ -181,7 +181,7 @@ where
             ));
         }
 
-        self.build_event_bus()?;
+        self.build_event_stream()?;
         self.build_problem()?;
         self.build_population()?;
         self.build_alterer()?;
@@ -206,7 +206,7 @@ where
         Ok(GeneticEngine::<C, T>::new(context, pipeline, event_system))
     }
 
-    fn build_event_bus(&mut self) -> Result<()> {
+    fn build_event_stream(&mut self) -> Result<()> {
         let mut stream = self.params.event_stream.clone();
         let executor = self.params.evaluation_params.event_stream_executor.clone();
 

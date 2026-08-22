@@ -8,7 +8,7 @@ use radiate_core::{EngineState, Objective};
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-const STAGNATION_WARNING_THRESHOLD: usize = 5;
+const STAGNATION_WARNING_THRESHOLD: usize = 50;
 const DIVERSITY_WARNING_THRESHOLD: f32 = 0.1;
 const LARGEST_SPECIES_SHARE_WARNING_THRESHOLD: f32 = 0.9;
 
