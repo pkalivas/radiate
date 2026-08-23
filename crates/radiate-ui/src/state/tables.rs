@@ -9,6 +9,7 @@ pub struct TableStates {
     pub dist: AppTableState<SmallStr>,
     pub species: AppTableState<SpeciesId>,
     pub log: AppTableState<usize>,
+    pub events: AppTableState<usize>,
 }
 
 impl TableStates {
@@ -19,6 +20,7 @@ impl TableStates {
             DashboardTab::Distribution => Self::scroll_down(&mut self.dist),
             DashboardTab::Species => Self::scroll_down(&mut self.species),
             DashboardTab::Log | DashboardTab::Front => Self::scroll_down(&mut self.log),
+            DashboardTab::Events => Self::scroll_down(&mut self.events),
         }
     }
 
@@ -29,6 +31,7 @@ impl TableStates {
             DashboardTab::Distribution => Self::scroll_up(&mut self.dist),
             DashboardTab::Species => Self::scroll_up(&mut self.species),
             DashboardTab::Log | DashboardTab::Front => Self::scroll_up(&mut self.log),
+            DashboardTab::Events => Self::scroll_up(&mut self.events),
         }
     }
 
@@ -39,6 +42,7 @@ impl TableStates {
             DashboardTab::Distribution => Self::scroll_page_down(&mut self.dist),
             DashboardTab::Species => Self::scroll_page_down(&mut self.species),
             DashboardTab::Log | DashboardTab::Front => Self::scroll_page_down(&mut self.log),
+            DashboardTab::Events => Self::scroll_page_down(&mut self.events),
         }
     }
 
@@ -49,6 +53,7 @@ impl TableStates {
             DashboardTab::Distribution => Self::scroll_page_up(&mut self.dist),
             DashboardTab::Species => Self::scroll_page_up(&mut self.species),
             DashboardTab::Log | DashboardTab::Front => Self::scroll_page_up(&mut self.log),
+            DashboardTab::Events => Self::scroll_page_up(&mut self.events),
         }
     }
 
@@ -59,6 +64,7 @@ impl TableStates {
             DashboardTab::Distribution => Self::scroll_to(&mut self.dist, 0),
             DashboardTab::Species => Self::scroll_to(&mut self.species, 0),
             DashboardTab::Log | DashboardTab::Front => Self::scroll_to(&mut self.log, 0),
+            DashboardTab::Events => Self::scroll_to(&mut self.events, 0),
         }
     }
 
@@ -84,6 +90,10 @@ impl TableStates {
                 let last = self.log.row_count.saturating_sub(1);
                 Self::scroll_to(&mut self.log, last);
             }
+            DashboardTab::Events => {
+                let last = self.events.row_count.saturating_sub(1);
+                Self::scroll_to(&mut self.events, last);
+            }
         }
     }
 
@@ -92,7 +102,10 @@ impl TableStates {
             DashboardTab::Time => self.time.selected_value.as_deref(),
             DashboardTab::Stats => self.stats.selected_value.as_deref(),
             DashboardTab::Distribution => self.dist.selected_value.as_deref(),
-            DashboardTab::Species | DashboardTab::Log | DashboardTab::Front => None,
+            DashboardTab::Species
+            | DashboardTab::Log
+            | DashboardTab::Front
+            | DashboardTab::Events => None,
         }
     }
 
@@ -168,6 +181,7 @@ impl Default for TableStates {
             dist: AppTableState::new(),
             species: AppTableState::new(),
             log: AppTableState::new(),
+            events: AppTableState::new(),
         }
     }
 }

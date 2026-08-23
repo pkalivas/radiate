@@ -1,7 +1,7 @@
-use std::sync::{Arc, mpsc};
+use std::sync::mpsc;
 
 pub struct CommandChannel<T> {
-    sender: Arc<mpsc::Sender<T>>,
+    sender: mpsc::Sender<T>,
     receiver: mpsc::Receiver<T>,
 }
 
@@ -9,13 +9,13 @@ impl<T> CommandChannel<T> {
     pub fn new() -> Self {
         let (tx, rx) = mpsc::channel();
         Self {
-            sender: Arc::new(tx),
+            sender: tx,
             receiver: rx,
         }
     }
 
-    pub fn dispatcher(&self) -> Arc<mpsc::Sender<T>> {
-        Arc::clone(&self.sender)
+    pub fn dispatcher(&self) -> mpsc::Sender<T> {
+        self.sender.clone()
     }
 
     pub fn next(&self) -> Result<T, mpsc::RecvError> {
@@ -34,6 +34,16 @@ impl<T> Iterator for CommandChannel<T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.receiver.recv().ok()
+    }
+}
+
+pub trait IntoPair<T> {
+    fn into_pair(self) -> (T, T);
+}
+
+impl<T> IntoPair<mpsc::Sender<T>> for mpsc::Sender<T> {
+    fn into_pair(self) -> (mpsc::Sender<T>, mpsc::Sender<T>) {
+        (self.clone(), self)
     }
 }
 

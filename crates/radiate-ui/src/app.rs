@@ -3,8 +3,8 @@ use crate::widgets::{AppWidget, HelpPanelWidget, LayoutNode, MetricModalWidget, 
 use color_eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use radiate_engines::{
-    Chromosome, CommandChannel, Ecosystem, ThreadSync, EvolutionContext, Front, MetricSet,
-    Phenotype, Score,
+    Chromosome, CommandChannel, Ecosystem, EvolutionContext, Front, MetricSet, Phenotype, Score,
+    ThreadSync, message::LogLevel,
 };
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -54,6 +54,7 @@ where
     EngineStart(Arc<RwLock<Front<Phenotype<C>>>>),
     EngineStop,
     EpochComplete(GenerationEvent<C>),
+    Log(LogLevel, String),
 }
 
 pub(crate) struct App<C>
@@ -85,7 +86,7 @@ where
         }
     }
 
-    pub fn dispatcher(&self) -> Arc<mpsc::Sender<InputEvent<C>>> {
+    pub fn dispatcher(&self) -> mpsc::Sender<InputEvent<C>> {
         self.channel.dispatcher()
     }
 
@@ -128,6 +129,9 @@ where
                 }
 
                 self.state.run.last_render = Some(now);
+            }
+            InputEvent::Log(level, message) => {
+                self.state.evo.push_event_log_entry(level, message);
             }
         }
 

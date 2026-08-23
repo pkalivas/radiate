@@ -1,13 +1,13 @@
 use crate::Chromosome;
-use crate::Generation;
 use crate::builder::EngineParams;
 use crate::builder::evaluators::EvaluationParams;
 use crate::genome::phenotype::Phenotype;
 use crate::objectives::Objective;
-use crate::{EventHandler, Front, Problem, ReplacementStrategy, Select};
-use radiate_core::EcosystemFilter;
+use crate::{Front, Problem, ReplacementStrategy, Select};
+use crate::{Generation, message::EventStream};
 use radiate_core::rate::ExprSet;
 use radiate_core::{Alterer, Diversity, Ecosystem, Evaluator, Executor, Genotype};
+use radiate_core::{EcosystemFilter, ThreadSync};
 use std::sync::{Arc, Mutex, RwLock};
 
 #[derive(Clone)]
@@ -27,9 +27,10 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     front: Arc<RwLock<Front<Phenotype<C>>>>,
     offspring_fraction: f32,
     executor: EvaluationParams<C, T>,
-    handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
     exprs: Option<Arc<Mutex<ExprSet>>>,
     generation: Option<Generation<C, T>>,
+    sync: Option<ThreadSync>,
+    event_stream: EventStream,
 }
 
 impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
@@ -85,16 +86,21 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         (self.ecosystem.population().len() as f32 * self.offspring_fraction) as usize
     }
 
-    pub fn bus_executor(&self) -> Arc<Executor> {
-        Arc::clone(&self.executor.bus_executor)
-    }
-
     pub fn species_executor(&self) -> Arc<Executor> {
-        Arc::clone(&self.executor.species_executor)
+        Arc::clone(&self.executor.species_executor.executor)
     }
 
-    pub fn handlers(&self) -> Vec<Arc<Mutex<dyn EventHandler<T>>>> {
-        self.handlers.clone()
+    pub fn event_stream(&self) -> EventStream {
+        self.event_stream.clone()
+    }
+
+    /// The single `ThreadSync` this engine (and every actor subscribed on
+    /// its `ActorSystem`) shares — always set by `EngineConfig::from`, so
+    /// this never has to lazily create one.
+    pub fn sync(&self) -> ThreadSync {
+        self.sync
+            .clone()
+            .expect("EngineConfig::from always sets sync")
     }
 
     pub fn problem(&self) -> Arc<dyn Problem<C, T>> {
@@ -150,10 +156,11 @@ where
             offspring_fraction: params.selection_params.offspring_fraction,
             evaluator: params.evaluation_params.evaluator.clone(),
             executor: params.evaluation_params.clone(),
-            handlers: params.handlers.clone(),
             generation: params.generation.clone(),
             exprs: params.exprs.clone(),
             filters: params.filter_params.filters.clone(),
+            sync: Some(params.evaluation_params.sync.clone()),
+            event_stream: params.event_stream.clone(),
         }
     }
 }

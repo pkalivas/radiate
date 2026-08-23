@@ -5,7 +5,7 @@ mod thread_pool;
 
 use std::sync::Arc;
 
-pub use channel::CommandChannel;
+pub use channel::{CommandChannel, IntoPair};
 pub use control::ThreadSync;
 pub use group::{WaitGroup, WaitGuard};
 pub use thread_pool::{WorkResult, get_thread_pool};

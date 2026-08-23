@@ -1,5 +1,5 @@
-use crate::builder::config::EngineConfig;
 use crate::{Chromosome, ThreadSync};
+use crate::{builder::config::EngineConfig, message::EventStream};
 use radiate_core::error::RadiateResult;
 use radiate_core::rate::ExprSet;
 use radiate_core::{
@@ -12,12 +12,13 @@ pub struct EvolutionContext<C: Chromosome, T> {
     pub(crate) best: T,
     pub(crate) index: usize,
     pub(crate) metrics: MetricSet,
+    pub(crate) objective: Objective,
+    pub(crate) sync: ThreadSync,
     pub(crate) score: Option<Score>,
     pub(crate) front: Arc<RwLock<Front<Phenotype<C>>>>,
-    pub(crate) objective: Objective,
     pub(crate) problem: Arc<dyn Problem<C, T>>,
-    pub(crate) control: Option<ThreadSync>,
     pub(crate) exprs: Option<Arc<Mutex<ExprSet>>>,
+    pub(crate) events: EventStream,
 }
 
 impl<C: Chromosome, T> EvolutionContext<C, T> {
@@ -41,14 +42,28 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.front.clone()
     }
 
-    pub fn get_or_create_control(&mut self) -> ThreadSync {
-        if self.control.is_none() {
-            let (one, two) = ThreadSync::pair();
-            self.control = Some(one);
-            return two;
-        }
+    pub fn events(&self) -> &EventStream {
+        &self.events
+    }
 
-        self.control.as_ref().unwrap().clone()
+    pub fn is_stopped(&self) -> bool {
+        self.sync.is_stopped()
+    }
+
+    pub fn stop(&mut self) {
+        self.sync.stop();
+    }
+
+    pub fn is_paused(&self) -> bool {
+        self.sync.is_paused()
+    }
+
+    pub fn wait(&self) {
+        self.sync.wait()
+    }
+
+    pub fn get_or_create_control(&mut self) -> ThreadSync {
+        self.sync.clone()
     }
 
     pub(crate) fn try_advance_one(&mut self) -> RadiateResult<bool> {
@@ -90,8 +105,9 @@ where
                 front: config.front(),
                 objective: config.objective().clone(),
                 problem: config.problem().clone(),
-                control: None,
+                sync: config.sync(),
                 exprs: generation.exprs(),
+                events: config.event_stream(),
             };
         }
 
@@ -109,8 +125,9 @@ where
             front: config.front(),
             objective: config.objective().clone(),
             problem: config.problem().clone(),
-            control: None,
+            sync: config.sync(),
             exprs: config.exprs(),
+            events: config.event_stream(),
         }
     }
 }

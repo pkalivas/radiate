@@ -1,8 +1,7 @@
-use crate::actions::LoggingAction;
-use crate::generation::GenerationView;
-use crate::{Engine, EvolutionContext, Generation, Limit, init_logging};
+use crate::{Engine, EvolutionContext, Generation, Limit};
 #[cfg(feature = "serde")]
 use crate::{FileWriter, JsonWriter};
+use crate::{generation::GenerationView, init_logging};
 use radiate_core::error::{RadiateResult, Result};
 use radiate_core::rate::Expr;
 use radiate_core::{Chromosome, EngineState, Score, radiate_err};
@@ -25,7 +24,7 @@ pub struct EngineRuntime<E: Engine> {
     engine: E,
     actions: Option<Vec<Box<dyn RuntimeAction<E>>>>,
     limits: Option<Vec<Box<dyn RuntimeLimit<E>>>>,
-    done: bool,
+    state: EngineState,
 }
 
 impl<E: Engine> EngineRuntime<E> {
@@ -34,14 +33,19 @@ impl<E: Engine> EngineRuntime<E> {
             engine,
             actions: None,
             limits: None,
-            done: false,
+            state: EngineState::PreStart,
         }
     }
 
     #[inline]
     pub fn run(mut self) -> Result<E::Epoch> {
+        if matches!(self.state, EngineState::PreStart) {
+            self.engine.start();
+            self.state = EngineState::Running;
+        }
+
         loop {
-            if self.done {
+            if matches!(self.state, EngineState::Stopped) {
                 return Ok(self.engine.epoch());
             }
 
@@ -51,33 +55,39 @@ impl<E: Engine> EngineRuntime<E> {
 
     #[inline]
     fn step(&mut self) -> Result<()> {
-        if self.done {
+        if matches!(self.state, EngineState::Stopped) {
             return Err(radiate_err!(Engine: "Engine has already completed"));
         }
 
-        let state = self.engine.step()?;
-
-        if matches!(state, EngineState::Stopped) {
-            self.done = true;
-            return Ok(());
-        }
-
-        if let Some(actions) = &mut self.actions {
-            let ctx = self.engine.context();
-            for action in actions.iter_mut() {
-                action.execute(ctx)?;
+        // TODO: idk, I don't love this. Lets refactor. There is
+        // too much state being mutated in the scope then being set at on close of the scope. Messy, man.
+        self.state = match self.engine.step()? {
+            EngineState::Stopped => {
+                self.engine.stop();
+                EngineState::Stopped
             }
-        }
-
-        if let Some(limits) = &mut self.limits {
-            let ctx = self.engine.context();
-            for limit in limits.iter_mut() {
-                if !limit.proceed(ctx)? {
-                    self.done = true;
-                    return Ok(());
+            state => {
+                if let Some(actions) = &mut self.actions {
+                    let ctx = self.engine.context();
+                    for action in actions.iter_mut() {
+                        action.execute(ctx)?;
+                    }
                 }
+
+                if let Some(limits) = &mut self.limits {
+                    let ctx = self.engine.context();
+                    for limit in limits.iter_mut() {
+                        if !limit.proceed(ctx)? {
+                            self.engine.stop();
+                            self.state = EngineState::Stopped;
+                            return Ok(());
+                        }
+                    }
+                }
+
+                state
             }
-        }
+        };
 
         Ok(())
     }
@@ -107,7 +117,8 @@ impl<E: Engine> EngineRuntime<E> {
     }
 }
 
-/// General iter fns for the `EngineRuntime` struct, allowing for a more ergonomic and fluent interface when configuring the runtime.
+/// General iter fns for the `EngineRuntime` struct, allowing for a more ergonomic
+/// and fluent interface when configuring the runtime.
 impl<C, T, E> EngineRuntime<E>
 where
     E: Engine<Epoch = Generation<C, T>, Ctx = EvolutionContext<C, T>>,
@@ -185,11 +196,20 @@ where
             Limit::Combined(lims) => lims
                 .into_iter()
                 .fold(self, |runtime, limit| runtime.limit(limit)),
+            Limit::Fn => self,
         }
     }
 
     pub fn take(self, count: usize) -> EngineRuntime<E> {
         self.until_generation(count)
+    }
+
+    pub fn take_while<F>(self, predicate: F) -> EngineRuntime<E>
+    where
+        C: 'static,
+        F: Fn(GenerationView<C, T>) -> bool + 'static,
+    {
+        self.until(move |view: GenerationView<C, T>| -> bool { !predicate(view) })
     }
 }
 
@@ -202,13 +222,7 @@ where
     T: Clone + Send + Sync + 'static,
 {
     pub fn logging(self) -> EngineRuntime<E> {
-        self.log_every(1)
-    }
-
-    pub fn log_every(mut self, every: usize) -> EngineRuntime<E> {
         init_logging();
-        let action = LoggingAction(every);
-        self.add_action(action);
         self
     }
 
@@ -263,6 +277,7 @@ where
         };
 
         self.add_action(action);
+
         self
     }
 }
@@ -274,7 +289,7 @@ where
     type Item = E::Epoch;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.done {
+        if matches!(self.state, EngineState::Stopped) {
             return None;
         }
 

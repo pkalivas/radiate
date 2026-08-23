@@ -14,7 +14,6 @@ radiate/.vs
 *.so
 *.pytest_cache
 *.benchmarks
-.coverage
 *uv.lock
 *ruff_cache
 pyrightconfig.json
@@ -22,8 +21,8 @@ pyrightconfig.json
 **libradiate.dylib.dSYM**
 .github/makefile
 *.claude
-docs.md
 site/
 examples/data/results/*
 *.mypy_cache
 *examples/data/scratch/*
+*.coverage*

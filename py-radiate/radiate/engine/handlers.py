@@ -15,6 +15,9 @@ class EventType(Enum):
     EPOCH_START = "epoch_start_event"
     EPOCH_COMPLETE = "epoch_complete_event"
     ENGINE_IMPROVEMENT = "engine_improvement_event"
+    LIMIT_TRIGGERED = "limit_triggered_event"
+    LOG = "log_event"
+    CHECKPOINT_SAVED = "checkpoint_saved_event"
 
 
 class EngineEvent(RsObject):
@@ -53,6 +56,12 @@ class EngineEvent(RsObject):
             return EventType.EPOCH_COMPLETE
         elif event_type_str == "engine_improvement_event":
             return EventType.ENGINE_IMPROVEMENT
+        elif event_type_str == "limit_triggered_event":
+            return EventType.LIMIT_TRIGGERED
+        elif event_type_str == "log_event":
+            return EventType.LOG
+        elif event_type_str == "checkpoint_saved_event":
+            return EventType.CHECKPOINT_SAVED
         else:
             raise ValueError(f"Unknown event type: {event_type_str}")
 
@@ -91,6 +100,31 @@ class EngineEvent(RsObject):
         """
         return self.try_get_cache(
             "objective_cache", lambda: self.__backend__().objective()
+        )
+
+    def description(self) -> str | None:
+        """
+        Get the description of the event.
+        :return: The description of the event.
+        """
+        return self.try_get_cache(
+            "description_cache", lambda: self.__backend__().description()
+        )
+
+    def limit(self) -> str | None:
+        """
+        Get the limit of the event.
+        :return: The limit of the event.
+        """
+        return self.try_get_cache("limit_cache", lambda: self.__backend__().limit())
+
+    def limit_progress(self) -> float | None:
+        """
+        Get the limit progress of the event.
+        :return: The limit progress of the event.
+        """
+        return self.try_get_cache(
+            "limit_progress_cache", lambda: self.__backend__().limit_progress()
         )
 
 
@@ -250,3 +284,30 @@ def on_improvement(func: Callable[["EngineEvent"], None]) -> CallableEventHandle
     :return: A CallableEventHandler instance.
     """
     return CallableEventHandler(func, EventType.ENGINE_IMPROVEMENT)
+
+
+def on_limit_triggered(func: Callable[["EngineEvent"], None]) -> CallableEventHandler:
+    """
+    Decorator to register a function as an event handler for the LIMIT_TRIGGERED event.
+    :param func: The function to register as an event handler.
+    :return: A CallableEventHandler instance.
+    """
+    return CallableEventHandler(func, EventType.LIMIT_TRIGGERED)
+
+
+def on_log(func: Callable[["EngineEvent"], None]) -> CallableEventHandler:
+    """
+    Decorator to register a function as an event handler for the LOG event.
+    :param func: The function to register as an event handler.
+    :return: A CallableEventHandler instance.
+    """
+    return CallableEventHandler(func, EventType.LOG)
+
+
+def on_checkpoint_saved(func: Callable[["EngineEvent"], None]) -> CallableEventHandler:
+    """
+    Decorator to register a function as an event handler for the CHECKPOINT_SAVED event.
+    :param func: The function to register as an event handler.
+    :return: A CallableEventHandler instance.
+    """
+    return CallableEventHandler(func, EventType.CHECKPOINT_SAVED)

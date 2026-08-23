@@ -1,6 +1,7 @@
 mod alters;
 pub(crate) mod config;
 mod evaluators;
+mod events;
 mod filters;
 mod objectives;
 mod population;
@@ -13,28 +14,35 @@ use crate::builder::filters::FilterParams;
 use crate::builder::objectives::OptimizeParams;
 use crate::builder::population::PopulationParams;
 use crate::builder::problem::ProblemParams;
-use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
-use crate::genome::phenotype::Phenotype;
-#[cfg(feature = "serde")]
-use crate::io::FileReader;
-use crate::objectives::{Objective, Optimize};
-use crate::pipeline::Pipeline;
-use crate::steps::{
-    EngineStep, FilterStep, FrontStep, MetricStep, RecombineStep, SelectConfig, SpeciateStep,
-};
+use crate::message::{CheckpointSaved, EngineLogger, EventStream, LoggingHandler, Warning};
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
-    Crossover, EncodeReplace, EventBus, EventHandler, Front, Mutate, ReplacementStrategy,
-    RouletteSelector, TournamentSelector, context::EvolutionContext,
+    Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
+    TournamentSelector, context::EvolutionContext,
 };
+use crate::{EngineStop, pipeline::Pipeline};
+use crate::{EpochComplete, genome::phenotype::Phenotype};
 use crate::{Generation, Result};
+use crate::{LimitTriggered, builder::selectors::SelectionParams};
+use crate::{
+    builder::evaluators::ExecutorParams,
+    steps::{
+        EngineStep, FilterStep, FrontStep, MetricStep, RecombineStep, SelectConfig, SpeciateStep,
+    },
+};
+#[cfg(feature = "serde")]
+use crate::{builder::events::CheckpointParams, io::FileReader};
+use crate::{
+    message::HealthMonitor,
+    objectives::{Objective, Optimize},
+};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
-use radiate_core::rate::ExprSet;
-use radiate_core::{Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Valid, metric_names};
+use radiate_core::{Alterer, Ecosystem, EngineState, Expr, FitnessEvaluator, Valid, metric_names};
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
+use radiate_core::{ThreadSync, rate::ExprSet};
 use radiate_core::{
     expr,
     problem::{BatchEngineProblem, EngineProblem},
@@ -57,10 +65,12 @@ where
     pub optimization_params: OptimizeParams<C>,
     pub problem_params: ProblemParams<C, T>,
     pub filter_params: FilterParams<C>,
+    #[cfg(feature = "serde")]
+    pub checkpoint_params: CheckpointParams<C, T>,
 
     pub alterers: Vec<Alterer<C>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-    pub handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
+    pub event_stream: EventStream,
     pub generation: Option<Generation<C, T>>,
     pub exprs: Option<Arc<Mutex<ExprSet>>>,
 }
@@ -107,18 +117,6 @@ where
     /// be using the `Codec` to encode a new individual from scratch.
     pub fn replace_strategy<R: ReplacementStrategy<C> + 'static>(mut self, replace: R) -> Self {
         self.params.replacement_strategy = Arc::new(replace);
-        self
-    }
-
-    /// Subscribe to engine events with the given event handler.
-    /// The event handler will be called whenever an event is emitted by the engine.
-    /// You can use this to log events, or to perform custom actions
-    /// based on the events emitted by the engine.
-    pub fn subscribe<H>(mut self, handler: H) -> Self
-    where
-        H: EventHandler<T> + 'static,
-    {
-        self.params.handlers.push(Arc::new(Mutex::new(handler)));
         self
     }
 
@@ -181,6 +179,7 @@ where
             ));
         }
 
+        self.build_event_stream()?;
         self.build_problem()?;
         self.build_population()?;
         self.build_alterer()?;
@@ -199,10 +198,31 @@ where
         pipeline.add_step(Self::build_species_step(&config));
         pipeline.add_step(Self::build_audit_step(&config));
 
-        let event_bus = EventBus::new(config.bus_executor(), config.handlers());
+        let event_system = config.event_stream();
         let context = EvolutionContext::from(config);
 
-        Ok(GeneticEngine::<C, T>::new(context, pipeline, event_bus))
+        Ok(GeneticEngine::<C, T>::new(context, pipeline, event_system))
+    }
+
+    fn build_event_stream(&mut self) -> Result<()> {
+        let stream = self.params.event_stream.clone();
+
+        let logger = stream.spawn(EngineLogger::<T>::new());
+        logger.subscribe::<LimitTriggered>();
+        logger.subscribe::<Warning>();
+        logger.subscribe::<CheckpointSaved>();
+        logger.subscribe::<EpochComplete<T>>();
+        logger.subscribe::<EngineState>();
+        logger.subscribe::<EngineStop<T>>();
+
+        let health = stream.spawn(HealthMonitor::<T>::default());
+        health.subscribe::<EpochComplete<T>>();
+
+        stream.subscribe(LoggingHandler);
+
+        self.params.event_stream = stream;
+
+        Ok(())
     }
 
     /// Build the problem of the genetic engine. This will create a new problem
@@ -235,7 +255,11 @@ where
 
             // Replace the evaluator with BatchFitnessEvaluator
             self.params.evaluation_params.evaluator = Arc::new(BatchFitnessEvaluator::new(
-                self.params.evaluation_params.fitness_executor.clone(),
+                self.params
+                    .evaluation_params
+                    .fitness_executor
+                    .executor
+                    .clone(),
             ));
 
             Ok(())
@@ -493,9 +517,10 @@ where
                 },
                 evaluation_params: EvaluationParams {
                     evaluator: Arc::new(FitnessEvaluator::default()),
-                    fitness_executor: Arc::new(Executor::default()),
-                    species_executor: Arc::new(Executor::default()),
-                    bus_executor: Arc::new(Executor::default()),
+                    fitness_executor: ExecutorParams::default(),
+                    species_executor: ExecutorParams::default(),
+                    event_stream_executor: ExecutorParams::default(),
+                    sync: ThreadSync::new(),
                 },
                 selection_params: SelectionParams {
                     offspring_fraction: 0.8,
@@ -518,10 +543,16 @@ where
                 filter_params: FilterParams {
                     filters: Vec::new(),
                 },
+                #[cfg(feature = "serde")]
+                checkpoint_params: CheckpointParams {
+                    interval: None,
+                    path: None,
+                    writer: None,
+                },
 
                 replacement_strategy: Arc::new(EncodeReplace),
                 alterers: Vec::new(),
-                handlers: Vec::new(),
+                event_stream: EventStream::default(),
                 exprs: None,
                 generation: None,
             },

@@ -102,6 +102,14 @@ impl PyExpr {
         format!("{:?}", self.inner)
     }
 
+    pub fn alias(&self, name: &str) -> Self {
+        let e = self.inner.clone();
+
+        PyExpr {
+            inner: e.alias(name),
+        }
+    }
+
     pub fn genome_size_rate(&self, target_size: usize) -> Self {
         expr::genome_size_throttle(self.inner.clone(), target_size).into()
     }

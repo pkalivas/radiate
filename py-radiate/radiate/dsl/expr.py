@@ -393,3 +393,12 @@ class Expr(RsObject):
         This expression computes a rate that is adjusted based on the genome size relative to the target size.
         """
         return Expr.from_rust(self.__backend__().genome_size_rate(target_size))
+
+    def alias(self, name: str) -> Expr:
+        """
+        Assign a name to this expression. Useful for debugging and logging.
+
+        >>> import radiate as rd
+        >>> expr = rd.Expr.select("scores.best").mean().alias("mean_best_score")
+        """
+        return Expr.from_rust(self.__backend__().alias(name))

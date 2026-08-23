@@ -4,7 +4,7 @@ use crate::{
     state::{AppState, Pane},
     styles::delta_bar,
 };
-use radiate_engines::{Chromosome, Objective, Optimize};
+use radiate_engines::{Chromosome, Objective, Optimize, message::LogLevel};
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Color, Style};
@@ -15,9 +15,11 @@ const IMPROVEMENT_HEADER: [&str; 5] = ["Idx", "Gen", "Score", "Δ", ""];
 const FRONT_EVENT_HEADER: [&str; 6] = [
     "   Gen", "Size", "+Added", "-Removed", "Compared", "Filtered",
 ];
+const EVENT_HEADER: [&str; 3] = ["   Gen", "Level", "Message"];
 
 pub struct ImprovementLogWidget;
 pub struct FrontEventLogWidget;
+pub struct EventLogWidget;
 
 impl<C: Chromosome> AppWidget<C> for ImprovementLogWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
@@ -180,6 +182,53 @@ impl<C: Chromosome> AppWidget<C> for FrontEventLogWidget {
             ]);
 
         render_scrollable_table(buf, area, table, &mut state.tables.log);
+    }
+}
+
+impl<C: Chromosome> AppWidget<C> for EventLogWidget {
+    fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
+        let log = &state.evo.event_log;
+
+        state
+            .tables
+            .events
+            .update_rows(log.as_slice(), |entry| entry.generation);
+
+        let rows = log
+            .iter()
+            .map(|entry| {
+                let (label, color) = match entry.level {
+                    LogLevel::Info => ("INFO", crate::styles::LOG_INFO_COLOR),
+                    LogLevel::Warn => ("WARN", crate::styles::LOG_WARN_COLOR),
+                };
+
+                Row::new(vec![
+                    Cell::from(format!("{:>6}", entry.generation))
+                        .style(Style::default().fg(crate::styles::TEXT_FG_COLOR)),
+                    Cell::from(Span::styled(label, Style::default().fg(color).bold())),
+                    Cell::from(entry.message.as_str())
+                        .style(Style::default().fg(crate::styles::TEXT_FG_COLOR)),
+                ])
+            })
+            .collect::<Vec<_>>();
+
+        let focused = state.nav.is_pane_focused(Pane::List);
+        let table = Table::default()
+            .block(crate::styles::panel_block(focused))
+            .header(header_row(&EVENT_HEADER))
+            .rows(striped_rows(rows))
+            .column_spacing(1)
+            .style(Color::White)
+            .row_highlight_style(Style::new().on_black().bold())
+            .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
+            .highlight_symbol(Span::styled("▶ ", Style::default().fg(Color::LightGreen)))
+            .widths([
+                Constraint::Length(8),
+                Constraint::Length(8),
+                Constraint::Fill(1),
+            ]);
+
+        render_scrollable_table(buf, area, table, &mut state.tables.events);
     }
 }
 

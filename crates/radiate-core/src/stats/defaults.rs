@@ -136,6 +136,8 @@ pub mod metric_tags {
     pub const STEP: &str = "step";
 
     pub const EXPR: &str = "expr";
+
+    pub const ACTOR: &str = "actor";
 }
 
 const RULES: &[(&str, &[TagType])] = &[

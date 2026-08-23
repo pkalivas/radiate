@@ -23,6 +23,10 @@ macro_rules! sentry_id {
             pub const fn get(&self) -> u64 {
                 self.0
             }
+
+            pub fn next(&self) -> Self {
+                Self::new()
+            }
         }
 
         #[allow(clippy::from_over_into)]
@@ -41,6 +45,12 @@ macro_rules! sentry_id {
         impl Default for $name {
             fn default() -> Self {
                 Self::EMPTY
+            }
+        }
+
+        impl std::fmt::Display for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}", self.0)
             }
         }
     };

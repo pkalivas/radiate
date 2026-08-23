@@ -35,6 +35,7 @@ pub struct GraphTopologicalIterator<'a, T> {
     completed: Vec<bool>,
     index_queue: VecDeque<usize>,
     pending_index: usize,
+    remaining: usize,
 }
 
 impl<'a, T> GraphTopologicalIterator<'a, T> {
@@ -49,6 +50,7 @@ impl<'a, T> GraphTopologicalIterator<'a, T> {
             completed: vec![false; graph.len()],
             index_queue: VecDeque::with_capacity(graph.len()),
             pending_index: if is_valid { 0 } else { graph.len() },
+            remaining: if is_valid { graph.len() } else { 0 },
         }
     }
 }
@@ -94,7 +96,14 @@ impl<'a, T> Iterator for GraphTopologicalIterator<'a, T> {
         }
 
         self.pending_index = min_pending_index;
-        self.index_queue.pop_front().map(|idx| &self.graph[idx])
+        self.index_queue.pop_front().map(|idx| {
+            self.remaining -= 1;
+            &self.graph[idx]
+        })
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.remaining, Some(self.remaining))
     }
 }
 
@@ -202,5 +211,92 @@ mod tests {
             .collect::<Vec<usize>>();
 
         assert_eq!(results, vec![0, 1, 3, 4, 5, 6, 7, 8, 9, 2]);
+    }
+
+    #[test]
+    fn test_size_hint_tracks_actual_remaining() {
+        let graph = Graph::<Op<f64>>::new(vec![
+            GraphNode::from((0, NodeType::Input, Op::var(0))).with_outgoing([2]),
+            GraphNode::from((1, NodeType::Input, Op::var(1))).with_outgoing([2]),
+            GraphNode::from((2, NodeType::Vertex, Op::add()))
+                .with_incoming([0, 1])
+                .with_outgoing([3]),
+            GraphNode::from((3, NodeType::Output, Op::linear())).with_incoming([2]),
+        ]);
+
+        let mut iter = graph.iter_topological();
+        let mut actual_remaining = 4;
+
+        assert_eq!(iter.size_hint(), (actual_remaining, Some(actual_remaining)));
+
+        iter.next();
+        actual_remaining -= 1;
+        assert_eq!(iter.size_hint(), (actual_remaining, Some(actual_remaining)));
+
+        while iter.next().is_some() {
+            actual_remaining -= 1;
+            assert_eq!(iter.size_hint(), (actual_remaining, Some(actual_remaining)));
+        }
+
+        assert_eq!(actual_remaining, 0);
+        assert_eq!(iter.size_hint(), (0, Some(0)));
+    }
+
+    #[test]
+    fn test_invalid_graph_size_hint_is_zero() {
+        let nodes = vec![
+            GraphNode::from((0, NodeType::Input, Op::<f64>::var(0))).with_outgoing([2]),
+            GraphNode::from((1, NodeType::Input, Op::<f64>::var(1))),
+            GraphNode::from((2, NodeType::Vertex, Op::<f64>::add())).with_incoming([0]),
+            GraphNode::from((3, NodeType::Output, Op::<f64>::linear())).with_incoming([2]),
+        ];
+
+        let graph = Graph::new(nodes);
+        let iter = graph.iter_topological();
+
+        assert_eq!(iter.size_hint(), (0, Some(0)));
+    }
+
+    #[test]
+    fn test_eval_order_collect_allocates_exactly_once() {
+        let mut graph = Graph::<Op<f32>>::default();
+
+        graph.insert(NodeType::Input, Op::var(0));
+        graph.insert(NodeType::Vertex, Op::diff());
+        graph.insert(NodeType::Output, Op::sigmoid());
+        graph.insert(NodeType::Vertex, Op::div());
+        graph.insert(NodeType::Vertex, Op::pow());
+        graph.insert(NodeType::Edge, Op::weight());
+        graph.insert(NodeType::Edge, Op::identity());
+        graph.insert(NodeType::Vertex, Op::exp());
+        graph.insert(NodeType::Vertex, Op::cos());
+        graph.insert(NodeType::Edge, Op::weight());
+
+        graph.attach(0, 1);
+        graph.attach(1, 1);
+        graph.attach(4, 1);
+        graph.attach(7, 1);
+        graph.attach(1, 2);
+        graph.attach(3, 2);
+        graph.attach(9, 2);
+        graph.attach(0, 3);
+        graph.attach(5, 3);
+        graph.attach(0, 4);
+        graph.attach(8, 4);
+        graph.attach(1, 5);
+        graph.attach(3, 6);
+        graph.attach(4, 7);
+        graph.attach(6, 8);
+        graph.attach(7, 9);
+
+        graph.set_cycles(vec![]);
+
+        let eval_order = graph
+            .iter_topological()
+            .map(|n| n.index())
+            .collect::<Vec<usize>>();
+
+        assert_eq!(eval_order.len(), graph.len());
+        assert_eq!(eval_order.capacity(), eval_order.len());
     }
 }

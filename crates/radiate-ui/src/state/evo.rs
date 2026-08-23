@@ -3,16 +3,24 @@ use crate::chart::RollingLineChart;
 use crate::widgets::num_pairs;
 use radiate_engines::{
     Chromosome, Ecosystem, Front, MetricSet, Objective, Optimize, Phenotype, Score, Species,
+    message::LogLevel,
 };
 use radiate_utils::WindowBuffer;
 use std::sync::{Arc, RwLock};
 
 const MAX_IMPROVEMENT_LOG: usize = 100;
+const MAX_EVENT_LOG: usize = 200;
 
 pub struct ImprovementEntry {
     pub generation: usize,
     pub score: f32,
     pub delta: f32,
+}
+
+pub struct EventLogEntry {
+    pub generation: usize,
+    pub level: LogLevel,
+    pub message: String,
 }
 
 pub struct FrontEventEntry {
@@ -44,6 +52,7 @@ pub struct EvoState<C: Chromosome> {
     pub pareto: ObjectiveState,
     pub improvement_log: WindowBuffer<ImprovementEntry>,
     pub front_event_log: WindowBuffer<FrontEventEntry>,
+    pub event_log: WindowBuffer<EventLogEntry>,
 }
 
 impl<C: Chromosome> EvoState<C> {
@@ -148,6 +157,14 @@ impl<C: Chromosome> EvoState<C> {
         });
     }
 
+    pub fn push_event_log_entry(&mut self, level: LogLevel, message: String) {
+        self.event_log.push_front(EventLogEntry {
+            generation: self.index,
+            level,
+            message,
+        });
+    }
+
     pub fn get_chart_by_key(
         &self,
         key: &str,
@@ -222,6 +239,7 @@ impl<C: Chromosome> Default for EvoState<C> {
             best_score: Score::default(),
             improvement_log: WindowBuffer::with_capacity(MAX_IMPROVEMENT_LOG),
             front_event_log: WindowBuffer::with_capacity(MAX_IMPROVEMENT_LOG),
+            event_log: WindowBuffer::with_capacity(MAX_EVENT_LOG),
             pareto: ObjectiveState {
                 objective: Objective::Single(Optimize::Maximize),
                 charts_visible: 2,

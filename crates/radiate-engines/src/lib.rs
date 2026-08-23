@@ -2,21 +2,29 @@ mod actions;
 pub mod builder;
 pub mod context;
 pub mod engine;
-mod events;
 mod generation;
 mod io;
 mod limit;
+pub mod message;
 mod pipeline;
 pub mod runtime;
 mod steps;
 
+use std::sync::{
+    Mutex,
+    atomic::{AtomicBool, Ordering},
+};
+
 pub use builder::GeneticEngineBuilder;
 pub use context::EvolutionContext;
 pub use engine::GeneticEngine;
-pub use events::{EngineEvent, EngineEventInner, EventBus, EventHandler};
 pub use generation::{Generation, GenerationView};
 pub use io::{FileReader, FileWriter, JsonReader, JsonWriter};
 pub use limit::Limit;
+pub use message::{
+    Actor, EngineStop, EpochComplete, EventHandler, EventId, Improvement, LimitTriggered,
+    Subscription,
+};
 pub use runtime::EngineRuntime;
 
 pub use steps::{
@@ -29,29 +37,96 @@ pub use radiate_core::*;
 pub use radiate_error::{RadiateError, ensure, radiate_err};
 pub use radiate_selectors::*;
 pub use radiate_utils::Shape;
+use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
 pub(crate) type Result<T> = std::result::Result<T, RadiateError>;
 
+pub use std::sync::Once;
+static INIT_LOGGING: Mutex<Once> = Mutex::new(Once::new());
+static LOGGING_INITIALIZED: AtomicBool = AtomicBool::new(false);
+
+pub fn disable_logging() {
+    LOGGING_INITIALIZED.store(true, Ordering::SeqCst);
+    INIT_LOGGING.lock().unwrap().call_once(|| {
+        tracing::subscriber::set_global_default(tracing::subscriber::NoSubscriber::default())
+            .expect("Failed to set global subscriber");
+    });
+}
+
 pub fn init_logging() {
-    pub use std::sync::Once;
-    static INIT_LOGGING: Once = Once::new();
+    if LOGGING_INITIALIZED.load(Ordering::SeqCst) {
+        return;
+    }
 
-    INIT_LOGGING.call_once(|| {
-        use tracing_subscriber::fmt::format::FmtSpan;
-        use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+    let log_level = radiate_core::env_vars::log_level();
 
-        std::panic::set_hook(Box::new(|info| {
-            tracing::error!("PANIC: {}", info);
-        }));
+    match log_level.as_deref() {
+        Some(level) => {
+            let filter = EnvFilter::try_new(level).unwrap_or_else(|e| {
+                eprintln!(
+                    "RADIATE_LOG_LEVEL={level:?} is not a valid filter directive ({e}), falling back to \"info\""
+                );
+                EnvFilter::new("info")
+            });
 
+            match radiate_core::env_vars::log_format()
+                .as_deref()
+                .unwrap_or("compact")
+            {
+                "json" => init_json_logging(filter),
+                "pretty" => init_pretty_logging(filter),
+                "tree" => init_tree_logging(filter),
+                _ => init_compact_logging(filter),
+            }
+        }
+        None => disable_logging(),
+    }
+
+    LOGGING_INITIALIZED.store(true, Ordering::SeqCst);
+
+    std::panic::set_hook(Box::new(|info| {
+        tracing::error!("{}", info);
+    }));
+}
+
+fn init_tree_logging(filter: EnvFilter) {
+    INIT_LOGGING.lock().unwrap().call_once(|| {
         tracing_subscriber::registry()
-            .with(
-                tracing_subscriber::fmt::layer()
-                    .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
-                    .with_target(false)
-                    .with_level(true)
-                    .compact(),
-            )
+            .with(filter)
+            .with(tracing_forest::ForestLayer::default())
+            .init();
+    });
+}
+
+fn init_compact_logging(filter: EnvFilter) {
+    INIT_LOGGING.lock().unwrap().call_once(|| {
+        tracing_subscriber::fmt()
+            .with_env_filter(filter)
+            .with_target(false)
+            .with_level(true)
+            .compact()
+            .init();
+    });
+}
+
+fn init_json_logging(filter: EnvFilter) {
+    INIT_LOGGING.lock().unwrap().call_once(|| {
+        tracing_subscriber::fmt()
+            .with_env_filter(filter)
+            .with_target(false)
+            .with_level(true)
+            .json()
+            .init();
+    });
+}
+
+fn init_pretty_logging(filter: EnvFilter) {
+    INIT_LOGGING.lock().unwrap().call_once(|| {
+        tracing_subscriber::fmt()
+            .with_env_filter(filter)
+            .with_target(false)
+            .with_level(true)
+            .pretty()
             .init();
     });
 }

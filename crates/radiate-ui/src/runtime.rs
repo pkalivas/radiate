@@ -2,7 +2,7 @@ use crate::app::{App, GenerationEvent, InputEvent};
 use color_eyre::{Result, eyre::Context};
 use radiate_engines::{
     Chromosome, Engine, EngineState, EngineStream, Generation, GenerationView, GeneticEngine,
-    error::RadiateResult, sync::ArcExt,
+    error::RadiateResult, message::LogEvent, sync::IntoPair,
 };
 use radiate_engines::{EngineRuntime, EvolutionContext, ThreadSync};
 use std::{
@@ -19,7 +19,7 @@ where
 {
     inner: GeneticEngine<C, T>,
     control: ThreadSync,
-    dispatcher: Arc<mpsc::Sender<InputEvent<C>>>,
+    dispatcher: mpsc::Sender<InputEvent<C>>,
     app_thread: Option<std::thread::JoinHandle<Result<()>>>,
     key_thread: Option<std::thread::JoinHandle<Result<()>>>,
 }
@@ -29,12 +29,14 @@ where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
-    pub fn new(mut inner: GeneticEngine<C, T>, render_interval: Duration, manual: bool) -> Self {
+    pub fn new(mut inner: GeneticEngine<C, T>, render_interval: Duration) -> Self {
         let control = inner.control();
         let app = App::new(render_interval, control.clone());
 
         let (dispatch_one, dispatch_two) = app.dispatcher().into_pair();
         let stop_flag = control.stop_flag();
+
+        Self::setup_subscriptions(&mut inner, &dispatch_one);
 
         let app_thread = std::thread::spawn(move || {
             let terminal = ratatui::init();
@@ -56,10 +58,7 @@ where
             Ok(())
         });
 
-        if manual {
-            // control.set_paused(true);
-            control.step_n(10);
-        }
+        control.set_paused(true);
 
         Self {
             inner,
@@ -73,11 +72,34 @@ where
     pub fn iter(self) -> EngineRuntime<Self> {
         EngineRuntime::new(self)
     }
+
+    fn setup_subscriptions(
+        engine: &mut GeneticEngine<C, T>,
+        dispatcher: &mpsc::Sender<InputEvent<C>>,
+    ) {
+        let dispatch = dispatcher.clone();
+        engine.subscribe::<LogEvent>(move |msg: &LogEvent| {
+            dispatch
+                .send(InputEvent::Log(msg.0, msg.1.clone()))
+                .map_err(|_| eprintln!("Failed to send log event: {:?}", msg))
+                .unwrap();
+        });
+
+        // let dispatch = dispatcher.clone();
+        // engine.subscribe::<EngineState>(move |state: &EngineState| {
+        //     dispatch
+        //         .send(InputEvent::Log(
+        //             radiate_engines::LogLevel::Info,
+        //             format!("{:?}", state),
+        //         ))
+        //         .unwrap();
+        // });
+    }
 }
 
 impl<C, T> Engine for TuiEngine<C, T>
 where
-    C: Chromosome + Clone,
+    C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
     type Ctx = EvolutionContext<C, T>;
