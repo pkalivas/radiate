@@ -120,13 +120,9 @@ pub trait Engine {
     /// outside of the engine which don't require a snapshot of the engine state.
     fn step(&mut self) -> Result<EngineState>;
 
-    fn start(&mut self) -> Result<EngineState> {
-        Ok(EngineState::Running)
-    }
+    fn start(&mut self) {}
 
-    fn stop(&mut self) -> Result<EngineState> {
-        Ok(EngineState::Stopped)
-    }
+    fn stop(&mut self) {}
 }
 
 pub trait EngineStream: Engine {

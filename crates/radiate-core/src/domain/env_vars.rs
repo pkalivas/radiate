@@ -8,7 +8,6 @@ pub struct EnvConfig {
     log_level: Option<String>,
     log_format: Option<String>,
     seed: Option<u64>,
-    num_threads: Option<usize>,
 }
 
 impl EnvConfig {
@@ -30,13 +29,6 @@ impl EnvConfig {
                 let parsed = s.parse().ok();
                 if parsed.is_none() {
                     eprintln!("RADIATE_SEED={s:?} is not a valid u64, ignoring");
-                }
-                parsed
-            }),
-            num_threads: std::env::var("RADIATE_NUM_THREADS").ok().and_then(|s| {
-                let parsed = s.parse().ok();
-                if parsed.is_none() {
-                    eprintln!("RADIATE_NUM_THREADS={s:?} is not a valid usize, ignoring");
                 }
                 parsed
             }),
@@ -62,8 +54,4 @@ pub fn log_format() -> Option<String> {
 
 pub fn seed() -> Option<u64> {
     ENV_CONFIG.seed
-}
-
-pub fn num_threads() -> Option<usize> {
-    ENV_CONFIG.num_threads
 }

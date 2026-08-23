@@ -134,10 +134,10 @@ where
         EngineRuntime::new(self)
     }
 
-    /// Subscribes to messages of type `M` emitted by the engine.
+    /// Subscribes to events of type `E` emitted by the engine.
     ///
-    /// This method returns a [SubscriptionBuilder] that allows you to define
-    /// how to handle messages of type `M`. You can use this to listen for events
+    /// This method returns a [Subscription] that allows you to define
+    /// how to handle events of type `E`. You can use this to listen for events
     /// such as epoch completions, improvements, or custom messages emitted during the evolutionary process.
     pub fn subscribe<E: Event>(&self, handler: impl EventHandler<E>) -> Subscription {
         self.stream.subscribe(handler)
@@ -182,20 +182,19 @@ where
         Generation::from(&self.context)
     }
 
-    fn start(&mut self) -> Result<EngineState> {
-        let running = EngineState::Running;
-        self.stream.publish(running);
-        Ok(running)
+    fn start(&mut self) {
+        self.stream.publish(EngineState::Running);
     }
 
-    fn stop(&mut self) -> Result<EngineState> {
+    fn stop(&mut self) {
         self.stream.publish(EngineStop::from(&self.context));
-        Ok(EngineState::Stopped)
     }
 
     #[inline]
     fn step(&mut self) -> Result<EngineState> {
         if self.context.is_stopped() {
+            // We publish a stop event when the `stop` fn is called (above), so
+            // no need to publish anything here.
             return Ok(EngineState::Stopped);
         } else if self.context.is_paused() {
             self.stream.publish(EngineState::Paused);
@@ -212,8 +211,8 @@ where
 
         self.stream.publish(EpochComplete::from(&self.context));
 
-        // Ecosystem is a heavy clone, but this only clones if we have a subscriber
-        // and once it is cloned, the snapshot is backed by an Arc<Ecosystem> so
+        // `Ecosystem` is a heavy clone, but this only clones if we have a subscriber
+        // and once it is cloned, the snapshot is backed by an `Arc<Ecosystem>` so
         // we don't pay the clone cost twice.
         self.stream
             .lazy_publish(|| EcosystemSnapshot::from(&self.context));

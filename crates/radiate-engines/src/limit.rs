@@ -151,9 +151,7 @@ where
         }?;
 
         match outcome {
-            LimitOutcome::Proceed => {
-                Ok(true)
-            }
+            LimitOutcome::Proceed => Ok(true),
             LimitOutcome::Stop => {
                 ctx.events()
                     .publish(LimitTriggered(ctx.index, self.clone()));

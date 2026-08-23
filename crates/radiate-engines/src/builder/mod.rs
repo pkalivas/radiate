@@ -10,6 +10,12 @@ mod selectors;
 mod species;
 
 use crate::builder::evaluators::EvaluationParams;
+use crate::builder::filters::FilterParams;
+use crate::builder::objectives::OptimizeParams;
+use crate::builder::population::PopulationParams;
+use crate::builder::problem::ProblemParams;
+use crate::builder::species::SpeciesParams;
+use crate::message::{CheckpointSaved, EngineLogger, EventStream, LoggingHandler, Warning};
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
@@ -27,21 +33,13 @@ use crate::{
 };
 #[cfg(feature = "serde")]
 use crate::{builder::events::CheckpointParams, io::FileReader};
-use crate::{builder::filters::FilterParams, message::EngineLogger};
-use crate::{builder::objectives::OptimizeParams, message::EventStream};
-use crate::{builder::population::PopulationParams, message::CheckpointSaved};
-use crate::{builder::problem::ProblemParams, message::LoggingHandler};
-use crate::{builder::species::SpeciesParams, message::Warning};
 use crate::{
     message::HealthMonitor,
     objectives::{Objective, Optimize},
 };
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
-use radiate_core::{
-    Alterer, Ecosystem, EngineState, Executor, Expr, FitnessEvaluator, Valid, env_vars,
-    metric_names,
-};
+use radiate_core::{Alterer, Ecosystem, EngineState, Expr, FitnessEvaluator, Valid, metric_names};
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
 use radiate_core::{ThreadSync, rate::ExprSet};
@@ -207,15 +205,14 @@ where
     }
 
     fn build_event_stream(&mut self) -> Result<()> {
-        let mut stream = self.params.event_stream.clone();
-        let executor = self.params.evaluation_params.event_stream_executor.clone();
+        let stream = self.params.event_stream.clone();
 
-        if let Some(workers) = env_vars::num_threads()
-            && workers > 1
-            && !executor.changed
-        {
-            stream.set_executor(Arc::new(Executor::new_parallel()));
-        }
+        // if let Some(workers) = env_vars::num_threads()
+        //     && workers > 1
+        //     && !executor.changed
+        // {
+        //     stream.set_executor(Arc::new(Executor::new_parallel()));
+        // }
 
         let logger = stream.spawn(EngineLogger::<T>::new());
         logger.subscribe::<LimitTriggered>();

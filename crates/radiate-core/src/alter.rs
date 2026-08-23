@@ -193,8 +193,8 @@ impl<C: Chromosome> Alterer<C> {
 
                 if let Some(mutator) = mutator {
                     let result = mutator.mutate(population, &mut ctx);
-                    metrics.upsert(&self.name, result.count());
                     metrics.upsert(&self.time_name, timer.elapsed());
+                    metrics.upsert(&self.name, result.count());
 
                     for (name, count) in ctx.alter_counts.iter() {
                         metrics.upsert(name, *count);
@@ -204,8 +204,8 @@ impl<C: Chromosome> Alterer<C> {
             AlterInner::Crossover(c) => {
                 let timer = std::time::Instant::now();
                 let result = c.crossover(population, &mut ctx);
-                metrics.upsert(&self.name, result.count());
                 metrics.upsert(&self.time_name, timer.elapsed());
+                metrics.upsert(&self.name, result.count());
 
                 for (name, count) in ctx.alter_counts.iter() {
                     metrics.upsert(name, *count);

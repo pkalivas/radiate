@@ -13,25 +13,6 @@ pub enum Executor {
 }
 
 impl Executor {
-    pub fn new_parallel() -> Self {
-        #[cfg(feature = "rayon")]
-        {
-            Executor::WorkerPool
-        }
-        #[cfg(not(feature = "rayon"))]
-        {
-            use crate::env_vars;
-
-            let num_cpus = env_vars::num_threads().unwrap_or(
-                std::thread::available_parallelism()
-                    .map(|n| n.get())
-                    .unwrap_or(4),
-            );
-
-            Executor::FixedSizedWorkerPool(num_cpus)
-        }
-    }
-
     pub fn is_parallel(&self) -> bool {
         match self {
             Executor::Serial => false,

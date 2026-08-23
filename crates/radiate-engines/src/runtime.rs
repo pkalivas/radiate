@@ -40,7 +40,8 @@ impl<E: Engine> EngineRuntime<E> {
     #[inline]
     pub fn run(mut self) -> Result<E::Epoch> {
         if matches!(self.state, EngineState::PreStart) {
-            self.state = self.engine.start()?;
+            self.engine.start();
+            self.state = EngineState::Running;
         }
 
         loop {
@@ -58,8 +59,13 @@ impl<E: Engine> EngineRuntime<E> {
             return Err(radiate_err!(Engine: "Engine has already completed"));
         }
 
+        // TODO: idk, I don't love this. Lets refactor. There is
+        // too much state being mutated in the scope then being set at on close of the scope. Messy, man.
         self.state = match self.engine.step()? {
-            EngineState::Stopped => self.engine.stop()?,
+            EngineState::Stopped => {
+                self.engine.stop();
+                EngineState::Stopped
+            }
             state => {
                 if let Some(actions) = &mut self.actions {
                     let ctx = self.engine.context();
@@ -72,7 +78,8 @@ impl<E: Engine> EngineRuntime<E> {
                     let ctx = self.engine.context();
                     for limit in limits.iter_mut() {
                         if !limit.proceed(ctx)? {
-                            self.state = self.engine.stop()?;
+                            self.engine.stop();
+                            self.state = EngineState::Stopped;
                             return Ok(());
                         }
                     }

@@ -78,7 +78,7 @@ where
         self
     }
 
-    pub fn broker_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
+    pub fn stream_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
         self.params.evaluation_params.event_stream_executor = ExecutorParams {
             changed: true,
             executor: executor.into(),
