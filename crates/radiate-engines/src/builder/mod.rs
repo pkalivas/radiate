@@ -207,13 +207,6 @@ where
     fn build_event_stream(&mut self) -> Result<()> {
         let stream = self.params.event_stream.clone();
 
-        // if let Some(workers) = env_vars::num_threads()
-        //     && workers > 1
-        //     && !executor.changed
-        // {
-        //     stream.set_executor(Arc::new(Executor::new_parallel()));
-        // }
-
         let logger = stream.spawn(EngineLogger::<T>::new());
         logger.subscribe::<LimitTriggered>();
         logger.subscribe::<Warning>();
