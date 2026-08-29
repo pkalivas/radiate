@@ -159,7 +159,7 @@ impl<A: Actor> ActorCell<A> {
             let ctx = ActorContext(addr.clone());
             let result = catch_unwind(AssertUnwindSafe(|| (envelope.run)(&mut actor, &ctx)));
 
-            if let Err(_) = result {
+            if result.is_err() {
                 self.alive.store(false, Ordering::Release);
                 stopping = true;
             }
