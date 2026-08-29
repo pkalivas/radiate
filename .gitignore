@@ -27,3 +27,4 @@ examples/data/results/*
 *examples/data/scratch/*
 *.coverage*
 *.env
+TODO.md
