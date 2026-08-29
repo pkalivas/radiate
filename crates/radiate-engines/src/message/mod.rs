@@ -9,4 +9,4 @@ pub use events::{
     LimitTriggered, Warning,
 };
 pub use handlers::{EngineLogger, HealthMonitor, LogEvent, LogLevel, LoggingHandler};
-pub use stream::{Event, EventHandler, EventId, EventStream, Subscription};
+pub use stream::{Event, EventHandler, EventStream, Subscription};

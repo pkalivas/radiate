@@ -26,3 +26,4 @@ examples/data/results/*
 *.mypy_cache
 *examples/data/scratch/*
 *.coverage*
+*.env

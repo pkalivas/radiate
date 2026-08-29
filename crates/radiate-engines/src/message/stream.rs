@@ -3,7 +3,6 @@ use crate::{
     message::actor::{ActorContext, Addr, MessageHandler},
 };
 use radiate_core::Executor;
-use radiate_utils::sentry_id;
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
@@ -11,11 +10,9 @@ use std::{
     marker::PhantomData,
     sync::{
         Arc, RwLock,
-        atomic::{AtomicBool, AtomicU64, Ordering},
+        atomic::{AtomicBool, Ordering},
     },
 };
-
-sentry_id!(EventId);
 
 pub trait Event: Send + Sync + 'static {
     fn event_label() -> &'static str {
@@ -50,7 +47,7 @@ impl Subscription {
 }
 
 type Payload = Arc<dyn Any + Send + Sync>;
-type Forward = Arc<dyn Fn(Payload, tracing::Span) + Send + Sync>;
+type Forward = Arc<dyn Fn(Payload) + Send + Sync>;
 
 #[derive(Clone)]
 struct Registration {
@@ -91,9 +88,9 @@ impl EventStream {
         let active = Arc::new(AtomicBool::new(true));
         let addr = addr.clone();
 
-        let forward = Arc::new(move |payload: Payload, span: tracing::Span| {
+        let forward = Arc::new(move |payload: Payload| {
             if let Ok(msg) = payload.downcast::<E>() {
-                addr.send_traced(msg, span);
+                addr.send(msg);
             }
         });
 
@@ -120,10 +117,6 @@ impl EventStream {
     }
 
     pub fn publish<E: Event>(&self, message: E) {
-        let id = EventId::new();
-        let span = tracing::info_span!("event", ty = %E::event_label(), %id);
-        let _enter = span.enter();
-
         let group = {
             let subscribers = self.subscribers.read().unwrap();
             match subscribers.get(&TypeId::of::<E>()) {
@@ -139,7 +132,7 @@ impl EventStream {
                 continue;
             }
 
-            (registration.forward)(Arc::clone(&payload), span.clone());
+            (registration.forward)(Arc::clone(&payload));
         }
     }
 
