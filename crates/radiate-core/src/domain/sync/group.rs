@@ -3,22 +3,16 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
 };
 
-#[derive(Clone)]
-pub struct WaitGroup {
-    inner: Arc<Inner>,
-    total_count: Arc<AtomicUsize>,
-}
-
 struct Inner {
     counter: AtomicUsize,
     lock: Mutex<()>,
     cvar: Condvar,
 }
 
-impl Default for WaitGroup {
-    fn default() -> Self {
-        Self::new()
-    }
+#[derive(Clone)]
+pub struct WaitGroup {
+    inner: Arc<Inner>,
+    total_count: Arc<AtomicUsize>,
 }
 
 impl WaitGroup {
@@ -57,6 +51,12 @@ impl WaitGroup {
             .wait_while(lock, |_| self.inner.counter.load(Ordering::Acquire) != 0);
 
         self.get_count()
+    }
+}
+
+impl Default for WaitGroup {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

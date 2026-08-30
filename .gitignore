@@ -20,9 +20,18 @@ pyrightconfig.json
 *.python-version
 **libradiate.dylib.dSYM**
 .github/makefile
-*.claude
 site/
 examples/data/results/*
 *.mypy_cache
 *examples/data/scratch/*
 *.coverage*
+*.env
+TODO.md
+
+# Ignore the agents file. 
+# AI is a part of engineering now, but this repo is _complicated_ so I explictely don't want vibe coded stuff coming in. 
+# I use AI every now and then, but I also created this project in 2019, long before AI. So I actually have
+# the full context of this project in my own brain. As such, I know what AI can help with here, and what can hurt.
+# AI in radiate should not be used to implement full features independently - as such, I'm ignoring these files.
+AGENTS.md
+*.claude

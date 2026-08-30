@@ -1,16 +1,13 @@
 use crate::message::{Event, EventStream};
 use crossbeam::channel::{self, Receiver, Sender};
 use radiate_core::Executor;
-use radiate_utils::sentry_id;
 use std::{
     panic::{AssertUnwindSafe, catch_unwind},
     sync::{
         Arc, Mutex,
-        atomic::{AtomicBool, AtomicU64, Ordering},
+        atomic::{AtomicBool, Ordering},
     },
 };
-
-sentry_id!(MailboxId);
 
 #[derive(Debug)]
 pub struct Disconnected;
@@ -52,7 +49,7 @@ pub trait Actor: Send + Sync + 'static {
 }
 
 #[allow(dead_code)]
-pub struct ActorContext<A>(Addr<A>, tracing::Span);
+pub struct ActorContext<A>(Addr<A>);
 
 impl<A: Actor> ActorContext<A> {
     pub fn send<M>(&self, msg: M)
@@ -77,7 +74,6 @@ impl<A: Actor> ActorContext<A> {
 }
 
 struct Mailbox<T> {
-    id: MailboxId,
     sender: Sender<T>,
     receiver: Receiver<T>,
     scheduled: AtomicBool,
@@ -87,7 +83,6 @@ impl<T> Mailbox<T> {
     fn new() -> Self {
         let (sender, receiver) = channel::unbounded();
         Mailbox {
-            id: MailboxId::new(),
             sender,
             receiver,
             scheduled: AtomicBool::new(false),
@@ -102,11 +97,9 @@ impl<T> Mailbox<T> {
 
     #[inline]
     fn drain(&self, mut process: impl FnMut(T)) {
-        let mut processed = 0;
         loop {
             while let Ok(item) = self.receiver.try_recv() {
                 process(item);
-                processed += 1;
             }
 
             self.scheduled.store(false, Ordering::Release);
@@ -121,16 +114,6 @@ impl<T> Mailbox<T> {
             };
 
             process(item);
-            processed += 1;
-        }
-
-        if processed > 0 {
-            tracing::info!(
-                mailbox = %self.id,
-                processed,
-                thread = ?std::thread::current().id(),
-                "processed batch"
-            );
         }
     }
 }
@@ -139,7 +122,6 @@ type ProcessFn<A> = Box<dyn FnOnce(&mut A, &ActorContext<A>) + Send>;
 
 struct Envelope<A> {
     run: ProcessFn<A>,
-    span: tracing::Span,
 }
 
 pub struct ActorCell<A> {
@@ -174,17 +156,10 @@ impl<A: Actor> ActorCell<A> {
                 return;
             }
 
-            let _guard = envelope.span.enter();
-            let ctx = ActorContext(addr.clone(), envelope.span.clone());
+            let ctx = ActorContext(addr.clone());
             let result = catch_unwind(AssertUnwindSafe(|| (envelope.run)(&mut actor, &ctx)));
 
-            if let Err(err) = result {
-                tracing::error!(
-                    error = ?err,
-                    mailbox = %self.mailbox.id,
-                    "actor panicked while processing message"
-                );
-
+            if result.is_err() {
                 self.alive.store(false, Ordering::Release);
                 stopping = true;
             }
@@ -213,8 +188,7 @@ impl<A: Actor> Addr<A> {
 
         {
             let mut guard = addr.cell.actor.lock().unwrap_or_else(|e| e.into_inner());
-            let span = tracing::info_span!("actor", ty = %std::any::type_name::<A>());
-            let ctx = ActorContext(addr.clone(), span);
+            let ctx = ActorContext(addr.clone());
 
             guard.started(&ctx);
         }
@@ -227,29 +201,14 @@ impl<A: Actor> Addr<A> {
         A: MessageHandler<M>,
         M: Message,
     {
-        let span = tracing::info_span!("actor", ty = %std::any::type_name::<A>());
-        self.send_traced(msg, span);
-    }
-
-    pub fn send_traced<M>(&self, msg: M, span: tracing::Span)
-    where
-        A: MessageHandler<M>,
-        M: Message,
-    {
         let queued = self.cell.enqueue(Envelope {
             run: Box::new(move |actor: &mut A, ctx: &ActorContext<A>| {
                 actor.handle(msg, ctx);
             }),
-            span,
         });
 
         if queued {
             self.dispatch();
-        } else {
-            tracing::warn!(
-                mailbox = %self.cell.mailbox.id,
-                "message sent to stopped actor"
-            );
         }
     }
 
@@ -259,7 +218,6 @@ impl<A: Actor> Addr<A> {
         M: Message,
     {
         let (tx, rx) = channel::bounded(1);
-        let span = tracing::info_span!("actor", ty = %std::any::type_name::<A>());
 
         let queued = self.cell.enqueue(Envelope {
             run: Box::new(move |actor: &mut A, ctx: &ActorContext<A>| {
@@ -268,7 +226,6 @@ impl<A: Actor> Addr<A> {
                 // our problem if so) — don't let that panic the actor.
                 let _ = tx.send(response);
             }),
-            span,
         });
 
         if !queued {

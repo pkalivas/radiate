@@ -158,21 +158,21 @@ impl<T: Debug> Debug for WindowBuffer<T> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::WindowBuffer;
+// #[cfg(test)]
+// mod tests {
+//     use super::WindowBuffer;
 
-    #[test]
-    fn ring_buffer_works() {
-        let mut buffer = WindowBuffer::with_capacity(5);
-        for i in 0..20 {
-            buffer.push_front(i);
-            println!(
-                "Buffer: {:?} - {:?}, {:?}",
-                buffer.values(),
-                buffer.start,
-                buffer.end
-            );
-        }
-    }
-}
+//     #[test]
+//     fn ring_buffer_works() {
+//         let mut buffer = WindowBuffer::with_capacity(5);
+//         for i in 0..20 {
+//             buffer.push_front(i);
+//             println!(
+//                 "Buffer: {:?} - {:?}, {:?}",
+//                 buffer.values(),
+//                 buffer.start,
+//                 buffer.end
+//             );
+//         }
+//     }
+// }

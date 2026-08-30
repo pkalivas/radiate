@@ -102,6 +102,8 @@ impl<'a, T> Iterator for GraphTopologicalIterator<'a, T> {
         })
     }
 
+    /// Okay this is actually a pretty straightforward implementation,
+    /// but it _does_ have a performance impact that makes it useful to have.
     fn size_hint(&self) -> (usize, Option<usize>) {
         (self.remaining, Some(self.remaining))
     }

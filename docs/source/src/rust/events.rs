@@ -39,11 +39,9 @@ fn main() {
     let engine = GeneticEngine::builder()
         .codec(FloatCodec::vector(6, -5.0..5.0))
         .fitness_fn(your_fitness_fn)
+        .subscribe(MyHandler)
         // ... other parameters ...
         .build();
-
-    // Register the handler
-    // engine.on::<EpochComplete<Vec<f32>>>(MyHandler);
 
     // Run the engine
     let result = engine.run(|generation| generation.index() >= 100);

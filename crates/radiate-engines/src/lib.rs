@@ -11,9 +11,10 @@ pub mod runtime;
 mod steps;
 
 use std::sync::{
-    Mutex,
+    Mutex, Once,
     atomic::{AtomicBool, Ordering},
 };
+use tracing_subscriber::EnvFilter;
 
 pub use builder::GeneticEngineBuilder;
 pub use context::EvolutionContext;
@@ -22,11 +23,9 @@ pub use generation::{Generation, GenerationView};
 pub use io::{FileReader, FileWriter, JsonReader, JsonWriter};
 pub use limit::Limit;
 pub use message::{
-    Actor, EngineStop, EpochComplete, EventHandler, EventId, Improvement, LimitTriggered,
-    Subscription,
+    Actor, EngineStop, EpochComplete, EventHandler, Improvement, LimitTriggered, Subscription,
 };
 pub use runtime::EngineRuntime;
-
 pub use steps::{
     EngineStep, EvaluateStep, OffspringConfig, RecombineStep, SelectConfig, SpeciateStep,
     SurvivorConfig,
@@ -37,11 +36,9 @@ pub use radiate_core::*;
 pub use radiate_error::{RadiateError, ensure, radiate_err};
 pub use radiate_selectors::*;
 pub use radiate_utils::Shape;
-use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
 pub(crate) type Result<T> = std::result::Result<T, RadiateError>;
 
-pub use std::sync::Once;
 static INIT_LOGGING: Mutex<Once> = Mutex::new(Once::new());
 static LOGGING_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
@@ -58,28 +55,13 @@ pub fn init_logging() {
         return;
     }
 
-    let log_level = radiate_core::env_vars::log_level();
-
-    match log_level.as_deref() {
-        Some(level) => {
-            let filter = EnvFilter::try_new(level).unwrap_or_else(|e| {
-                eprintln!(
-                    "RADIATE_LOG_LEVEL={level:?} is not a valid filter directive ({e}), falling back to \"info\""
-                );
-                EnvFilter::new("info")
-            });
-
-            match radiate_core::env_vars::log_format()
-                .as_deref()
-                .unwrap_or("compact")
-            {
-                "json" => init_json_logging(filter),
-                "pretty" => init_pretty_logging(filter),
-                "tree" => init_tree_logging(filter),
-                _ => init_compact_logging(filter),
-            }
-        }
-        None => disable_logging(),
+    let filter = EnvFilter::new(radiate_core::env_vars::DEFAULT_LOG_LEVEL);
+    match radiate_core::env_vars::log_format()
+        .as_deref()
+        .unwrap_or(radiate_core::env_vars::COMPACT_LOGGING)
+    {
+        radiate_core::env_vars::JSON_LOGGING => init_json_logging(filter),
+        _ => init_compact_logging(filter),
     }
 
     LOGGING_INITIALIZED.store(true, Ordering::SeqCst);
@@ -87,15 +69,6 @@ pub fn init_logging() {
     std::panic::set_hook(Box::new(|info| {
         tracing::error!("{}", info);
     }));
-}
-
-fn init_tree_logging(filter: EnvFilter) {
-    INIT_LOGGING.lock().unwrap().call_once(|| {
-        tracing_subscriber::registry()
-            .with(filter)
-            .with(tracing_forest::ForestLayer::default())
-            .init();
-    });
 }
 
 fn init_compact_logging(filter: EnvFilter) {
@@ -116,17 +89,6 @@ fn init_json_logging(filter: EnvFilter) {
             .with_target(false)
             .with_level(true)
             .json()
-            .init();
-    });
-}
-
-fn init_pretty_logging(filter: EnvFilter) {
-    INIT_LOGGING.lock().unwrap().call_once(|| {
-        tracing_subscriber::fmt()
-            .with_env_filter(filter)
-            .with_target(false)
-            .with_level(true)
-            .pretty()
             .init();
     });
 }
