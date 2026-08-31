@@ -1,6 +1,6 @@
 use crate::{
     Actor, EngineStop, EventHandler,
-    message::{CheckpointSaved, MessageHandler, Warning, actor::ActorContext},
+    message::{CheckpointSaved, EngineStart, MessageHandler, Warning, actor::ActorContext},
 };
 use crate::{LimitTriggered, message::EpochComplete};
 use radiate_core::MetricSet;
@@ -200,6 +200,15 @@ where
             LogLevel::Info,
             format!("State Change: {:?}", *event),
         ));
+    }
+}
+
+impl<T> MessageHandler<Arc<EngineStart>> for EngineLogger<T>
+where
+    T: Send + Sync + 'static,
+{
+    fn handle(&mut self, _: Arc<EngineStart>, ctx: &ActorContext<Self>) {
+        ctx.publish(EngineState::Running);
     }
 }
 

@@ -3,8 +3,8 @@ use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
 use crate::{
     EventHandler,
     message::{
-        EcosystemSnapshot, EngineStop, EpochComplete, EpochStart, EventStream, Improvement,
-        Subscription,
+        EcosystemSnapshot, EngineStart, EngineStop, EpochComplete, EpochStart, EventStream,
+        Improvement, Subscription,
     },
 };
 use crate::{GenerationView, builder::GeneticEngineBuilder};
@@ -183,7 +183,7 @@ where
     }
 
     fn start(&mut self) {
-        self.stream.publish(EngineState::Running);
+        self.stream.publish(EngineStart);
     }
 
     fn stop(&mut self) {

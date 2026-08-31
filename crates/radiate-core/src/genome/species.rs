@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::HashSet,
     fmt::{self, Debug, Formatter},
-    sync::atomic::AtomicU64,
 };
 
 sentry_id!(SpeciesId);

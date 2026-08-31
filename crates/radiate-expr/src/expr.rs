@@ -5,7 +5,6 @@ use radiate_utils::sentry_id;
 use radiate_utils::{AnyValue, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::sync::atomic::AtomicU64;
 
 sentry_id!(ExprId);
 

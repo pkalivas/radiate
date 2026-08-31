@@ -8,7 +8,6 @@ use radiate_utils::sentry_id;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;
-use std::sync::atomic::AtomicU64;
 
 sentry_id!(PhenotypeId);
 

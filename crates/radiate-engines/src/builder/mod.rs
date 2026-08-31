@@ -14,7 +14,9 @@ use crate::builder::problem::ProblemParams;
 use crate::builder::species::SpeciesParams;
 #[cfg(feature = "serde")]
 use crate::io::FileReader;
-use crate::message::{CheckpointSaved, EngineLogger, EventStream, LoggingHandler, Warning};
+use crate::message::{
+    CheckpointSaved, EngineLogger, EngineStart, EventStream, LoggingHandler, Warning,
+};
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
@@ -207,6 +209,10 @@ where
         Ok(GeneticEngine::<C, T>::new(context, pipeline, event_system))
     }
 
+    /// Build the event stream for the genetic engine. This will configure the event stream,
+    /// set its executor, and spawn the necessary event handlers such as the engine logger
+    /// and health monitor. The configured event stream is then stored back in the builder's
+    /// parameters.
     fn build_event_stream(&mut self) -> Result<()> {
         let mut stream = self.params.event_stream.clone();
 
@@ -214,17 +220,20 @@ where
         stream.set_executor(stream_executor.executor);
 
         let logger = stream.spawn(EngineLogger::<T>::new());
-        logger.subscribe::<LimitTriggered>();
-        logger.subscribe::<Warning>();
-        logger.subscribe::<CheckpointSaved>();
-        logger.subscribe::<EpochComplete<T>>();
-        logger.subscribe::<EngineState>();
-        logger.subscribe::<EngineStop<T>>();
+        logger.receive::<LimitTriggered>();
+        logger.receive::<Warning>();
+        logger.receive::<CheckpointSaved>();
+        logger.receive::<EpochComplete<T>>();
+        logger.receive::<EngineState>();
+        logger.receive::<EngineStop<T>>();
+        logger.receive::<EngineStart>();
 
         let health = stream.spawn(HealthMonitor::<T>::default());
-        health.subscribe::<EpochComplete<T>>();
+        health.receive::<EpochComplete<T>>();
 
         stream.subscribe(LoggingHandler);
+
+        println!("{:?}", stream);
 
         self.params.event_stream = stream;
 

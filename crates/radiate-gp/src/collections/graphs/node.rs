@@ -7,7 +7,6 @@ use radiate_utils::sentry_id;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::sync::atomic::AtomicU64;
 
 sentry_id!(GraphNodeId);
 sentry_id!(InnovationId);
