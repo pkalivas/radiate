@@ -27,7 +27,7 @@ macro_rules! metric {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub(super) struct Meta {
     pub(super) update_count: usize,
-    pub(super) generation: u64,
+    pub(super) generation: usize,
 }
 
 #[derive(Clone, PartialEq, Default)]
@@ -66,12 +66,12 @@ impl Metric {
     }
 
     #[inline(always)]
-    pub fn generation(&self) -> u64 {
+    pub fn generation(&self) -> usize {
         self.meta.generation
     }
 
     #[inline(always)]
-    pub fn set_generation(&mut self, generation: u64) {
+    pub fn set_generation(&mut self, generation: usize) {
         if generation != self.meta.generation {
             self.meta.update_count = 0;
         }

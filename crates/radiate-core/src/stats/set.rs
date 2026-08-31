@@ -51,11 +51,11 @@ impl MetricSet {
         }
     }
 
-    pub fn bump(&mut self, generation: u64) {
+    pub fn bump(&mut self, generation: usize) {
         self.meta.generation = generation;
     }
 
-    pub fn generation(&self) -> u64 {
+    pub fn generation(&self) -> usize {
         self.meta.generation
     }
 
@@ -221,7 +221,7 @@ impl ExprSelector for MetricSet {
             MetricField::Var => wrap(metric.var()),
             MetricField::Skew => AnyValue::Float32(metric.skew()),
             MetricField::Count => AnyValue::UInt64(metric.count() as u64),
-            MetricField::Generation => AnyValue::UInt64(metric.generation()),
+            MetricField::Generation => AnyValue::UInt64(metric.generation() as u64),
             MetricField::UpdateCount => AnyValue::UInt64(metric.update_count() as u64),
         }
     }

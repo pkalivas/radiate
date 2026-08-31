@@ -19,6 +19,7 @@ pub enum Code {
     Io,
     Python,
     Multiple,
+    Event,
     Context,
     IO,
 }
@@ -55,6 +56,9 @@ pub enum RadiateError {
 
     #[error("Multiple errors:\n{0}")]
     Multiple(String),
+
+    #[error("Event error: {0}")]
+    Event(String),
 
     #[error("AnyValue error: {0}")]
     AnyValue(String),
@@ -95,6 +99,7 @@ impl RadiateError {
             RadiateError::Context { .. } => Code::Context,
             RadiateError::IO(_) => Code::IO,
             RadiateError::Fmt(_) => Code::Other,
+            RadiateError::Event { .. } => Code::Event,
         }
     }
     pub fn context(self, msg: impl Into<String>) -> Self {
@@ -177,6 +182,10 @@ macro_rules! radiate_err {
     // Contextual message
     (Context: $msg:expr, $source:expr $(,)?) => {
         $crate::__private::must_use($source.into().context($msg))
+    };
+
+    (Event: $fmt:literal $(, $arg:expr)* $(,)?) => {
+        $crate::__private::must_use($crate::RadiateError::Event(format!($fmt, $($arg),*)))
     };
 
     (IO: $fmt:literal $(, $arg:expr)* $(,)?) => {

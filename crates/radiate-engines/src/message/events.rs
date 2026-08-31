@@ -139,6 +139,11 @@ impl<C: Chromosome + Clone, T> From<&EvolutionContext<C, T>> for EcosystemSnapsh
 
 impl<C: Chromosome> Debug for EcosystemSnapshot<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "EcosystemSnapshot(index={})", self.index)
+        write!(
+            f,
+            "EcosystemSnapshot(index={}, size={})",
+            self.index,
+            self.ecosystem.len()
+        )
     }
 }

@@ -29,7 +29,7 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     executor: EvaluationParams<C, T>,
     exprs: Option<Arc<Mutex<ExprSet>>>,
     generation: Option<Generation<C, T>>,
-    sync: Option<ThreadSync>,
+    sync: ThreadSync,
     event_stream: EventStream,
 }
 
@@ -94,13 +94,8 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         self.event_stream.clone()
     }
 
-    /// The single `ThreadSync` this engine (and every actor subscribed on
-    /// its `ActorSystem`) shares — always set by `EngineConfig::from`, so
-    /// this never has to lazily create one.
     pub fn sync(&self) -> ThreadSync {
-        self.sync
-            .clone()
-            .expect("EngineConfig::from always sets sync")
+        self.sync.clone()
     }
 
     pub fn problem(&self) -> Arc<dyn Problem<C, T>> {
@@ -159,7 +154,7 @@ where
             generation: params.generation.clone(),
             exprs: params.exprs.clone(),
             filters: params.filter_params.filters.clone(),
-            sync: Some(params.evaluation_params.sync.clone()),
+            sync: params.evaluation_params.sync.clone(),
             event_stream: params.event_stream.clone(),
         }
     }

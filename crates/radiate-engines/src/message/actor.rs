@@ -1,6 +1,6 @@
 use crate::message::{Event, EventStream};
 use crossbeam::channel::{self, Receiver, Sender};
-use radiate_core::Executor;
+use radiate_core::{Executor, RadiateError, error::RadiateResult};
 use std::{
     panic::{AssertUnwindSafe, catch_unwind},
     sync::{
@@ -8,17 +8,6 @@ use std::{
         atomic::{AtomicBool, Ordering},
     },
 };
-
-#[derive(Debug)]
-pub struct Disconnected;
-
-impl std::fmt::Display for Disconnected {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "actor stopped before responding")
-    }
-}
-
-impl std::error::Error for Disconnected {}
 
 pub trait Message: Send + Sync + 'static {
     type Response: Send + 'static;
@@ -60,7 +49,7 @@ impl<A: Actor> ActorContext<A> {
         (self.0).send(msg);
     }
 
-    pub fn ask<M>(&self, msg: M) -> Result<M::Response, Disconnected>
+    pub fn ask<M>(&self, msg: M) -> RadiateResult<M::Response>
     where
         A: MessageHandler<M>,
         M: Message,
@@ -212,7 +201,7 @@ impl<A: Actor> Addr<A> {
         }
     }
 
-    pub fn ask<M>(&self, msg: M) -> Result<M::Response, Disconnected>
+    pub fn ask<M>(&self, msg: M) -> RadiateResult<M::Response>
     where
         A: MessageHandler<M>,
         M: Message,
@@ -230,11 +219,14 @@ impl<A: Actor> Addr<A> {
 
         if !queued {
             // Actor has stopped, so the caller will never get a response.
-            return Err(Disconnected);
+            return Err(RadiateError::Event(format!(
+                "actor stopped before responding"
+            )));
         }
 
         self.dispatch();
-        rx.recv().map_err(|_| Disconnected)
+        rx.recv()
+            .map_err(|_| RadiateError::Event(format!("Failed to receive response from actor")))
     }
 
     pub fn publish<E: Event>(&self, message: E) {

@@ -72,12 +72,23 @@ impl EventStream {
         }
     }
 
+    pub fn set_executor(&mut self, executor: Arc<Executor>) {
+        self.executor = executor;
+    }
+
     pub fn spawn<A: Actor>(&self, actor: A) -> Addr<A> {
         Addr::spawn_with_bus(actor, Arc::clone(&self.executor), Some(self.clone()))
     }
 
-    pub fn set_executor(&mut self, executor: Arc<Executor>) {
-        self.executor = executor;
+    pub fn subscribe<E: Event>(&self, handler: impl EventHandler<E>) -> Subscription {
+        let addr = Addr::spawn(
+            HandlerActor {
+                handler,
+                _marker: PhantomData,
+            },
+            Arc::clone(&self.executor),
+        );
+        self.subscribe_addr::<E, _>(&addr)
     }
 
     pub fn subscribe_addr<E, A>(&self, addr: &Addr<A>) -> Subscription
@@ -103,17 +114,6 @@ impl EventStream {
         );
 
         Subscription { active }
-    }
-
-    pub fn subscribe<E: Event>(&self, handler: impl EventHandler<E>) -> Subscription {
-        let addr = Addr::spawn(
-            HandlerActor {
-                handler,
-                _marker: PhantomData,
-            },
-            Arc::clone(&self.executor),
-        );
-        self.subscribe_addr::<E, _>(&addr)
     }
 
     #[inline]
@@ -196,7 +196,7 @@ where
     M: Event,
     H: EventHandler<M>,
 {
-    fn handle(&mut self, msg: Arc<M>, _ctx: &ActorContext<Self>) {
+    fn handle(&mut self, msg: Arc<M>, _: &ActorContext<Self>) {
         self.handler.handle(&msg);
     }
 }

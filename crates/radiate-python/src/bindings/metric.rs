@@ -235,7 +235,7 @@ impl PyMetric {
 
     #[getter]
     pub fn generation(&self) -> u64 {
-        self.inner.generation()
+        self.inner.generation() as u64
     }
 
     #[getter]
