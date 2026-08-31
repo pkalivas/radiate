@@ -1,9 +1,11 @@
 mod actor;
+mod cell;
 mod events;
 mod handlers;
 mod stream;
 
-pub use actor::{Actor, Addr, MessageHandler};
+pub use actor::{Actor, ActorContext, Addr, Message, MessageHandler};
+pub use cell::ActorCell;
 pub use events::{
     CheckpointSaved, EcosystemSnapshot, EngineStop, EpochComplete, EpochStart, Improvement,
     LimitTriggered, Warning,

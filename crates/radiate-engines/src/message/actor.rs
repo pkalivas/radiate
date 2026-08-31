@@ -1,13 +1,8 @@
+use super::cell::ActorCell;
 use crate::message::{Event, EventStream};
-use crossbeam::channel::{self, Receiver, Sender};
+use crossbeam::channel;
 use radiate_core::{Executor, RadiateError, error::RadiateResult};
-use std::{
-    panic::{AssertUnwindSafe, catch_unwind},
-    sync::{
-        Arc, Mutex,
-        atomic::{AtomicBool, Ordering},
-    },
-};
+use std::sync::Arc;
 
 pub trait Message: Send + Sync + 'static {
     type Response: Send + 'static;
@@ -37,8 +32,14 @@ pub trait Actor: Send + Sync + 'static {
     }
 }
 
+pub(super) type ProcessFn<A> = Box<dyn FnOnce(&mut A, &ActorContext<A>) + Send>;
+
+pub(super) struct Envelope<A> {
+    pub(super) run: ProcessFn<A>,
+}
+
 #[allow(dead_code)]
-pub struct ActorContext<A>(Addr<A>);
+pub struct ActorContext<A>(pub(super) Addr<A>);
 
 impl<A: Actor> ActorContext<A> {
     pub fn send<M>(&self, msg: M)
@@ -62,104 +63,10 @@ impl<A: Actor> ActorContext<A> {
     }
 }
 
-struct Mailbox<T> {
-    sender: Sender<T>,
-    receiver: Receiver<T>,
-    scheduled: AtomicBool,
-}
-
-impl<T> Mailbox<T> {
-    fn new() -> Self {
-        let (sender, receiver) = channel::unbounded();
-        Mailbox {
-            sender,
-            receiver,
-            scheduled: AtomicBool::new(false),
-        }
-    }
-
-    fn try_claim(&self) -> bool {
-        self.scheduled
-            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
-            .is_ok()
-    }
-
-    #[inline]
-    fn drain(&self, mut process: impl FnMut(T)) {
-        loop {
-            while let Ok(item) = self.receiver.try_recv() {
-                process(item);
-            }
-
-            self.scheduled.store(false, Ordering::Release);
-
-            if !self.try_claim() {
-                break;
-            }
-
-            let Some(item) = self.receiver.try_recv().ok() else {
-                self.scheduled.store(false, Ordering::Release);
-                break;
-            };
-
-            process(item);
-        }
-    }
-}
-
-type ProcessFn<A> = Box<dyn FnOnce(&mut A, &ActorContext<A>) + Send>;
-
-struct Envelope<A> {
-    run: ProcessFn<A>,
-}
-
-pub struct ActorCell<A> {
-    actor: Mutex<A>,
-    mailbox: Mailbox<Envelope<A>>,
-    alive: AtomicBool,
-}
-
-impl<A: Actor> ActorCell<A> {
-    fn new(actor: A) -> Self {
-        ActorCell {
-            actor: Mutex::new(actor),
-            mailbox: Mailbox::new(),
-            alive: AtomicBool::new(true),
-        }
-    }
-
-    fn enqueue(&self, envelope: Envelope<A>) -> bool {
-        if !self.alive.load(Ordering::Acquire) {
-            return false;
-        }
-
-        self.mailbox.sender.send(envelope).is_ok()
-    }
-
-    fn process_batch(self: Arc<Self>, addr: Addr<A>) {
-        let mut actor = self.actor.lock().unwrap_or_else(|e| e.into_inner());
-        let mut stopping = false;
-
-        self.mailbox.drain(|envelope| {
-            if stopping {
-                return;
-            }
-
-            let ctx = ActorContext(addr.clone());
-            let result = catch_unwind(AssertUnwindSafe(|| (envelope.run)(&mut actor, &ctx)));
-
-            if result.is_err() {
-                self.alive.store(false, Ordering::Release);
-                stopping = true;
-            }
-        });
-    }
-}
-
 pub struct Addr<A> {
-    cell: Arc<ActorCell<A>>,
-    executor: Arc<Executor>,
-    bus: Option<EventStream>,
+    pub(super) cell: Arc<ActorCell<A>>,
+    pub(super) executor: Arc<Executor>,
+    pub(super) bus: Option<EventStream>,
 }
 
 impl<A: Actor> Addr<A> {
@@ -235,8 +142,9 @@ impl<A: Actor> Addr<A> {
         }
     }
 
-    pub fn subscribe<E: Event>(&self) -> Option<crate::message::Subscription>
+    pub fn subscribe<E>(&self) -> Option<crate::message::Subscription>
     where
+        E: Event,
         A: MessageHandler<Arc<E>>,
     {
         self.bus
@@ -245,7 +153,7 @@ impl<A: Actor> Addr<A> {
     }
 
     fn dispatch(&self) {
-        if self.cell.mailbox.try_claim() {
+        if self.cell.try_claim() {
             let cell = Arc::clone(&self.cell);
             let addr = self.clone();
             self.executor.submit(move || cell.process_batch(addr));
@@ -675,3 +583,122 @@ mod tests {
         );
     }
 }
+
+// #[allow(dead_code)]
+// pub struct ActorContext<A>(Addr<A>);
+
+// impl<A: Actor> ActorContext<A> {
+//     pub fn send<M>(&self, msg: M)
+//     where
+//         A: MessageHandler<M>,
+//         M: Message,
+//     {
+//         (self.0).send(msg);
+//     }
+
+//     pub fn ask<M>(&self, msg: M) -> RadiateResult<M::Response>
+//     where
+//         A: MessageHandler<M>,
+//         M: Message,
+//     {
+//         (self.0).ask(msg)
+//     }
+
+//     pub fn publish<E: Event>(&self, message: E) {
+//         (self.0).publish(message);
+//     }
+// }
+
+// struct Mailbox<T> {
+//     sender: Sender<T>,
+//     receiver: Receiver<T>,
+//     scheduled: AtomicBool,
+// }
+
+// impl<T> Mailbox<T> {
+//     fn new() -> Self {
+//         let (sender, receiver) = channel::unbounded();
+//         Mailbox {
+//             sender,
+//             receiver,
+//             scheduled: AtomicBool::new(false),
+//         }
+//     }
+
+//     fn try_claim(&self) -> bool {
+//         self.scheduled
+//             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+//             .is_ok()
+//     }
+
+//     #[inline]
+//     fn drain(&self, mut process: impl FnMut(T)) {
+//         loop {
+//             while let Ok(item) = self.receiver.try_recv() {
+//                 process(item);
+//             }
+
+//             self.scheduled.store(false, Ordering::Release);
+
+//             if !self.try_claim() {
+//                 break;
+//             }
+
+//             let Some(item) = self.receiver.try_recv().ok() else {
+//                 self.scheduled.store(false, Ordering::Release);
+//                 break;
+//             };
+
+//             process(item);
+//         }
+//     }
+// }
+
+// type ProcessFn<A> = Box<dyn FnOnce(&mut A, &ActorContext<A>) + Send>;
+
+// struct Envelope<A> {
+//     run: ProcessFn<A>,
+// }
+
+// pub struct ActorCell<A> {
+//     actor: Mutex<A>,
+//     mailbox: Mailbox<Envelope<A>>,
+//     alive: AtomicBool,
+// }
+
+// impl<A: Actor> ActorCell<A> {
+//     fn new(actor: A) -> Self {
+//         ActorCell {
+//             actor: Mutex::new(actor),
+//             mailbox: Mailbox::new(),
+//             alive: AtomicBool::new(true),
+//         }
+//     }
+
+//     fn enqueue(&self, envelope: Envelope<A>) -> bool {
+//         if !self.alive.load(Ordering::Acquire) {
+//             return false;
+//         }
+
+//         self.mailbox.sender.send(envelope).is_ok()
+//     }
+
+//     fn process_batch(self: Arc<Self>, addr: Addr<A>) {
+//         let mut actor = self.actor.lock().unwrap_or_else(|e| e.into_inner());
+//         let mut stopping = false;
+
+//         self.mailbox.drain(|envelope| {
+//             if stopping {
+//                 return;
+//             }
+
+//             let ctx = ActorContext(addr.clone());
+//             let result = catch_unwind(AssertUnwindSafe(|| (envelope.run)(&mut actor, &ctx)));
+
+//             if result.is_err() {
+//                 self.alive.store(false, Ordering::Release);
+//                 stopping = true;
+//             }
+//         });
+//     }
+// }
