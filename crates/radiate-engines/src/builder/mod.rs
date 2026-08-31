@@ -208,7 +208,10 @@ where
     }
 
     fn build_event_stream(&mut self) -> Result<()> {
-        let stream = self.params.event_stream.clone();
+        let mut stream = self.params.event_stream.clone();
+
+        let stream_executor = self.params.evaluation_params.event_stream_executor.clone();
+        stream.set_executor(stream_executor.executor);
 
         let logger = stream.spawn(EngineLogger::<T>::new());
         logger.subscribe::<LimitTriggered>();

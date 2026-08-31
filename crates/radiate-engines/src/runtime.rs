@@ -67,7 +67,7 @@ impl<E: Engine> EngineRuntime<E> {
             return Ok(());
         }
 
-        // At this point, we know the new_state is not Stopped,
+        // At this point, we know the `new_state` is not Stopped,
         // so we can proceed with actions and limits.
         let ctx = self.engine.context();
         if let Some(actions) = &mut self.actions {

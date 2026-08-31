@@ -244,32 +244,3 @@ where
         }
     }
 }
-
-// /// Custom drop implementation for proper cleanup and event emission.
-// ///
-// /// When the engine is dropped, it emits a stop event to notify any listeners
-// /// that the evolutionary process has ended. This allows external systems to
-// /// perform cleanup operations or finalize results.
-// ///
-// /// # Event Emission
-// ///
-// /// The stop event includes the final context state, allowing listeners to:
-// /// - Record final metrics and statistics
-// /// - Save final population state
-// /// - Perform cleanup operations
-// /// - Generate final reports
-// /// - Integrate with external systems
-// impl<C, T> Drop for GeneticEngine<C, T>
-// where
-//     C: Chromosome,
-//     T: Clone + Send + Sync + 'static,
-// {
-//     fn drop(&mut self) {
-//         let is_stopped = self.context.is_stopped();
-//         if !is_stopped {
-//             self.stream.publish(EngineStop::from(&self.context));
-//             self.stream.wait_for_all();
-//             self.context.stop();
-//         }
-//     }
-// }
