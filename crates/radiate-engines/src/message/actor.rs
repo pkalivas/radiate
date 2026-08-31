@@ -393,6 +393,10 @@ mod tests {
     #[derive(Debug, Clone, PartialEq)]
     struct Pong(u32);
 
+    impl Message for Pong {
+        type Response = ();
+    }
+
     struct MultiListener {
         pings: Arc<AtomicUsize>,
         pongs: Arc<AtomicUsize>,
