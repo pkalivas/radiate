@@ -116,6 +116,7 @@ impl EventStream {
         self.subscribe_addr::<E, _>(&addr)
     }
 
+    #[inline]
     pub fn publish<E: Event>(&self, message: E) {
         let group = {
             let subscribers = self.subscribers.read().unwrap();
@@ -136,6 +137,7 @@ impl EventStream {
         }
     }
 
+    #[inline]
     pub fn lazy_publish<E: Event>(&self, f: impl FnOnce() -> E) {
         if self.can_publish::<E>() {
             self.publish(f());

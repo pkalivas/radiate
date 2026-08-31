@@ -1,7 +1,6 @@
 mod alters;
 pub(crate) mod config;
 mod evaluators;
-mod events;
 mod filters;
 mod objectives;
 mod population;
@@ -9,12 +8,12 @@ mod problem;
 mod selectors;
 mod species;
 
-use crate::builder::evaluators::EvaluationParams;
-use crate::builder::filters::FilterParams;
 use crate::builder::objectives::OptimizeParams;
 use crate::builder::population::PopulationParams;
 use crate::builder::problem::ProblemParams;
 use crate::builder::species::SpeciesParams;
+#[cfg(feature = "serde")]
+use crate::io::FileReader;
 use crate::message::{CheckpointSaved, EngineLogger, EventStream, LoggingHandler, Warning};
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
@@ -23,6 +22,7 @@ use crate::{
 };
 use crate::{EngineStop, pipeline::Pipeline};
 use crate::{EpochComplete, genome::phenotype::Phenotype};
+use crate::{EventHandler, builder::evaluators::EvaluationParams};
 use crate::{Generation, Result};
 use crate::{LimitTriggered, builder::selectors::SelectionParams};
 use crate::{
@@ -31,8 +31,7 @@ use crate::{
         EngineStep, FilterStep, FrontStep, MetricStep, RecombineStep, SelectConfig, SpeciateStep,
     },
 };
-#[cfg(feature = "serde")]
-use crate::{builder::events::CheckpointParams, io::FileReader};
+use crate::{builder::filters::FilterParams, message::Event};
 use crate::{
     message::HealthMonitor,
     objectives::{Objective, Optimize},
@@ -65,8 +64,6 @@ where
     pub optimization_params: OptimizeParams<C>,
     pub problem_params: ProblemParams<C, T>,
     pub filter_params: FilterParams<C>,
-    #[cfg(feature = "serde")]
-    pub checkpoint_params: CheckpointParams<C, T>,
 
     pub alterers: Vec<Alterer<C>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
@@ -131,6 +128,12 @@ where
     /// that will be calculated during the evolution process.
     pub fn metrics(mut self, exprs: impl Into<ExprSet>) -> Self {
         self.params.exprs = Some(Arc::new(Mutex::new(exprs.into())));
+        self
+    }
+
+    /// Subscribe to an event of type `E` with the given event handler.
+    pub fn subscribe<E: Event>(self, handler: impl EventHandler<E>) -> Self {
+        self.params.event_stream.subscribe(handler);
         self
     }
 
@@ -542,12 +545,6 @@ where
                 },
                 filter_params: FilterParams {
                     filters: Vec::new(),
-                },
-                #[cfg(feature = "serde")]
-                checkpoint_params: CheckpointParams {
-                    interval: None,
-                    path: None,
-                    writer: None,
                 },
 
                 replacement_strategy: Arc::new(EncodeReplace),

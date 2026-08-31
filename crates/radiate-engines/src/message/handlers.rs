@@ -208,6 +208,6 @@ where
     T: Send + Sync + 'static,
 {
     fn handle(&mut self, _: Arc<EngineStop<T>>, ctx: &ActorContext<Self>) {
-        ctx.publish(LogEvent(LogLevel::Info, "Engine stopped".into()));
+        ctx.publish(EngineState::Stopped);
     }
 }

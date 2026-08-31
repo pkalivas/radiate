@@ -1,12 +1,13 @@
 use crate::app::{App, GenerationEvent, InputEvent};
 use color_eyre::{Result, eyre::Context};
+use crossbeam::channel;
 use radiate_engines::{
     Chromosome, Engine, EngineState, EngineStream, Generation, GenerationView, GeneticEngine,
     error::RadiateResult, message::LogEvent, sync::IntoPair,
 };
 use radiate_engines::{EngineRuntime, EvolutionContext, ThreadSync};
 use std::{
-    sync::{Arc, atomic::Ordering, mpsc},
+    sync::{Arc, atomic::Ordering},
     time::Duration,
 };
 
@@ -19,7 +20,7 @@ where
 {
     inner: GeneticEngine<C, T>,
     control: ThreadSync,
-    dispatcher: mpsc::Sender<InputEvent<C>>,
+    dispatcher: channel::Sender<InputEvent<C>>,
     app_thread: Option<std::thread::JoinHandle<Result<()>>>,
     key_thread: Option<std::thread::JoinHandle<Result<()>>>,
 }
@@ -35,8 +36,6 @@ where
 
         let (dispatch_one, dispatch_two) = app.dispatcher().into_pair();
         let stop_flag = control.stop_flag();
-
-        Self::setup_subscriptions(&mut inner, &dispatch_one);
 
         let app_thread = std::thread::spawn(move || {
             let terminal = ratatui::init();
@@ -58,8 +57,6 @@ where
             Ok(())
         });
 
-        control.set_paused(true);
-
         Self {
             inner,
             control,
@@ -71,29 +68,6 @@ where
 
     pub fn iter(self) -> EngineRuntime<Self> {
         EngineRuntime::new(self)
-    }
-
-    fn setup_subscriptions(
-        engine: &mut GeneticEngine<C, T>,
-        dispatcher: &mpsc::Sender<InputEvent<C>>,
-    ) {
-        let dispatch = dispatcher.clone();
-        engine.subscribe::<LogEvent>(move |msg: &LogEvent| {
-            dispatch
-                .send(InputEvent::Log(msg.0, msg.1.clone()))
-                .map_err(|_| eprintln!("Failed to send log event: {:?}", msg))
-                .unwrap();
-        });
-
-        // let dispatch = dispatcher.clone();
-        // engine.subscribe::<EngineState>(move |state: &EngineState| {
-        //     dispatch
-        //         .send(InputEvent::Log(
-        //             radiate_engines::LogLevel::Info,
-        //             format!("{:?}", state),
-        //         ))
-        //         .unwrap();
-        // });
     }
 }
 
@@ -111,6 +85,22 @@ where
 
     fn epoch(&self) -> Self::Epoch {
         self.inner.epoch()
+    }
+
+    fn start(&mut self) {
+        let dispatch = self.dispatcher.clone();
+        self.inner.subscribe::<LogEvent>(move |event: &LogEvent| {
+            dispatch
+                .send(InputEvent::Log(event.0, event.1.clone()))
+                .map_err(|_| eprintln!("Failed to send log event: {:?}", event))
+                .unwrap();
+        });
+
+        self.inner.start();
+    }
+
+    fn stop(&mut self) {
+        self.inner.stop();
     }
 
     #[inline]

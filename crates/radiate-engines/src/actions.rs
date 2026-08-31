@@ -1,6 +1,6 @@
-#[cfg(feature = "serde")]
-use crate::FileWriter;
 use crate::{EvolutionContext, Generation, runtime::RuntimeAction};
+#[cfg(feature = "serde")]
+use crate::{FileWriter, message::CheckpointSaved};
 use radiate_core::{Chromosome, Engine, error::RadiateResult};
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -33,6 +33,10 @@ where
                     .join(format!("chckpnt_{}.{}", ctx.index, self.writer.extension()));
 
             self.writer.write(file_path.clone(), &E::Epoch::from(ctx))?;
+            ctx.events().publish(CheckpointSaved {
+                index: ctx.index,
+                path: file_path.into_string().unwrap_or_default(),
+            });
         }
 
         Ok(())

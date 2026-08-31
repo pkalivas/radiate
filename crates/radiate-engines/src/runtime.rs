@@ -59,35 +59,34 @@ impl<E: Engine> EngineRuntime<E> {
             return Err(radiate_err!(Engine: "Engine has already completed"));
         }
 
-        // TODO: idk, I don't love this. Lets refactor. There is
-        // too much state being mutated in the scope then being set at on close of the scope. Messy, man.
-        self.state = match self.engine.step()? {
-            EngineState::Stopped => {
-                self.engine.stop();
-                EngineState::Stopped
-            }
-            state => {
-                if let Some(actions) = &mut self.actions {
-                    let ctx = self.engine.context();
-                    for action in actions.iter_mut() {
-                        action.execute(ctx)?;
-                    }
-                }
+        let new_state = self.engine.step()?;
 
-                if let Some(limits) = &mut self.limits {
-                    let ctx = self.engine.context();
-                    for limit in limits.iter_mut() {
-                        if !limit.proceed(ctx)? {
-                            self.engine.stop();
-                            self.state = EngineState::Stopped;
-                            return Ok(());
-                        }
-                    }
-                }
+        if matches!(new_state, EngineState::Stopped) {
+            self.engine.stop();
+            self.state = EngineState::Stopped;
+            return Ok(());
+        }
 
-                state
+        // At this point, we know the new_state is not Stopped,
+        // so we can proceed with actions and limits.
+        let ctx = self.engine.context();
+        if let Some(actions) = &mut self.actions {
+            for action in actions.iter_mut() {
+                action.execute(&ctx)?;
             }
-        };
+        }
+
+        if let Some(limits) = &mut self.limits {
+            for limit in limits.iter_mut() {
+                if !limit.proceed(&ctx)? {
+                    self.engine.stop();
+                    self.state = EngineState::Stopped;
+                    return Ok(());
+                }
+            }
+        }
+
+        self.state = new_state;
 
         Ok(())
     }

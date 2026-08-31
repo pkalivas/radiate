@@ -16,5 +16,6 @@ ratatui = { workspace = true }
 crossterm = { workspace = true }
 color-eyre = { workspace = true }
 tui-piechart = { workspace = true }
+crossbeam = { workspace = true }
 radiate-engines = { workspace = true }
 radiate-utils = { workspace = true }

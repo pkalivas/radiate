@@ -1,6 +1,7 @@
 use crate::state::{AppState, RunState, UiMode};
 use crate::widgets::{AppWidget, HelpPanelWidget, LayoutNode, MetricModalWidget, ModalWidget};
 use color_eyre::Result;
+use crossbeam::channel;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use radiate_engines::{
     Chromosome, CommandChannel, Ecosystem, EvolutionContext, Front, MetricSet, Phenotype, Score,
@@ -11,7 +12,7 @@ use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::widgets::Widget;
 use ratatui::{Terminal, backend::CrosstermBackend};
-use std::sync::{Arc, RwLock, mpsc};
+use std::sync::{Arc, RwLock};
 use std::{
     io,
     time::{Duration, Instant},
@@ -86,7 +87,7 @@ where
         }
     }
 
-    pub fn dispatcher(&self) -> mpsc::Sender<InputEvent<C>> {
+    pub fn dispatcher(&self) -> channel::Sender<InputEvent<C>> {
         self.channel.dispatcher()
     }
 
@@ -120,21 +121,27 @@ where
             InputEvent::EngineStop => self.state.run.engine = false,
             InputEvent::EpochComplete(event) => {
                 self.handle_engine_epoch(event);
-                let now = Instant::now();
-                if let Some(last) = self.state.run.last_render {
-                    let elapsed = now.duration_since(last);
-                    if elapsed < self.state.run.render_interval {
-                        return Ok(false);
-                    }
-                }
-
-                self.state.run.last_render = Some(now);
+                return self.throttle();
             }
             InputEvent::Log(level, message) => {
                 self.state.evo.push_event_log_entry(level, message);
+                return self.throttle();
             }
         }
 
+        Ok(true)
+    }
+
+    fn throttle(&mut self) -> Result<bool> {
+        let now = Instant::now();
+        if let Some(last) = self.state.run.last_render {
+            let elapsed = now.duration_since(last);
+            if elapsed < self.state.run.render_interval {
+                return Ok(false);
+            }
+        }
+
+        self.state.run.last_render = Some(now);
         Ok(true)
     }
 
