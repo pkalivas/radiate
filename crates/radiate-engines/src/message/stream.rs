@@ -1,9 +1,10 @@
 use crate::{
     Actor,
-    message::actor::{ActorContext, Addr, MessageHandler},
+    message::actor::{ActorContext, ActorId, Addr, MessageHandler},
 };
 use radiate_core::Executor;
 use radiate_utils::sentry_id;
+use std::sync::Mutex;
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
@@ -39,6 +40,11 @@ where
     }
 }
 
+#[derive(Debug)]
+pub enum StreamEvent {
+    ActorRegistered(ActorId),
+}
+
 pub struct Subscription {
     id: SubscriptionId,
     active: Arc<AtomicBool>,
@@ -71,17 +77,31 @@ struct Registration {
 type SubscriberList = Arc<Vec<Registration>>;
 type SubscriberMap = HashMap<TypeId, SubscriberList>;
 
+struct StreamState {
+    started: bool,
+    pending: Vec<PendingEvent>,
+}
+
+struct PendingEvent {
+    type_id: TypeId,
+    payload: Payload,
+}
+
 #[derive(Clone, Default)]
 pub struct EventStream {
+    started: Arc<AtomicBool>,
     executor: Arc<Executor>,
     subscribers: Arc<RwLock<SubscriberMap>>,
+    pending: Arc<Mutex<Vec<PendingEvent>>>,
 }
 
 impl EventStream {
     pub fn new(executor: Arc<Executor>) -> Self {
         EventStream {
+            started: Arc::new(AtomicBool::new(false)),
             executor,
             subscribers: Arc::default(),
+            pending: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -90,7 +110,19 @@ impl EventStream {
     }
 
     pub fn spawn<A: Actor>(&self, actor: A) -> Addr<A> {
-        Addr::spawn_with_bus(actor, Arc::clone(&self.executor), Some(self.clone()))
+        let addr = Addr::spawn_with_bus(actor, Arc::clone(&self.executor), Some(self.clone()));
+        self.publish(StreamEvent::ActorRegistered(addr.id));
+
+        addr
+    }
+
+    pub fn start(&self) {
+        if !self.started.swap(true, Ordering::AcqRel) {
+            let pending = std::mem::take(&mut *self.pending.lock().unwrap());
+            for event in pending {
+                self.dispatch(event.type_id, event.payload);
+            }
+        }
     }
 
     pub fn unsubscribe(&self, id: SubscriptionId) {
@@ -123,11 +155,11 @@ impl EventStream {
     {
         let active = Arc::new(AtomicBool::new(true));
         let id = SubscriptionId::new();
-        let addr = addr.clone();
+        let inner_addr = addr.clone();
 
         let forward = Arc::new(move |payload: Payload| {
             if let Ok(msg) = payload.downcast::<E>() {
-                addr.send(msg);
+                inner_addr.send(msg);
             }
         });
 
@@ -140,28 +172,23 @@ impl EventStream {
             },
         );
 
+        self.publish(StreamEvent::ActorRegistered(addr.id));
+
         Subscription { id, active }
     }
 
     #[inline]
     pub fn publish<E: Event>(&self, message: E) {
-        let group = {
-            let subscribers = self.subscribers.read().unwrap();
-            match subscribers.get(&TypeId::of::<E>()) {
-                Some(group) => Arc::clone(group),
-                None => return,
-            }
-        };
+        if !self.started.load(Ordering::Acquire) {
+            self.pending.lock().unwrap().push(PendingEvent {
+                type_id: TypeId::of::<E>(),
+                payload: Arc::new(message),
+            });
 
-        let payload: Payload = Arc::new(message);
-
-        for registration in group.iter() {
-            if !registration.active.load(Ordering::Acquire) {
-                continue;
-            }
-
-            (registration.forward)(Arc::clone(&payload));
+            return;
         }
+
+        self.dispatch(TypeId::of::<E>(), Arc::new(message));
     }
 
     #[inline]
@@ -184,6 +211,23 @@ impl EventStream {
                     .count()
             })
             .unwrap_or(0)
+    }
+
+    fn dispatch(&self, type_id: TypeId, payload: Payload) {
+        let group = {
+            let subscribers = self.subscribers.read().unwrap();
+
+            match subscribers.get(&type_id) {
+                Some(group) => Arc::clone(group),
+                None => return,
+            }
+        };
+
+        for registration in group.iter() {
+            if registration.active.load(Ordering::Acquire) {
+                (registration.forward)(Arc::clone(&payload));
+            }
+        }
     }
 
     fn register(&self, type_id: TypeId, registration: Registration) {
@@ -245,6 +289,6 @@ where
     H: EventHandler<M>,
 {
     fn handle(&mut self, msg: Arc<M>, _: &ActorContext<Self>) {
-        self.handler.handle(&msg);
+        (self.handler).handle(&msg);
     }
 }

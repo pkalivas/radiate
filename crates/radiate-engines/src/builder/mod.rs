@@ -219,19 +219,19 @@ where
         let stream_executor = self.params.evaluation_params.event_stream_executor.clone();
         stream.set_executor(stream_executor.executor);
 
+        stream.subscribe(LoggingHandler);
+
         let logger = stream.spawn(EngineLogger::<T>::new());
-        logger.receive::<LimitTriggered>();
-        logger.receive::<Warning>();
-        logger.receive::<CheckpointSaved>();
-        logger.receive::<EpochComplete<T>>();
-        logger.receive::<EngineState>();
-        logger.receive::<EngineStop<T>>();
-        logger.receive::<EngineStart>();
+        // logger.receive::<LimitTriggered>();
+        // logger.receive::<Warning>();
+        // logger.receive::<CheckpointSaved>();
+        // logger.receive::<EpochComplete<T>>();
+        // logger.receive::<EngineState>();
+        // logger.receive::<EngineStop<T>>();
+        // logger.receive::<EngineStart>();
 
         let health = stream.spawn(HealthMonitor::<T>::default());
         health.receive::<EpochComplete<T>>();
-
-        stream.subscribe(LoggingHandler);
 
         println!("{:?}", stream);
 

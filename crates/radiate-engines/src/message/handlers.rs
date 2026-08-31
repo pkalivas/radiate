@@ -1,5 +1,6 @@
 use crate::{
     Actor, EngineStop, EventHandler,
+    message::stream::StreamEvent,
     message::{CheckpointSaved, EngineStart, MessageHandler, Warning, actor::ActorContext},
 };
 use crate::{LimitTriggered, message::EpochComplete};
@@ -79,27 +80,6 @@ fn check_species_collapse<A: Actor>(metrics: &MetricSet, ctx: &ActorContext<A>) 
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum LogLevel {
-    Info,
-    Warn,
-}
-
-#[derive(Clone, Debug)]
-pub struct LogEvent(pub LogLevel, pub String);
-
-#[derive(Clone, Default)]
-pub struct LoggingHandler;
-
-impl EventHandler<LogEvent> for LoggingHandler {
-    fn handle(&mut self, message: &LogEvent) {
-        match message.0 {
-            LogLevel::Info => tracing::info!("{}", message.1),
-            LogLevel::Warn => tracing::warn!("{}", message.1),
-        }
-    }
-}
-
 pub struct EngineLogger<T> {
     _marker: PhantomData<T>,
 }
@@ -118,7 +98,40 @@ impl<T> EngineLogger<T> {
     }
 }
 
-impl<T> Actor for EngineLogger<T> where T: Send + Sync + 'static {}
+impl<T> Actor for EngineLogger<T>
+where
+    T: Send + Sync + 'static,
+{
+    fn started(&mut self, ctx: &ActorContext<Self>)
+    where
+        Self: Sized,
+    {
+        ctx.subscribe::<LimitTriggered>();
+        ctx.subscribe::<Warning>();
+        ctx.subscribe::<CheckpointSaved>();
+        ctx.subscribe::<EpochComplete<T>>();
+        ctx.subscribe::<EngineState>();
+        ctx.subscribe::<EngineStop<T>>();
+        ctx.subscribe::<EngineStart>();
+        ctx.subscribe::<StreamEvent>();
+    }
+}
+
+impl<T> MessageHandler<Arc<StreamEvent>> for EngineLogger<T>
+where
+    T: Send + Sync + 'static,
+{
+    fn handle(&mut self, message: Arc<StreamEvent>, ctx: &ActorContext<Self>) {
+        match &*message {
+            StreamEvent::ActorRegistered(id) => {
+                ctx.publish(LogEvent(
+                    LogLevel::Info,
+                    format!("Actor registered: {:?}", id),
+                ));
+            }
+        }
+    }
+}
 
 impl<T> MessageHandler<Arc<LimitTriggered>> for EngineLogger<T>
 where
@@ -218,5 +231,26 @@ where
 {
     fn handle(&mut self, _: Arc<EngineStop<T>>, ctx: &ActorContext<Self>) {
         ctx.publish(EngineState::Stopped);
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum LogLevel {
+    Info,
+    Warn,
+}
+
+#[derive(Clone, Debug)]
+pub struct LogEvent(pub LogLevel, pub String);
+
+#[derive(Clone, Default)]
+pub struct LoggingHandler;
+
+impl EventHandler<LogEvent> for LoggingHandler {
+    fn handle(&mut self, message: &LogEvent) {
+        match message.0 {
+            LogLevel::Info => tracing::info!("{}", message.1),
+            LogLevel::Warn => tracing::warn!("{}", message.1),
+        }
     }
 }

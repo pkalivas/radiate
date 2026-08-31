@@ -183,6 +183,7 @@ where
     }
 
     fn start(&mut self) {
+        self.stream.start();
         self.stream.publish(EngineStart);
     }
 

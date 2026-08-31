@@ -67,6 +67,18 @@ impl<A: Actor> ActorContext<A> {
     pub fn publish<E: Event>(&self, message: E) {
         (self.0).publish(message);
     }
+
+    pub fn subscribe<E>(&self) -> Option<Subscription>
+    where
+        E: Event,
+        A: MessageHandler<Arc<E>>,
+    {
+        if let Some(bus) = &self.0.bus {
+            Some(bus.subscribe_addr::<E, A>(&self.0))
+        } else {
+            None
+        }
+    }
 }
 
 pub struct Addr<A> {
@@ -110,6 +122,15 @@ impl<A: Actor> Addr<A> {
             let mut subscriptions = self.subscriptions.write().unwrap();
             subscriptions.remove(&TypeId::of::<E>());
             bus.unsubscribe(id);
+        }
+    }
+
+    pub fn broadcast<E: Event>(&self, message: Arc<E>)
+    where
+        A: MessageHandler<Arc<E>>,
+    {
+        if let Some(bus) = &self.bus {
+            bus.publish(message);
         }
     }
 
