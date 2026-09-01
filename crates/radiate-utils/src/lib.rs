@@ -1,6 +1,7 @@
 mod array;
 mod buff;
 mod datatype;
+mod eventing;
 mod fmt;
 mod id;
 mod intern;

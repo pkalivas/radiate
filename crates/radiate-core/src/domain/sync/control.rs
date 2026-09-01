@@ -29,7 +29,6 @@ impl ThreadSync {
         }
     }
 
-    /// Create two clones for separate threads (convenience).
     pub fn pair() -> (Self, Self) {
         let ctl = Self::new();
         (ctl.clone(), ctl)
@@ -52,7 +51,6 @@ impl ThreadSync {
         self.stop_flag.clone()
     }
 
-    // ---- pause/step ----
     #[inline]
     pub fn set_paused(&self, paused: bool) {
         let (lock, cv) = &*self.inner;
@@ -91,7 +89,6 @@ impl ThreadSync {
         cv.notify_all();
     }
 
-    /// Called by engine thread before computing next epoch.
     #[inline]
     pub fn wait(&self) {
         let (lock, cv) = &*self.inner;

@@ -12,7 +12,6 @@ use crate::builder::problem::ProblemParams;
 use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
 use crate::events::EventStream;
-use crate::events::*;
 use crate::genome::phenotype::Phenotype;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
@@ -184,6 +183,7 @@ where
         T: Clone + Send + Sync + Serialize + 'static,
         F: FileWriter<Generation<C, T>> + Send + Sync + 'static,
     {
+        use crate::events::CheckpointWriterHandler;
         let path_without_extension = path
             .as_ref()
             .to_str()
