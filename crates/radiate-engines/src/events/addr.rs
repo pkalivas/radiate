@@ -64,16 +64,16 @@ impl<A: Actor> ActorContext<A> {
         (self.0).publish(message);
     }
 
-    pub fn subscribe<E>(&self) -> Option<Subscription>
+    pub fn subscribe<E>(&self) -> Subscription
     where
         E: Event,
         A: MessageHandler<E>,
     {
-        if let Some(bus) = &self.0.bus {
-            Some(bus.subscribe_addr::<E, A>(&self.0))
-        } else {
-            None
-        }
+        self.0
+            .bus
+            .as_ref()
+            .expect("Event bus not available")
+            .subscribe_addr::<E, A>(&self.0)
     }
 }
 

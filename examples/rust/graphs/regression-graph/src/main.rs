@@ -18,6 +18,7 @@ fn main() {
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4.0))
         // .parallel()
+        .checkpoint(10, std::path::PathBuf::from("checkpoint.json"))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),

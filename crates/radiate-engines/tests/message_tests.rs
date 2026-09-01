@@ -247,17 +247,8 @@ mod actor_tests {
         bus.publish(Ping(1));
         assert_eq!(*received.lock().unwrap(), vec![Ping(1)]);
 
-        println!(
-            "subcount before unsubscribe: {}",
-            bus.handler_count::<Ping>()
-        );
-
         listener.unsubscribe::<Ping>(subscription.id());
 
-        println!(
-            "subcount after unsubscribe: {}",
-            bus.handler_count::<Ping>()
-        );
         bus.publish(Ping(2));
         assert_eq!(*received.lock().unwrap(), vec![Ping(1)]);
     }

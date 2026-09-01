@@ -1,4 +1,3 @@
-use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
 use crate::{
     EventHandler,
@@ -9,6 +8,7 @@ use crate::{
 };
 use crate::{GenerationView, builder::GeneticEngineBuilder};
 use crate::{context::EvolutionContext, events::Event};
+use crate::{events::GenerationSnapshot, pipeline::Pipeline};
 use radiate_core::{Engine, EngineState};
 use radiate_core::{EngineStream, error::Result};
 
@@ -216,6 +216,11 @@ where
         // we don't pay the clone cost twice.
         self.stream
             .lazy_publish(|| EcosystemSnapshot::from(&self.context));
+
+        self.stream.lazy_publish(|| {
+            println!("Publishing GenerationSnapshot");
+            GenerationSnapshot::from(&self.context)
+        });
 
         Ok(EngineState::Running)
     }

@@ -47,6 +47,8 @@ use radiate_core::{
 use radiate_utils::VersionedCounts;
 #[cfg(feature = "serde")]
 use serde::Deserialize;
+#[cfg(feature = "serde")]
+use serde::Serialize;
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
@@ -158,6 +160,18 @@ where
         let generation = read_generation.expect("Failed to read checkpoint file");
         self.generation(generation)
     }
+
+    #[cfg(feature = "serde")]
+    pub fn checkpoint(mut self, interval: usize, path: std::path::PathBuf) -> Self
+    where
+        C: Serialize + 'static,
+        T: Clone + Send + Sync + Serialize + 'static,
+    {
+        self.params
+            .event_stream
+            .register(CheckpointActor::<C, T>::new(interval));
+        self
+    }
 }
 
 /// Static step builder for the genetic engine.
@@ -220,6 +234,7 @@ where
 
         stream.register(EngineLogger::<T>::new());
         stream.register(HealthMonitor::<T>::default());
+
         stream.subscribe(LoggingHandler);
 
         self.params.event_stream = stream;

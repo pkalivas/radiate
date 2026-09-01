@@ -1,4 +1,4 @@
-use crate::{Limit, context::EvolutionContext, events::Message};
+use crate::{Generation, Limit, context::EvolutionContext, events::Message};
 use radiate_core::{Chromosome, Ecosystem, EngineState, MetricSet, Objective, Score};
 use std::{fmt::Debug, sync::Arc};
 
@@ -195,5 +195,35 @@ impl<C: Chromosome> Debug for EcosystemSnapshot<C> {
             self.index,
             self.ecosystem.len()
         )
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct GenerationSnapshot<C, T>
+where
+    C: Chromosome + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    pub generation: Arc<Generation<C, T>>,
+}
+
+impl<C, T> Message for GenerationSnapshot<C, T>
+where
+    C: Chromosome + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    type Response = ();
+}
+
+impl<C, T> From<&EvolutionContext<C, T>> for GenerationSnapshot<C, T>
+where
+    C: Chromosome + 'static,
+    T: Clone + Send + Sync + 'static,
+    Generation<C, T>: for<'a> From<&'a EvolutionContext<C, T>>,
+{
+    fn from(ctx: &EvolutionContext<C, T>) -> Self {
+        GenerationSnapshot {
+            generation: Arc::new(Generation::from(&ctx)),
+        }
     }
 }

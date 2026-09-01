@@ -3,13 +3,16 @@ mod cell;
 mod handlers;
 mod messages;
 mod stream;
+mod subscription;
 
 pub use addr::{Actor, ActorContext, Addr, Message, MessageHandler};
 pub use cell::ActorCell;
+pub use handlers::{
+    CheckpointActor, EngineLogger, HealthMonitor, LogEvent, LogLevel, LoggingHandler,
+};
 pub use messages::{
     CheckpointSaved, EcosystemSnapshot, EngineStart, EngineStop, EpochComplete, EpochStart,
-    Improvement, LimitTriggered, Warning,
+    GenerationSnapshot, Improvement, LimitTriggered, Warning,
 };
-
-pub use handlers::{EngineLogger, HealthMonitor, LogEvent, LogLevel, LoggingHandler};
-pub use stream::{Event, EventHandler, EventStream, Subscription, SubscriptionId};
+pub use stream::{Event, EventHandler, EventStream};
+pub use subscription::{Schedule, Subscription, SubscriptionId};

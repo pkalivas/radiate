@@ -1,6 +1,9 @@
 use crate::{
-    Actor, SmallStr,
-    events::addr::{ActorId, Addr, Message, MessageHandler},
+    Actor, SmallStr, Subscription,
+    events::{
+        Schedule, SubscriptionId,
+        addr::{ActorId, Addr, Message, MessageHandler},
+    },
 };
 use radiate_core::Executor;
 use radiate_utils::sentry_id;
@@ -15,7 +18,7 @@ use std::{
     },
 };
 
-sentry_id!(SubscriptionId);
+sentry_id!(EventId);
 
 pub trait Event: Message<Response = ()> + Send + Sync + 'static {
     fn event_label() -> &'static str {
@@ -50,58 +53,14 @@ impl Message for StreamEvent {
     type Response = ();
 }
 
-pub struct Subscription {
-    id: SubscriptionId,
-    active: Arc<AtomicBool>,
-}
-
-impl Subscription {
-    pub fn unsubscribe(&self) {
-        self.active.store(false, Ordering::Release);
-    }
-
-    pub fn is_active(&self) -> bool {
-        self.active.load(Ordering::Acquire)
-    }
-
-    pub fn id(&self) -> SubscriptionId {
-        self.id
-    }
-}
-
-// message/stream.rs
-#[derive(Clone)]
-pub enum Schedule {
-    Always,
-    EveryN(usize),
-    Predicate(Arc<dyn Fn(usize) -> bool + Send + Sync>), // room to grow later
-}
-
-impl Schedule {
-    fn is_due(&self, index: usize) -> bool {
-        match self {
-            Schedule::Always => true,
-            Schedule::EveryN(n) => index % (*n).max(1) == 0,
-            Schedule::Predicate(f) => f(index),
-        }
-    }
-}
-
-impl Default for Schedule {
-    fn default() -> Self {
-        Schedule::Always
-    }
-}
-
 type Payload = Arc<dyn Any + Send + Sync>;
 type Forward = Arc<dyn Fn(Payload) + Send + Sync>;
 
 #[derive(Clone)]
 struct Registration {
-    id: SubscriptionId,
     forward: Forward,
+    subscription: Subscription,
     active: Arc<AtomicBool>,
-    schedule: Schedule,
 }
 
 type SubscriberList = Arc<Vec<Registration>>;
@@ -173,57 +132,29 @@ impl EventStream {
 
     #[inline]
     pub fn publish<E: Event>(&self, message: E) {
-        let type_id = TypeId::of::<E>();
-        let started = self.state.started.load(Ordering::Acquire);
-
-        if started {
-            self.dispatch(type_id, Arc::new(message));
-            return;
-        }
-
-        self.state.pending.lock().unwrap().push(PendingEvent {
-            type_id,
-            payload: Arc::new(message),
-        });
-
-        if let Some(event_gate) = &self.state.event_gate {
-            if type_id == *event_gate.lock().unwrap() {
-                self.flush_pending();
-            }
+        if !self.can_publish::<E>() {
+            self.publish_internal(message);
         }
     }
 
     #[inline]
     pub fn lazy_publish<E: Event>(&self, f: impl FnOnce() -> E) {
-        if self.handler_count::<E>() > 0 {
-            self.publish(f());
+        if self.can_publish::<E>() {
+            self.publish_internal(f());
         }
-    }
-
-    #[inline]
-    pub fn handler_count<E: Event>(&self) -> usize {
-        self.subscribers
-            .read()
-            .unwrap()
-            .get(&TypeId::of::<E>())
-            .map(|group| {
-                group
-                    .iter()
-                    .filter(|registration| registration.active.load(Ordering::Acquire))
-                    .count()
-            })
-            .unwrap_or(0)
     }
 
     pub fn unsubscribe(&self, id: SubscriptionId) {
         let mut subscribers = self.subscribers.write().unwrap();
         for group in subscribers.values_mut() {
             let mut_group = Arc::make_mut(group);
-            mut_group.retain(
-                |registration| {
-                    if registration.id == id { false } else { true }
-                },
-            );
+            mut_group.retain(|registration| {
+                if registration.subscription.id == id {
+                    false
+                } else {
+                    true
+                }
+            });
         }
     }
 
@@ -266,6 +197,28 @@ impl EventStream {
         subscription
     }
 
+    #[inline]
+    fn publish_internal<E: Event>(&self, message: E) {
+        let type_id = TypeId::of::<E>();
+        let started = self.state.started.load(Ordering::Acquire);
+
+        if started {
+            self.dispatch(type_id, Arc::new(message));
+            return;
+        }
+
+        self.state.pending.lock().unwrap().push(PendingEvent {
+            type_id,
+            payload: Arc::new(message),
+        });
+
+        if let Some(event_gate) = &self.state.event_gate {
+            if type_id == *event_gate.lock().unwrap() {
+                self.flush_pending();
+            }
+        }
+    }
+
     fn dispatch(&self, type_id: TypeId, payload: Payload) {
         let group = {
             let subscribers = self.subscribers.read().unwrap();
@@ -293,10 +246,13 @@ impl EventStream {
         let type_id = TypeId::of::<E>();
         let id = SubscriptionId::new();
         let registration = Registration {
-            id,
+            subscription: Subscription {
+                id,
+                active: Arc::clone(&active),
+                schedule: Arc::new(RwLock::new(Schedule::default())),
+            },
             forward,
             active: Arc::clone(&active),
-            schedule: Schedule::default(),
         };
 
         let mut subscribers = self.subscribers.write().unwrap();
@@ -305,9 +261,9 @@ impl EventStream {
         let registrations = Arc::make_mut(list);
 
         registrations.retain(|registration| registration.active.load(Ordering::Acquire));
-        registrations.push(registration);
+        registrations.push(registration.clone());
 
-        Subscription { id, active }
+        registration.subscription.clone()
     }
 
     fn flush_pending(&self) {
@@ -317,6 +273,19 @@ impl EventStream {
                 self.dispatch(event.type_id, event.payload);
             }
         }
+    }
+
+    fn can_publish<E: Event>(&self) -> bool {
+        self.subscribers
+            .read()
+            .unwrap()
+            .get(&TypeId::of::<E>())
+            .is_some_and(|group| {
+                group.iter().any(|registration| {
+                    registration.active.load(Ordering::Acquire)
+                        && registration.subscription.try_schedule()
+                })
+            })
     }
 }
 
@@ -328,10 +297,10 @@ impl Debug for EventStream {
         for (type_id, group) in subscribers.iter() {
             for registration in group.iter() {
                 registrations.push_str(&format!(
-                    "TypeId={:?}, id={}, active={}\n",
+                    "TypeId={:?}, id={}, active={}",
                     type_id,
-                    registration.id,
-                    registration.active.load(Ordering::Acquire)
+                    registration.subscription.id,
+                    registration.active.load(Ordering::Acquire),
                 ));
             }
         }
