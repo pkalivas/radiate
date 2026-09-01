@@ -79,27 +79,25 @@ engine = (
     )
     .fitness(fit)
     .minimizing()
-    # .subscribe(metrics_dashboard)
     .select(rd.Select.boltzmann(temp=4.0))
     .alters(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
-    .load_checkpoint(
-        READ_DIR, ignore_not_found=True
-    )  # Load from a previous checkpoint if it exists
-    .checkpoint_write(
-        path=WRITE_DIR,
-        interval=50,
-        file_type="json",
-    )
     .limit(
         rd.Limit.score(0.01),
         rd.Limit.generations(500),
         rd.Limit.seconds(30),
-        # rd.Limit.expr((rd.Expr.select("index") > 10).alias("index_limit")),
     )
 )
 
 engine.run(log=True)
 
+# .load_checkpoint(
+#     READ_DIR, ignore_not_found=True
+# )  # Load from a previous checkpoint if it exists
+# .write_checkpoint(
+#     path=WRITE_DIR,
+#     interval=50,
+#     file_type="json",
+# )  # Write checkpoint every 50 generations
 
 # for epoch in engine:
 #     print(f"Epoch {epoch.index()}: Best score = {epoch.score()}")

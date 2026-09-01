@@ -1,5 +1,5 @@
 use crate::{Generation, Limit, context::EvolutionContext, events::Message};
-use radiate_core::{Chromosome, Ecosystem, EngineState, MetricSet, Objective, Score};
+use radiate_core::{Chromosome, EngineState, MetricSet, Objective, Score};
 use std::{fmt::Debug, sync::Arc};
 
 impl Message for EngineState {
@@ -164,36 +164,6 @@ impl<T> Debug for EngineStop<T> {
             f,
             "EngineStopped(index={}, score={:?})",
             self.index, self.score
-        )
-    }
-}
-
-#[derive(Clone)]
-pub struct EcosystemSnapshot<C: Chromosome + 'static> {
-    pub index: usize,
-    pub ecosystem: Arc<Ecosystem<C>>,
-}
-
-impl<C: Chromosome + 'static> Message for EcosystemSnapshot<C> {
-    type Response = ();
-}
-
-impl<C: Chromosome + Clone, T> From<&EvolutionContext<C, T>> for EcosystemSnapshot<C> {
-    fn from(ctx: &EvolutionContext<C, T>) -> Self {
-        EcosystemSnapshot {
-            index: ctx.index,
-            ecosystem: Arc::new(ctx.ecosystem.clone()),
-        }
-    }
-}
-
-impl<C: Chromosome> Debug for EcosystemSnapshot<C> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "EcosystemSnapshot(index={}, size={})",
-            self.index,
-            self.ecosystem.len()
         )
     }
 }

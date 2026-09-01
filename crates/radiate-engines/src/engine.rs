@@ -207,7 +207,6 @@ where
             self.stream
                 .lazy_publish(|| Improvement::from(&self.context));
         }
-
         self.stream.publish(EpochComplete::from(&self.context));
 
         // `Generation` is a heavy clone, but this only clones if we have a subscriber
@@ -235,9 +234,11 @@ where
     where
         F: Fn(&Self::View<'_>) -> bool,
     {
+        self.start();
         loop {
             let view = self.step().map(|_| GenerationView::new(&self.context))?;
             if limit(&view) {
+                self.stop();
                 break Ok(self.epoch());
             }
         }

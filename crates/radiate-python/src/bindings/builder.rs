@@ -234,7 +234,7 @@ impl PyEngineBuilder {
                 let path = input.extract::<String>("path")?;
                 let file_type = input.extract::<String>("file_type")?;
 
-                Ok(typed_builder.checkpoint(interval, path, PyCheckpointWriter(file_type)))
+                Ok(typed_builder.checkpoint_with(interval, path, PyCheckpointWriter(file_type)))
             })
         )
     }

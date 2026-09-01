@@ -17,8 +17,6 @@ fn main() {
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4.0))
-        // .parallel()
-        // .checkpoint(10, std::path::PathBuf::from("checkpoints"))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
@@ -64,16 +62,3 @@ fn dataset() -> impl Into<DataSet<f32>> {
 fn compute(x: f32) -> f32 {
     4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x
 }
-
-// engine.on::<EngineStop<Graph<Op<f32>>>>().handle(
-//         |event: &EngineStop<Graph<Op<f32>>>, _: &EventContext| {
-//             Accuracy::default()
-//                 .named("Regression Graph")
-//                 .on(&dataset().into())
-//                 .loss(Loss::MSE)
-//                 .eval(&event.best)
-//                 .inspect(|acc| {
-//                     println!("{:?}\n{acc:?}\n{}", event.best, event.metrics.dashboard());
-//                 });
-//         },
-//     );

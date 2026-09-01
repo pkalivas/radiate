@@ -62,12 +62,8 @@ fn main() {
 
     let engine = build_engine();
     let checkpoint_path = "checkpoint.json";
-    let result = engine
-        .iter()
-        .checkpoint(10, checkpoint_path)
-        .take(100)
-        .last()
-        .unwrap();
+    // TODO: Fix me
+    let result = engine.iter().take(100).last().unwrap();
     // --8<-- [end:iterator_actions]
 
     // --8<-- [start:control]

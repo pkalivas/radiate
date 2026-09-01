@@ -1,28 +1,17 @@
 use crate::{Engine, EvolutionContext, Generation, Limit};
-#[cfg(feature = "serde")]
-use crate::{FileWriter, JsonWriter};
 use crate::{generation::GenerationView, init_logging};
 use radiate_core::error::{RadiateResult, Result};
 use radiate_core::rate::Expr;
 use radiate_core::{Chromosome, EngineState, Score, radiate_err};
-#[cfg(feature = "serde")]
-use serde::Serialize;
 use std::collections::VecDeque;
-#[cfg(feature = "serde")]
-use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 pub trait RuntimeLimit<E: Engine> {
     fn proceed(&mut self, context: &E::Ctx) -> RadiateResult<bool>;
 }
 
-pub trait RuntimeAction<E: Engine> {
-    fn execute(&mut self, context: &E::Ctx) -> RadiateResult<()>;
-}
-
 pub struct EngineRuntime<E: Engine> {
     engine: E,
-    actions: Option<Vec<Box<dyn RuntimeAction<E>>>>,
     limits: Option<Vec<Box<dyn RuntimeLimit<E>>>>,
     state: EngineState,
 }
@@ -31,7 +20,6 @@ impl<E: Engine> EngineRuntime<E> {
     pub fn new(engine: E) -> Self {
         Self {
             engine,
-            actions: None,
             limits: None,
             state: EngineState::PreStart,
         }
@@ -67,14 +55,7 @@ impl<E: Engine> EngineRuntime<E> {
             return Ok(());
         }
 
-        // At this point, we know the `new_state` is not Stopped,
-        // so we can proceed with actions and limits.
         let ctx = self.engine.context();
-        if let Some(actions) = &mut self.actions {
-            for action in actions.iter_mut() {
-                action.execute(&ctx)?;
-            }
-        }
 
         if let Some(limits) = &mut self.limits {
             for limit in limits.iter_mut() {
@@ -100,18 +81,6 @@ impl<E: Engine> EngineRuntime<E> {
             limits.push(boxed);
         } else {
             self.limits = Some(vec![boxed]);
-        }
-    }
-
-    fn add_action<A>(&mut self, action: A)
-    where
-        A: RuntimeAction<E> + 'static,
-    {
-        let boxed: Box<dyn RuntimeAction<E>> = Box::new(action);
-        if let Some(actions) = &mut self.actions {
-            actions.push(boxed);
-        } else {
-            self.actions = Some(vec![boxed]);
         }
     }
 }
@@ -222,61 +191,6 @@ where
 {
     pub fn logging(self) -> EngineRuntime<E> {
         init_logging();
-        self
-    }
-
-    #[cfg(feature = "serde")]
-    pub fn checkpoint(mut self, interval: usize, folder_path: impl AsRef<Path>) -> EngineRuntime<E>
-    where
-        E: Engine + 'static,
-        E::Epoch: Serialize,
-    {
-        use crate::actions::CheckpointAction;
-
-        let path_without_extension = folder_path
-            .as_ref()
-            .to_str()
-            .and_then(|s| s.rsplit('.').nth(1))
-            .unwrap_or(folder_path.as_ref().to_str().unwrap_or("checkpoints"));
-
-        let action = CheckpointAction {
-            interval,
-            path: PathBuf::from(path_without_extension),
-            writer: Box::new(JsonWriter),
-        };
-
-        self.add_action(action);
-
-        self
-    }
-
-    #[cfg(feature = "serde")]
-    pub fn checkpoint_with(
-        mut self,
-        interval: usize,
-        folder_path: impl AsRef<Path>,
-        writer: Box<dyn FileWriter<E::Epoch>>,
-    ) -> EngineRuntime<E>
-    where
-        E: Engine + 'static,
-        E::Epoch: Serialize,
-    {
-        use crate::actions::CheckpointAction;
-
-        let path_without_extension = folder_path
-            .as_ref()
-            .to_str()
-            .and_then(|s| s.rsplit('.').nth(1))
-            .unwrap_or(folder_path.as_ref().to_str().unwrap_or("checkpoints"));
-
-        let action = CheckpointAction {
-            interval,
-            path: PathBuf::from(path_without_extension),
-            writer,
-        };
-
-        self.add_action(action);
-
         self
     }
 }

@@ -61,10 +61,6 @@ impl Subscription {
         *self.schedule.write().unwrap() = schedule.into();
     }
 
-    pub(super) fn try_schedule(&self) -> bool {
-        self.schedule.read().unwrap().is_scheduled()
-    }
-
     pub fn unsubscribe(&self) {
         self.active.store(false, Ordering::Release);
         self.permits.store(0, Ordering::Release);
@@ -99,9 +95,12 @@ impl Subscription {
                 Ordering::Acquire,
             ) {
                 Ok(_) => return true,
-
                 Err(next) => current = next,
             }
         }
+    }
+
+    fn try_schedule(&self) -> bool {
+        self.schedule.read().unwrap().is_scheduled()
     }
 }

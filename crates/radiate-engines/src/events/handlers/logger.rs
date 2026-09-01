@@ -56,7 +56,7 @@ where
 {
     fn handle(&mut self, message: &StreamEvent, ctx: &ActorContext<Self>) {
         match message {
-            StreamEvent::ActorRegistered(name, id) => {
+            StreamEvent::HandlerRegistered(name, id) => {
                 let actor_id = format!("{}-{:?}", name, id.get());
                 ctx.publish(LogEvent(LogLevel::Info, format!("{} Registered", actor_id)));
             }

@@ -162,7 +162,18 @@ where
     }
 
     #[cfg(feature = "serde")]
-    pub fn checkpoint<F>(
+    pub fn checkpoint(self, interval: usize, path: impl AsRef<std::path::Path>) -> Self
+    where
+        C: Serialize + 'static,
+        T: Clone + Send + Sync + Serialize + 'static,
+    {
+        use crate::JsonWriter;
+
+        self.checkpoint_with(interval, path, JsonWriter)
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn checkpoint_with<F>(
         self,
         interval: usize,
         path: impl AsRef<std::path::Path>,
@@ -173,11 +184,17 @@ where
         T: Clone + Send + Sync + Serialize + 'static,
         F: FileWriter<Generation<C, T>> + Send + Sync + 'static,
     {
+        let path_without_extension = path
+            .as_ref()
+            .to_str()
+            .and_then(|s| s.rsplit('.').nth(1))
+            .unwrap_or(path.as_ref().to_str().unwrap_or("checkpoints"));
+
         self.params
             .event_stream
-            .register(CheckpointActor::<C, T>::new(
+            .register(CheckpointWriterHandler::<C, T>::new(
                 interval,
-                path.as_ref().to_path_buf(),
+                path_without_extension.into(),
                 writer,
             ));
         self
@@ -244,7 +261,6 @@ where
 
         stream.register(EngineLogger::<T>::new());
         stream.register(HealthMonitor::<T>::default());
-
         stream.subscribe(LoggingHandler);
 
         self.params.event_stream = stream;

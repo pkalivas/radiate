@@ -5,7 +5,7 @@ from pathlib import Path
 from radiate.radiate import PyEngineRunOption
 
 from .._bridge import RsObject
-from .._typing import Checkpoint
+from .._typing import Checkpoint, FileType
 
 
 class RunParam(RsObject):
@@ -19,12 +19,18 @@ class LogParam(RunParam):
         super().__init__(option)
 
 
-class CheckpointParam(RunParam):
+class UiParam(RunParam):
+    def __init__(self):
+        option = PyEngineRunOption.ui()
+        super().__init__(option)
+
+
+class CheckpointParam:
     def __init__(
         self,
         interval: int = 0,
         path: str | Path = "./checkpoints",
-        file_type: str = "pkl",
+        file_type: FileType = "pkl",
     ):
         if interval < 0:
             raise ValueError("Checkpoint interval must be a non-negative integer.")
@@ -32,14 +38,9 @@ class CheckpointParam(RunParam):
         if not isinstance(path, (str, Path)):
             raise ValueError("Checkpoint path must be a string or Path object.")
 
-        option = PyEngineRunOption.checkpoint(interval, str(path), file_type)
-        super().__init__(option)
-
-
-class UiParam(RunParam):
-    def __init__(self):
-        option = PyEngineRunOption.ui()
-        super().__init__(option)
+        self.interval = interval
+        self.path = path
+        self.file_type = file_type
 
 
 def normalize_checkpoint_params(

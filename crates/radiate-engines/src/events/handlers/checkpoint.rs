@@ -16,7 +16,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 #[cfg(feature = "serde")]
-pub struct CheckpointActor<C, T>
+pub struct CheckpointWriterHandler<C, T>
 where
     C: Chromosome + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,
@@ -27,7 +27,7 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<C, T> CheckpointActor<C, T>
+impl<C, T> CheckpointWriterHandler<C, T>
 where
     C: Chromosome + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,
@@ -45,13 +45,13 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<C, T> Actor for CheckpointActor<C, T>
+impl<C, T> Actor for CheckpointWriterHandler<C, T>
 where
     C: Chromosome + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,
 {
     fn name(&self) -> &str {
-        "CheckpointActor"
+        "CheckpointWriterHandler"
     }
 
     fn started(&mut self, ctx: &crate::events::ActorContext<Self>)
@@ -64,7 +64,7 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<C, T> MessageHandler<GenerationSnapshot<C, T>> for CheckpointActor<C, T>
+impl<C, T> MessageHandler<GenerationSnapshot<C, T>> for CheckpointWriterHandler<C, T>
 where
     C: Chromosome + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,

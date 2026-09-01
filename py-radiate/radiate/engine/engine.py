@@ -9,7 +9,6 @@ from radiate.radiate import PyEngine
 
 from .._typing import (
     AtLeastOne,
-    Checkpoint,
     FileType,
     RdDataType,
     RdLossType,
@@ -41,7 +40,7 @@ from ..operators.limit import Limit
 from ..operators.selector import Select
 from .builder import EngineBuilder
 from .generation import Generation
-from .option import LogParam, UiParam, normalize_checkpoint_params
+from .option import LogParam, UiParam
 
 if TYPE_CHECKING:
     from radiate._rd import PyEngine
@@ -67,17 +66,13 @@ class EngineRuntime[G, T]:
         self,
         log: bool = False,
         ui: bool = False,
-        checkpoint: Checkpoint | None = None,
     ) -> Generation[G, T]:
         """Run the engine and return the resulting generation."""
         log_option = LogParam(enable=log)
-        checkpoint_option = normalize_checkpoint_params(checkpoint)
         ui_option = UiParam() if ui else None
 
         options = [
-            opt.__backend__()
-            for opt in [log_option, checkpoint_option, ui_option]
-            if opt is not None
+            opt.__backend__() for opt in [log_option, ui_option] if opt is not None
         ]
 
         return Generation.from_rust(self._engine.run(options))
@@ -301,7 +296,6 @@ class Engine[G, T]:
         self,
         log: bool = False,
         ui: bool = False,
-        checkpoint: Checkpoint | None = None,
     ) -> Generation[G, T]:
         """Run the engine with the given limits.
         Args:
@@ -321,15 +315,10 @@ class Engine[G, T]:
         >>> engine.run(log=True)
         >>> engine.run(ui=True)
         >>> engine.run()
-        >>> engine.run(checkpoint=True)
-        >>> engine.run(checkpoint="checkpoints")
-        >>> engine.run(checkpoint=(50, "checkpoints"))
-        >>> engine.run(
-        ...     checkpoint=rd.EngineCheckpoint(50, "checkpoints", file_type="json"),
-        ... )
         """
+
         engine = self._builder.build()
-        return EngineRuntime(engine).run(log=log, ui=ui, checkpoint=checkpoint)
+        return EngineRuntime(engine).run(log=log, ui=ui)
 
     def fitness(self, fitness_func: Callable[[T], Any] | Fitness[T]) -> Engine[G, T]:
         """
@@ -1184,7 +1173,7 @@ class Engine[G, T]:
         self._builder.set_checkpoint_path(str(path), ignore_not_found=ignore_not_found)
         return self
 
-    def checkpoint_write(
+    def write_checkpoint(
         self, path: str | Path, interval: int, file_type: FileType = "pkl"
     ) -> Engine[G, T]:
         """
@@ -1194,8 +1183,8 @@ class Engine[G, T]:
 
         Parameters:
         -----------
-        path : str | None
-            The path to the checkpoint file. If None, checkpoint writing is disabled.
+        path : str | Path
+            The path to the checkpoint file.
         interval : int
             The interval (in generations) at which checkpoints should be written.
 
