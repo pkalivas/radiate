@@ -153,6 +153,12 @@ where
                     format!("{} New Subscription added: {:?}", actor_id, subscription_id),
                 ));
             }
+            StreamEvent::FnHandler(subscription_id) => {
+                ctx.publish(LogEvent(
+                    LogLevel::Info,
+                    format!("Function handler added: {:?}", subscription_id),
+                ));
+            }
         }
     }
 }

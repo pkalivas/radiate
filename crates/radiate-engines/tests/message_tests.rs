@@ -42,7 +42,7 @@ mod actor_tests {
 
     #[test]
     fn send_updates_actor_state_in_order() {
-        let addr = Addr::spawn(Counter { total: 0 }, serial());
+        let addr = Addr::from((Counter { total: 0 }, serial()));
         addr.send(Add(3));
         addr.send(Add(4));
         assert_eq!(addr.ask(GetTotal).unwrap(), 7);
@@ -50,7 +50,7 @@ mod actor_tests {
 
     #[test]
     fn cloned_addr_shares_the_same_actor() {
-        let addr = Addr::spawn(Counter { total: 0 }, serial());
+        let addr = Addr::from((Counter { total: 0 }, serial()));
         let other = addr.clone();
         addr.send(Add(1));
         other.send(Add(2));
@@ -59,10 +59,10 @@ mod actor_tests {
 
     #[test]
     fn ask_blocks_until_response_on_worker_pool() {
-        let addr = Addr::spawn(
+        let addr = Addr::from((
             Counter { total: 0 },
             Arc::new(Executor::FixedSizedWorkerPool(2)),
-        );
+        ));
         addr.send(Add(2));
         addr.send(Add(3));
         assert_eq!(addr.ask(GetTotal).unwrap(), 5);
@@ -82,12 +82,12 @@ mod actor_tests {
     #[test]
     fn started_hook_runs_synchronously_during_spawn() {
         let flag = Arc::new(AtomicBool::new(false));
-        let _addr = Addr::spawn(
+        let _addr = Addr::from((
             StartFlag {
                 started: Arc::clone(&flag),
             },
             serial(),
-        );
+        ));
         // No message has been sent — if this is true, `started` ran as
         // part of `spawn` itself, not via the mailbox.
         assert!(flag.load(Ordering::SeqCst));
@@ -123,13 +123,13 @@ mod actor_tests {
     #[test]
     fn actor_can_send_a_message_to_itself() {
         let total = Arc::new(AtomicUsize::new(0));
-        let addr = Addr::spawn(
+        let addr = Addr::from((
             SelfCounter {
                 remaining: 4,
                 total: Arc::clone(&total),
             },
             serial(),
-        );
+        ));
 
         addr.send(Tick);
 
@@ -162,12 +162,13 @@ mod actor_tests {
     fn actor_can_publish_to_the_bus_from_a_handler() {
         let executor = serial();
         let bus = EventStream::new(Arc::clone(&executor));
-        let addr = Addr::spawn_with_bus(Emitter, Arc::clone(&executor), Some(bus.clone()));
+        let addr = Addr::from((Emitter, Arc::clone(&executor), bus.clone()));
 
         let received = Arc::new(Mutex::new(Vec::new()));
         let received_clone = Arc::clone(&received);
         bus.subscribe::<Ping>(move |event: &Ping| {
-            received_clone.lock().unwrap().push(event.clone());
+            println!("Received event: {:?}", event);
+            received_clone.lock().unwrap().push((event).clone());
         });
 
         addr.send(Ping(3));
@@ -177,7 +178,7 @@ mod actor_tests {
 
     #[test]
     fn publish_without_a_bus_is_a_silent_noop() {
-        let addr = Addr::spawn(Emitter, serial());
+        let addr = Addr::from((Emitter, serial()));
         // Emitter's handler calls ctx.publish — must not panic even
         // though this Addr has no bus attached.
         addr.send(Ping(1));
@@ -204,13 +205,13 @@ mod actor_tests {
         let executor = serial();
         let bus = EventStream::new(Arc::clone(&executor));
         let received = Arc::new(Mutex::new(Vec::new()));
-        let listener = Addr::spawn_with_bus(
+        let listener = Addr::from((
             Listener {
                 received: Arc::clone(&received),
             },
             Arc::clone(&executor),
-            Some(bus.clone()),
-        );
+            bus.clone(),
+        ));
 
         listener.subscribe::<Ping>();
         bus.publish(Ping(7));
@@ -220,13 +221,45 @@ mod actor_tests {
 
     #[test]
     fn subscribe_without_a_bus_returns_none() {
-        let addr = Addr::spawn(
+        let addr = Addr::from((
             Listener {
                 received: Arc::new(Mutex::new(Vec::new())),
             },
             serial(),
-        );
+        ));
         assert!(addr.subscribe::<Ping>().is_none());
+    }
+
+    #[test]
+    fn subscribe_unsubscribes_correctly() {
+        let executor = serial();
+        let bus = EventStream::new(Arc::clone(&executor));
+        let received = Arc::new(Mutex::new(Vec::new()));
+        let listener = Addr::from((
+            Listener {
+                received: Arc::clone(&received),
+            },
+            Arc::clone(&executor),
+            bus.clone(),
+        ));
+
+        let subscription = listener.subscribe::<Ping>().unwrap();
+        bus.publish(Ping(1));
+        assert_eq!(*received.lock().unwrap(), vec![Ping(1)]);
+
+        println!(
+            "subcount before unsubscribe: {}",
+            bus.handler_count::<Ping>()
+        );
+
+        listener.unsubscribe::<Ping>(subscription.id());
+
+        println!(
+            "subcount after unsubscribe: {}",
+            bus.handler_count::<Ping>()
+        );
+        bus.publish(Ping(2));
+        assert_eq!(*received.lock().unwrap(), vec![Ping(1)]);
     }
 
     // --- one actor, multiple event types: the case that would've hit
@@ -261,14 +294,14 @@ mod actor_tests {
         let bus = EventStream::new(Arc::clone(&executor));
         let pings = Arc::new(AtomicUsize::new(0));
         let pongs = Arc::new(AtomicUsize::new(0));
-        let addr = Addr::spawn_with_bus(
+        let addr = Addr::from((
             MultiListener {
                 pings: Arc::clone(&pings),
                 pongs: Arc::clone(&pongs),
             },
             Arc::clone(&executor),
-            Some(bus.clone()),
-        );
+            bus.clone(),
+        ));
 
         addr.subscribe::<Ping>();
         addr.subscribe::<Pong>();
@@ -303,7 +336,7 @@ mod actor_tests {
 
     #[test]
     fn ask_after_actor_stopped_returns_err_instead_of_hanging() {
-        let addr = Addr::spawn(Flaky { total: 0 }, serial());
+        let addr = Addr::from((Flaky { total: 0 }, serial()));
 
         addr.send(Boom); // default on_panic() is Stop — actor is now dead
 
@@ -325,7 +358,7 @@ mod actor_tests {
     #[ignore = "throughput smoke test: cargo test --release -- --ignored --nocapture"]
     fn throughput_send_serial() {
         const N: usize = 1_000_000;
-        let addr = Addr::spawn(Counter { total: 0 }, serial());
+        let addr = Addr::from((Counter { total: 0 }, serial()));
 
         let start = Instant::now();
         for _ in 0..N {
@@ -353,7 +386,7 @@ mod actor_tests {
     fn throughput_send_worker_pool() {
         const N: usize = 1_000_000;
         let executor = Arc::new(Executor::FixedSizedWorkerPool(4));
-        let addr = Addr::spawn(Counter { total: 0 }, executor);
+        let addr = Addr::from((Counter { total: 0 }, executor));
 
         let start = Instant::now();
         for _ in 0..N {
@@ -383,7 +416,7 @@ mod actor_tests {
 
         let executor = Arc::new(Executor::FixedSizedWorkerPool(8));
         let addrs: Vec<_> = (0..ACTORS)
-            .map(|_| Addr::spawn(Counter { total: 0 }, Arc::clone(&executor)))
+            .map(|_| Addr::from((Counter { total: 0 }, Arc::clone(&executor))))
             .collect();
 
         let start = Instant::now();
@@ -415,7 +448,7 @@ mod actor_tests {
     #[ignore = "throughput smoke test: cargo test --release -- --ignored --nocapture"]
     fn throughput_ask_roundtrip_serial() {
         const N: usize = 200_000;
-        let addr = Addr::spawn(Counter { total: 0 }, serial());
+        let addr = Addr::from((Counter { total: 0 }, serial()));
 
         let start = Instant::now();
         for _ in 0..N {

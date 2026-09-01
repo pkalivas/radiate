@@ -1,6 +1,6 @@
 use crate::{
     Actor, SmallStr,
-    message::actor::{ActorContext, ActorId, Addr, Message, MessageHandler},
+    message::actor::{ActorId, Addr, Message, MessageHandler},
 };
 use radiate_core::Executor;
 use radiate_utils::sentry_id;
@@ -9,7 +9,6 @@ use std::{
     any::{Any, TypeId},
     collections::HashMap,
     fmt::Debug,
-    marker::PhantomData,
     sync::{
         Arc, RwLock,
         atomic::{AtomicBool, Ordering},
@@ -44,6 +43,7 @@ where
 pub enum StreamEvent {
     ActorRegistered(SmallStr, ActorId),
     SubscriptionAdded(SmallStr, ActorId, SubscriptionId),
+    FnHandler(SubscriptionId),
 }
 
 impl Message for StreamEvent {
@@ -86,12 +86,29 @@ type SubscriberMap = HashMap<TypeId, SubscriberList>;
 struct StreamState {
     started: Arc<AtomicBool>,
     pending: Arc<Mutex<Vec<PendingEvent>>>,
+    event_gate: Option<Arc<Mutex<TypeId>>>,
 }
 
+impl StreamState {
+    fn new() -> Self {
+        StreamState {
+            started: Arc::new(AtomicBool::new(true)),
+            pending: Arc::new(Mutex::new(Vec::new())),
+            event_gate: None,
+        }
+    }
+}
+
+#[derive(Clone)]
 struct PendingEvent {
     type_id: TypeId,
     payload: Payload,
 }
+
+impl Message for PendingEvent {
+    type Response = ();
+}
+
 #[derive(Clone, Default)]
 pub struct EventStream {
     executor: Arc<Executor>,
@@ -104,7 +121,7 @@ impl EventStream {
         EventStream {
             executor,
             subscribers: Arc::default(),
-            state: StreamState::default(),
+            state: StreamState::new(),
         }
     }
 
@@ -112,33 +129,43 @@ impl EventStream {
         self.executor = executor;
     }
 
+    pub fn defer_until<E: Event>(mut self) -> Self {
+        self.state.started.store(false, Ordering::Release);
+        self.state.event_gate = Some(Arc::new(Mutex::new(TypeId::of::<E>())));
+        self
+    }
+
     pub fn spawn<A: Actor>(&self, actor: A) -> Addr<A> {
-        let addr = Addr::spawn_with_bus(actor, Arc::clone(&self.executor), Some(self.clone()));
+        let addr = Addr::from((actor, Arc::clone(&self.executor), self.clone()));
         self.publish(StreamEvent::ActorRegistered(addr.name().into(), addr.id));
         addr
     }
 
-    pub fn start(&self) {
-        if !self.state.started.swap(true, Ordering::AcqRel) {
-            let pending = std::mem::take(&mut *self.state.pending.lock().unwrap());
-            for event in pending {
-                self.dispatch(event.type_id, event.payload);
-            }
-        }
+    pub fn register<A: Actor>(&self, actor: A) {
+        let addr = Addr::from((actor, Arc::clone(&self.executor), self.clone()));
+        self.publish(StreamEvent::ActorRegistered(addr.name().into(), addr.id));
     }
 
     #[inline]
     pub fn publish<E: Event>(&self, message: E) {
-        if !self.state.started.load(Ordering::Acquire) {
-            self.state.pending.lock().unwrap().push(PendingEvent {
-                type_id: TypeId::of::<E>(),
-                payload: Arc::new(message),
-            });
+        let type_id = TypeId::of::<E>();
+        let started = self.state.started.load(Ordering::Acquire);
 
+        if started {
+            self.dispatch(type_id, Arc::new(message));
             return;
         }
 
-        self.dispatch(TypeId::of::<E>(), Arc::new(message));
+        self.state.pending.lock().unwrap().push(PendingEvent {
+            type_id,
+            payload: Arc::new(message),
+        });
+
+        if let Some(event_gate) = &self.state.event_gate {
+            if type_id == *event_gate.lock().unwrap() {
+                self.flush_pending();
+            }
+        }
     }
 
     #[inline]
@@ -175,15 +202,19 @@ impl EventStream {
         }
     }
 
-    pub fn subscribe<E: Event>(&self, handler: impl EventHandler<E>) -> Subscription {
-        let addr = Addr::spawn(
-            EventForwardActor {
-                handler,
-                _marker: PhantomData,
-            },
-            Arc::clone(&self.executor),
-        );
-        self.subscribe_addr::<E, _>(&addr)
+    pub fn subscribe<E>(&self, handler: impl EventHandler<E>) -> Subscription
+    where
+        E: Event,
+    {
+        let wrapped_handler = Arc::new(Mutex::new(handler));
+
+        let forward = Arc::new(move |payload: Payload| {
+            if let Ok(event) = payload.downcast::<E>() {
+                wrapped_handler.lock().unwrap().handle(event.as_ref());
+            }
+        });
+
+        self.subscribe_common::<E>(forward)
     }
 
     pub fn subscribe_addr<E, A>(&self, addr: &Addr<A>) -> Subscription
@@ -191,32 +222,23 @@ impl EventStream {
         E: Event,
         A: MessageHandler<E>,
     {
-        let active = Arc::new(AtomicBool::new(true));
-        let id = SubscriptionId::new();
         let inner_addr = addr.clone();
 
         let forward = Arc::new(move |payload: Payload| {
             if let Ok(msg) = payload.downcast::<E>() {
-                inner_addr.broadcast(msg);
+                inner_addr.send_shared(msg);
             }
         });
 
-        self.register(
-            TypeId::of::<E>(),
-            Registration {
-                id,
-                forward,
-                active: Arc::clone(&active),
-            },
-        );
+        let subscription = self.subscribe_common::<E>(forward);
 
         self.publish(StreamEvent::SubscriptionAdded(
             addr.name().into(),
             addr.id,
-            id,
+            subscription.id,
         ));
 
-        Subscription { id, active }
+        subscription
     }
 
     fn dispatch(&self, type_id: TypeId, payload: Payload) {
@@ -236,14 +258,37 @@ impl EventStream {
         }
     }
 
-    fn register(&self, type_id: TypeId, registration: Registration) {
+    fn subscribe_common<E>(&self, forward: Arc<dyn Fn(Payload) + Send + Sync>) -> Subscription
+    where
+        E: Event,
+    {
+        let active = Arc::new(AtomicBool::new(true));
+        let type_id = TypeId::of::<E>();
+        let id = SubscriptionId::new();
+        let registration = Registration {
+            id,
+            forward,
+            active: Arc::clone(&active),
+        };
+
         let mut subscribers = self.subscribers.write().unwrap();
 
         let list = subscribers.entry(type_id).or_default();
-
         let registrations = Arc::make_mut(list);
+
         registrations.retain(|registration| registration.active.load(Ordering::Acquire));
         registrations.push(registration);
+
+        Subscription { id, active }
+    }
+
+    fn flush_pending(&self) {
+        if !self.state.started.swap(true, Ordering::AcqRel) {
+            let pending = std::mem::take(&mut *self.state.pending.lock().unwrap());
+            for event in pending {
+                self.dispatch(event.type_id, event.payload);
+            }
+        }
     }
 }
 
@@ -273,27 +318,8 @@ impl Debug for EventStream {
     }
 }
 
-struct EventForwardActor<M, H> {
-    handler: H,
-    _marker: PhantomData<fn(&M)>,
-}
-
-impl<M, H> Actor for EventForwardActor<M, H>
-where
-    M: Event,
-    H: EventHandler<M>,
-{
-    fn name(&self) -> &str {
-        "EventForwardActor"
-    }
-}
-
-impl<M, H> MessageHandler<M> for EventForwardActor<M, H>
-where
-    M: Event + Message<Response = ()>,
-    H: EventHandler<M>,
-{
-    fn handle(&mut self, msg: &M, _: &ActorContext<Self>) {
-        (self.handler).handle(msg);
+impl From<Executor> for EventStream {
+    fn from(executor: Executor) -> Self {
+        EventStream::new(Arc::new(executor))
     }
 }

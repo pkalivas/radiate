@@ -8,7 +8,6 @@ mod problem;
 mod selectors;
 mod species;
 
-use crate::builder::population::PopulationParams;
 use crate::builder::problem::ProblemParams;
 use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
@@ -32,6 +31,7 @@ use crate::{
 };
 use crate::{builder::filters::FilterParams, message::Event};
 use crate::{builder::objectives::OptimizeParams, message::Message};
+use crate::{builder::population::PopulationParams, message::EngineStart};
 use crate::{
     message::HealthMonitor,
     objectives::{Objective, Optimize},
@@ -220,8 +220,8 @@ where
         let stream_executor = self.params.evaluation_params.event_stream_executor.clone();
         stream.set_executor(stream_executor.executor);
 
-        stream.spawn(EngineLogger::<T>::new());
-        stream.spawn(HealthMonitor::<T>::default());
+        stream.register(EngineLogger::<T>::new());
+        stream.register(HealthMonitor::<T>::default());
         stream.subscribe(LoggingHandler);
 
         self.params.event_stream = stream;
@@ -550,7 +550,7 @@ where
 
                 replacement_strategy: Arc::new(EncodeReplace),
                 alterers: Vec::new(),
-                event_stream: EventStream::default(),
+                event_stream: EventStream::default().defer_until::<EngineStart>(),
                 exprs: None,
                 generation: None,
             },

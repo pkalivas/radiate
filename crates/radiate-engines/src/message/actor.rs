@@ -3,15 +3,11 @@ use crate::message::{Event, EventStream, Subscription, SubscriptionId};
 use crossbeam::channel;
 use radiate_core::{Executor, RadiateError, SmallStr, error::RadiateResult};
 use radiate_utils::sentry_id;
-use std::{
-    any::TypeId,
-    collections::HashMap,
-    sync::{Arc, RwLock},
-};
+use std::sync::Arc;
 
 sentry_id!(ActorId);
 
-pub trait Message: Send + Sync + 'static {
+pub trait Message: Send + 'static {
     type Response: Send + 'static;
 }
 
@@ -21,7 +17,7 @@ pub trait MessageHandler<M: Message>: Actor {
         Self: Sized;
 }
 
-pub trait Actor: Send + Sync + 'static {
+pub trait Actor: Send + 'static {
     fn name(&self) -> &str {
         std::any::type_name::<Self>()
     }
@@ -87,15 +83,10 @@ pub struct Addr<A> {
     pub(super) cell: Arc<ActorCell<A>>,
     pub(super) executor: Arc<Executor>,
     pub(super) bus: Option<EventStream>,
-    pub(super) subscriptions: Arc<RwLock<HashMap<TypeId, SubscriptionId>>>,
 }
 
 impl<A: Actor> Addr<A> {
-    pub fn spawn(actor: A, executor: Arc<Executor>) -> Self {
-        Self::spawn_with_bus(actor, executor, None)
-    }
-
-    pub fn spawn_with_bus(actor: A, executor: Arc<Executor>, bus: Option<EventStream>) -> Self {
+    pub fn new(actor: A, executor: Arc<Executor>, bus: Option<EventStream>) -> Self {
         let name = actor.name().into();
         let cell = Arc::new(ActorCell::new(actor));
         let addr = Addr {
@@ -104,7 +95,6 @@ impl<A: Actor> Addr<A> {
             cell,
             executor,
             bus,
-            subscriptions: Arc::default(),
         };
 
         {
@@ -121,18 +111,7 @@ impl<A: Actor> Addr<A> {
         self.name.clone()
     }
 
-    pub fn unsubscribe<E>(&self, id: SubscriptionId)
-    where
-        E: Event,
-    {
-        if let Some(bus) = &self.bus {
-            let mut subscriptions = self.subscriptions.write().unwrap();
-            subscriptions.remove(&TypeId::of::<E>());
-            bus.unsubscribe(id);
-        }
-    }
-
-    pub fn broadcast<E>(&self, message: Arc<E>)
+    pub fn send_shared<E>(&self, message: Arc<E>)
     where
         E: Event,
         A: MessageHandler<E>,
@@ -203,13 +182,16 @@ impl<A: Actor> Addr<A> {
         E: Event,
         A: MessageHandler<E>,
     {
-        self.bus
-            .as_ref()
-            .map(|bus| bus.subscribe_addr::<E, A>(self))
+        let bus = self.bus.as_ref()?;
+        let subscription = bus.subscribe_addr::<E, A>(self);
+
+        Some(subscription)
     }
 
-    pub fn subscriber_count(&self) -> usize {
-        self.subscriptions.read().unwrap().len()
+    pub fn unsubscribe<E: 'static>(&self, id: SubscriptionId) {
+        if let Some(bus) = &self.bus {
+            bus.unsubscribe(id);
+        }
     }
 
     fn dispatch(&self) {
@@ -229,7 +211,18 @@ impl<A> Clone for Addr<A> {
             cell: Arc::clone(&self.cell),
             executor: Arc::clone(&self.executor),
             bus: self.bus.clone(),
-            subscriptions: Arc::clone(&self.subscriptions),
         }
+    }
+}
+
+impl<A: Actor> From<(A, Arc<Executor>)> for Addr<A> {
+    fn from((actor, executor): (A, Arc<Executor>)) -> Self {
+        Addr::new(actor, executor, None)
+    }
+}
+
+impl<A: Actor> From<(A, Arc<Executor>, EventStream)> for Addr<A> {
+    fn from((actor, executor, bus): (A, Arc<Executor>, EventStream)) -> Self {
+        Addr::new(actor, executor, Some(bus))
     }
 }

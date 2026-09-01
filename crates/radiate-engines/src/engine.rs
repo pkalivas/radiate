@@ -1,3 +1,4 @@
+use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
 use crate::{
     EventHandler,
@@ -8,7 +9,6 @@ use crate::{
 };
 use crate::{GenerationView, builder::GeneticEngineBuilder};
 use crate::{context::EvolutionContext, message::Event};
-use crate::{message::Message, pipeline::Pipeline};
 use radiate_core::{Engine, EngineState};
 use radiate_core::{EngineStream, error::Result};
 
@@ -139,10 +139,7 @@ where
     /// This method returns a [Subscription] that allows you to define
     /// how to handle events of type `E`. You can use this to listen for events
     /// such as epoch completions, improvements, or custom messages emitted during the evolutionary process.
-    pub fn subscribe<E: Event + Message<Response = ()>>(
-        &self,
-        handler: impl EventHandler<E>,
-    ) -> Subscription {
+    pub fn subscribe<E: Event>(&self, handler: impl EventHandler<E>) -> Subscription {
         self.stream.subscribe(handler)
     }
 }
@@ -186,7 +183,6 @@ where
     }
 
     fn start(&mut self) {
-        self.stream.start();
         self.stream.publish(EngineStart);
     }
 
