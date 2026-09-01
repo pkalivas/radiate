@@ -264,3 +264,12 @@ def on_checkpoint_saved(func: Callable[["EngineEvent"], None]) -> CallableEventH
     :return: A CallableEventHandler instance.
     """
     return CallableEventHandler(func, EventType.CHECKPOINT_SAVED)
+
+
+def on_event(func: Callable[["EngineEvent"], None]) -> CallableEventHandler:
+    """
+    Decorator to register a function as an event handler for all events.
+    :param func: The function to register as an event handler.
+    :return: A CallableEventHandler instance.
+    """
+    return CallableEventHandler(func, EventType.ALL)

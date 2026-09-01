@@ -9,6 +9,7 @@ from .handlers import (
     MetricCollector,
     on_checkpoint_saved,
     on_epoch,
+    on_event,
     on_improvement,
     on_limit_triggered,
     on_log,
@@ -41,4 +42,5 @@ __all__ = [
     "on_limit_triggered",
     "on_checkpoint_saved",
     "on_log",
+    "on_event",
 ]
