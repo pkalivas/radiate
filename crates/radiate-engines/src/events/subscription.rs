@@ -15,6 +15,7 @@ pub enum Schedule {
     #[default]
     Always,
     EveryN(usize, Arc<AtomicUsize>),
+    Duration(std::time::Duration, Arc<RwLock<std::time::Instant>>),
 }
 
 impl Schedule {
@@ -25,6 +26,15 @@ impl Schedule {
                 let current = counter.fetch_add(1, Ordering::Relaxed);
                 current.saturating_add(1).is_multiple_of(*n)
             }
+            Schedule::Duration(duration, last_time) => {
+                let now = std::time::Instant::now();
+                if now.duration_since(*last_time.read().unwrap()) >= *duration {
+                    *last_time.write().unwrap() = now;
+                    true
+                } else {
+                    false
+                }
+            }
         }
     }
 }
@@ -32,6 +42,12 @@ impl Schedule {
 impl From<usize> for Schedule {
     fn from(n: usize) -> Self {
         Schedule::EveryN(n, Arc::new(AtomicUsize::new(0)))
+    }
+}
+
+impl From<std::time::Duration> for Schedule {
+    fn from(duration: std::time::Duration) -> Self {
+        Schedule::Duration(duration, Arc::new(RwLock::new(std::time::Instant::now())))
     }
 }
 

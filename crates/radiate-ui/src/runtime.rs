@@ -67,7 +67,13 @@ where
     }
 
     pub fn iter(self) -> EngineRuntime<Self> {
-        EngineRuntime::new(self)
+        let dispatcher = self.dispatcher.clone();
+        EngineRuntime::new(self).on::<LogEvent>(move |event: &LogEvent| {
+            dispatcher
+                .send(InputEvent::Log(event.0, event.1.clone()))
+                .map_err(|_| eprintln!("Failed to send log event: {:?}", event))
+                .unwrap();
+        })
     }
 }
 
@@ -92,13 +98,7 @@ where
     }
 
     fn start(&mut self) {
-        let dispatch = self.dispatcher.clone();
-        self.inner.subscribe::<LogEvent>(move |event: &LogEvent| {
-            dispatch
-                .send(InputEvent::Log(event.0, event.1.clone()))
-                .map_err(|_| eprintln!("Failed to send log event: {:?}", event))
-                .unwrap();
-        });
+        self.inner.start();
     }
 
     fn stop(&mut self) {
@@ -107,10 +107,6 @@ where
 
     #[inline]
     fn step(&mut self) -> RadiateResult<()> {
-        if matches!(self.inner.state(), EngineState::PreStart) {
-            self.start();
-        }
-
         self.inner.step()?;
         let state = self.inner.state();
         let current = self.inner.context();

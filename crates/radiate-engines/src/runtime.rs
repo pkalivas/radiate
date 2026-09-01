@@ -1,6 +1,6 @@
 use crate::{
     Engine, EventHandler, EvolutionContext, Generation, Limit,
-    events::{EngineLogger, Event, HealthMonitor, LoggingHandler},
+    events::{EngineLogger, Event, GenerationSnapshot, HealthMonitor, LoggingHandler},
 };
 use crate::{generation::GenerationView, init_logging};
 use radiate_core::error::{RadiateResult, Result};
@@ -13,24 +13,9 @@ pub trait RuntimeLimit<E: Engine> {
     fn proceed(&mut self, context: &E::Ctx) -> RadiateResult<bool>;
 }
 
-pub trait RuntimeAction<E: Engine> {
-    fn execute(&mut self, context: &E::Ctx) -> RadiateResult<()>;
-}
-
-impl<E, F> RuntimeAction<E> for F
-where
-    E: Engine,
-    F: FnMut(&E::Ctx) -> RadiateResult<()>,
-{
-    fn execute(&mut self, context: &E::Ctx) -> RadiateResult<()> {
-        self(context)
-    }
-}
-
 pub struct EngineRuntime<E: Engine> {
     engine: E,
     limits: Vec<Box<dyn RuntimeLimit<E>>>,
-    actions: Vec<Box<dyn RuntimeAction<E>>>,
 }
 
 impl<E: Engine> EngineRuntime<E> {
@@ -38,7 +23,6 @@ impl<E: Engine> EngineRuntime<E> {
         Self {
             engine,
             limits: Vec::new(),
-            actions: Vec::new(),
         }
     }
 
@@ -62,9 +46,6 @@ impl<E: Engine> EngineRuntime<E> {
         self.engine.step()?;
 
         let ctx = self.engine.context();
-        for action in self.actions.iter_mut() {
-            action.execute(ctx)?;
-        }
 
         for limit in self.limits.iter_mut() {
             if !limit.proceed(ctx)? {
@@ -82,14 +63,6 @@ impl<E: Engine> EngineRuntime<E> {
     {
         let boxed: Box<dyn RuntimeLimit<E>> = Box::new(limit);
         self.limits.push(boxed);
-    }
-
-    fn add_action<A>(&mut self, action: A)
-    where
-        A: RuntimeAction<E> + 'static,
-    {
-        let boxed: Box<dyn RuntimeAction<E>> = Box::new(action);
-        self.actions.push(boxed);
     }
 }
 
@@ -109,36 +82,27 @@ where
         self.run()
     }
 
-    pub fn every<F>(mut self, interval: usize, mut action_fn: F) -> Self
+    pub fn every<F>(self, interval: usize, mut action_fn: F) -> Self
     where
-        F: FnMut(GenerationView<C, T>) + 'static,
+        F: FnMut(GenerationView<C, T>) + Send + Sync + 'static,
     {
         assert!(interval > 0, "every interval must be greater than zero");
+        let guarded_interval = interval.max(1);
 
-        self.add_action(move |ctx: &EvolutionContext<C, T>| {
-            if ctx.index.is_multiple_of(interval) {
-                action_fn(GenerationView::new(ctx));
-            }
-            Ok(())
-        });
+        self.engine
+            .context()
+            .events()
+            .subscribe(move |ctx: &GenerationSnapshot<C, T>| {
+                let inner = &ctx.generation;
+                if inner.index().is_multiple_of(guarded_interval) {
+                    action_fn(GenerationView::from(inner.as_ref()));
+                }
+            })
+            .schedule(guarded_interval);
         self
     }
 
-    pub fn inspect<F>(mut self, mut action_fn: F) -> Self
-    where
-        F: FnMut(GenerationView<C, T>) + 'static,
-    {
-        self.add_action(move |ctx: &EvolutionContext<C, T>| {
-            action_fn(GenerationView::new(ctx));
-            Ok(())
-        });
-        self
-    }
-
-    pub fn on<EV: Event>(self, handler: impl EventHandler<EV>) -> Self
-    where
-        EV: Event,
-    {
+    pub fn on<EV: Event>(self, handler: impl EventHandler<EV>) -> Self {
         self.engine.context().events().subscribe(handler);
         self
     }
