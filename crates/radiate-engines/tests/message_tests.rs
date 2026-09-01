@@ -29,13 +29,13 @@ mod actor_tests {
     }
 
     impl MessageHandler<Add> for Counter {
-        fn handle(&mut self, msg: Add, _ctx: &ActorContext<Self>) {
+        fn handle(&mut self, msg: &Add, _ctx: &ActorContext<Self>) {
             self.total += msg.0;
         }
     }
 
     impl MessageHandler<GetTotal> for Counter {
-        fn handle(&mut self, _: GetTotal, _ctx: &ActorContext<Self>) -> usize {
+        fn handle(&mut self, _: &GetTotal, _ctx: &ActorContext<Self>) -> usize {
             self.total
         }
     }
@@ -99,7 +99,11 @@ mod actor_tests {
         remaining: u32,
         total: Arc<AtomicUsize>,
     }
-    impl Actor for SelfCounter {}
+    impl Actor for SelfCounter {
+        fn name(&self) -> &str {
+            "SelfCounter"
+        }
+    }
 
     struct Tick;
     impl Message for Tick {
@@ -107,7 +111,7 @@ mod actor_tests {
     }
 
     impl MessageHandler<Tick> for SelfCounter {
-        fn handle(&mut self, _: Tick, ctx: &ActorContext<Self>) {
+        fn handle(&mut self, _: &Tick, ctx: &ActorContext<Self>) {
             self.total.fetch_add(1, Ordering::SeqCst);
             if self.remaining > 0 {
                 self.remaining -= 1;
@@ -143,9 +147,13 @@ mod actor_tests {
     }
 
     struct Emitter;
-    impl Actor for Emitter {}
+    impl Actor for Emitter {
+        fn name(&self) -> &str {
+            "Emitter"
+        }
+    }
     impl MessageHandler<Ping> for Emitter {
-        fn handle(&mut self, msg: Ping, ctx: &ActorContext<Self>) {
+        fn handle(&mut self, msg: &Ping, ctx: &ActorContext<Self>) {
             ctx.publish(Ping(msg.0 * 10));
         }
     }
@@ -180,10 +188,14 @@ mod actor_tests {
     struct Listener {
         received: Arc<Mutex<Vec<Ping>>>,
     }
-    impl Actor for Listener {}
-    impl MessageHandler<Arc<Ping>> for Listener {
-        fn handle(&mut self, msg: Arc<Ping>, _ctx: &ActorContext<Self>) {
-            self.received.lock().unwrap().push((*msg).clone());
+    impl Actor for Listener {
+        fn name(&self) -> &str {
+            "Listener"
+        }
+    }
+    impl MessageHandler<Ping> for Listener {
+        fn handle(&mut self, msg: &Ping, _ctx: &ActorContext<Self>) {
+            self.received.lock().unwrap().push(msg.clone());
         }
     }
 
@@ -200,7 +212,7 @@ mod actor_tests {
             Some(bus.clone()),
         );
 
-        listener.receive::<Ping>();
+        listener.subscribe::<Ping>();
         bus.publish(Ping(7));
 
         assert_eq!(*received.lock().unwrap(), vec![Ping(7)]);
@@ -214,7 +226,7 @@ mod actor_tests {
             },
             serial(),
         );
-        assert!(addr.receive::<Ping>().is_none());
+        assert!(addr.subscribe::<Ping>().is_none());
     }
 
     // --- one actor, multiple event types: the case that would've hit
@@ -232,13 +244,13 @@ mod actor_tests {
         pongs: Arc<AtomicUsize>,
     }
     impl Actor for MultiListener {}
-    impl MessageHandler<Arc<Ping>> for MultiListener {
-        fn handle(&mut self, _: Arc<Ping>, _ctx: &ActorContext<Self>) {
+    impl MessageHandler<Ping> for MultiListener {
+        fn handle(&mut self, _: &Ping, _ctx: &ActorContext<Self>) {
             self.pings.fetch_add(1, Ordering::SeqCst);
         }
     }
-    impl MessageHandler<Arc<Pong>> for MultiListener {
-        fn handle(&mut self, _: Arc<Pong>, _ctx: &ActorContext<Self>) {
+    impl MessageHandler<Pong> for MultiListener {
+        fn handle(&mut self, _: &Pong, _ctx: &ActorContext<Self>) {
             self.pongs.fetch_add(1, Ordering::SeqCst);
         }
     }
@@ -258,8 +270,8 @@ mod actor_tests {
             Some(bus.clone()),
         );
 
-        addr.receive::<Ping>();
-        addr.receive::<Pong>();
+        addr.subscribe::<Ping>();
+        addr.subscribe::<Pong>();
 
         bus.publish(Ping(1));
         bus.publish(Pong(2));
@@ -279,12 +291,12 @@ mod actor_tests {
         type Response = ();
     }
     impl MessageHandler<Boom> for Flaky {
-        fn handle(&mut self, _: Boom, _ctx: &ActorContext<Self>) {
+        fn handle(&mut self, _: &Boom, _ctx: &ActorContext<Self>) {
             panic!("simulated failure");
         }
     }
     impl MessageHandler<GetTotal> for Flaky {
-        fn handle(&mut self, _: GetTotal, _ctx: &ActorContext<Self>) -> usize {
+        fn handle(&mut self, _: &GetTotal, _ctx: &ActorContext<Self>) -> usize {
             self.total
         }
     }
@@ -422,12 +434,17 @@ mod actor_tests {
 mod event_stream_tests {
     use radiate_core::Executor;
     use radiate_engines::message::EventStream;
+    use radiate_engines::message::Message;
     use std::sync::Arc;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::time::{Duration, Instant};
 
     #[derive(Debug, Clone, PartialEq)]
     struct Ping(u32);
+
+    impl Message for Ping {
+        type Response = ();
+    }
 
     fn throughput(count: usize, elapsed: Duration) -> f64 {
         count as f64 / elapsed.as_secs_f64()

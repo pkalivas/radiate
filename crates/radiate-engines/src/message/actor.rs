@@ -1,7 +1,7 @@
 use super::cell::ActorCell;
 use crate::message::{Event, EventStream, Subscription, SubscriptionId};
 use crossbeam::channel;
-use radiate_core::{Executor, RadiateError, error::RadiateResult};
+use radiate_core::{Executor, RadiateError, SmallStr, error::RadiateResult};
 use radiate_utils::sentry_id;
 use std::{
     any::TypeId,
@@ -15,17 +15,17 @@ pub trait Message: Send + Sync + 'static {
     type Response: Send + 'static;
 }
 
-impl<T: Event> Message for Arc<T> {
-    type Response = ();
-}
-
 pub trait MessageHandler<M: Message>: Actor {
-    fn handle(&mut self, msg: M, ctx: &ActorContext<Self>) -> M::Response
+    fn handle(&mut self, msg: &M, ctx: &ActorContext<Self>) -> M::Response
     where
         Self: Sized;
 }
 
 pub trait Actor: Send + Sync + 'static {
+    fn name(&self) -> &str {
+        std::any::type_name::<Self>()
+    }
+
     fn started(&mut self, _ctx: &ActorContext<Self>)
     where
         Self: Sized,
@@ -50,16 +50,16 @@ pub struct ActorContext<A>(pub(super) Addr<A>);
 impl<A: Actor> ActorContext<A> {
     pub fn send<M>(&self, msg: M)
     where
-        A: MessageHandler<M>,
         M: Message,
+        A: MessageHandler<M>,
     {
         (self.0).send(msg);
     }
 
     pub fn ask<M>(&self, msg: M) -> RadiateResult<M::Response>
     where
-        A: MessageHandler<M>,
         M: Message,
+        A: MessageHandler<M>,
     {
         (self.0).ask(msg)
     }
@@ -71,7 +71,7 @@ impl<A: Actor> ActorContext<A> {
     pub fn subscribe<E>(&self) -> Option<Subscription>
     where
         E: Event,
-        A: MessageHandler<Arc<E>>,
+        A: MessageHandler<E>,
     {
         if let Some(bus) = &self.0.bus {
             Some(bus.subscribe_addr::<E, A>(&self.0))
@@ -82,6 +82,7 @@ impl<A: Actor> ActorContext<A> {
 }
 
 pub struct Addr<A> {
+    pub(super) name: SmallStr,
     pub(super) id: ActorId,
     pub(super) cell: Arc<ActorCell<A>>,
     pub(super) executor: Arc<Executor>,
@@ -95,8 +96,10 @@ impl<A: Actor> Addr<A> {
     }
 
     pub fn spawn_with_bus(actor: A, executor: Arc<Executor>, bus: Option<EventStream>) -> Self {
+        let name = actor.name().into();
         let cell = Arc::new(ActorCell::new(actor));
         let addr = Addr {
+            name,
             id: ActorId::new(),
             cell,
             executor,
@@ -114,6 +117,10 @@ impl<A: Actor> Addr<A> {
         addr
     }
 
+    pub fn name(&self) -> SmallStr {
+        self.name.clone()
+    }
+
     pub fn unsubscribe<E>(&self, id: SubscriptionId)
     where
         E: Event,
@@ -125,23 +132,30 @@ impl<A: Actor> Addr<A> {
         }
     }
 
-    pub fn broadcast<E: Event>(&self, message: Arc<E>)
+    pub fn broadcast<E>(&self, message: Arc<E>)
     where
-        A: MessageHandler<Arc<E>>,
+        E: Event,
+        A: MessageHandler<E>,
     {
-        if let Some(bus) = &self.bus {
-            bus.publish(message);
+        let queued = self.cell.enqueue(Envelope {
+            run: Box::new(move |actor: &mut A, ctx: &ActorContext<A>| {
+                actor.handle(message.as_ref(), ctx);
+            }),
+        });
+
+        if queued {
+            self.dispatch();
         }
     }
 
     pub fn send<M>(&self, msg: M)
     where
-        A: MessageHandler<M>,
         M: Message,
+        A: MessageHandler<M>,
     {
         let queued = self.cell.enqueue(Envelope {
             run: Box::new(move |actor: &mut A, ctx: &ActorContext<A>| {
-                actor.handle(msg, ctx);
+                actor.handle(&msg, ctx);
             }),
         });
 
@@ -152,14 +166,14 @@ impl<A: Actor> Addr<A> {
 
     pub fn ask<M>(&self, msg: M) -> RadiateResult<M::Response>
     where
-        A: MessageHandler<M>,
         M: Message,
+        A: MessageHandler<M>,
     {
         let (tx, rx) = channel::bounded(1);
 
         let queued = self.cell.enqueue(Envelope {
             run: Box::new(move |actor: &mut A, ctx: &ActorContext<A>| {
-                let response = actor.handle(msg, ctx);
+                let response = actor.handle(&msg, ctx);
                 // Caller may have dropped `rx` already (unlikely, but not
                 // our problem if so) — don't let that panic the actor.
                 let _ = tx.send(response);
@@ -184,14 +198,18 @@ impl<A: Actor> Addr<A> {
         }
     }
 
-    pub fn receive<E>(&self) -> Option<Subscription>
+    pub fn subscribe<E>(&self) -> Option<Subscription>
     where
         E: Event,
-        A: MessageHandler<Arc<E>>,
+        A: MessageHandler<E>,
     {
         self.bus
             .as_ref()
             .map(|bus| bus.subscribe_addr::<E, A>(self))
+    }
+
+    pub fn subscriber_count(&self) -> usize {
+        self.subscriptions.read().unwrap().len()
     }
 
     fn dispatch(&self) {
@@ -206,6 +224,7 @@ impl<A: Actor> Addr<A> {
 impl<A> Clone for Addr<A> {
     fn clone(&self) -> Self {
         Addr {
+            name: self.name.clone(),
             id: self.id,
             cell: Arc::clone(&self.cell),
             executor: Arc::clone(&self.executor),

@@ -8,25 +8,22 @@ mod problem;
 mod selectors;
 mod species;
 
-use crate::builder::objectives::OptimizeParams;
 use crate::builder::population::PopulationParams;
 use crate::builder::problem::ProblemParams;
+use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
+use crate::genome::phenotype::Phenotype;
 #[cfg(feature = "serde")]
 use crate::io::FileReader;
-use crate::message::{
-    CheckpointSaved, EngineLogger, EngineStart, EventStream, LoggingHandler, Warning,
-};
+use crate::message::{EngineLogger, EventStream, LoggingHandler};
+use crate::pipeline::Pipeline;
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
     TournamentSelector, context::EvolutionContext,
 };
-use crate::{EngineStop, pipeline::Pipeline};
-use crate::{EpochComplete, genome::phenotype::Phenotype};
 use crate::{EventHandler, builder::evaluators::EvaluationParams};
 use crate::{Generation, Result};
-use crate::{LimitTriggered, builder::selectors::SelectionParams};
 use crate::{
     builder::evaluators::ExecutorParams,
     steps::{
@@ -34,13 +31,14 @@ use crate::{
     },
 };
 use crate::{builder::filters::FilterParams, message::Event};
+use crate::{builder::objectives::OptimizeParams, message::Message};
 use crate::{
     message::HealthMonitor,
     objectives::{Objective, Optimize},
 };
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
-use radiate_core::{Alterer, Ecosystem, EngineState, Expr, FitnessEvaluator, Valid, metric_names};
+use radiate_core::{Alterer, Ecosystem, Expr, FitnessEvaluator, Valid, metric_names};
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
 use radiate_core::{ThreadSync, rate::ExprSet};
@@ -134,7 +132,10 @@ where
     }
 
     /// Subscribe to an event of type `E` with the given event handler.
-    pub fn subscribe<E: Event>(self, handler: impl EventHandler<E>) -> Self {
+    pub fn subscribe<E: Event + Message<Response = ()>>(
+        self,
+        handler: impl EventHandler<E>,
+    ) -> Self {
         self.params.event_stream.subscribe(handler);
         self
     }
@@ -219,21 +220,9 @@ where
         let stream_executor = self.params.evaluation_params.event_stream_executor.clone();
         stream.set_executor(stream_executor.executor);
 
+        stream.spawn(EngineLogger::<T>::new());
+        stream.spawn(HealthMonitor::<T>::default());
         stream.subscribe(LoggingHandler);
-
-        let logger = stream.spawn(EngineLogger::<T>::new());
-        // logger.receive::<LimitTriggered>();
-        // logger.receive::<Warning>();
-        // logger.receive::<CheckpointSaved>();
-        // logger.receive::<EpochComplete<T>>();
-        // logger.receive::<EngineState>();
-        // logger.receive::<EngineStop<T>>();
-        // logger.receive::<EngineStart>();
-
-        let health = stream.spawn(HealthMonitor::<T>::default());
-        health.receive::<EpochComplete<T>>();
-
-        println!("{:?}", stream);
 
         self.params.event_stream = stream;
 

@@ -1,6 +1,6 @@
 use crate::{
-    Actor,
-    message::actor::{ActorContext, ActorId, Addr, MessageHandler},
+    Actor, SmallStr,
+    message::actor::{ActorContext, ActorId, Addr, Message, MessageHandler},
 };
 use radiate_core::Executor;
 use radiate_utils::sentry_id;
@@ -18,13 +18,13 @@ use std::{
 
 sentry_id!(SubscriptionId);
 
-pub trait Event: Send + Sync + 'static {
+pub trait Event: Message<Response = ()> + Send + Sync + 'static {
     fn event_label() -> &'static str {
         std::any::type_name::<Self>()
     }
 }
 
-impl<T: Send + Sync + 'static> Event for T {}
+impl<T> Event for T where T: Message<Response = ()> + Send + Sync + 'static {}
 
 pub trait EventHandler<E>: Send + Sync + 'static {
     fn handle(&mut self, event: &E);
@@ -42,7 +42,12 @@ where
 
 #[derive(Debug)]
 pub enum StreamEvent {
-    ActorRegistered(ActorId),
+    ActorRegistered(SmallStr, ActorId),
+    SubscriptionAdded(SmallStr, ActorId, SubscriptionId),
+}
+
+impl Message for StreamEvent {
+    type Response = ();
 }
 
 pub struct Subscription {
@@ -77,31 +82,29 @@ struct Registration {
 type SubscriberList = Arc<Vec<Registration>>;
 type SubscriberMap = HashMap<TypeId, SubscriberList>;
 
+#[derive(Clone, Default)]
 struct StreamState {
-    started: bool,
-    pending: Vec<PendingEvent>,
+    started: Arc<AtomicBool>,
+    pending: Arc<Mutex<Vec<PendingEvent>>>,
 }
 
 struct PendingEvent {
     type_id: TypeId,
     payload: Payload,
 }
-
 #[derive(Clone, Default)]
 pub struct EventStream {
-    started: Arc<AtomicBool>,
     executor: Arc<Executor>,
     subscribers: Arc<RwLock<SubscriberMap>>,
-    pending: Arc<Mutex<Vec<PendingEvent>>>,
+    state: StreamState,
 }
 
 impl EventStream {
     pub fn new(executor: Arc<Executor>) -> Self {
         EventStream {
-            started: Arc::new(AtomicBool::new(false)),
             executor,
             subscribers: Arc::default(),
-            pending: Arc::new(Mutex::new(Vec::new())),
+            state: StreamState::default(),
         }
     }
 
@@ -111,18 +114,53 @@ impl EventStream {
 
     pub fn spawn<A: Actor>(&self, actor: A) -> Addr<A> {
         let addr = Addr::spawn_with_bus(actor, Arc::clone(&self.executor), Some(self.clone()));
-        self.publish(StreamEvent::ActorRegistered(addr.id));
-
+        self.publish(StreamEvent::ActorRegistered(addr.name().into(), addr.id));
         addr
     }
 
     pub fn start(&self) {
-        if !self.started.swap(true, Ordering::AcqRel) {
-            let pending = std::mem::take(&mut *self.pending.lock().unwrap());
+        if !self.state.started.swap(true, Ordering::AcqRel) {
+            let pending = std::mem::take(&mut *self.state.pending.lock().unwrap());
             for event in pending {
                 self.dispatch(event.type_id, event.payload);
             }
         }
+    }
+
+    #[inline]
+    pub fn publish<E: Event>(&self, message: E) {
+        if !self.state.started.load(Ordering::Acquire) {
+            self.state.pending.lock().unwrap().push(PendingEvent {
+                type_id: TypeId::of::<E>(),
+                payload: Arc::new(message),
+            });
+
+            return;
+        }
+
+        self.dispatch(TypeId::of::<E>(), Arc::new(message));
+    }
+
+    #[inline]
+    pub fn lazy_publish<E: Event>(&self, f: impl FnOnce() -> E) {
+        if self.handler_count::<E>() > 0 {
+            self.publish(f());
+        }
+    }
+
+    #[inline]
+    pub fn handler_count<E: Event>(&self) -> usize {
+        self.subscribers
+            .read()
+            .unwrap()
+            .get(&TypeId::of::<E>())
+            .map(|group| {
+                group
+                    .iter()
+                    .filter(|registration| registration.active.load(Ordering::Acquire))
+                    .count()
+            })
+            .unwrap_or(0)
     }
 
     pub fn unsubscribe(&self, id: SubscriptionId) {
@@ -151,7 +189,7 @@ impl EventStream {
     pub fn subscribe_addr<E, A>(&self, addr: &Addr<A>) -> Subscription
     where
         E: Event,
-        A: MessageHandler<Arc<E>>,
+        A: MessageHandler<E>,
     {
         let active = Arc::new(AtomicBool::new(true));
         let id = SubscriptionId::new();
@@ -159,7 +197,7 @@ impl EventStream {
 
         let forward = Arc::new(move |payload: Payload| {
             if let Ok(msg) = payload.downcast::<E>() {
-                inner_addr.send(msg);
+                inner_addr.broadcast(msg);
             }
         });
 
@@ -172,45 +210,13 @@ impl EventStream {
             },
         );
 
-        self.publish(StreamEvent::ActorRegistered(addr.id));
+        self.publish(StreamEvent::SubscriptionAdded(
+            addr.name().into(),
+            addr.id,
+            id,
+        ));
 
         Subscription { id, active }
-    }
-
-    #[inline]
-    pub fn publish<E: Event>(&self, message: E) {
-        if !self.started.load(Ordering::Acquire) {
-            self.pending.lock().unwrap().push(PendingEvent {
-                type_id: TypeId::of::<E>(),
-                payload: Arc::new(message),
-            });
-
-            return;
-        }
-
-        self.dispatch(TypeId::of::<E>(), Arc::new(message));
-    }
-
-    #[inline]
-    pub fn lazy_publish<E: Event>(&self, f: impl FnOnce() -> E) {
-        if self.can_publish::<E>() {
-            self.publish(f());
-        }
-    }
-
-    #[inline]
-    pub fn handler_count<E: Event>(&self) -> usize {
-        self.subscribers
-            .read()
-            .unwrap()
-            .get(&TypeId::of::<E>())
-            .map(|group| {
-                group
-                    .iter()
-                    .filter(|registration| registration.active.load(Ordering::Acquire))
-                    .count()
-            })
-            .unwrap_or(0)
     }
 
     fn dispatch(&self, type_id: TypeId, payload: Payload) {
@@ -238,10 +244,6 @@ impl EventStream {
         let registrations = Arc::make_mut(list);
         registrations.retain(|registration| registration.active.load(Ordering::Acquire));
         registrations.push(registration);
-    }
-
-    fn can_publish<E: Event>(&self) -> bool {
-        self.handler_count::<E>() > 0
     }
 }
 
@@ -281,14 +283,17 @@ where
     M: Event,
     H: EventHandler<M>,
 {
+    fn name(&self) -> &str {
+        "EventForwardActor"
+    }
 }
 
-impl<M, H> MessageHandler<Arc<M>> for EventForwardActor<M, H>
+impl<M, H> MessageHandler<M> for EventForwardActor<M, H>
 where
-    M: Event,
+    M: Event + Message<Response = ()>,
     H: EventHandler<M>,
 {
-    fn handle(&mut self, msg: Arc<M>, _: &ActorContext<Self>) {
-        (self.handler).handle(&msg);
+    fn handle(&mut self, msg: &M, _: &ActorContext<Self>) {
+        (self.handler).handle(msg);
     }
 }

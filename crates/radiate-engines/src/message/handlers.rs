@@ -1,13 +1,14 @@
 use crate::{
     Actor, EngineStop, EventHandler,
-    message::stream::StreamEvent,
-    message::{CheckpointSaved, EngineStart, MessageHandler, Warning, actor::ActorContext},
+    message::{
+        CheckpointSaved, EngineStart, Message, MessageHandler, Warning, actor::ActorContext,
+        stream::StreamEvent,
+    },
 };
 use crate::{LimitTriggered, message::EpochComplete};
 use radiate_core::MetricSet;
 use radiate_core::{EngineState, Objective};
 use std::marker::PhantomData;
-use std::sync::Arc;
 
 const STAGNATION_WARNING_THRESHOLD: usize = 50;
 const DIVERSITY_WARNING_THRESHOLD: f32 = 0.1;
@@ -25,13 +26,27 @@ impl<T> Default for HealthMonitor<T> {
     }
 }
 
-impl<T> Actor for HealthMonitor<T> where T: Send + Sync + 'static {}
-
-impl<T> MessageHandler<Arc<EpochComplete<T>>> for HealthMonitor<T>
+impl<T> Actor for HealthMonitor<T>
 where
     T: Send + Sync + 'static,
 {
-    fn handle(&mut self, message: Arc<EpochComplete<T>>, ctx: &ActorContext<Self>) {
+    fn name(&self) -> &str {
+        "HealthMonitor"
+    }
+
+    fn started(&mut self, ctx: &ActorContext<Self>)
+    where
+        Self: Sized,
+    {
+        ctx.subscribe::<EpochComplete<T>>();
+    }
+}
+
+impl<T> MessageHandler<EpochComplete<T>> for HealthMonitor<T>
+where
+    T: Send + Sync + 'static,
+{
+    fn handle(&mut self, message: &EpochComplete<T>, ctx: &ActorContext<Self>) {
         check_stagnation(&message.metrics, ctx);
         check_diversity(&message.metrics, ctx);
         check_species_collapse(&message.metrics, ctx);
@@ -102,6 +117,10 @@ impl<T> Actor for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
+    fn name(&self) -> &str {
+        "EngineLogger"
+    }
+
     fn started(&mut self, ctx: &ActorContext<Self>)
     where
         Self: Sized,
@@ -117,27 +136,32 @@ where
     }
 }
 
-impl<T> MessageHandler<Arc<StreamEvent>> for EngineLogger<T>
+impl<T> MessageHandler<StreamEvent> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
-    fn handle(&mut self, message: Arc<StreamEvent>, ctx: &ActorContext<Self>) {
-        match &*message {
-            StreamEvent::ActorRegistered(id) => {
+    fn handle(&mut self, message: &StreamEvent, ctx: &ActorContext<Self>) {
+        match message {
+            StreamEvent::ActorRegistered(name, id) => {
+                let actor_id = format!("{}-{:?}", name, id.get());
+                ctx.publish(LogEvent(LogLevel::Info, format!("{} Registered", actor_id)));
+            }
+            StreamEvent::SubscriptionAdded(name, actor_id, subscription_id) => {
+                let actor_id = format!("{}-{:?}", name, actor_id.get());
                 ctx.publish(LogEvent(
                     LogLevel::Info,
-                    format!("Actor registered: {:?}", id),
+                    format!("{} New Subscription added: {:?}", actor_id, subscription_id),
                 ));
             }
         }
     }
 }
 
-impl<T> MessageHandler<Arc<LimitTriggered>> for EngineLogger<T>
+impl<T> MessageHandler<LimitTriggered> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
-    fn handle(&mut self, message: Arc<LimitTriggered>, ctx: &ActorContext<Self>) {
+    fn handle(&mut self, message: &LimitTriggered, ctx: &ActorContext<Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
             format!("Limit triggered: {:?}", message.1),
@@ -145,20 +169,20 @@ where
     }
 }
 
-impl<T> MessageHandler<Arc<Warning>> for EngineLogger<T>
+impl<T> MessageHandler<Warning> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
-    fn handle(&mut self, message: Arc<Warning>, ctx: &ActorContext<Self>) {
+    fn handle(&mut self, message: &Warning, ctx: &ActorContext<Self>) {
         ctx.publish(LogEvent(LogLevel::Warn, message.0.clone()));
     }
 }
 
-impl<T> MessageHandler<Arc<CheckpointSaved>> for EngineLogger<T>
+impl<T> MessageHandler<CheckpointSaved> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
-    fn handle(&mut self, message: Arc<CheckpointSaved>, ctx: &ActorContext<Self>) {
+    fn handle(&mut self, message: &CheckpointSaved, ctx: &ActorContext<Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
             format!(
@@ -169,11 +193,11 @@ where
     }
 }
 
-impl<T> MessageHandler<Arc<EpochComplete<T>>> for EngineLogger<T>
+impl<T> MessageHandler<EpochComplete<T>> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
-    fn handle(&mut self, event: Arc<EpochComplete<T>>, ctx: &ActorContext<Self>) {
+    fn handle(&mut self, event: &EpochComplete<T>, ctx: &ActorContext<Self>) {
         let time = event
             .metrics
             .time()
@@ -204,11 +228,11 @@ where
     }
 }
 
-impl<T> MessageHandler<Arc<EngineState>> for EngineLogger<T>
+impl<T> MessageHandler<EngineState> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
-    fn handle(&mut self, event: Arc<EngineState>, ctx: &ActorContext<Self>) {
+    fn handle(&mut self, event: &EngineState, ctx: &ActorContext<Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
             format!("State Change: {:?}", *event),
@@ -216,20 +240,20 @@ where
     }
 }
 
-impl<T> MessageHandler<Arc<EngineStart>> for EngineLogger<T>
+impl<T> MessageHandler<EngineStart> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
-    fn handle(&mut self, _: Arc<EngineStart>, ctx: &ActorContext<Self>) {
+    fn handle(&mut self, _: &EngineStart, ctx: &ActorContext<Self>) {
         ctx.publish(EngineState::Running);
     }
 }
 
-impl<T> MessageHandler<Arc<EngineStop<T>>> for EngineLogger<T>
+impl<T> MessageHandler<EngineStop<T>> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
-    fn handle(&mut self, _: Arc<EngineStop<T>>, ctx: &ActorContext<Self>) {
+    fn handle(&mut self, _: &EngineStop<T>, ctx: &ActorContext<Self>) {
         ctx.publish(EngineState::Stopped);
     }
 }
@@ -242,6 +266,10 @@ pub enum LogLevel {
 
 #[derive(Clone, Debug)]
 pub struct LogEvent(pub LogLevel, pub String);
+
+impl Message for LogEvent {
+    type Response = ();
+}
 
 #[derive(Clone, Default)]
 pub struct LoggingHandler;

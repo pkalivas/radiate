@@ -1,6 +1,10 @@
-use crate::{Limit, context::EvolutionContext};
-use radiate_core::{Chromosome, Ecosystem, MetricSet, Objective, Score};
+use crate::{Limit, context::EvolutionContext, message::Message};
+use radiate_core::{Chromosome, Ecosystem, EngineState, MetricSet, Objective, Score};
 use std::{fmt::Debug, sync::Arc};
+
+impl Message for EngineState {
+    type Response = ();
+}
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CheckpointSaved {
@@ -8,14 +12,28 @@ pub struct CheckpointSaved {
     pub path: String,
 }
 
+impl Message for CheckpointSaved {
+    type Response = ();
+}
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Warning(pub String);
 
-#[derive(Clone, Debug)]
-pub struct LimitTriggered(pub usize, pub Limit);
+impl Message for Warning {
+    type Response = ();
+}
 
 #[derive(Clone, Debug)]
+pub struct LimitTriggered(pub usize, pub Limit);
+impl Message for LimitTriggered {
+    type Response = ();
+}
+#[derive(Clone, Debug)]
 pub struct EpochStart(pub usize);
+
+impl Message for EpochStart {
+    type Response = ();
+}
 
 impl<C, T> From<&EvolutionContext<C, T>> for EpochStart
 where
@@ -32,6 +50,13 @@ pub struct Improvement<T> {
     pub index: usize,
     pub best: T,
     pub score: Score,
+}
+
+impl<T> Message for Improvement<T>
+where
+    T: Send + Sync + 'static,
+{
+    type Response = ();
 }
 
 impl<T> Debug for Improvement<T> {
@@ -63,6 +88,13 @@ pub struct EpochComplete<T> {
     pub objective: Objective,
 }
 
+impl<T> Message for EpochComplete<T>
+where
+    T: Send + Sync + 'static,
+{
+    type Response = ();
+}
+
 impl<C, T> From<&EvolutionContext<C, T>> for EpochComplete<T>
 where
     C: Chromosome,
@@ -92,12 +124,23 @@ impl<T> Debug for EpochComplete<T> {
 #[derive(Clone, Debug)]
 pub struct EngineStart;
 
+impl Message for EngineStart {
+    type Response = ();
+}
+
 #[derive(Clone)]
 pub struct EngineStop<T> {
     pub index: usize,
     pub best: T,
     pub metrics: MetricSet,
     pub score: Score,
+}
+
+impl<T> Message for EngineStop<T>
+where
+    T: Send + Sync + 'static,
+{
+    type Response = ();
 }
 
 impl<C, T> From<&EvolutionContext<C, T>> for EngineStop<T>
@@ -129,6 +172,10 @@ impl<T> Debug for EngineStop<T> {
 pub struct EcosystemSnapshot<C: Chromosome + 'static> {
     pub index: usize,
     pub ecosystem: Arc<Ecosystem<C>>,
+}
+
+impl<C: Chromosome + 'static> Message for EcosystemSnapshot<C> {
+    type Response = ();
 }
 
 impl<C: Chromosome + Clone, T> From<&EvolutionContext<C, T>> for EcosystemSnapshot<C> {
