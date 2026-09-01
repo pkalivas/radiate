@@ -1,5 +1,5 @@
 use crate::{
-    Engine, EventHandler, EvolutionContext, Generation, Limit,
+    Engine, EvolutionContext, Generation, Handler, Limit,
     events::{EngineLogger, Event, GenerationSnapshot, HealthMonitor, LoggingHandler},
 };
 use crate::{generation::GenerationView, init_logging};
@@ -102,7 +102,7 @@ where
         self
     }
 
-    pub fn subscribe<EV: Event>(self, handler: impl EventHandler<EV>) -> Self {
+    pub fn subscribe<EV: Event>(self, handler: impl Handler<EV>) -> Self {
         self.engine.context().events().subscribe(handler);
         self
     }
@@ -199,8 +199,8 @@ where
         init_logging();
         let stream = self.engine.context().events();
 
-        stream.spawn_and_subscribe(EngineLogger::<T>::new());
-        stream.spawn_and_subscribe(HealthMonitor::<T>::default());
+        stream.attatch(EngineLogger::<T>::new());
+        stream.attatch(HealthMonitor::<T>::default());
         stream.subscribe(LoggingHandler);
 
         self

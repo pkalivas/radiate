@@ -9,38 +9,28 @@ pub trait Event: Send + Sync + 'static {
 }
 impl<T: Send + Sync + 'static> Event for T {}
 
-pub trait UntypedEventHandler: Send + 'static {
-    fn on_start(&mut self, ctx: &EventContext<'_, Self>)
+pub trait Handler<E: Event>: Send + 'static {
+    fn handle(&mut self, event: &E, ctx: &EventContext<'_, Self>)
+    where
+        Self: Sized;
+}
+
+pub trait EventHandler: Send + 'static {
+    fn start(&mut self, _ctx: &EventContext<'_, Self>)
     where
         Self: Sized,
     {
     }
 }
 
-pub trait Handler<E: Event>: UntypedEventHandler {
-    fn handle(&mut self, event: &E, ctx: &EventContext<'_, Self>)
-    where
-        Self: Sized;
-}
-
-pub trait EventHandler<E: Event>: Send + 'static {
-    fn handle(&mut self, event: &E, ctx: &EventContext<'_, Self>)
-    where
-        Self: Sized;
-}
-
-impl<E, F> EventHandler<E> for F
+impl<E, F> Handler<E> for F
 where
     E: Event,
     F: FnMut(&E) + Send + 'static,
 {
-    fn handle(&mut self, event: &E, _: &EventContext<'_, Self>) {
+    fn handle(&mut self, event: &E, _ctx: &EventContext<'_, Self>) {
         self(event)
     }
-}
-
-pub trait Subscribes: Sized + Send + 'static {
-    fn subscribe(subscriber: &Subscriber<Self>);
 }
 
 pub struct EventContext<'a, H>(&'a Subscriber<H>);
@@ -48,6 +38,14 @@ pub struct EventContext<'a, H>(&'a Subscriber<H>);
 impl<H> EventContext<'_, H> {
     pub fn publish<E: Event>(&self, event: E) {
         self.0.stream.publish(event);
+    }
+
+    pub fn subscribe<E>(&self) -> Subscription
+    where
+        E: Event,
+        H: Handler<E>,
+    {
+        self.0.subscribe::<E>()
     }
 }
 
@@ -69,7 +67,7 @@ impl<H: Send + 'static> Subscriber<H> {
     pub fn subscribe<E>(&self) -> Subscription
     where
         E: Event,
-        H: EventHandler<E>,
+        H: Handler<E>,
     {
         self.stream.subscribe_existing::<E, H>(self)
     }
@@ -78,10 +76,18 @@ impl<H: Send + 'static> Subscriber<H> {
         self.stream.unsubscribe(id);
     }
 
+    pub(super) fn start(&self)
+    where
+        H: EventHandler,
+    {
+        let ctx = EventContext(self);
+        self.handler.lock().unwrap().start(&ctx);
+    }
+
     pub(super) fn send_shared<E>(&self, event: Arc<E>)
     where
         E: Event,
-        H: EventHandler<E>,
+        H: Handler<E>,
     {
         match self.executor.as_ref() {
             Executor::Serial => {

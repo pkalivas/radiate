@@ -4,9 +4,9 @@ use std::{fmt::Debug, sync::Arc};
 
 #[derive(Clone, Debug)]
 pub struct EngineStateChange {
+    pub index: usize,
     pub from: EngineState,
     pub to: EngineState,
-    pub index: usize,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]

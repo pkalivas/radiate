@@ -23,10 +23,10 @@ use crate::{
     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
     TournamentSelector, context::EvolutionContext,
 };
-use crate::{EventHandler, builder::evaluators::EvaluationParams};
 #[cfg(feature = "serde")]
 use crate::{FileWriter, io::FileReader};
 use crate::{Generation, Result};
+use crate::{Handler, builder::evaluators::EvaluationParams};
 use crate::{
     builder::evaluators::ExecutorParams,
     steps::{
@@ -131,7 +131,7 @@ where
     }
 
     /// Subscribe to an event of type `E` with the given event handler.
-    pub fn subscribe<E: Event>(self, handler: impl EventHandler<E>) -> Self {
+    pub fn subscribe<E: Event>(self, handler: impl Handler<E>) -> Self {
         self.params.event_stream.subscribe(handler);
         self
     }
@@ -180,7 +180,7 @@ where
         T: Clone + Send + Sync + Serialize + 'static,
         F: FileWriter<Generation<C, T>> + Send + Sync + 'static,
     {
-        use crate::events::{CheckpointWriterHandler, GenerationSnapshot};
+        use crate::events::CheckpointWriterHandler;
 
         let path_without_extension = path
             .as_ref()
@@ -188,11 +188,9 @@ where
             .and_then(|s| s.rsplit('.').nth(1))
             .unwrap_or(path.as_ref().to_str().unwrap_or("checkpoints"));
 
-        let handler = CheckpointWriterHandler::<C, T>::new(path_without_extension.into(), writer);
-        let subscriber = self.params.event_stream.spawn(handler);
-        subscriber
-            .subscribe::<GenerationSnapshot<C, T>>()
-            .schedule(interval);
+        let handler =
+            CheckpointWriterHandler::<C, T>::new(interval, path_without_extension.into(), writer);
+        self.params.event_stream.attatch(handler);
         self
     }
 }

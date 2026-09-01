@@ -7,7 +7,6 @@ use crate::{
     PyGeneType,
     bindings::gp::{PyGraph, PyTree},
 };
-
 use pyo3::{
     Bound, BoundObject, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods,
     types::{PyBytes, PyBytesMethods, PyList},

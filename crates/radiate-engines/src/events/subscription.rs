@@ -1,12 +1,13 @@
 use radiate_utils::sentry_id;
-use std::sync::atomic::AtomicUsize;
 use std::{
     fmt::Debug,
     sync::{
         Arc, RwLock,
         atomic::{AtomicBool, Ordering},
     },
+    time::Instant,
 };
+use std::{sync::atomic::AtomicUsize, time::Duration};
 
 sentry_id!(SubscriptionId);
 
@@ -15,7 +16,7 @@ pub enum Schedule {
     #[default]
     Always,
     EveryN(usize, Arc<AtomicUsize>),
-    Duration(std::time::Duration, Arc<RwLock<std::time::Instant>>),
+    Duration(Duration, Arc<RwLock<Instant>>),
 }
 
 impl Schedule {
@@ -27,7 +28,7 @@ impl Schedule {
                 current.saturating_add(1).is_multiple_of(*n)
             }
             Schedule::Duration(duration, last_time) => {
-                let now = std::time::Instant::now();
+                let now = Instant::now();
                 if now.duration_since(*last_time.read().unwrap()) >= *duration {
                     *last_time.write().unwrap() = now;
                     true
@@ -45,9 +46,9 @@ impl From<usize> for Schedule {
     }
 }
 
-impl From<std::time::Duration> for Schedule {
-    fn from(duration: std::time::Duration) -> Self {
-        Schedule::Duration(duration, Arc::new(RwLock::new(std::time::Instant::now())))
+impl From<Duration> for Schedule {
+    fn from(duration: Duration) -> Self {
+        Schedule::Duration(duration, Arc::new(RwLock::new(Instant::now())))
     }
 }
 

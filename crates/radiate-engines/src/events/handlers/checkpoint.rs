@@ -2,12 +2,12 @@
 
 use crate::Generation;
 use crate::{
-    EventHandler,
-    events::{EventContext, GenerationSnapshot},
-};
-use crate::{
     FileWriter,
     events::{CheckpointSaved, Warning},
+};
+use crate::{
+    Handler,
+    events::{EventContext, EventHandler, GenerationSnapshot},
 };
 use radiate_core::Chromosome;
 use serde::Serialize;
@@ -19,6 +19,7 @@ where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
+    pub(crate) interval: usize,
     pub(crate) path: PathBuf,
     pub(crate) writer: Arc<Mutex<dyn FileWriter<Generation<C, T>> + Send + Sync>>,
 }
@@ -28,18 +29,30 @@ where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
-    pub fn new<F>(path: PathBuf, writer: F) -> Self
+    pub fn new<F>(interval: usize, path: PathBuf, writer: F) -> Self
     where
         F: FileWriter<Generation<C, T>> + Send + Sync + 'static,
     {
         Self {
+            interval,
             path,
             writer: Arc::new(Mutex::new(writer)),
         }
     }
 }
 
-impl<C, T> EventHandler<GenerationSnapshot<C, T>> for CheckpointWriterHandler<C, T>
+impl<C, T> EventHandler for CheckpointWriterHandler<C, T>
+where
+    C: Chromosome + Clone + Serialize + 'static,
+    T: Clone + Send + Sync + Serialize + 'static,
+{
+    fn start(&mut self, ctx: &EventContext<'_, Self>) {
+        ctx.subscribe::<GenerationSnapshot<C, T>>()
+            .schedule(self.interval);
+    }
+}
+
+impl<C, T> Handler<GenerationSnapshot<C, T>> for CheckpointWriterHandler<C, T>
 where
     C: Chromosome + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,

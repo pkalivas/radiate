@@ -1,7 +1,7 @@
 use crate::events::EpochComplete;
 use crate::{
-    EventHandler,
-    events::{EventContext, Subscriber, Subscribes, Warning},
+    Handler,
+    events::{EventContext, EventHandler, Warning},
 };
 use radiate_core::MetricSet;
 use std::marker::PhantomData;
@@ -22,16 +22,16 @@ impl<T> Default for HealthMonitor<T> {
     }
 }
 
-impl<T> Subscribes for HealthMonitor<T>
+impl<T> EventHandler for HealthMonitor<T>
 where
     T: Send + Sync + 'static,
 {
-    fn subscribe(subscriber: &Subscriber<Self>) {
-        subscriber.subscribe::<EpochComplete<T>>();
+    fn start(&mut self, ctx: &EventContext<'_, Self>) {
+        ctx.subscribe::<EpochComplete<T>>();
     }
 }
 
-impl<T> EventHandler<EpochComplete<T>> for HealthMonitor<T>
+impl<T> Handler<EpochComplete<T>> for HealthMonitor<T>
 where
     T: Send + Sync + 'static,
 {

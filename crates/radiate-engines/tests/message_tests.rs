@@ -1,9 +1,7 @@
 #[cfg(test)]
 mod event_stream_tests {
     use radiate_core::Executor;
-    use radiate_engines::events::{
-        EventContext, EventHandler, EventStream, Subscriber, Subscribes,
-    };
+    use radiate_engines::events::{EventContext, EventHandler, EventStream, Handler};
     use std::sync::Arc;
     use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -17,7 +15,7 @@ mod event_stream_tests {
         total: Arc<AtomicUsize>,
     }
 
-    impl EventHandler<Add> for Counter {
+    impl Handler<Add> for Counter {
         fn handle(&mut self, event: &Add, _ctx: &EventContext<'_, Self>) {
             self.total.fetch_add(event.0, Ordering::SeqCst);
         }
@@ -94,7 +92,7 @@ mod event_stream_tests {
     struct Doubled(usize);
 
     struct Doubler;
-    impl EventHandler<Add> for Doubler {
+    impl Handler<Add> for Doubler {
         fn handle(&mut self, event: &Add, ctx: &EventContext<'_, Self>) {
             ctx.publish(Doubled(event.0 * 2));
         }
@@ -131,32 +129,32 @@ mod event_stream_tests {
         pongs: Arc<AtomicUsize>,
     }
 
-    impl Subscribes for Both {
-        fn subscribe(subscriber: &Subscriber<Self>) {
-            subscriber.subscribe::<Ping>();
-            subscriber.subscribe::<Pong>();
+    impl EventHandler for Both {
+        fn start(&mut self, ctx: &EventContext<'_, Self>) {
+            ctx.subscribe::<Ping>();
+            ctx.subscribe::<Pong>();
         }
     }
 
-    impl EventHandler<Ping> for Both {
+    impl Handler<Ping> for Both {
         fn handle(&mut self, _: &Ping, _ctx: &EventContext<'_, Self>) {
             self.pings.fetch_add(1, Ordering::SeqCst);
         }
     }
 
-    impl EventHandler<Pong> for Both {
+    impl Handler<Pong> for Both {
         fn handle(&mut self, _: &Pong, _ctx: &EventContext<'_, Self>) {
             self.pongs.fetch_add(1, Ordering::SeqCst);
         }
     }
 
     #[test]
-    fn subscribes_trait_wires_up_more_than_one_event_type() {
+    fn event_handler_on_start_wires_up_more_than_one_event_type() {
         let stream = EventStream::new(serial());
         let pings = Arc::new(AtomicUsize::new(0));
         let pongs = Arc::new(AtomicUsize::new(0));
 
-        stream.spawn_and_subscribe(Both {
+        stream.attatch(Both {
             pings: Arc::clone(&pings),
             pongs: Arc::clone(&pongs),
         });
@@ -250,7 +248,7 @@ mod event_stream_tests {
     #[test]
     fn a_panicking_handler_poisons_the_lock_instead_of_being_isolated() {
         struct Boom;
-        impl EventHandler<Add> for Boom {
+        impl Handler<Add> for Boom {
             fn handle(&mut self, _: &Add, _ctx: &EventContext<'_, Self>) {
                 panic!("simulated failure");
             }

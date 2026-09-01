@@ -4,10 +4,8 @@ use pyo3::{
     types::{PyAnyMethods, PyDict},
 };
 use radiate::{
-    Chromosome, EpochComplete, EventContext, GeneticEngineBuilder, LimitTriggered,
-    events::{
-        CheckpointSaved, EngineStop, EpochStart, EventHandler, Improvement, LogEvent, LogLevel,
-    },
+    Chromosome, EpochComplete, EventContext, GeneticEngineBuilder, Handler, LimitTriggered,
+    events::{CheckpointSaved, EngineStop, EpochStart, Improvement, LogEvent, LogLevel},
 };
 use std::fmt::Debug;
 
@@ -57,7 +55,7 @@ impl Debug for PySubscriber {
     }
 }
 
-impl<T> EventHandler<EngineStop<T>> for PySubscriber
+impl<T> Handler<EngineStop<T>> for PySubscriber
 where
     T: IntoPyAnyObject + Clone + Send + Sync + 'static,
 {
@@ -101,7 +99,7 @@ where
     }
 }
 
-impl EventHandler<EpochStart> for PySubscriber {
+impl Handler<EpochStart> for PySubscriber {
     fn handle(&mut self, event: &EpochStart, _: &EventContext<'_, Self>) {
         Python::attach(|py| {
             let rd = radiate(py).bind(py);
@@ -123,7 +121,7 @@ impl EventHandler<EpochStart> for PySubscriber {
     }
 }
 
-impl<T> EventHandler<EpochComplete<T>> for PySubscriber
+impl<T> Handler<EpochComplete<T>> for PySubscriber
 where
     T: IntoPyAnyObject + Clone + Send + Sync + 'static,
 {
@@ -170,7 +168,7 @@ where
     }
 }
 
-impl<T> EventHandler<Improvement<T>> for PySubscriber
+impl<T> Handler<Improvement<T>> for PySubscriber
 where
     T: IntoPyAnyObject + Clone + Send + Sync + 'static,
 {
@@ -202,7 +200,7 @@ where
     }
 }
 
-impl EventHandler<LimitTriggered> for PySubscriber {
+impl Handler<LimitTriggered> for PySubscriber {
     fn handle(&mut self, event: &LimitTriggered, _: &EventContext<'_, Self>) {
         Python::attach(|py| {
             let rd = radiate(py).bind(py);
@@ -231,7 +229,7 @@ impl EventHandler<LimitTriggered> for PySubscriber {
     }
 }
 
-impl EventHandler<LogEvent> for PySubscriber {
+impl Handler<LogEvent> for PySubscriber {
     fn handle(&mut self, event: &LogEvent, _: &EventContext<'_, Self>) {
         Python::attach(|py| {
             let rd = radiate(py).bind(py);
@@ -269,7 +267,7 @@ impl EventHandler<LogEvent> for PySubscriber {
     }
 }
 
-impl EventHandler<CheckpointSaved> for PySubscriber {
+impl Handler<CheckpointSaved> for PySubscriber {
     fn handle(&mut self, event: &CheckpointSaved, _: &EventContext<'_, Self>) {
         Python::attach(|py| {
             let rd = radiate(py).bind(py);

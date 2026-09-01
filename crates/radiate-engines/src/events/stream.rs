@@ -1,4 +1,7 @@
-use crate::events::{Event, EventHandler, Subscriber, Subscribes, Subscription, SubscriptionId};
+use crate::{
+    EventHandler,
+    events::{Event, Handler, Subscriber, Subscription, SubscriptionId},
+};
 use radiate_core::Executor;
 use std::{
     any::{Any, TypeId},
@@ -37,19 +40,15 @@ impl EventStream {
         self.executor = executor;
     }
 
-    pub fn spawn<H: Send + 'static>(&self, handler: H) -> Subscriber<H> {
-        Subscriber::new(handler, Arc::clone(&self.executor), self.clone())
-    }
-
-    pub fn subscribe<E: Event>(&self, handler: impl EventHandler<E>) -> Subscription {
-        let subscriber = self.spawn(handler);
-        self.subscribe_existing::<E, _>(&subscriber)
-    }
-
-    pub fn spawn_and_subscribe<H: Subscribes>(&self, handler: H) -> Subscriber<H> {
-        let subscriber = self.spawn(handler);
-        H::subscribe(&subscriber);
+    pub fn attatch<H: EventHandler>(&self, handler: H) -> Subscriber<H> {
+        let subscriber = Subscriber::new(handler, Arc::clone(&self.executor), self.clone());
+        subscriber.start();
         subscriber
+    }
+
+    pub fn subscribe<E: Event>(&self, handler: impl Handler<E>) -> Subscription {
+        let subscriber = Subscriber::new(handler, Arc::clone(&self.executor), self.clone());
+        self.subscribe_existing::<E, _>(&subscriber)
     }
 
     #[inline]
@@ -89,7 +88,7 @@ impl EventStream {
     pub(super) fn subscribe_existing<E, H>(&self, subscriber: &Subscriber<H>) -> Subscription
     where
         E: Event,
-        H: EventHandler<E>,
+        H: Handler<E>,
     {
         let target = subscriber.clone();
         let forward: Forward = Arc::new(move |payload: Payload| {

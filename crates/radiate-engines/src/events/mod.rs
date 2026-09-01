@@ -12,5 +12,5 @@ pub use messages::{
     GenerationSnapshot, Improvement, LimitTriggered, Warning,
 };
 pub use stream::EventStream;
-pub use subscriber::{Event, EventContext, EventHandler, Subscriber, Subscribes};
+pub use subscriber::{Event, EventContext, EventHandler, Handler, Subscriber};
 pub use subscription::{Schedule, Subscription, SubscriptionId};

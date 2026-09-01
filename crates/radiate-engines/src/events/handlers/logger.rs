@@ -1,6 +1,6 @@
 use crate::{
-    EventHandler,
-    events::{CheckpointSaved, EngineStateChange, EventContext, Subscriber, Subscribes, Warning},
+    Handler,
+    events::{CheckpointSaved, EngineStateChange, EventContext, EventHandler, Warning},
 };
 use crate::{LimitTriggered, events::EpochComplete};
 use radiate_core::Objective;
@@ -24,20 +24,20 @@ impl<T> EngineLogger<T> {
     }
 }
 
-impl<T> Subscribes for EngineLogger<T>
+impl<T> EventHandler for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
-    fn subscribe(subscriber: &Subscriber<Self>) {
-        subscriber.subscribe::<LimitTriggered>();
-        subscriber.subscribe::<Warning>();
-        subscriber.subscribe::<CheckpointSaved>();
-        subscriber.subscribe::<EpochComplete<T>>();
-        subscriber.subscribe::<EngineStateChange>();
+    fn start(&mut self, ctx: &EventContext<'_, Self>) {
+        ctx.subscribe::<LimitTriggered>();
+        ctx.subscribe::<Warning>();
+        ctx.subscribe::<CheckpointSaved>();
+        ctx.subscribe::<EpochComplete<T>>();
+        ctx.subscribe::<EngineStateChange>();
     }
 }
 
-impl<T> EventHandler<LimitTriggered> for EngineLogger<T>
+impl<T> Handler<LimitTriggered> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
@@ -49,7 +49,7 @@ where
     }
 }
 
-impl<T> EventHandler<Warning> for EngineLogger<T>
+impl<T> Handler<Warning> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
@@ -58,7 +58,7 @@ where
     }
 }
 
-impl<T> EventHandler<CheckpointSaved> for EngineLogger<T>
+impl<T> Handler<CheckpointSaved> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
@@ -73,7 +73,7 @@ where
     }
 }
 
-impl<T> EventHandler<EpochComplete<T>> for EngineLogger<T>
+impl<T> Handler<EpochComplete<T>> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
@@ -108,7 +108,7 @@ where
     }
 }
 
-impl<T> EventHandler<EngineStateChange> for EngineLogger<T>
+impl<T> Handler<EngineStateChange> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
@@ -132,8 +132,8 @@ pub struct LogEvent(pub LogLevel, pub String);
 #[derive(Clone, Default)]
 pub struct LoggingHandler;
 
-impl EventHandler<LogEvent> for LoggingHandler {
-    fn handle(&mut self, message: &LogEvent, _: &EventContext<'_, Self>) {
+impl Handler<LogEvent> for LoggingHandler {
+    fn handle(&mut self, message: &LogEvent, _ctx: &EventContext<'_, Self>) {
         match message.0 {
             LogLevel::Info => tracing::info!("{}", message.1),
             LogLevel::Warn => tracing::warn!("{}", message.1),
