@@ -103,7 +103,7 @@ where
     /// from external contexts. If the control interface has not been initialized yet, this method
     /// will create a new instance.
     pub fn control(&mut self) -> ThreadSync {
-        self.context.get_or_create_control()
+        self.context.get_or_create_sync()
     }
 
     /// Converts the engine into an iterator that yields generations.
@@ -181,24 +181,43 @@ where
         Generation::from(&self.context)
     }
 
+    fn state(&self) -> EngineState {
+        self.context.state
+    }
+
     fn start(&mut self) {
+        self.context.change_state(EngineState::Running);
         self.stream.publish(EngineStart);
     }
 
     fn stop(&mut self) {
+        self.context.change_state(EngineState::Stopped);
         self.stream.publish(EngineStop::from(&self.context));
     }
 
     #[inline]
-    fn step(&mut self) -> Result<EngineState> {
-        if self.context.is_stopped() {
-            // We publish a stop event when the `stop` fn is called (above), so
-            // no need to publish anything here.
-            return Ok(EngineState::Stopped);
-        } else if self.context.is_paused() {
-            self.stream.publish(EngineState::Paused);
-            self.context.wait();
-            self.stream.publish(EngineState::Running);
+    fn step(&mut self) -> Result<()> {
+        match self.state() {
+            EngineState::PreStart => self.start(),
+            EngineState::Stopped => return Ok(()),
+            EngineState::Running | EngineState::Paused => {
+                if self.context.stop_requested() {
+                    self.stop();
+                    return Ok(());
+                }
+
+                if self.context.pause_requested() {
+                    self.context.change_state(EngineState::Paused);
+                    self.context.wait();
+
+                    if self.context.stop_requested() {
+                        self.stop();
+                        return Ok(());
+                    }
+
+                    self.context.change_state(EngineState::Running);
+                }
+            }
         }
 
         self.stream.publish(EpochStart::from(&self.context));
@@ -208,14 +227,10 @@ where
                 .lazy_publish(|| Improvement::from(&self.context));
         }
         self.stream.publish(EpochComplete::from(&self.context));
-
-        // `Generation` is a heavy clone, but this only clones if we have a subscriber
-        // and once it is cloned, the snapshot is backed by an `Arc<Generation<C, T>>` so
-        // we don't pay the clone cost twice.
         self.stream
             .lazy_publish(|| GenerationSnapshot::from(&self.context));
 
-        Ok(EngineState::Running)
+        Ok(())
     }
 }
 
@@ -230,17 +245,10 @@ where
     where
         Self: 'a;
 
-    fn run<F>(mut self, limit: F) -> Result<Self::Epoch>
+    fn run<F>(self, limit: F) -> Result<Self::Epoch>
     where
-        F: Fn(&Self::View<'_>) -> bool,
+        F: Fn(Self::View<'_>) -> bool + 'static,
     {
-        self.start();
-        loop {
-            let view = self.step().map(|_| GenerationView::new(&self.context))?;
-            if limit(&view) {
-                self.stop();
-                break Ok(self.epoch());
-            }
-        }
+        self.iter().until(move |view| limit(view)).last()
     }
 }

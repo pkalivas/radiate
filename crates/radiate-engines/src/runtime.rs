@@ -13,7 +13,7 @@ pub trait RuntimeLimit<E: Engine> {
 pub struct EngineRuntime<E: Engine> {
     engine: E,
     limits: Option<Vec<Box<dyn RuntimeLimit<E>>>>,
-    state: EngineState,
+    // state: EngineState,
 }
 
 impl<E: Engine> EngineRuntime<E> {
@@ -21,19 +21,14 @@ impl<E: Engine> EngineRuntime<E> {
         Self {
             engine,
             limits: None,
-            state: EngineState::PreStart,
+            // state: EngineState::PreStart,
         }
     }
 
     #[inline]
     pub fn run(mut self) -> Result<E::Epoch> {
-        if matches!(self.state, EngineState::PreStart) {
-            self.engine.start();
-            self.state = EngineState::Running;
-        }
-
         loop {
-            if matches!(self.state, EngineState::Stopped) {
+            if matches!(self.engine.state(), EngineState::Stopped) {
                 return Ok(self.engine.epoch());
             }
 
@@ -43,15 +38,18 @@ impl<E: Engine> EngineRuntime<E> {
 
     #[inline]
     fn step(&mut self) -> Result<()> {
-        if matches!(self.state, EngineState::Stopped) {
+        if matches!(self.engine.state(), EngineState::Stopped) {
             return Err(radiate_err!(Engine: "Engine has already completed"));
         }
 
-        let new_state = self.engine.step()?;
+        if matches!(self.engine.state(), EngineState::PreStart) {
+            self.engine.start();
+        }
 
-        if matches!(new_state, EngineState::Stopped) {
+        self.engine.step()?;
+
+        if matches!(self.engine.state(), EngineState::Stopped) {
             self.engine.stop();
-            self.state = EngineState::Stopped;
             return Ok(());
         }
 
@@ -61,13 +59,10 @@ impl<E: Engine> EngineRuntime<E> {
             for limit in limits.iter_mut() {
                 if !limit.proceed(&ctx)? {
                     self.engine.stop();
-                    self.state = EngineState::Stopped;
                     return Ok(());
                 }
             }
         }
-
-        self.state = new_state;
 
         Ok(())
     }
@@ -202,7 +197,7 @@ where
     type Item = E::Epoch;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if matches!(self.state, EngineState::Stopped) {
+        if matches!(self.engine.state(), EngineState::Stopped) {
             return None;
         }
 

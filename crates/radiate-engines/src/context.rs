@@ -1,9 +1,10 @@
-use crate::{Chromosome, ThreadSync};
+use crate::{Chromosome, ThreadSync, events::EngineStateChange};
 use crate::{builder::config::EngineConfig, events::EventStream};
 use radiate_core::error::RadiateResult;
 use radiate_core::rate::ExprSet;
 use radiate_core::{
-    Ecosystem, Front, MetricSet, Objective, Phenotype, Problem, Score, metric, metric_names,
+    Ecosystem, EngineState, Front, MetricSet, Objective, Phenotype, Problem, Score, metric,
+    metric_names,
 };
 use std::sync::{Arc, Mutex, RwLock};
 
@@ -19,6 +20,7 @@ pub struct EvolutionContext<C: Chromosome, T> {
     pub(crate) problem: Arc<dyn Problem<C, T>>,
     pub(crate) exprs: Option<Arc<Mutex<ExprSet>>>,
     pub(crate) events: EventStream,
+    pub(crate) state: EngineState,
 }
 
 impl<C: Chromosome, T> EvolutionContext<C, T> {
@@ -62,8 +64,33 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.sync.wait()
     }
 
-    pub fn get_or_create_control(&mut self) -> ThreadSync {
+    pub fn get_or_create_sync(&mut self) -> ThreadSync {
         self.sync.clone()
+    }
+
+    pub fn state(&self) -> EngineState {
+        self.state
+    }
+
+    pub fn request_stop(&self) {
+        self.sync.stop();
+    }
+
+    pub fn stop_requested(&self) -> bool {
+        self.sync.is_stopped()
+    }
+
+    pub fn pause_requested(&self) -> bool {
+        self.sync.is_paused()
+    }
+
+    pub(crate) fn change_state(&mut self, state: EngineState) {
+        self.events.publish(EngineStateChange {
+            from: self.state,
+            to: state,
+            index: self.index,
+        });
+        self.state = state;
     }
 
     pub(crate) fn try_advance_one(&mut self) -> RadiateResult<bool> {
@@ -108,6 +135,7 @@ where
                 sync: config.sync(),
                 exprs: generation.exprs(),
                 events: config.event_stream(),
+                state: EngineState::PreStart,
             };
         }
 
@@ -128,6 +156,7 @@ where
             sync: config.sync(),
             exprs: config.exprs(),
             events: config.event_stream(),
+            state: EngineState::PreStart,
         }
     }
 }

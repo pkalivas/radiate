@@ -10,6 +10,17 @@ impl Message for EngineState {
     type Response = ();
 }
 
+#[derive(Clone, Debug)]
+pub struct EngineStateChange {
+    pub from: EngineState,
+    pub to: EngineState,
+    pub index: usize,
+}
+
+impl Message for EngineStateChange {
+    type Response = ();
+}
+
 #[derive(Debug)]
 pub enum StreamEvent {
     HandlerRegistered(SmallStr, ActorId),

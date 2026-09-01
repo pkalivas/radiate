@@ -1,8 +1,8 @@
 use crate::{
     Actor, EngineStop, EventHandler,
     events::{
-        CheckpointSaved, EngineStart, Message, MessageHandler, StreamEvent, Warning,
-        addr::ActorContext,
+        CheckpointSaved, EngineStart, EngineStateChange, Message, MessageHandler, StreamEvent,
+        Warning, addr::ActorContext,
     },
 };
 use crate::{LimitTriggered, events::EpochComplete};
@@ -46,6 +46,7 @@ where
         ctx.subscribe::<EngineState>();
         ctx.subscribe::<EngineStop<T>>();
         ctx.subscribe::<EngineStart>();
+        ctx.subscribe::<EngineStateChange>();
         ctx.subscribe::<StreamEvent>();
     }
 }
@@ -156,6 +157,18 @@ where
         ctx.publish(LogEvent(
             LogLevel::Info,
             format!("State Change: {:?}", *event),
+        ));
+    }
+}
+
+impl<T> MessageHandler<EngineStateChange> for EngineLogger<T>
+where
+    T: Send + Sync + 'static,
+{
+    fn handle(&mut self, event: &EngineStateChange, ctx: &ActorContext<Self>) {
+        ctx.publish(LogEvent(
+            LogLevel::Info,
+            format!("State Change: {:?} -> {:?}", event.from, event.to),
         ));
     }
 }

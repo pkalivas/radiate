@@ -11,8 +11,8 @@ pub use cell::ActorCell;
 pub use handlers::CheckpointWriterHandler;
 pub use handlers::{EngineLogger, HealthMonitor, LogEvent, LogLevel, LoggingHandler};
 pub use messages::{
-    CheckpointSaved, EngineStart, EngineStop, EpochComplete, EpochStart, GenerationSnapshot,
-    Improvement, LimitTriggered, StreamEvent, Warning,
+    CheckpointSaved, EngineStart, EngineStateChange, EngineStop, EpochComplete, EpochStart,
+    GenerationSnapshot, Improvement, LimitTriggered, StreamEvent, Warning,
 };
 pub use stream::{Event, EventHandler, EventStream};
 pub use subscription::{Schedule, Subscription, SubscriptionId};

@@ -57,6 +57,8 @@ where
             Ok(())
         });
 
+        control.set_paused(true);
+
         Self {
             inner,
             control,
@@ -87,6 +89,10 @@ where
         self.inner.epoch()
     }
 
+    fn state(&self) -> EngineState {
+        self.inner.state()
+    }
+
     fn start(&mut self) {
         let dispatch = self.dispatcher.clone();
         self.inner.subscribe::<LogEvent>(move |event: &LogEvent| {
@@ -104,12 +110,13 @@ where
     }
 
     #[inline]
-    fn step(&mut self) -> RadiateResult<EngineState> {
-        let state = self.inner.step()?;
+    fn step(&mut self) -> RadiateResult<()> {
+        self.inner.step()?;
+        let state = self.inner.state();
         let current = self.inner.context();
 
         if matches!(state, EngineState::Stopped) {
-            return Ok(state);
+            return Ok(());
         }
 
         if current.index() == 1 {
@@ -123,7 +130,7 @@ where
             .send(InputEvent::EpochComplete(event))
             .unwrap();
 
-        Ok(EngineState::Running)
+        Ok(())
     }
 }
 
@@ -139,17 +146,17 @@ where
 
     fn run<F>(mut self, limit: F) -> RadiateResult<Self::Epoch>
     where
-        F: Fn(&Self::View<'_>) -> bool,
+        F: Fn(Self::View<'_>) -> bool + 'static,
     {
         loop {
-            let epoch = self.step()?;
-            if matches!(epoch, EngineState::Stopped) {
+            self.step()?;
+            if matches!(self.state(), EngineState::Stopped) {
                 break Ok(self.epoch());
             }
 
             let current = self.inner.context();
 
-            if limit(&GenerationView::new(current)) {
+            if limit(GenerationView::new(current)) {
                 break Ok(self.epoch());
             }
         }

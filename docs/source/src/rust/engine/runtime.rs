@@ -38,7 +38,7 @@ fn main() {
     // the same cost as iterating, even though no iterator is involved.
     let engine = build_engine();
     let result = engine
-        .run(|generation: &GenerationView<FloatChromosome<f32>, f32>| generation.index() >= 100);
+        .run(|generation: GenerationView<FloatChromosome<f32>, f32>| generation.index() >= 100);
 
     // `take(100)` attaches a `Limit::Generation(100)` instead; `.last()` here is
     // `EngineRuntime`'s own inherent method (not `Iterator::last()`), so it never calls
