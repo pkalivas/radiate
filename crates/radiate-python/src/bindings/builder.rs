@@ -1,7 +1,3 @@
-use crate::bindings::{
-    codec::{PyGraphCodecInner, PyTreeCodecInner},
-    subscriber,
-};
 use crate::{
     EngineBuilderHandle, FreeThreadPyEvaluator, InputTransform, PyCodec, PyEngine, PyEngineInput,
     PyEngineInputType, PyExpr, PyFitnessFn, PyFitnessInner, PyPermutationCodec, PyPopulation,
@@ -10,6 +6,13 @@ use crate::{
 use crate::{
     PyCheckpointReader,
     bindings::codec::{PyTreeCodec, TypedNumericCodec},
+};
+use crate::{
+    PyCheckpointWriter,
+    bindings::{
+        codec::{PyGraphCodecInner, PyTreeCodecInner},
+        subscriber,
+    },
 };
 use crate::{PyGeneration, PySubscriber};
 use core::panic;
@@ -129,7 +132,8 @@ impl PyEngineBuilder {
             Population => Self::process_population(builder, inputs),
             Subscriber => Self::process_subscribers(builder, inputs),
             Generation => Self::process_generation(builder, inputs),
-            Checkpoint => Self::process_checkpoint(builder, inputs),
+            CheckpointLoad => Self::process_checkpoint_load(builder, inputs),
+            CheckpointWrite => Self::process_checkpoint_write(builder, inputs),
             Metric => Self::process_metrics(builder, inputs),
             Filter => Self::process_filters(builder, inputs),
             TargetSpecies => Self::process_target_species(builder, inputs),
@@ -194,7 +198,7 @@ impl PyEngineBuilder {
         )
     }
 
-    fn process_checkpoint(
+    fn process_checkpoint_load(
         builder: EngineBuilderHandle,
         inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
@@ -214,6 +218,23 @@ impl PyEngineBuilder {
                 }
 
                 Ok(typed_builder.load_checkpoint(path, PyCheckpointReader(file_type)))
+            })
+        )
+    }
+
+    fn process_checkpoint_write(
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        dispatch_builder_typed!(
+            builder,
+            inputs,
+            Self::process_single_typed(|typed_builder, input| {
+                let interval = input.extract::<usize>("interval").unwrap_or(50);
+                let path = input.extract::<String>("path")?;
+                let file_type = input.extract::<String>("file_type")?;
+
+                Ok(typed_builder.checkpoint(interval, path, PyCheckpointWriter(file_type)))
             })
         )
     }

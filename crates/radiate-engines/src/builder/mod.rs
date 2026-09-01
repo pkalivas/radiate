@@ -14,8 +14,6 @@ use crate::builder::species::SpeciesParams;
 use crate::events::*;
 use crate::events::{EngineLogger, EventStream, LoggingHandler};
 use crate::genome::phenotype::Phenotype;
-#[cfg(feature = "serde")]
-use crate::io::FileReader;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
@@ -24,6 +22,8 @@ use crate::{
     TournamentSelector, context::EvolutionContext,
 };
 use crate::{EventHandler, builder::evaluators::EvaluationParams};
+#[cfg(feature = "serde")]
+use crate::{FileWriter, io::FileReader};
 use crate::{Generation, Result};
 use crate::{
     builder::evaluators::ExecutorParams,
@@ -162,14 +162,24 @@ where
     }
 
     #[cfg(feature = "serde")]
-    pub fn checkpoint(self, interval: usize, path: std::path::PathBuf) -> Self
+    pub fn checkpoint<F>(
+        self,
+        interval: usize,
+        path: impl AsRef<std::path::Path>,
+        writer: F,
+    ) -> Self
     where
         C: Serialize + 'static,
         T: Clone + Send + Sync + Serialize + 'static,
+        F: FileWriter<Generation<C, T>> + Send + Sync + 'static,
     {
         self.params
             .event_stream
-            .register(CheckpointActor::<C, T>::new(interval, path));
+            .register(CheckpointActor::<C, T>::new(
+                interval,
+                path.as_ref().to_path_buf(),
+                writer,
+            ));
         self
     }
 }

@@ -1,6 +1,6 @@
 use crate::Generation;
 use crate::{
-    Actor, JsonWriter,
+    Actor,
     events::{ActorContext, GenerationSnapshot, MessageHandler},
 };
 #[cfg(feature = "serde")]
@@ -32,11 +32,14 @@ where
     C: Chromosome + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,
 {
-    pub fn new(interval: usize, path: PathBuf) -> Self {
+    pub fn new<F>(interval: usize, path: PathBuf, writer: F) -> Self
+    where
+        F: FileWriter<Generation<C, T>> + Send + Sync + 'static,
+    {
         Self {
             interval,
             path,
-            writer: Arc::new(Mutex::new(JsonWriter)),
+            writer: Arc::new(Mutex::new(writer)),
         }
     }
 }

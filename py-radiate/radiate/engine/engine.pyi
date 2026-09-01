@@ -798,6 +798,9 @@ class Engine[G, T]:
     def load_checkpoint(
         self, path: str | Path, ignore_not_found: bool = False
     ) -> Self: ...
+    def checkpoint_write(
+        self, path: str | Path, interval: int, file_type: FileType = "pkl"
+    ) -> Self: ...
     def metrics(
         self, named_metrics: dict[str, Expr] | None = None, **kwargs
     ) -> Self: ...

@@ -210,12 +210,9 @@ where
 
         self.stream.publish(EpochComplete::from(&self.context));
 
-        // `Ecosystem` is a heavy clone, but this only clones if we have a subscriber
-        // and once it is cloned, the snapshot is backed by an `Arc<Ecosystem>` so
+        // `Generation` is a heavy clone, but this only clones if we have a subscriber
+        // and once it is cloned, the snapshot is backed by an `Arc<Generation<C, T>>` so
         // we don't pay the clone cost twice.
-        // self.stream
-        //     .lazy_publish(|| EcosystemSnapshot::from(&self.context));
-
         self.stream
             .lazy_publish(|| GenerationSnapshot::from(&self.context));
 

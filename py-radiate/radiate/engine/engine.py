@@ -7,7 +7,14 @@ from typing import TYPE_CHECKING, Any, Sequence
 from radiate.codec.graph import GraphType
 from radiate.radiate import PyEngine
 
-from .._typing import AtLeastOne, Checkpoint, RdDataType, RdLossType, Subscriber
+from .._typing import (
+    AtLeastOne,
+    Checkpoint,
+    FileType,
+    RdDataType,
+    RdLossType,
+    Subscriber,
+)
 from ..codec import (
     BitCodec,
     CharCodec,
@@ -1175,6 +1182,33 @@ class Engine[G, T]:
             )
 
         self._builder.set_checkpoint_path(str(path), ignore_not_found=ignore_not_found)
+        return self
+
+    def checkpoint_write(
+        self, path: str | Path, interval: int, file_type: FileType = "pkl"
+    ) -> Engine[G, T]:
+        """
+        Set the checkpoint write configuration for the engine.
+
+        This method allows you to specify the path and interval for writing checkpoints during the engine's execution.
+
+        Parameters:
+        -----------
+        path : str | None
+            The path to the checkpoint file. If None, checkpoint writing is disabled.
+        interval : int
+            The interval (in generations) at which checkpoints should be written.
+
+        Returns:
+        --------
+        Engine[G, T]
+            The engine instance with the checkpoint write configuration set.
+        """
+        if not isinstance(path, (str, Path)):
+            raise ValueError("Checkpoint path must be a string or Path object.")
+        if isinstance(path, str):
+            path = Path(path)
+        self._builder.set_checkpoint_write(str(path), interval, file_type)
         return self
 
     def metrics(

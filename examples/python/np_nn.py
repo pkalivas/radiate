@@ -82,6 +82,14 @@ engine = (
     # .subscribe(metrics_dashboard)
     .select(rd.Select.boltzmann(temp=4.0))
     .alters(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
+    .load_checkpoint(
+        READ_DIR, ignore_not_found=True
+    )  # Load from a previous checkpoint if it exists
+    .checkpoint_write(
+        path=WRITE_DIR,
+        interval=50,
+        file_type="json",
+    )
     .limit(
         rd.Limit.score(0.01),
         rd.Limit.generations(500),
