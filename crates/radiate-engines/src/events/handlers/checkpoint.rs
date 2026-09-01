@@ -1,36 +1,33 @@
+#![cfg(feature = "serde")]
+
 use crate::Generation;
 use crate::{
     Actor,
     events::{ActorContext, GenerationSnapshot, MessageHandler},
 };
-#[cfg(feature = "serde")]
 use crate::{
     FileWriter,
     events::{CheckpointSaved, Warning},
 };
 use radiate_core::Chromosome;
-#[cfg(feature = "serde")]
 use serde::Serialize;
-#[cfg(feature = "serde")]
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-#[cfg(feature = "serde")]
 pub struct CheckpointWriterHandler<C, T>
 where
-    C: Chromosome + Clone + Serialize + 'static,
-    T: Clone + Send + Sync + Serialize + 'static,
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
 {
     pub(crate) interval: usize,
     pub(crate) path: PathBuf,
     pub(crate) writer: Arc<Mutex<dyn FileWriter<Generation<C, T>> + Send + Sync>>,
 }
 
-#[cfg(feature = "serde")]
 impl<C, T> CheckpointWriterHandler<C, T>
 where
-    C: Chromosome + Clone + Serialize + 'static,
-    T: Clone + Send + Sync + Serialize + 'static,
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
 {
     pub fn new<F>(interval: usize, path: PathBuf, writer: F) -> Self
     where
@@ -44,7 +41,6 @@ where
     }
 }
 
-#[cfg(feature = "serde")]
 impl<C, T> Actor for CheckpointWriterHandler<C, T>
 where
     C: Chromosome + Clone + Serialize + 'static,
@@ -63,7 +59,6 @@ where
     }
 }
 
-#[cfg(feature = "serde")]
 impl<C, T> MessageHandler<GenerationSnapshot<C, T>> for CheckpointWriterHandler<C, T>
 where
     C: Chromosome + Clone + Serialize + 'static,

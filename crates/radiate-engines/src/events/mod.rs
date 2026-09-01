@@ -12,7 +12,7 @@ pub use handlers::CheckpointWriterHandler;
 pub use handlers::{EngineLogger, HealthMonitor, LogEvent, LogLevel, LoggingHandler};
 pub use messages::{
     CheckpointSaved, EngineStart, EngineStop, EpochComplete, EpochStart, GenerationSnapshot,
-    Improvement, LimitTriggered, Warning,
+    Improvement, LimitTriggered, StreamEvent, Warning,
 };
 pub use stream::{Event, EventHandler, EventStream};
 pub use subscription::{Schedule, Subscription, SubscriptionId};

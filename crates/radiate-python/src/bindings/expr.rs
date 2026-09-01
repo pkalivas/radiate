@@ -103,11 +103,7 @@ impl PyExpr {
     }
 
     pub fn alias(&self, name: &str) -> Self {
-        let e = self.inner.clone();
-
-        PyExpr {
-            inner: e.alias(name),
-        }
+        self.inner.clone().alias(name).into()
     }
 
     pub fn genome_size_rate(&self, target_size: usize) -> Self {

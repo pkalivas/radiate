@@ -1,8 +1,23 @@
-use crate::{Generation, Limit, context::EvolutionContext, events::Message};
-use radiate_core::{Chromosome, EngineState, MetricSet, Objective, Score};
+use crate::{
+    Generation, Limit,
+    context::EvolutionContext,
+    events::{Message, SubscriptionId, addr::ActorId},
+};
+use radiate_core::{Chromosome, EngineState, MetricSet, Objective, Score, SmallStr};
 use std::{fmt::Debug, sync::Arc};
 
 impl Message for EngineState {
+    type Response = ();
+}
+
+#[derive(Debug)]
+pub enum StreamEvent {
+    HandlerRegistered(SmallStr, ActorId),
+    SubscriptionAdded(SmallStr, ActorId, SubscriptionId),
+    FnHandler(SubscriptionId),
+}
+
+impl Message for StreamEvent {
     type Response = ();
 }
 

@@ -43,14 +43,14 @@ impl From<usize> for Schedule {
 #[derive(Clone)]
 pub struct Subscription {
     pub(crate) id: SubscriptionId,
-    pub(crate) active: Arc<AtomicBool>,
     pub(crate) schedule: Arc<RwLock<Schedule>>,
     pub(crate) permits: Arc<AtomicUsize>,
+    pub(crate) alive: Arc<AtomicBool>,
 }
 
 impl Subscription {
-    pub fn is_active(&self) -> bool {
-        self.active.load(Ordering::Acquire)
+    pub fn is_alive(&self) -> bool {
+        self.alive.load(Ordering::Acquire)
     }
 
     pub fn id(&self) -> SubscriptionId {
@@ -62,12 +62,12 @@ impl Subscription {
     }
 
     pub fn unsubscribe(&self) {
-        self.active.store(false, Ordering::Release);
+        self.alive.store(false, Ordering::Release);
         self.permits.store(0, Ordering::Release);
     }
 
     pub(super) fn reserve(&self) -> bool {
-        if !self.is_active() {
+        if !self.is_alive() {
             return false;
         }
 

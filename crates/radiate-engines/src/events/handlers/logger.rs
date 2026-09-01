@@ -1,8 +1,8 @@
 use crate::{
     Actor, EngineStop, EventHandler,
     events::{
-        CheckpointSaved, EngineStart, Message, MessageHandler, Warning, addr::ActorContext,
-        stream::StreamEvent,
+        CheckpointSaved, EngineStart, Message, MessageHandler, StreamEvent, Warning,
+        addr::ActorContext,
     },
 };
 use crate::{LimitTriggered, events::EpochComplete};

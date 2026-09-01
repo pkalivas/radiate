@@ -316,7 +316,6 @@ class Engine[G, T]:
         >>> engine.run(ui=True)
         >>> engine.run()
         """
-
         engine = self._builder.build()
         return EngineRuntime(engine).run(log=log, ui=ui)
 
