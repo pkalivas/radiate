@@ -92,12 +92,12 @@ class ImageWriter(rd.EventHandler):
         self.out_dir = out_dir
 
     def on_event(self, event: rd.EngineEvent):
-        if event.index() % self.save_every == 0:
+        if event.index % self.save_every == 0:
             print(event)
             best = np.asarray(event.value(), dtype=np.float32)
             frame = render(best, W, H)
-            frame.save(self.out_dir / f"gen_{event.index():05d}.png")
-            print(f"gen {event.index():5d}  rms={event.score()}")
+            frame.save(self.out_dir / f"gen_{event.index:05d}.png")
+            print(f"gen {event.index:5d}  rms={event.score()}")
 
 
 engine = (

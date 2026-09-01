@@ -41,10 +41,6 @@ impl EventStream {
         Subscriber::new(handler, Arc::clone(&self.executor), self.clone())
     }
 
-    /// Spawn a fresh subscriber and subscribe it to `E` in one call — the common case for a
-    /// simple closure, or for a handler that only ever cares about one event type. No
-    /// turbofish needed when `handler` is a closure (`E` is inferred via the blanket
-    /// `EventHandler` impl).
     pub fn subscribe<E: Event>(&self, handler: impl EventHandler<E>) -> Subscription {
         let subscriber = self.spawn(handler);
         self.subscribe_existing::<E, _>(&subscriber)

@@ -71,11 +71,15 @@ class EngineRuntime[G, T]:
         log_option = LogParam(enable=log)
         ui_option = UiParam() if ui else None
 
-        options = [
-            opt.__backend__() for opt in [log_option, ui_option] if opt is not None
-        ]
-
-        return Generation.from_rust(self._engine.run(options))
+        return Generation.from_rust(
+            self._engine.run(
+                [
+                    opt.__backend__()
+                    for opt in [log_option, ui_option]
+                    if opt is not None
+                ]
+            )
+        )
 
 
 class Engine[G, T]:

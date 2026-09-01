@@ -9,6 +9,20 @@ pub trait Event: Send + Sync + 'static {
 }
 impl<T: Send + Sync + 'static> Event for T {}
 
+pub trait UntypedEventHandler: Send + 'static {
+    fn on_start(&mut self, ctx: &EventContext<'_, Self>)
+    where
+        Self: Sized,
+    {
+    }
+}
+
+pub trait Handler<E: Event>: UntypedEventHandler {
+    fn handle(&mut self, event: &E, ctx: &EventContext<'_, Self>)
+    where
+        Self: Sized;
+}
+
 pub trait EventHandler<E: Event>: Send + 'static {
     fn handle(&mut self, event: &E, ctx: &EventContext<'_, Self>)
     where
@@ -20,7 +34,7 @@ where
     E: Event,
     F: FnMut(&E) + Send + 'static,
 {
-    fn handle(&mut self, event: &E, _ctx: &EventContext<'_, Self>) {
+    fn handle(&mut self, event: &E, _: &EventContext<'_, Self>) {
         self(event)
     }
 }

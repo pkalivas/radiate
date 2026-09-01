@@ -1,4 +1,4 @@
-use radiate::{events::LogEvent, prelude::*};
+use radiate::prelude::*;
 
 const MIN_SCORE: f32 = 0.001;
 
@@ -27,12 +27,6 @@ fn main() {
     engine
         .iter()
         .logging()
-        .every(5, |view| {
-            println!("[ {:?} ]: {:?}", view.index(), view.score().as_f32())
-        })
-        .subscribe::<LogEvent>(|event: &LogEvent| {
-            println!("{:?}", event);
-        })
         .until_score(MIN_SCORE)
         .last()
         .inspect(display)
