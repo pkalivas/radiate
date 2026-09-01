@@ -18,7 +18,7 @@ fn main() {
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4.0))
         // .parallel()
-        .checkpoint(10, std::path::PathBuf::from("checkpoint.json"))
+        .checkpoint(10, std::path::PathBuf::from("checkpoints"))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
@@ -26,19 +26,18 @@ fn main() {
         ))
         .build();
 
-    engine.subscribe::<EngineStop<Graph<Op<f32>>>>(|event: &EngineStop<Graph<Op<f32>>>| {
-        Accuracy::default()
-            .named("Regression Graph")
-            .on(&dataset().into())
-            .loss(Loss::MSE)
-            .eval(&event.best)
-            .inspect(|acc| {
-                println!("{:?}\n{acc:?}\n{}", event.best, event.metrics.dashboard());
-            });
-    });
+    // engine.subscribe::<EngineStop<Graph<Op<f32>>>>(|event: &EngineStop<Graph<Op<f32>>>| {
+    //     Accuracy::default()
+    //         .named("Regression Graph")
+    //         .on(&dataset().into())
+    //         .loss(Loss::MSE)
+    //         .eval(&event.best)
+    //         .inspect(|acc| {
+    //             println!("{:?}\n{acc:?}\n{}", event.best, event.metrics.dashboard());
+    //         });
+    // });
 
-    // radiate::ui(engine)
-    engine
+    radiate::ui(engine)
         .iter()
         .logging()
         .until_score(MIN_SCORE)

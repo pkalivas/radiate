@@ -162,14 +162,14 @@ where
     }
 
     #[cfg(feature = "serde")]
-    pub fn checkpoint(mut self, interval: usize, path: std::path::PathBuf) -> Self
+    pub fn checkpoint(self, interval: usize, path: std::path::PathBuf) -> Self
     where
         C: Serialize + 'static,
         T: Clone + Send + Sync + Serialize + 'static,
     {
         self.params
             .event_stream
-            .register(CheckpointActor::<C, T>::new(interval));
+            .register(CheckpointActor::<C, T>::new(interval, path));
         self
     }
 }

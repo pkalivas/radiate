@@ -45,13 +45,10 @@ pub struct Subscription {
     pub(crate) id: SubscriptionId,
     pub(crate) active: Arc<AtomicBool>,
     pub(crate) schedule: Arc<RwLock<Schedule>>,
+    pub(crate) permits: Arc<AtomicUsize>,
 }
 
 impl Subscription {
-    pub fn unsubscribe(&self) {
-        self.active.store(false, Ordering::Release);
-    }
-
     pub fn is_active(&self) -> bool {
         self.active.load(Ordering::Acquire)
     }
@@ -66,5 +63,45 @@ impl Subscription {
 
     pub(super) fn try_schedule(&self) -> bool {
         self.schedule.read().unwrap().is_scheduled()
+    }
+
+    pub fn unsubscribe(&self) {
+        self.active.store(false, Ordering::Release);
+        self.permits.store(0, Ordering::Release);
+    }
+
+    pub(super) fn reserve(&self) -> bool {
+        if !self.is_active() {
+            return false;
+        }
+
+        if !self.try_schedule() {
+            return false;
+        }
+
+        self.permits.fetch_add(1, Ordering::Release);
+
+        true
+    }
+
+    pub(super) fn take_permit(&self) -> bool {
+        let mut current = self.permits.load(Ordering::Acquire);
+
+        loop {
+            if current == 0 {
+                return false;
+            }
+
+            match self.permits.compare_exchange_weak(
+                current,
+                current - 1,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            ) {
+                Ok(_) => return true,
+
+                Err(next) => current = next,
+            }
+        }
     }
 }

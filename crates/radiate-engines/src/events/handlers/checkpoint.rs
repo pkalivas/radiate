@@ -1,16 +1,19 @@
+use crate::Generation;
 use crate::{
-    Actor, EpochComplete, JsonWriter,
-    events::{GenerationSnapshot, MessageHandler},
+    Actor, JsonWriter,
+    events::{ActorContext, GenerationSnapshot, MessageHandler},
 };
-use crate::{EvolutionContext, Generation, runtime::RuntimeAction};
 #[cfg(feature = "serde")]
-use crate::{FileWriter, events::CheckpointSaved};
-use radiate_core::{Chromosome, Engine, error::RadiateResult};
+use crate::{
+    FileWriter,
+    events::{CheckpointSaved, Warning},
+};
+use radiate_core::Chromosome;
 #[cfg(feature = "serde")]
 use serde::Serialize;
 #[cfg(feature = "serde")]
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex, atomic::AtomicUsize};
+use std::sync::{Arc, Mutex};
 
 #[cfg(feature = "serde")]
 pub struct CheckpointActor<C, T>
@@ -29,15 +32,16 @@ where
     C: Chromosome + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,
 {
-    pub fn new(interval: usize) -> Self {
+    pub fn new(interval: usize, path: PathBuf) -> Self {
         Self {
             interval,
-            path: PathBuf::new(),
+            path,
             writer: Arc::new(Mutex::new(JsonWriter)),
         }
     }
 }
 
+#[cfg(feature = "serde")]
 impl<C, T> Actor for CheckpointActor<C, T>
 where
     C: Chromosome + Clone + Serialize + 'static,
@@ -56,19 +60,32 @@ where
     }
 }
 
+#[cfg(feature = "serde")]
 impl<C, T> MessageHandler<GenerationSnapshot<C, T>> for CheckpointActor<C, T>
 where
     C: Chromosome + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,
 {
-    fn handle(
-        &mut self,
-        message: &GenerationSnapshot<C, T>,
-        ctx: &crate::events::ActorContext<Self>,
-    ) {
-        println!(
-            "Received EpochComplete message: {:?}",
-            message.generation.index()
-        );
+    fn handle(&mut self, message: &GenerationSnapshot<C, T>, ctx: &ActorContext<Self>) {
+        let generation = &message.generation;
+        let mut writer = self.writer.lock().unwrap();
+
+        let file_path = self.path.join(format!(
+            "chckpnt_{}.{}",
+            generation.index(),
+            writer.extension()
+        ));
+
+        match writer.write(file_path.clone(), generation) {
+            Ok(_) => {
+                ctx.publish(CheckpointSaved {
+                    index: generation.index(),
+                    path: file_path.into_string().unwrap_or_default(),
+                });
+            }
+            Err(err) => {
+                ctx.publish(Warning(err.to_string()));
+            }
+        };
     }
 }

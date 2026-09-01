@@ -7,9 +7,9 @@ mod subscription;
 
 pub use addr::{Actor, ActorContext, Addr, Message, MessageHandler};
 pub use cell::ActorCell;
-pub use handlers::{
-    CheckpointActor, EngineLogger, HealthMonitor, LogEvent, LogLevel, LoggingHandler,
-};
+#[cfg(feature = "serde")]
+pub use handlers::CheckpointActor;
+pub use handlers::{EngineLogger, HealthMonitor, LogEvent, LogLevel, LoggingHandler};
 pub use messages::{
     CheckpointSaved, EcosystemSnapshot, EngineStart, EngineStop, EpochComplete, EpochStart,
     GenerationSnapshot, Improvement, LimitTriggered, Warning,

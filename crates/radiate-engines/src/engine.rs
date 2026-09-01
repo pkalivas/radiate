@@ -2,8 +2,7 @@ use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
 use crate::{
     EventHandler,
     events::{
-        EcosystemSnapshot, EngineStart, EngineStop, EpochComplete, EpochStart, EventStream,
-        Improvement, Subscription,
+        EngineStart, EngineStop, EpochComplete, EpochStart, EventStream, Improvement, Subscription,
     },
 };
 use crate::{GenerationView, builder::GeneticEngineBuilder};
@@ -214,13 +213,11 @@ where
         // `Ecosystem` is a heavy clone, but this only clones if we have a subscriber
         // and once it is cloned, the snapshot is backed by an `Arc<Ecosystem>` so
         // we don't pay the clone cost twice.
-        self.stream
-            .lazy_publish(|| EcosystemSnapshot::from(&self.context));
+        // self.stream
+        //     .lazy_publish(|| EcosystemSnapshot::from(&self.context));
 
-        self.stream.lazy_publish(|| {
-            println!("Publishing GenerationSnapshot");
-            GenerationSnapshot::from(&self.context)
-        });
+        self.stream
+            .lazy_publish(|| GenerationSnapshot::from(&self.context));
 
         Ok(EngineState::Running)
     }
