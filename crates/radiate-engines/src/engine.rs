@@ -2,13 +2,13 @@ use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
 use crate::{
     EventHandler,
-    message::{
+    events::{
         EcosystemSnapshot, EngineStart, EngineStop, EpochComplete, EpochStart, EventStream,
         Improvement, Subscription,
     },
 };
 use crate::{GenerationView, builder::GeneticEngineBuilder};
-use crate::{context::EvolutionContext, message::Event};
+use crate::{context::EvolutionContext, events::Event};
 use radiate_core::{Engine, EngineState};
 use radiate_core::{EngineStream, error::Result};
 

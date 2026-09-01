@@ -14,7 +14,7 @@
 //! - **Combined Limits**: Apply multiple limits simultaneously
 
 use crate::{
-    EvolutionContext, Generation, generation::GenerationView, message::LimitTriggered,
+    EvolutionContext, Generation, events::LimitTriggered, generation::GenerationView,
     runtime::RuntimeLimit,
 };
 use radiate_core::{

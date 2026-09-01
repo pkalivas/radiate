@@ -3,7 +3,7 @@ use color_eyre::{Result, eyre::Context};
 use crossbeam::channel;
 use radiate_engines::{
     Chromosome, Engine, EngineState, EngineStream, Generation, GenerationView, GeneticEngine,
-    error::RadiateResult, message::LogEvent, sync::IntoPair,
+    error::RadiateResult, events::LogEvent, sync::IntoPair,
 };
 use radiate_engines::{EngineRuntime, EvolutionContext, ThreadSync};
 use std::{

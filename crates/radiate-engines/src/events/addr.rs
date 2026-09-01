@@ -1,5 +1,5 @@
 use super::cell::ActorCell;
-use crate::message::{Event, EventStream, Subscription, SubscriptionId};
+use crate::events::{Event, EventStream, Subscription, SubscriptionId};
 use crossbeam::channel;
 use radiate_core::{Executor, RadiateError, SmallStr, error::RadiateResult};
 use radiate_utils::sentry_id;

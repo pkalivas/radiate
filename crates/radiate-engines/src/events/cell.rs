@@ -1,8 +1,8 @@
 use crate::{
     Actor,
-    message::{
+    events::{
         Addr,
-        actor::{ActorContext, Envelope},
+        addr::{ActorContext, Envelope},
     },
 };
 use crossbeam::channel::{self, Receiver, Sender};

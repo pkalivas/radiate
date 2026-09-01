@@ -1,5 +1,5 @@
 use crate::{Chromosome, ThreadSync};
-use crate::{builder::config::EngineConfig, message::EventStream};
+use crate::{builder::config::EngineConfig, events::EventStream};
 use radiate_core::error::RadiateResult;
 use radiate_core::rate::ExprSet;
 use radiate_core::{

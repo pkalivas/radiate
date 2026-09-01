@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod actor_tests {
     use radiate_core::Executor;
-    use radiate_engines::message::{
+    use radiate_engines::events::{
         Actor, ActorContext, Addr, EventStream, Message, MessageHandler,
     };
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -466,8 +466,8 @@ mod actor_tests {
 #[cfg(test)]
 mod event_stream_tests {
     use radiate_core::Executor;
-    use radiate_engines::message::EventStream;
-    use radiate_engines::message::Message;
+    use radiate_engines::events::EventStream;
+    use radiate_engines::events::Message;
     use std::sync::Arc;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::time::{Duration, Instant};

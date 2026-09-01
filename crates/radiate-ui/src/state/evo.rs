@@ -3,7 +3,7 @@ use crate::chart::RollingLineChart;
 use crate::widgets::num_pairs;
 use radiate_engines::{
     Chromosome, Ecosystem, Front, MetricSet, Objective, Optimize, Phenotype, Score, Species,
-    message::LogLevel,
+    events::LogLevel,
 };
 use radiate_utils::WindowBuffer;
 use std::sync::{Arc, RwLock};

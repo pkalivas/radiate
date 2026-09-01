@@ -1,6 +1,6 @@
 use crate::{
     Actor, SmallStr,
-    message::actor::{ActorId, Addr, Message, MessageHandler},
+    events::addr::{ActorId, Addr, Message, MessageHandler},
 };
 use radiate_core::Executor;
 use radiate_utils::sentry_id;
@@ -69,6 +69,30 @@ impl Subscription {
     }
 }
 
+// message/stream.rs
+#[derive(Clone)]
+pub enum Schedule {
+    Always,
+    EveryN(usize),
+    Predicate(Arc<dyn Fn(usize) -> bool + Send + Sync>), // room to grow later
+}
+
+impl Schedule {
+    fn is_due(&self, index: usize) -> bool {
+        match self {
+            Schedule::Always => true,
+            Schedule::EveryN(n) => index % (*n).max(1) == 0,
+            Schedule::Predicate(f) => f(index),
+        }
+    }
+}
+
+impl Default for Schedule {
+    fn default() -> Self {
+        Schedule::Always
+    }
+}
+
 type Payload = Arc<dyn Any + Send + Sync>;
 type Forward = Arc<dyn Fn(Payload) + Send + Sync>;
 
@@ -77,6 +101,7 @@ struct Registration {
     id: SubscriptionId,
     forward: Forward,
     active: Arc<AtomicBool>,
+    schedule: Schedule,
 }
 
 type SubscriberList = Arc<Vec<Registration>>;
@@ -252,9 +277,11 @@ impl EventStream {
         };
 
         for registration in group.iter() {
-            if registration.active.load(Ordering::Acquire) {
-                (registration.forward)(Arc::clone(&payload));
+            if !registration.active.load(Ordering::Acquire) {
+                continue;
             }
+
+            (registration.forward)(Arc::clone(&payload));
         }
     }
 
@@ -269,6 +296,7 @@ impl EventStream {
             id,
             forward,
             active: Arc::clone(&active),
+            schedule: Schedule::default(),
         };
 
         let mut subscribers = self.subscribers.write().unwrap();

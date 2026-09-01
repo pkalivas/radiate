@@ -4,7 +4,7 @@ use crate::builder::evaluators::EvaluationParams;
 use crate::genome::phenotype::Phenotype;
 use crate::objectives::Objective;
 use crate::{Front, Problem, ReplacementStrategy, Select};
-use crate::{Generation, message::EventStream};
+use crate::{Generation, events::EventStream};
 use radiate_core::rate::ExprSet;
 use radiate_core::{Alterer, Diversity, Ecosystem, Evaluator, Executor, Genotype};
 use radiate_core::{EcosystemFilter, ThreadSync};

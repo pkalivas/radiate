@@ -3,7 +3,7 @@ use numpy::PyArray1;
 use pyo3::{IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     Chromosome, EpochComplete, GeneticEngineBuilder, LimitTriggered, Objective,
-    message::{CheckpointSaved, EngineStop, EpochStart, EventHandler, Improvement, LogEvent},
+    events::{CheckpointSaved, EngineStop, EpochStart, EventHandler, Improvement, LogEvent},
 };
 use std::fmt::Debug;
 

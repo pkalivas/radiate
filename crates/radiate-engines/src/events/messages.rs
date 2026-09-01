@@ -1,4 +1,4 @@
-use crate::{Limit, context::EvolutionContext, message::Message};
+use crate::{Limit, context::EvolutionContext, events::Message};
 use radiate_core::{Chromosome, Ecosystem, EngineState, MetricSet, Objective, Score};
 use std::{fmt::Debug, sync::Arc};
 

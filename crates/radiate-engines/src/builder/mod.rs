@@ -11,10 +11,12 @@ mod species;
 use crate::builder::problem::ProblemParams;
 use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
+use crate::events::*;
+use crate::events::{EngineLogger, EventStream, LoggingHandler};
 use crate::genome::phenotype::Phenotype;
 #[cfg(feature = "serde")]
 use crate::io::FileReader;
-use crate::message::{EngineLogger, EventStream, LoggingHandler};
+use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
@@ -29,13 +31,9 @@ use crate::{
         EngineStep, FilterStep, FrontStep, MetricStep, RecombineStep, SelectConfig, SpeciateStep,
     },
 };
-use crate::{builder::filters::FilterParams, message::Event};
-use crate::{builder::objectives::OptimizeParams, message::Message};
-use crate::{builder::population::PopulationParams, message::EngineStart};
-use crate::{
-    message::HealthMonitor,
-    objectives::{Objective, Optimize},
-};
+use crate::{builder::filters::FilterParams, events::Event};
+use crate::{builder::objectives::OptimizeParams, events::Message};
+use crate::{builder::population::PopulationParams, events::EngineStart};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::{Alterer, Ecosystem, Expr, FitnessEvaluator, Valid, metric_names};

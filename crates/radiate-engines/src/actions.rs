@@ -1,6 +1,6 @@
 use crate::{EvolutionContext, Generation, runtime::RuntimeAction};
 #[cfg(feature = "serde")]
-use crate::{FileWriter, message::CheckpointSaved};
+use crate::{FileWriter, events::CheckpointSaved};
 use radiate_core::{Chromosome, Engine, error::RadiateResult};
 #[cfg(feature = "serde")]
 use serde::Serialize;
