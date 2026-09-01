@@ -1,15 +1,10 @@
 use crate::{
-    Actor, EventHandler,
-    events::{
-        CheckpointSaved, EngineStateChange, Message, MessageHandler, StreamEvent, Warning,
-        addr::ActorContext,
-    },
+    EventHandler,
+    events::{CheckpointSaved, EngineStateChange, EventContext, Subscriber, Subscribes, Warning},
 };
 use crate::{LimitTriggered, events::EpochComplete};
 use radiate_core::Objective;
 use std::marker::PhantomData;
-
-const NAME: &str = "EngineLogger";
 
 pub struct EngineLogger<T> {
     _marker: PhantomData<T>,
@@ -29,59 +24,24 @@ impl<T> EngineLogger<T> {
     }
 }
 
-impl<T> Actor for EngineLogger<T>
+impl<T> Subscribes for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
-    fn name(&self) -> &str {
-        NAME
-    }
-
-    fn started(&mut self, ctx: &ActorContext<Self>)
-    where
-        Self: Sized,
-    {
-        ctx.subscribe::<LimitTriggered>();
-        ctx.subscribe::<Warning>();
-        ctx.subscribe::<CheckpointSaved>();
-        ctx.subscribe::<EpochComplete<T>>();
-        ctx.subscribe::<EngineStateChange>();
-        ctx.subscribe::<StreamEvent>();
+    fn subscribe(subscriber: &Subscriber<Self>) {
+        subscriber.subscribe::<LimitTriggered>();
+        subscriber.subscribe::<Warning>();
+        subscriber.subscribe::<CheckpointSaved>();
+        subscriber.subscribe::<EpochComplete<T>>();
+        subscriber.subscribe::<EngineStateChange>();
     }
 }
 
-impl<T> MessageHandler<StreamEvent> for EngineLogger<T>
+impl<T> EventHandler<LimitTriggered> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
-    fn handle(&mut self, message: &StreamEvent, ctx: &ActorContext<Self>) {
-        match message {
-            StreamEvent::HandlerRegistered(name, id) => {
-                let actor_id = format!("{}-{:?}", name, id.get());
-                ctx.publish(LogEvent(LogLevel::Info, format!("{} Registered", actor_id)));
-            }
-            StreamEvent::SubscriptionAdded(name, actor_id, subscription_id) => {
-                let actor_id = format!("{}-{:?}", name, actor_id.get());
-                ctx.publish(LogEvent(
-                    LogLevel::Info,
-                    format!("{} New Subscription added: {:?}", actor_id, subscription_id),
-                ));
-            }
-            StreamEvent::FnHandler(subscription_id) => {
-                ctx.publish(LogEvent(
-                    LogLevel::Info,
-                    format!("Function handler added: {:?}", subscription_id),
-                ));
-            }
-        }
-    }
-}
-
-impl<T> MessageHandler<LimitTriggered> for EngineLogger<T>
-where
-    T: Send + Sync + 'static,
-{
-    fn handle(&mut self, message: &LimitTriggered, ctx: &ActorContext<Self>) {
+    fn handle(&mut self, message: &LimitTriggered, ctx: &EventContext<'_, Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
             format!("Limit triggered: {:?}", message.1),
@@ -89,20 +49,20 @@ where
     }
 }
 
-impl<T> MessageHandler<Warning> for EngineLogger<T>
+impl<T> EventHandler<Warning> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
-    fn handle(&mut self, message: &Warning, ctx: &ActorContext<Self>) {
+    fn handle(&mut self, message: &Warning, ctx: &EventContext<'_, Self>) {
         ctx.publish(LogEvent(LogLevel::Warn, message.0.clone()));
     }
 }
 
-impl<T> MessageHandler<CheckpointSaved> for EngineLogger<T>
+impl<T> EventHandler<CheckpointSaved> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
-    fn handle(&mut self, message: &CheckpointSaved, ctx: &ActorContext<Self>) {
+    fn handle(&mut self, message: &CheckpointSaved, ctx: &EventContext<'_, Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
             format!(
@@ -113,11 +73,11 @@ where
     }
 }
 
-impl<T> MessageHandler<EpochComplete<T>> for EngineLogger<T>
+impl<T> EventHandler<EpochComplete<T>> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
-    fn handle(&mut self, event: &EpochComplete<T>, ctx: &ActorContext<Self>) {
+    fn handle(&mut self, event: &EpochComplete<T>, ctx: &EventContext<'_, Self>) {
         let time = event
             .metrics
             .time()
@@ -148,11 +108,11 @@ where
     }
 }
 
-impl<T> MessageHandler<EngineStateChange> for EngineLogger<T>
+impl<T> EventHandler<EngineStateChange> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
-    fn handle(&mut self, event: &EngineStateChange, ctx: &ActorContext<Self>) {
+    fn handle(&mut self, event: &EngineStateChange, ctx: &EventContext<'_, Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
             format!("State Change: {:?} -> {:?}", event.from, event.to),
@@ -169,15 +129,11 @@ pub enum LogLevel {
 #[derive(Clone, Debug)]
 pub struct LogEvent(pub LogLevel, pub String);
 
-impl Message for LogEvent {
-    type Response = ();
-}
-
 #[derive(Clone, Default)]
 pub struct LoggingHandler;
 
 impl EventHandler<LogEvent> for LoggingHandler {
-    fn handle(&mut self, message: &LogEvent) {
+    fn handle(&mut self, message: &LogEvent, _: &EventContext<'_, Self>) {
         match message.0 {
             LogLevel::Info => tracing::info!("{}", message.1),
             LogLevel::Warn => tracing::warn!("{}", message.1),

@@ -1,14 +1,6 @@
-use crate::{
-    Generation, Limit,
-    context::EvolutionContext,
-    events::{Message, SubscriptionId, addr::ActorId},
-};
-use radiate_core::{Chromosome, EngineState, MetricSet, Objective, Score, SmallStr};
+use crate::{Generation, Limit, context::EvolutionContext};
+use radiate_core::{Chromosome, EngineState, MetricSet, Objective, Score};
 use std::{fmt::Debug, sync::Arc};
-
-impl Message for EngineState {
-    type Response = ();
-}
 
 #[derive(Clone, Debug)]
 pub struct EngineStateChange {
@@ -17,51 +9,20 @@ pub struct EngineStateChange {
     pub index: usize,
 }
 
-impl Message for EngineStateChange {
-    type Response = ();
-}
-
-#[derive(Debug)]
-pub enum StreamEvent {
-    HandlerRegistered(SmallStr, ActorId),
-    SubscriptionAdded(SmallStr, ActorId, SubscriptionId),
-    FnHandler(SubscriptionId),
-}
-
-impl Message for StreamEvent {
-    type Response = ();
-}
-
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CheckpointSaved {
     pub index: usize,
     pub path: String,
 }
 
-impl Message for CheckpointSaved {
-    type Response = ();
-}
-
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Warning(pub String);
-
-impl Message for Warning {
-    type Response = ();
-}
 
 #[derive(Clone, Debug)]
 pub struct LimitTriggered(pub usize, pub Limit);
 
-impl Message for LimitTriggered {
-    type Response = ();
-}
-
 #[derive(Clone, Debug)]
 pub struct EpochStart(pub usize);
-
-impl Message for EpochStart {
-    type Response = ();
-}
 
 impl<C, T> From<&EvolutionContext<C, T>> for EpochStart
 where
@@ -78,13 +39,6 @@ pub struct Improvement<T> {
     pub index: usize,
     pub best: T,
     pub score: Score,
-}
-
-impl<T> Message for Improvement<T>
-where
-    T: Send + Sync + 'static,
-{
-    type Response = ();
 }
 
 impl<T> Debug for Improvement<T> {
@@ -116,13 +70,6 @@ pub struct EpochComplete<T> {
     pub objective: Objective,
 }
 
-impl<T> Message for EpochComplete<T>
-where
-    T: Send + Sync + 'static,
-{
-    type Response = ();
-}
-
 impl<C, T> From<&EvolutionContext<C, T>> for EpochComplete<T>
 where
     C: Chromosome,
@@ -152,23 +99,12 @@ impl<T> Debug for EpochComplete<T> {
 #[derive(Clone, Debug)]
 pub struct EngineStart;
 
-impl Message for EngineStart {
-    type Response = ();
-}
-
 #[derive(Clone)]
 pub struct EngineStop<T> {
     pub index: usize,
     pub best: T,
     pub metrics: MetricSet,
     pub score: Score,
-}
-
-impl<T> Message for EngineStop<T>
-where
-    T: Send + Sync + 'static,
-{
-    type Response = ();
 }
 
 impl<C, T> From<&EvolutionContext<C, T>> for EngineStop<T>
@@ -203,14 +139,6 @@ where
     T: Clone + Send + Sync + 'static,
 {
     pub generation: Arc<Generation<C, T>>,
-}
-
-impl<C, T> Message for GenerationSnapshot<C, T>
-where
-    C: Chromosome + 'static,
-    T: Clone + Send + Sync + 'static,
-{
-    type Response = ();
 }
 
 impl<C, T> From<&EvolutionContext<C, T>> for GenerationSnapshot<C, T>

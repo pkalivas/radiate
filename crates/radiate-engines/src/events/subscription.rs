@@ -60,6 +60,15 @@ pub struct Subscription {
 }
 
 impl Subscription {
+    pub(super) fn new() -> Self {
+        Subscription {
+            id: SubscriptionId::new(),
+            schedule: Arc::new(RwLock::new(Schedule::default())),
+            permits: Arc::new(AtomicUsize::new(0)),
+            alive: Arc::new(AtomicBool::new(true)),
+        }
+    }
+
     pub fn is_alive(&self) -> bool {
         self.alive.load(Ordering::Acquire)
     }
@@ -68,7 +77,7 @@ impl Subscription {
         self.id
     }
 
-    pub fn schedule(&mut self, schedule: impl Into<Schedule>) {
+    pub fn schedule(&self, schedule: impl Into<Schedule>) {
         *self.schedule.write().unwrap() = schedule.into();
     }
 

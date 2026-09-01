@@ -68,7 +68,7 @@ where
 
     pub fn iter(self) -> EngineRuntime<Self> {
         let dispatcher = self.dispatcher.clone();
-        EngineRuntime::new(self).on::<LogEvent>(move |event: &LogEvent| {
+        EngineRuntime::new(self).subscribe::<LogEvent>(move |event: &LogEvent| {
             dispatcher
                 .send(InputEvent::Log(event.0, event.1.clone()))
                 .map_err(|_| eprintln!("Failed to send log event: {:?}", event))

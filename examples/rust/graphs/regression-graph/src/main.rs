@@ -30,7 +30,7 @@ fn main() {
         .every(5, |view| {
             println!("[ {:?} ]: {:?}", view.index(), view.score().as_f32())
         })
-        .on::<LogEvent>(|event: &LogEvent| {
+        .subscribe::<LogEvent>(|event: &LogEvent| {
             println!("{:?}", event);
         })
         .until_score(MIN_SCORE)

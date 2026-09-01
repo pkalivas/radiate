@@ -8,10 +8,13 @@ mod problem;
 mod selectors;
 mod species;
 
+use crate::builder::filters::FilterParams;
+use crate::builder::objectives::OptimizeParams;
+use crate::builder::population::PopulationParams;
 use crate::builder::problem::ProblemParams;
 use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
-use crate::events::EventStream;
+use crate::events::{Event, EventStream};
 use crate::genome::phenotype::Phenotype;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
@@ -30,9 +33,6 @@ use crate::{
         EngineStep, FilterStep, FrontStep, MetricStep, RecombineStep, SelectConfig, SpeciateStep,
     },
 };
-use crate::{builder::filters::FilterParams, events::Event};
-use crate::{builder::objectives::OptimizeParams, events::Message};
-use crate::{builder::population::PopulationParams, events::EngineStart};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::{Alterer, Ecosystem, Expr, FitnessEvaluator, Valid, metric_names};
@@ -131,10 +131,7 @@ where
     }
 
     /// Subscribe to an event of type `E` with the given event handler.
-    pub fn subscribe<E: Event + Message<Response = ()>>(
-        self,
-        handler: impl EventHandler<E>,
-    ) -> Self {
+    pub fn subscribe<E: Event>(self, handler: impl EventHandler<E>) -> Self {
         self.params.event_stream.subscribe(handler);
         self
     }
@@ -183,20 +180,19 @@ where
         T: Clone + Send + Sync + Serialize + 'static,
         F: FileWriter<Generation<C, T>> + Send + Sync + 'static,
     {
-        use crate::events::CheckpointWriterHandler;
+        use crate::events::{CheckpointWriterHandler, GenerationSnapshot};
+
         let path_without_extension = path
             .as_ref()
             .to_str()
             .and_then(|s| s.rsplit('.').nth(1))
             .unwrap_or(path.as_ref().to_str().unwrap_or("checkpoints"));
 
-        self.params
-            .event_stream
-            .register(CheckpointWriterHandler::<C, T>::new(
-                interval,
-                path_without_extension.into(),
-                writer,
-            ));
+        let handler = CheckpointWriterHandler::<C, T>::new(path_without_extension.into(), writer);
+        let subscriber = self.params.event_stream.spawn(handler);
+        subscriber
+            .subscribe::<GenerationSnapshot<C, T>>()
+            .schedule(interval);
         self
     }
 }
@@ -585,7 +581,7 @@ where
 
                 replacement_strategy: Arc::new(EncodeReplace),
                 alterers: Vec::new(),
-                event_stream: EventStream::default().defer_until::<EngineStart>(),
+                event_stream: EventStream::default(),
                 exprs: None,
                 generation: None,
             },

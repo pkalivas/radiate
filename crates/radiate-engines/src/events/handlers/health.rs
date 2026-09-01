@@ -1,12 +1,11 @@
 use crate::events::EpochComplete;
 use crate::{
-    Actor,
-    events::{MessageHandler, Warning, addr::ActorContext},
+    EventHandler,
+    events::{EventContext, Subscriber, Subscribes, Warning},
 };
 use radiate_core::MetricSet;
 use std::marker::PhantomData;
 
-const NAME: &str = "HealthMonitor";
 const STAGNATION_WARNING_THRESHOLD: usize = 100;
 const DIVERSITY_WARNING_THRESHOLD: f32 = 0.1;
 const LARGEST_SPECIES_SHARE_WARNING_THRESHOLD: f32 = 0.9;
@@ -23,34 +22,27 @@ impl<T> Default for HealthMonitor<T> {
     }
 }
 
-impl<T> Actor for HealthMonitor<T>
+impl<T> Subscribes for HealthMonitor<T>
 where
     T: Send + Sync + 'static,
 {
-    fn name(&self) -> &str {
-        NAME
-    }
-
-    fn started(&mut self, ctx: &ActorContext<Self>)
-    where
-        Self: Sized,
-    {
-        ctx.subscribe::<EpochComplete<T>>();
+    fn subscribe(subscriber: &Subscriber<Self>) {
+        subscriber.subscribe::<EpochComplete<T>>();
     }
 }
 
-impl<T> MessageHandler<EpochComplete<T>> for HealthMonitor<T>
+impl<T> EventHandler<EpochComplete<T>> for HealthMonitor<T>
 where
     T: Send + Sync + 'static,
 {
-    fn handle(&mut self, message: &EpochComplete<T>, ctx: &ActorContext<Self>) {
+    fn handle(&mut self, message: &EpochComplete<T>, ctx: &EventContext<'_, Self>) {
         check_stagnation(&message.metrics, ctx);
         check_diversity(&message.metrics, ctx);
         check_species_collapse(&message.metrics, ctx);
     }
 }
 
-fn check_stagnation<A: Actor>(metrics: &MetricSet, ctx: &ActorContext<A>) {
+fn check_stagnation<H>(metrics: &MetricSet, ctx: &EventContext<'_, H>) {
     let stag_count = metrics
         .stagnation_count()
         .map(|met| met.last_value() as usize)
@@ -64,7 +56,7 @@ fn check_stagnation<A: Actor>(metrics: &MetricSet, ctx: &ActorContext<A>) {
     }
 }
 
-fn check_diversity<A: Actor>(metrics: &MetricSet, ctx: &ActorContext<A>) {
+fn check_diversity<H>(metrics: &MetricSet, ctx: &EventContext<'_, H>) {
     let Some(ratio) = metrics.diversity_ratio() else {
         return;
     };
@@ -78,7 +70,7 @@ fn check_diversity<A: Actor>(metrics: &MetricSet, ctx: &ActorContext<A>) {
     }
 }
 
-fn check_species_collapse<A: Actor>(metrics: &MetricSet, ctx: &ActorContext<A>) {
+fn check_species_collapse<H>(metrics: &MetricSet, ctx: &EventContext<'_, H>) {
     let Some(share) = metrics.largest_species_share() else {
         return;
     };

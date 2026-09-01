@@ -1,474 +1,300 @@
 #[cfg(test)]
-mod actor_tests {
+mod event_stream_tests {
     use radiate_core::Executor;
     use radiate_engines::events::{
-        Actor, ActorContext, Addr, EventStream, Message, MessageHandler,
+        EventContext, EventHandler, EventStream, Subscriber, Subscribes,
     };
-    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
     fn serial() -> Arc<Executor> {
         Arc::new(Executor::Serial)
     }
 
-    // --- basic send/ask ---
+    struct Add(usize);
 
     struct Counter {
-        total: usize,
-    }
-    impl Actor for Counter {}
-
-    struct Add(usize);
-    impl Message for Add {
-        type Response = ();
-    }
-
-    struct GetTotal;
-    impl Message for GetTotal {
-        type Response = usize;
-    }
-
-    impl MessageHandler<Add> for Counter {
-        fn handle(&mut self, msg: &Add, _ctx: &ActorContext<Self>) {
-            self.total += msg.0;
-        }
-    }
-
-    impl MessageHandler<GetTotal> for Counter {
-        fn handle(&mut self, _: &GetTotal, _ctx: &ActorContext<Self>) -> usize {
-            self.total
-        }
-    }
-
-    #[test]
-    fn send_updates_actor_state_in_order() {
-        let addr = Addr::from((Counter { total: 0 }, serial()));
-        addr.send(Add(3));
-        addr.send(Add(4));
-        assert_eq!(addr.ask(GetTotal).unwrap(), 7);
-    }
-
-    #[test]
-    fn cloned_addr_shares_the_same_actor() {
-        let addr = Addr::from((Counter { total: 0 }, serial()));
-        let other = addr.clone();
-        addr.send(Add(1));
-        other.send(Add(2));
-        assert_eq!(addr.ask(GetTotal).unwrap(), 3);
-    }
-
-    #[test]
-    fn ask_blocks_until_response_on_worker_pool() {
-        let addr = Addr::from((
-            Counter { total: 0 },
-            Arc::new(Executor::FixedSizedWorkerPool(2)),
-        ));
-        addr.send(Add(2));
-        addr.send(Add(3));
-        assert_eq!(addr.ask(GetTotal).unwrap(), 5);
-    }
-
-    // --- started() hook ---
-
-    struct StartFlag {
-        started: Arc<AtomicBool>,
-    }
-    impl Actor for StartFlag {
-        fn started(&mut self, _ctx: &ActorContext<Self>) {
-            self.started.store(true, Ordering::SeqCst);
-        }
-    }
-
-    #[test]
-    fn started_hook_runs_synchronously_during_spawn() {
-        let flag = Arc::new(AtomicBool::new(false));
-        let _addr = Addr::from((
-            StartFlag {
-                started: Arc::clone(&flag),
-            },
-            serial(),
-        ));
-        // No message has been sent — if this is true, `started` ran as
-        // part of `spawn` itself, not via the mailbox.
-        assert!(flag.load(Ordering::SeqCst));
-    }
-
-    // --- self-sends re-enter the same drain, not a new dispatch ---
-
-    struct SelfCounter {
-        remaining: u32,
         total: Arc<AtomicUsize>,
     }
-    impl Actor for SelfCounter {
-        fn name(&self) -> &str {
-            "SelfCounter"
+
+    impl EventHandler<Add> for Counter {
+        fn handle(&mut self, event: &Add, _ctx: &EventContext<'_, Self>) {
+            self.total.fetch_add(event.0, Ordering::SeqCst);
         }
     }
 
-    struct Tick;
-    impl Message for Tick {
-        type Response = ();
-    }
-
-    impl MessageHandler<Tick> for SelfCounter {
-        fn handle(&mut self, _: &Tick, ctx: &ActorContext<Self>) {
-            self.total.fetch_add(1, Ordering::SeqCst);
-            if self.remaining > 0 {
-                self.remaining -= 1;
-                ctx.send(Tick);
-            }
-        }
-    }
+    // --- basic subscribe/publish ---
 
     #[test]
-    fn actor_can_send_a_message_to_itself() {
+    fn subscribe_and_publish_round_trips_through_a_stateful_handler() {
+        let stream = EventStream::new(serial());
         let total = Arc::new(AtomicUsize::new(0));
-        let addr = Addr::from((
-            SelfCounter {
-                remaining: 4,
-                total: Arc::clone(&total),
-            },
-            serial(),
-        ));
 
-        addr.send(Tick);
-
-        // 1 initial + 4 self-sends, all drained within the same
-        // process_batch call rather than requiring separate dispatches.
-        assert_eq!(total.load(Ordering::SeqCst), 5);
-    }
-
-    // --- actor <-> bus: publish from inside a handler ---
-
-    #[derive(Debug, Clone, PartialEq)]
-    struct Ping(u32);
-    impl Message for Ping {
-        type Response = ();
-    }
-
-    struct Emitter;
-    impl Actor for Emitter {
-        fn name(&self) -> &str {
-            "Emitter"
-        }
-    }
-    impl MessageHandler<Ping> for Emitter {
-        fn handle(&mut self, msg: &Ping, ctx: &ActorContext<Self>) {
-            ctx.publish(Ping(msg.0 * 10));
-        }
-    }
-
-    #[test]
-    fn actor_can_publish_to_the_bus_from_a_handler() {
-        let executor = serial();
-        let bus = EventStream::new(Arc::clone(&executor));
-        let addr = Addr::from((Emitter, Arc::clone(&executor), bus.clone()));
-
-        let received = Arc::new(Mutex::new(Vec::new()));
-        let received_clone = Arc::clone(&received);
-        bus.subscribe::<Ping>(move |event: &Ping| {
-            println!("Received event: {:?}", event);
-            received_clone.lock().unwrap().push((event).clone());
+        stream.subscribe(Counter {
+            total: Arc::clone(&total),
         });
 
-        addr.send(Ping(3));
+        stream.publish(Add(3));
+        stream.publish(Add(4));
 
-        assert_eq!(*received.lock().unwrap(), vec![Ping(30)]);
+        assert_eq!(total.load(Ordering::SeqCst), 7);
     }
 
     #[test]
-    fn publish_without_a_bus_is_a_silent_noop() {
-        let addr = Addr::from((Emitter, serial()));
-        // Emitter's handler calls ctx.publish — must not panic even
-        // though this Addr has no bus attached.
-        addr.send(Ping(1));
+    fn a_plain_closure_is_a_handler_via_the_blanket_impl() {
+        let stream = EventStream::new(serial());
+        let total = Arc::new(AtomicUsize::new(0));
+        let total_clone = Arc::clone(&total);
+
+        stream.subscribe(move |event: &Add| {
+            total_clone.fetch_add(event.0, Ordering::SeqCst);
+        });
+
+        stream.publish(Add(5));
+        stream.publish(Add(6));
+
+        assert_eq!(total.load(Ordering::SeqCst), 11);
     }
 
-    // --- actor <-> bus: subscribing directly ---
+    #[test]
+    fn publish_fans_out_to_every_subscriber() {
+        let stream = EventStream::new(serial());
+        let a_total = Arc::new(AtomicUsize::new(0));
+        let b_total = Arc::new(AtomicUsize::new(0));
 
-    struct Listener {
-        received: Arc<Mutex<Vec<Ping>>>,
+        stream.subscribe({
+            let total = Arc::clone(&a_total);
+            move |event: &Add| {
+                total.fetch_add(event.0, Ordering::SeqCst);
+            }
+        });
+        stream.subscribe({
+            let total = Arc::clone(&b_total);
+            move |event: &Add| {
+                total.fetch_add(event.0, Ordering::SeqCst);
+            }
+        });
+
+        stream.publish(Add(3));
+        stream.publish(Add(4));
+
+        assert_eq!(a_total.load(Ordering::SeqCst), 7);
+        assert_eq!(b_total.load(Ordering::SeqCst), 7);
     }
-    impl Actor for Listener {
-        fn name(&self) -> &str {
-            "Listener"
+
+    #[test]
+    fn publish_with_no_subscribers_is_a_noop() {
+        let stream = EventStream::new(serial());
+        stream.publish(Add(1)); // must not panic
+    }
+
+    // --- reacting by publishing back onto the stream ---
+
+    #[derive(Clone, Debug)]
+    struct Doubled(usize);
+
+    struct Doubler;
+    impl EventHandler<Add> for Doubler {
+        fn handle(&mut self, event: &Add, ctx: &EventContext<'_, Self>) {
+            ctx.publish(Doubled(event.0 * 2));
         }
     }
-    impl MessageHandler<Ping> for Listener {
-        fn handle(&mut self, msg: &Ping, _ctx: &ActorContext<Self>) {
-            self.received.lock().unwrap().push(msg.clone());
-        }
-    }
 
     #[test]
-    fn actor_subscribes_directly_to_bus_events() {
-        let executor = serial();
-        let bus = EventStream::new(Arc::clone(&executor));
-        let received = Arc::new(Mutex::new(Vec::new()));
-        let listener = Addr::from((
-            Listener {
-                received: Arc::clone(&received),
-            },
-            Arc::clone(&executor),
-            bus.clone(),
-        ));
+    fn a_handler_can_react_by_publishing_a_new_event_type() {
+        let stream = EventStream::new(serial());
+        let doubled_total = Arc::new(AtomicUsize::new(0));
 
-        listener.subscribe::<Ping>();
-        bus.publish(Ping(7));
+        stream.subscribe(Doubler);
+        stream.subscribe({
+            let total = Arc::clone(&doubled_total);
+            move |event: &Doubled| {
+                total.fetch_add(event.0, Ordering::SeqCst);
+            }
+        });
 
-        assert_eq!(*received.lock().unwrap(), vec![Ping(7)]);
+        stream.publish(Add(3));
+        stream.publish(Add(4));
+
+        assert_eq!(doubled_total.load(Ordering::SeqCst), 14);
     }
 
-    #[test]
-    fn subscribe_without_a_bus_returns_none() {
-        let addr = Addr::from((
-            Listener {
-                received: Arc::new(Mutex::new(Vec::new())),
-            },
-            serial(),
-        ));
-        assert!(addr.subscribe::<Ping>().is_none());
-    }
+    // --- subscribing to more than one event type ---
 
-    #[test]
-    fn subscribe_unsubscribes_correctly() {
-        let executor = serial();
-        let bus = EventStream::new(Arc::clone(&executor));
-        let received = Arc::new(Mutex::new(Vec::new()));
-        let listener = Addr::from((
-            Listener {
-                received: Arc::clone(&received),
-            },
-            Arc::clone(&executor),
-            bus.clone(),
-        ));
-
-        let subscription = listener.subscribe::<Ping>().unwrap();
-        bus.publish(Ping(1));
-        assert_eq!(*received.lock().unwrap(), vec![Ping(1)]);
-
-        listener.unsubscribe::<Ping>(subscription.id());
-
-        bus.publish(Ping(2));
-        assert_eq!(*received.lock().unwrap(), vec![Ping(1)]);
-    }
-
-    // --- one actor, multiple event types: the case that would've hit
-    // E0119 under the old `impl<A, M> Trait for Addr<A>` design ---
-
-    #[derive(Debug, Clone, PartialEq)]
+    #[allow(dead_code)]
+    struct Ping(u32);
+    #[allow(dead_code)]
     struct Pong(u32);
 
-    impl Message for Pong {
-        type Response = ();
-    }
-
-    struct MultiListener {
+    struct Both {
         pings: Arc<AtomicUsize>,
         pongs: Arc<AtomicUsize>,
     }
-    impl Actor for MultiListener {}
-    impl MessageHandler<Ping> for MultiListener {
-        fn handle(&mut self, _: &Ping, _ctx: &ActorContext<Self>) {
+
+    impl Subscribes for Both {
+        fn subscribe(subscriber: &Subscriber<Self>) {
+            subscriber.subscribe::<Ping>();
+            subscriber.subscribe::<Pong>();
+        }
+    }
+
+    impl EventHandler<Ping> for Both {
+        fn handle(&mut self, _: &Ping, _ctx: &EventContext<'_, Self>) {
             self.pings.fetch_add(1, Ordering::SeqCst);
         }
     }
-    impl MessageHandler<Pong> for MultiListener {
-        fn handle(&mut self, _: &Pong, _ctx: &ActorContext<Self>) {
+
+    impl EventHandler<Pong> for Both {
+        fn handle(&mut self, _: &Pong, _ctx: &EventContext<'_, Self>) {
             self.pongs.fetch_add(1, Ordering::SeqCst);
         }
     }
 
     #[test]
-    fn actor_subscribes_to_multiple_event_types() {
-        let executor = serial();
-        let bus = EventStream::new(Arc::clone(&executor));
+    fn subscribes_trait_wires_up_more_than_one_event_type() {
+        let stream = EventStream::new(serial());
         let pings = Arc::new(AtomicUsize::new(0));
         let pongs = Arc::new(AtomicUsize::new(0));
-        let addr = Addr::from((
-            MultiListener {
-                pings: Arc::clone(&pings),
-                pongs: Arc::clone(&pongs),
-            },
-            Arc::clone(&executor),
-            bus.clone(),
-        ));
 
-        addr.subscribe::<Ping>();
-        addr.subscribe::<Pong>();
+        stream.spawn_and_subscribe(Both {
+            pings: Arc::clone(&pings),
+            pongs: Arc::clone(&pongs),
+        });
 
-        bus.publish(Ping(1));
-        bus.publish(Pong(2));
-        bus.publish(Ping(3));
+        stream.publish(Ping(1));
+        stream.publish(Pong(2));
+        stream.publish(Ping(3));
 
         assert_eq!(pings.load(Ordering::SeqCst), 2);
         assert_eq!(pongs.load(Ordering::SeqCst), 1);
     }
 
-    struct Flaky {
-        total: usize,
-    }
-    impl Actor for Flaky {}
-
-    struct Boom;
-    impl Message for Boom {
-        type Response = ();
-    }
-    impl MessageHandler<Boom> for Flaky {
-        fn handle(&mut self, _: &Boom, _ctx: &ActorContext<Self>) {
-            panic!("simulated failure");
-        }
-    }
-    impl MessageHandler<GetTotal> for Flaky {
-        fn handle(&mut self, _: &GetTotal, _ctx: &ActorContext<Self>) -> usize {
-            self.total
-        }
-    }
+    // --- unsubscribe, scheduling ---
 
     #[test]
-    fn ask_after_actor_stopped_returns_err_instead_of_hanging() {
-        let addr = Addr::from((Flaky { total: 0 }, serial()));
+    fn unsubscribe_stops_further_delivery() {
+        let stream = EventStream::new(serial());
+        let total = Arc::new(AtomicUsize::new(0));
 
-        addr.send(Boom); // default on_panic() is Stop — actor is now dead
-
-        // Without the fix, this would block forever waiting on a reply
-        // that will never come. With it, enqueue sees `alive == false`
-        // and returns Disconnected immediately.
-        assert!(addr.ask(GetTotal).is_err());
-    }
-
-    use std::time::{Duration, Instant};
-
-    fn throughput(count: usize, elapsed: Duration) -> f64 {
-        count as f64 / elapsed.as_secs_f64()
-    }
-
-    // --- single actor, fire-and-forget, no async dispatch in the loop ---
-
-    #[test]
-    #[ignore = "throughput smoke test: cargo test --release -- --ignored --nocapture"]
-    fn throughput_send_serial() {
-        const N: usize = 1_000_000;
-        let addr = Addr::from((Counter { total: 0 }, serial()));
-
-        let start = Instant::now();
-        for _ in 0..N {
-            addr.send(Add(1));
-        }
-        let elapsed = start.elapsed();
-
-        // Executor::Serial runs process_batch inline during dispatch, so by
-        // the time the loop above returns, everything's already processed —
-        // this ask is a correctness check, not a completion barrier.
-        assert_eq!(addr.ask(GetTotal).unwrap(), N);
-
-        println!(
-            "[send/serial]   {N} msgs in {elapsed:?} = {:.0} msgs/sec",
-            throughput(N, elapsed)
-        );
-    }
-
-    // --- single actor, pooled executor: measures dispatch/scheduling
-    // overhead, NOT parallelism — one actor's mailbox is still drained
-    // by exactly one thread at a time regardless of pool size ---
-
-    #[test]
-    #[ignore = "throughput smoke test: cargo test --release -- --ignored --nocapture"]
-    fn throughput_send_worker_pool() {
-        const N: usize = 1_000_000;
-        let executor = Arc::new(Executor::FixedSizedWorkerPool(4));
-        let addr = Addr::from((Counter { total: 0 }, executor));
-
-        let start = Instant::now();
-        for _ in 0..N {
-            addr.send(Add(1));
-        }
-        // The channel is FIFO and this is the only producer thread, so this
-        // ask can only return after every prior Add has drained — it's the
-        // completion barrier the serial test didn't need.
-        let total = addr.ask(GetTotal).unwrap();
-        let elapsed = start.elapsed();
-
-        assert_eq!(total, N);
-        println!(
-            "[send/pool]     {N} msgs in {elapsed:?} = {:.0} msgs/sec",
-            throughput(N, elapsed)
-        );
-    }
-
-    // --- many actors, pooled executor, concurrent producers: the test
-    // that actually exercises cross-actor parallelism ---
-
-    #[test]
-    #[ignore = "throughput smoke test: cargo test --release -- --ignored --nocapture"]
-    fn throughput_many_actors_parallel() {
-        const ACTORS: usize = 8;
-        const PER_ACTOR: usize = 200_000;
-
-        let executor = Arc::new(Executor::FixedSizedWorkerPool(8));
-        let addrs: Vec<_> = (0..ACTORS)
-            .map(|_| Addr::from((Counter { total: 0 }, Arc::clone(&executor))))
-            .collect();
-
-        let start = Instant::now();
-        std::thread::scope(|scope| {
-            for addr in &addrs {
-                scope.spawn(|| {
-                    for _ in 0..PER_ACTOR {
-                        addr.send(Add(1));
-                    }
-                });
+        let subscription = stream.subscribe({
+            let total = Arc::clone(&total);
+            move |_: &Ping| {
+                total.fetch_add(1, Ordering::SeqCst);
             }
         });
 
-        for addr in &addrs {
-            assert_eq!(addr.ask(GetTotal).unwrap(), PER_ACTOR);
-        }
-        let elapsed = start.elapsed();
+        stream.publish(Ping(1));
+        subscription.unsubscribe();
+        stream.publish(Ping(1));
 
-        let total = ACTORS * PER_ACTOR;
-        println!(
-            "[send/parallel] {ACTORS} actors x {PER_ACTOR} = {total} msgs in {elapsed:?} = {:.0} msgs/sec",
-            throughput(total, elapsed)
-        );
+        assert_eq!(total.load(Ordering::SeqCst), 1);
     }
-
-    // --- round-trip cost: bounded channel + block-on-recv per call ---
 
     #[test]
-    #[ignore = "throughput smoke test: cargo test --release -- --ignored --nocapture"]
-    fn throughput_ask_roundtrip_serial() {
-        const N: usize = 200_000;
-        let addr = Addr::from((Counter { total: 0 }, serial()));
+    fn stream_unsubscribe_by_id_stops_further_delivery() {
+        let stream = EventStream::new(serial());
+        let total = Arc::new(AtomicUsize::new(0));
 
-        let start = Instant::now();
-        for _ in 0..N {
-            addr.ask(GetTotal).unwrap();
+        let subscription = stream.subscribe({
+            let total = Arc::clone(&total);
+            move |_: &Ping| {
+                total.fetch_add(1, Ordering::SeqCst);
+            }
+        });
+
+        stream.publish(Ping(1));
+        stream.unsubscribe(subscription.id());
+        stream.publish(Ping(1));
+
+        assert_eq!(total.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn lazy_publish_skips_construction_with_no_subscribers() {
+        let stream = EventStream::new(serial());
+        let built = Arc::new(AtomicUsize::new(0));
+        let built_clone = Arc::clone(&built);
+
+        stream.lazy_publish(move || {
+            built_clone.fetch_add(1, Ordering::SeqCst);
+            Ping(1)
+        });
+
+        assert_eq!(built.load(Ordering::SeqCst), 0);
+    }
+
+    #[test]
+    fn every_n_schedule_throttles_lazy_publish_delivery() {
+        let stream = EventStream::new(serial());
+        let total = Arc::new(AtomicUsize::new(0));
+
+        stream
+            .subscribe({
+                let total = Arc::clone(&total);
+                move |_: &Ping| {
+                    total.fetch_add(1, Ordering::SeqCst);
+                }
+            })
+            .schedule(3_usize);
+
+        for i in 0..6 {
+            stream.lazy_publish(move || Ping(i));
         }
-        let elapsed = start.elapsed();
 
-        println!(
-            "[ask/serial]    {N} round-trips in {elapsed:?} = {:.0} asks/sec",
-            throughput(N, elapsed)
-        );
+        // Due on the 3rd and 6th publish only.
+        assert_eq!(total.load(Ordering::SeqCst), 2);
     }
-}
 
-#[cfg(test)]
-mod event_stream_tests {
-    use radiate_core::Executor;
-    use radiate_engines::events::EventStream;
-    use radiate_engines::events::Message;
-    use std::sync::Arc;
-    use std::sync::atomic::{AtomicUsize, Ordering};
+    // --- the explicit design choice: panics propagate, they aren't isolated ---
+
+    #[test]
+    fn a_panicking_handler_poisons_the_lock_instead_of_being_isolated() {
+        struct Boom;
+        impl EventHandler<Add> for Boom {
+            fn handle(&mut self, _: &Add, _ctx: &EventContext<'_, Self>) {
+                panic!("simulated failure");
+            }
+        }
+
+        let stream = EventStream::new(serial());
+        stream.subscribe(Boom);
+
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            stream.publish(Add(1));
+        }));
+        assert!(result.is_err());
+
+        // Every subsequent delivery to that same subscriber panics too — cascading rather
+        // than being quietly isolated, per this design's stance that a panicking handler
+        // should stop the run, not be walled off.
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            stream.publish(Add(1));
+        }));
+        assert!(result.is_err());
+    }
+
+    // --- pooled executor: dispatch can run off the publisher's thread ---
+
+    #[test]
+    fn a_pooled_executor_can_run_the_handler_off_the_publisher_thread() {
+        let stream = EventStream::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
+        let publisher = std::thread::current().id();
+        let (tx, rx) = std::sync::mpsc::channel();
+
+        stream.subscribe(move |_: &Ping| {
+            tx.send(std::thread::current().id()).unwrap();
+        });
+
+        stream.publish(Ping(1));
+
+        let handler_thread = rx.recv_timeout(std::time::Duration::from_secs(5)).unwrap();
+        assert_ne!(handler_thread, publisher);
+    }
+
+    // --- throughput smoke tests: run with
+    //   cargo test -p radiate-engines --release -- --ignored --nocapture
+
     use std::time::{Duration, Instant};
-
-    #[derive(Debug, Clone, PartialEq)]
-    struct Ping(u32);
-
-    impl Message for Ping {
-        type Response = ();
-    }
 
     fn throughput(count: usize, elapsed: Duration) -> f64 {
         count as f64 / elapsed.as_secs_f64()
@@ -476,60 +302,72 @@ mod event_stream_tests {
 
     #[test]
     #[ignore = "throughput smoke test: cargo test --release -- --ignored --nocapture"]
-    fn throughput_publish_single_subscriber_serial() {
+    fn throughput_publish_single_subscriber() {
+        const WARMUP: usize = 50_000;
         const N: usize = 500_000;
-        let bus = EventStream::new(Arc::new(Executor::Serial));
+        let stream = EventStream::new(serial());
         let count = Arc::new(AtomicUsize::new(0));
         let count_clone = Arc::clone(&count);
 
-        bus.subscribe::<Ping>(move |_: &Ping| {
+        stream.subscribe(move |_: &Ping| {
             count_clone.fetch_add(1, Ordering::SeqCst);
         });
 
+        for i in 0..WARMUP {
+            stream.publish(Ping(i as u32));
+        }
+        let baseline = count.load(Ordering::SeqCst);
+
         let start = Instant::now();
         for i in 0..N {
-            bus.publish(Ping(i as u32));
+            stream.publish(Ping(i as u32));
         }
         let elapsed = start.elapsed();
 
-        assert_eq!(count.load(Ordering::SeqCst), N);
+        assert_eq!(count.load(Ordering::SeqCst) - baseline, N);
         println!(
-            "[publish/1 sub]     {N} events in {elapsed:?} = {:.0} events/sec",
+            "[stream/publish 1 sub]   {N} events in {elapsed:?} = {:.0} events/sec",
             throughput(N, elapsed)
         );
     }
 
     #[test]
     #[ignore = "throughput smoke test: cargo test --release -- --ignored --nocapture"]
-    fn throughput_publish_fanout_serial() {
+    fn throughput_publish_fanout() {
+        const WARMUP: usize = 20_000;
         const N: usize = 100_000;
         const SUBSCRIBERS: usize = 8;
 
-        let bus = EventStream::new(Arc::new(Executor::Serial));
+        let stream = EventStream::new(serial());
         let counts: Vec<_> = (0..SUBSCRIBERS)
             .map(|_| Arc::new(AtomicUsize::new(0)))
             .collect();
 
         for count in &counts {
             let count = Arc::clone(count);
-            bus.subscribe::<Ping>(move |_: &Ping| {
+            stream.subscribe(move |_: &Ping| {
                 count.fetch_add(1, Ordering::SeqCst);
             });
         }
 
+        for i in 0..WARMUP {
+            stream.publish(Ping(i as u32));
+        }
+        let baseline = counts[0].load(Ordering::SeqCst);
+
         let start = Instant::now();
         for i in 0..N {
-            bus.publish(Ping(i as u32));
+            stream.publish(Ping(i as u32));
         }
         let elapsed = start.elapsed();
 
         for count in &counts {
-            assert_eq!(count.load(Ordering::SeqCst), N);
+            assert_eq!(count.load(Ordering::SeqCst) - baseline, N);
         }
 
         let deliveries = N * SUBSCRIBERS;
         println!(
-            "[publish/fanout x{SUBSCRIBERS}] {deliveries} deliveries in {elapsed:?} = {:.0} deliveries/sec",
+            "[stream/publish fanout x{SUBSCRIBERS}] {deliveries} deliveries in {elapsed:?} = {:.0} deliveries/sec",
             throughput(deliveries, elapsed)
         );
     }
@@ -537,35 +375,46 @@ mod event_stream_tests {
     #[test]
     #[ignore = "throughput smoke test: cargo test --release -- --ignored --nocapture"]
     fn throughput_publish_worker_pool() {
+        const WARMUP: usize = 20_000;
         const N: usize = 200_000;
-        let bus = EventStream::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
+        let stream = EventStream::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
         let count = Arc::new(AtomicUsize::new(0));
         let count_clone = Arc::clone(&count);
 
-        bus.subscribe::<Ping>(move |_: &Ping| {
+        stream.subscribe(move |_: &Ping| {
             count_clone.fetch_add(1, Ordering::SeqCst);
         });
 
+        for i in 0..WARMUP {
+            stream.publish(Ping(i as u32));
+        }
+        let warmup_deadline = Instant::now() + Duration::from_secs(30);
+        while count.load(Ordering::SeqCst) < WARMUP {
+            assert!(
+                Instant::now() < warmup_deadline,
+                "warmup did not drain in time"
+            );
+            std::thread::yield_now();
+        }
+        let baseline = count.load(Ordering::SeqCst);
+
         let start = Instant::now();
         for i in 0..N {
-            bus.publish(Ping(i as u32));
+            stream.publish(Ping(i as u32));
         }
 
-        // publish() enqueues into the subscriber's own mailbox and
-        // returns immediately on a pooled executor — poll for drain
-        // completion instead of assuming publish() blocked.
         let deadline = Instant::now() + Duration::from_secs(30);
-        while count.load(Ordering::SeqCst) < N {
+        while count.load(Ordering::SeqCst) - baseline < N {
             assert!(
                 Instant::now() < deadline,
                 "events not fully delivered in time"
             );
-            std::thread::sleep(Duration::from_millis(1));
+            std::thread::yield_now();
         }
         let elapsed = start.elapsed();
 
         println!(
-            "[publish/pool]      {N} events in {elapsed:?} = {:.0} events/sec",
+            "[stream/publish pool]    {N} events in {elapsed:?} = {:.0} events/sec",
             throughput(N, elapsed)
         );
     }

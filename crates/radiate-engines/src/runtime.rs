@@ -102,7 +102,7 @@ where
         self
     }
 
-    pub fn on<EV: Event>(self, handler: impl EventHandler<EV>) -> Self {
+    pub fn subscribe<EV: Event>(self, handler: impl EventHandler<EV>) -> Self {
         self.engine.context().events().subscribe(handler);
         self
     }
@@ -199,8 +199,8 @@ where
         init_logging();
         let stream = self.engine.context().events();
 
-        stream.register(EngineLogger::<T>::new());
-        stream.register(HealthMonitor::<T>::default());
+        stream.spawn_and_subscribe(EngineLogger::<T>::new());
+        stream.spawn_and_subscribe(HealthMonitor::<T>::default());
         stream.subscribe(LoggingHandler);
 
         self

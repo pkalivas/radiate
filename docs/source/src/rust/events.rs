@@ -27,7 +27,7 @@ fn main() {
     struct MyHandler;
 
     impl EventHandler<EpochComplete<Vec<f32>>> for MyHandler {
-        fn handle(&mut self, event: &EpochComplete<Vec<f32>>) {
+        fn handle(&mut self, event: &EpochComplete<Vec<f32>>, _ctx: &EventContext<'_, Self>) {
             println!(
                 "Printing from event handler! [ {:?} ]: {:?}",
                 event.index, event.score
