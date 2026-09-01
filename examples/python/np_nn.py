@@ -57,11 +57,6 @@ def fit(weights: list[np.ndarray]) -> float:
     return float(np.mean((yhat - Y) ** 2, dtype=np.float32))
 
 
-@rd.on_stop
-def metrics_dashboard(event: rd.EngineEvent):
-    print(event.metrics().dashboard())
-
-
 engine = (
     rd.Engine.float(
         # Create an engine that evolves genomes with 3 chromosomes, one for each
@@ -90,6 +85,7 @@ engine = (
 
 engine.run(log=True)
 
+# .subscribe(checkpoint_saved, metrics_dashboard)
 # .load_checkpoint(
 #     READ_DIR, ignore_not_found=True
 # )  # Load from a previous checkpoint if it exists

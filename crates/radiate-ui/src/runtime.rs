@@ -57,8 +57,6 @@ where
             Ok(())
         });
 
-        control.set_paused(true);
-
         Self {
             inner,
             control,
@@ -101,8 +99,6 @@ where
                 .map_err(|_| eprintln!("Failed to send log event: {:?}", event))
                 .unwrap();
         });
-
-        self.inner.start();
     }
 
     fn stop(&mut self) {
@@ -111,6 +107,10 @@ where
 
     #[inline]
     fn step(&mut self) -> RadiateResult<()> {
+        if matches!(self.inner.state(), EngineState::PreStart) {
+            self.start();
+        }
+
         self.inner.step()?;
         let state = self.inner.state();
         let current = self.inner.context();

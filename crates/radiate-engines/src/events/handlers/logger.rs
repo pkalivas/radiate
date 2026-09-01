@@ -1,13 +1,15 @@
 use crate::{
-    Actor, EngineStop, EventHandler,
+    Actor, EventHandler,
     events::{
-        CheckpointSaved, EngineStart, EngineStateChange, Message, MessageHandler, StreamEvent,
-        Warning, addr::ActorContext,
+        CheckpointSaved, EngineStateChange, Message, MessageHandler, StreamEvent, Warning,
+        addr::ActorContext,
     },
 };
 use crate::{LimitTriggered, events::EpochComplete};
-use radiate_core::{EngineState, Objective};
+use radiate_core::Objective;
 use std::marker::PhantomData;
+
+const NAME: &str = "EngineLogger";
 
 pub struct EngineLogger<T> {
     _marker: PhantomData<T>,
@@ -32,7 +34,7 @@ where
     T: Send + Sync + 'static,
 {
     fn name(&self) -> &str {
-        "EngineLogger"
+        NAME
     }
 
     fn started(&mut self, ctx: &ActorContext<Self>)
@@ -43,9 +45,6 @@ where
         ctx.subscribe::<Warning>();
         ctx.subscribe::<CheckpointSaved>();
         ctx.subscribe::<EpochComplete<T>>();
-        ctx.subscribe::<EngineState>();
-        ctx.subscribe::<EngineStop<T>>();
-        ctx.subscribe::<EngineStart>();
         ctx.subscribe::<EngineStateChange>();
         ctx.subscribe::<StreamEvent>();
     }
@@ -149,18 +148,6 @@ where
     }
 }
 
-impl<T> MessageHandler<EngineState> for EngineLogger<T>
-where
-    T: Send + Sync + 'static,
-{
-    fn handle(&mut self, event: &EngineState, ctx: &ActorContext<Self>) {
-        ctx.publish(LogEvent(
-            LogLevel::Info,
-            format!("State Change: {:?}", *event),
-        ));
-    }
-}
-
 impl<T> MessageHandler<EngineStateChange> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
@@ -170,24 +157,6 @@ where
             LogLevel::Info,
             format!("State Change: {:?} -> {:?}", event.from, event.to),
         ));
-    }
-}
-
-impl<T> MessageHandler<EngineStart> for EngineLogger<T>
-where
-    T: Send + Sync + 'static,
-{
-    fn handle(&mut self, _: &EngineStart, ctx: &ActorContext<Self>) {
-        ctx.publish(EngineState::Running);
-    }
-}
-
-impl<T> MessageHandler<EngineStop<T>> for EngineLogger<T>
-where
-    T: Send + Sync + 'static,
-{
-    fn handle(&mut self, _: &EngineStop<T>, ctx: &ActorContext<Self>) {
-        ctx.publish(EngineState::Stopped);
     }
 }
 

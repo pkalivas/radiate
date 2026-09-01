@@ -6,6 +6,7 @@ use crate::{
 use radiate_core::MetricSet;
 use std::marker::PhantomData;
 
+const NAME: &str = "HealthMonitor";
 const STAGNATION_WARNING_THRESHOLD: usize = 100;
 const DIVERSITY_WARNING_THRESHOLD: f32 = 0.1;
 const LARGEST_SPECIES_SHARE_WARNING_THRESHOLD: f32 = 0.9;
@@ -27,7 +28,7 @@ where
     T: Send + Sync + 'static,
 {
     fn name(&self) -> &str {
-        "HealthMonitor"
+        NAME
     }
 
     fn started(&mut self, ctx: &ActorContext<Self>)

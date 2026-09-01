@@ -26,58 +26,34 @@ class EngineEvent(RsObject):
     This class provides a simple interface to access the value of the event.
     """
 
+    event_type: EventType
+    index: int
+    data: Any
+
+    def __init__(self, event_type: str, index: int | None, data: Any):
+        self.event_type = EventType(event_type)
+        self.index = index if index is not None else 0
+        self.data = data
+
     def __repr__(self):
-        return f"<EngineEvent>{self.__backend__().__repr__()}"
+        return f"<EngineEvent type={self.event_type}, index={self.index}, data={self.data}>"
 
     def __str__(self):
         return self.__repr__()
-
-    def index(self) -> int:
-        """
-        Get the index of the event.
-        :return: The index of the event.
-        """
-        index = self.__backend__().index()
-        return index if index is not None else 0
-
-    def event_type(self) -> EventType:
-        """
-        Get the type of the event.
-        :return: The type of the event.
-        """
-        event_type_str = self.__backend__().event_type()
-        if event_type_str == "start_event":
-            return EventType.START
-        elif event_type_str == "stop_event":
-            return EventType.STOP
-        elif event_type_str == "epoch_start_event":
-            return EventType.EPOCH_START
-        elif event_type_str == "epoch_complete_event":
-            return EventType.EPOCH_COMPLETE
-        elif event_type_str == "engine_improvement_event":
-            return EventType.ENGINE_IMPROVEMENT
-        elif event_type_str == "limit_triggered_event":
-            return EventType.LIMIT_TRIGGERED
-        elif event_type_str == "log_event":
-            return EventType.LOG
-        elif event_type_str == "checkpoint_saved_event":
-            return EventType.CHECKPOINT_SAVED
-        else:
-            raise ValueError(f"Unknown event type: {event_type_str}")
 
     def score(self) -> list[float] | None:
         """
         Get the score of the event.
         :return: The score of the event.
         """
-        return self.try_get_cache("score_cache", lambda: self.__backend__().score())
+        return self.data.get("score", None)
 
     def value(self) -> Any:
         """
         Get the value of the event.
         :return: The value of the event.
         """
-        return self.try_get_cache("value_cache", lambda: self.__backend__().best())
+        return self.data.get("best", None)
 
     def metrics(self) -> MetricSet:
         """
@@ -85,47 +61,24 @@ class EngineEvent(RsObject):
         :return: The metrics of the event.
         """
 
-        def _acquire_metrics():
-            metrics = self.__backend__().metrics()
-            if metrics is None:
-                return MetricSet()
-            return MetricSet.from_rust(metrics)
-
-        return self.try_get_cache("metrics_cache", _acquire_metrics)
+        metrics = self.data.get("metrics", None)
+        if metrics is None:
+            return MetricSet()
+        return MetricSet.from_rust(metrics)
 
     def objective(self) -> list[str] | None:
         """
         Get the objective of the event.
         :return: The objective of the event.
         """
-        return self.try_get_cache(
-            "objective_cache", lambda: self.__backend__().objective()
-        )
-
-    def description(self) -> str | None:
-        """
-        Get the description of the event.
-        :return: The description of the event.
-        """
-        return self.try_get_cache(
-            "description_cache", lambda: self.__backend__().description()
-        )
+        return self.data.get("objective", None)
 
     def limit(self) -> str | None:
         """
         Get the limit of the event.
         :return: The limit of the event.
         """
-        return self.try_get_cache("limit_cache", lambda: self.__backend__().limit())
-
-    def limit_progress(self) -> float | None:
-        """
-        Get the limit progress of the event.
-        :return: The limit progress of the event.
-        """
-        return self.try_get_cache(
-            "limit_progress_cache", lambda: self.__backend__().limit_progress()
-        )
+        return self.data.get("limit", None)
 
 
 class EventHandler(abc.ABC):
@@ -139,7 +92,7 @@ class EventHandler(abc.ABC):
         :param event_type: Type of the event to handle.
         """
         self._py_handler = PySubscriber(
-            lambda event: self.on_event(EngineEvent.from_rust(event)), event_type.value
+            lambda event: self.on_event(event), event_type.value
         )
 
     def __call__(self, event: "EngineEvent") -> None:

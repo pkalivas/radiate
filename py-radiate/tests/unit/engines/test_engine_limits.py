@@ -54,7 +54,8 @@ def test_convergence_limit(simple_float_engine, random_seed):
 
     assert len(handler.convergence_data) == window_size
     assert all(
-        abs(handler.convergence_data[i] - handler.convergence_data[i - 1]) < threshold
+        abs(handler.convergence_data[i][0] - handler.convergence_data[i - 1][0])
+        < threshold
         for i in range(1, len(handler.convergence_data))
     ), "Convergence limit should ensure scores are within threshold"
 

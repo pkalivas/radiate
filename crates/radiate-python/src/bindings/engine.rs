@@ -9,6 +9,9 @@ use radiate_error::{radiate_py_bail, radiate_py_err};
 use serde::Serialize;
 use std::time::Duration;
 
+const ENGINE_ALREADY_RUN_ERROR_STRING: &str =
+    "Engine has already been run. Create a new engine instance to run again.";
+
 const BUILD_ENGINE_WITH_LIMIT_ERROR_STRING: &str = "Engine must be built with at least one limit:
     engine = (
         rd.Engine.int(5)
@@ -65,7 +68,7 @@ impl PyEngine {
                 let engine = self
                     .engine
                     .take()
-                    .ok_or_else(|| radiate_py_err!("Engine has already been run"))?;
+                    .ok_or_else(|| radiate_py_err!(ENGINE_ALREADY_RUN_ERROR_STRING))?;
 
                 if self.limits.is_empty() {
                     radiate_py_bail!(BUILD_ENGINE_WITH_LIMIT_ERROR_STRING);
@@ -87,7 +90,7 @@ impl PyEngine {
         let handle = self
             .engine
             .take()
-            .ok_or_else(|| radiate_py_err!("Engine has already been run"))?;
+            .ok_or_else(|| radiate_py_err!(ENGINE_ALREADY_RUN_ERROR_STRING))?;
 
         if self.limits.is_empty() {
             radiate_py_bail!(BUILD_ENGINE_WITH_LIMIT_ERROR_STRING);

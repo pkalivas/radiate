@@ -51,9 +51,11 @@ impl Message for Warning {
 
 #[derive(Clone, Debug)]
 pub struct LimitTriggered(pub usize, pub Limit);
+
 impl Message for LimitTriggered {
     type Response = ();
 }
+
 #[derive(Clone, Debug)]
 pub struct EpochStart(pub usize);
 
@@ -219,7 +221,7 @@ where
 {
     fn from(ctx: &EvolutionContext<C, T>) -> Self {
         GenerationSnapshot {
-            generation: Arc::new(Generation::from(&ctx)),
+            generation: Arc::new(Generation::from(ctx)),
         }
     }
 }

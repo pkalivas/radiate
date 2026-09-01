@@ -161,14 +161,14 @@ impl<A: Actor> Addr<A> {
 
         if !queued {
             // Actor has stopped, so the caller will never get a response.
-            return Err(RadiateError::Event(format!(
-                "actor stopped before responding"
-            )));
+            return Err(RadiateError::Event(
+                "actor stopped before responding".to_string(),
+            ));
         }
 
         self.dispatch();
         rx.recv()
-            .map_err(|_| RadiateError::Event(format!("Failed to receive response from actor")))
+            .map_err(|_| RadiateError::Event("Failed to receive response from actor".to_string()))
     }
 
     pub fn publish<E: Event>(&self, message: E) {
@@ -177,13 +177,13 @@ impl<A: Actor> Addr<A> {
         }
     }
 
-    pub fn subscribe<E>(&self) -> Option<Subscription>
+    pub fn subscribe<M>(&self) -> Option<Subscription>
     where
-        E: Event,
-        A: MessageHandler<E>,
+        M: Message<Response = ()> + Sync,
+        A: MessageHandler<M>,
     {
         let bus = self.bus.as_ref()?;
-        let subscription = bus.subscribe_addr::<E, A>(self);
+        let subscription = bus.subscribe_addr::<M, A>(self);
 
         Some(subscription)
     }

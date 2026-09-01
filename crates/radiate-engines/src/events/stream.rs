@@ -115,13 +115,13 @@ impl EventStream {
 
     pub fn spawn<A: Actor>(&self, actor: A) -> Addr<A> {
         let addr = Addr::from((actor, Arc::clone(&self.executor), self.clone()));
-        self.publish(StreamEvent::HandlerRegistered(addr.name().into(), addr.id));
+        self.publish(StreamEvent::HandlerRegistered(addr.name(), addr.id));
         addr
     }
 
     pub fn register<A: Actor>(&self, actor: A) {
         let addr = Addr::from((actor, Arc::clone(&self.executor), self.clone()));
-        self.publish(StreamEvent::HandlerRegistered(addr.name().into(), addr.id));
+        self.publish(StreamEvent::HandlerRegistered(addr.name(), addr.id));
     }
 
     #[inline]
@@ -143,10 +143,7 @@ impl EventStream {
             return;
         };
 
-        let any_due = group
-            .1
-            .iter()
-            .fold(false, |any, r| r.subscription.reserve() || any);
+        let any_due = group.1.iter().any(|r| r.subscription.reserve());
 
         if !any_due {
             return;
@@ -182,23 +179,23 @@ impl EventStream {
         subscription
     }
 
-    pub fn subscribe_addr<E, A>(&self, addr: &Addr<A>) -> Subscription
+    pub fn subscribe_addr<M, A>(&self, addr: &Addr<A>) -> Subscription
     where
-        E: Event,
-        A: MessageHandler<E>,
+        M: Message<Response = ()> + Sync,
+        A: MessageHandler<M>,
     {
         let inner_addr = addr.clone();
 
         let forward = Arc::new(move |payload: Payload| {
-            if let Ok(msg) = payload.downcast::<E>() {
+            if let Ok(msg) = payload.downcast::<M>() {
                 inner_addr.send_shared(msg);
             }
         });
 
-        let subscription = self.subscribe_common::<E>(forward);
+        let subscription = self.subscribe_common::<M>(forward);
 
         self.publish(StreamEvent::SubscriptionAdded(
-            addr.name().into(),
+            addr.name(),
             addr.id,
             subscription.id,
         ));

@@ -48,28 +48,12 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         &self.events
     }
 
-    pub fn is_stopped(&self) -> bool {
-        self.sync.is_stopped()
-    }
-
-    pub fn stop(&mut self) {
-        self.sync.stop();
-    }
-
-    pub fn is_paused(&self) -> bool {
-        self.sync.is_paused()
-    }
-
     pub fn wait(&self) {
         self.sync.wait()
     }
 
     pub fn get_or_create_sync(&mut self) -> ThreadSync {
         self.sync.clone()
-    }
-
-    pub fn state(&self) -> EngineState {
-        self.state
     }
 
     pub fn request_stop(&self) {
@@ -84,13 +68,20 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.sync.is_paused()
     }
 
-    pub(crate) fn change_state(&mut self, state: EngineState) {
-        self.events.publish(EngineStateChange {
-            from: self.state,
-            to: state,
-            index: self.index,
-        });
-        self.state = state;
+    pub fn state(&self) -> EngineState {
+        self.state
+    }
+
+    pub(crate) fn set_running(&mut self) {
+        self.change_state(EngineState::Running);
+    }
+
+    pub(crate) fn set_paused(&mut self) {
+        self.change_state(EngineState::Paused);
+    }
+
+    pub(crate) fn set_stopped(&mut self) {
+        self.change_state(EngineState::Stopped);
     }
 
     pub(crate) fn try_advance_one(&mut self) -> RadiateResult<bool> {
@@ -113,6 +104,20 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.metrics.bump(self.index);
 
         Ok(best_improved)
+    }
+
+    fn change_state(&mut self, state: EngineState) {
+        if self.state == state {
+            return;
+        }
+
+        self.events.publish(EngineStateChange {
+            from: self.state,
+            to: state,
+            index: self.index,
+        });
+
+        self.state = state;
     }
 }
 

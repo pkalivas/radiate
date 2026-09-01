@@ -14,6 +14,8 @@ use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
+const NAME: &str = "CheckpointWriterHandler";
+
 pub struct CheckpointWriterHandler<C, T>
 where
     C: Chromosome + Clone + 'static,
@@ -47,7 +49,7 @@ where
     T: Clone + Send + Sync + Serialize + 'static,
 {
     fn name(&self) -> &str {
-        "CheckpointWriterHandler"
+        NAME
     }
 
     fn started(&mut self, ctx: &crate::events::ActorContext<Self>)

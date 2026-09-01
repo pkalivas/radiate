@@ -37,7 +37,7 @@ pub use handles::{EngineBuilderHandle, EngineHandle, EpochHandle};
 pub use inputs::{PyEngineInput, PyEngineInputType};
 pub use metric::{PyMetric, PyMetricSet};
 use pyo3::{Py, Python, sync::PyOnceLock, types::PyModule};
-pub use subscriber::{PyEngineEvent, PySubscriber};
+pub use subscriber::PySubscriber;
 
 static RADIATE: PyOnceLock<Py<PyModule>> = PyOnceLock::new();
 static NUMPY: PyOnceLock<Py<PyModule>> = PyOnceLock::new();

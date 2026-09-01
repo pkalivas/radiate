@@ -10,8 +10,9 @@ use std::{
 
 sentry_id!(SubscriptionId);
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub enum Schedule {
+    #[default]
     Always,
     EveryN(usize, Arc<AtomicUsize>),
 }
@@ -25,12 +26,6 @@ impl Schedule {
                 current.saturating_add(1).is_multiple_of(*n)
             }
         }
-    }
-}
-
-impl Default for Schedule {
-    fn default() -> Self {
-        Schedule::Always
     }
 }
 

@@ -1,8 +1,11 @@
-use crate::{Engine, EvolutionContext, Generation, Limit};
+use crate::{
+    Engine, EventHandler, EvolutionContext, Generation, Limit,
+    events::{EngineLogger, Event, HealthMonitor, LoggingHandler},
+};
 use crate::{generation::GenerationView, init_logging};
 use radiate_core::error::{RadiateResult, Result};
 use radiate_core::rate::Expr;
-use radiate_core::{Chromosome, EngineState, Score, radiate_err};
+use radiate_core::{Chromosome, EngineState, Score};
 use std::collections::VecDeque;
 use std::time::Duration;
 
@@ -10,18 +13,32 @@ pub trait RuntimeLimit<E: Engine> {
     fn proceed(&mut self, context: &E::Ctx) -> RadiateResult<bool>;
 }
 
+pub trait RuntimeAction<E: Engine> {
+    fn execute(&mut self, context: &E::Ctx) -> RadiateResult<()>;
+}
+
+impl<E, F> RuntimeAction<E> for F
+where
+    E: Engine,
+    F: FnMut(&E::Ctx) -> RadiateResult<()>,
+{
+    fn execute(&mut self, context: &E::Ctx) -> RadiateResult<()> {
+        self(context)
+    }
+}
+
 pub struct EngineRuntime<E: Engine> {
     engine: E,
-    limits: Option<Vec<Box<dyn RuntimeLimit<E>>>>,
-    // state: EngineState,
+    limits: Vec<Box<dyn RuntimeLimit<E>>>,
+    actions: Vec<Box<dyn RuntimeAction<E>>>,
 }
 
 impl<E: Engine> EngineRuntime<E> {
     pub fn new(engine: E) -> Self {
         Self {
             engine,
-            limits: None,
-            // state: EngineState::PreStart,
+            limits: Vec::new(),
+            actions: Vec::new(),
         }
     }
 
@@ -39,28 +56,20 @@ impl<E: Engine> EngineRuntime<E> {
     #[inline]
     fn step(&mut self) -> Result<()> {
         if matches!(self.engine.state(), EngineState::Stopped) {
-            return Err(radiate_err!(Engine: "Engine has already completed"));
-        }
-
-        if matches!(self.engine.state(), EngineState::PreStart) {
-            self.engine.start();
+            return Ok(());
         }
 
         self.engine.step()?;
 
-        if matches!(self.engine.state(), EngineState::Stopped) {
-            self.engine.stop();
-            return Ok(());
+        let ctx = self.engine.context();
+        for action in self.actions.iter_mut() {
+            action.execute(ctx)?;
         }
 
-        let ctx = self.engine.context();
-
-        if let Some(limits) = &mut self.limits {
-            for limit in limits.iter_mut() {
-                if !limit.proceed(&ctx)? {
-                    self.engine.stop();
-                    return Ok(());
-                }
+        for limit in self.limits.iter_mut() {
+            if !limit.proceed(ctx)? {
+                self.engine.stop();
+                return Ok(());
             }
         }
 
@@ -72,11 +81,15 @@ impl<E: Engine> EngineRuntime<E> {
         L: RuntimeLimit<E> + 'static,
     {
         let boxed: Box<dyn RuntimeLimit<E>> = Box::new(limit);
-        if let Some(limits) = &mut self.limits {
-            limits.push(boxed);
-        } else {
-            self.limits = Some(vec![boxed]);
-        }
+        self.limits.push(boxed);
+    }
+
+    fn add_action<A>(&mut self, action: A)
+    where
+        A: RuntimeAction<E> + 'static,
+    {
+        let boxed: Box<dyn RuntimeAction<E>> = Box::new(action);
+        self.actions.push(boxed);
     }
 }
 
@@ -94,6 +107,40 @@ where
 
     pub fn last(self) -> Result<E::Epoch> {
         self.run()
+    }
+
+    pub fn every<F>(mut self, interval: usize, mut action_fn: F) -> Self
+    where
+        F: FnMut(GenerationView<C, T>) + 'static,
+    {
+        assert!(interval > 0, "every interval must be greater than zero");
+
+        self.add_action(move |ctx: &EvolutionContext<C, T>| {
+            if ctx.index.is_multiple_of(interval) {
+                action_fn(GenerationView::new(ctx));
+            }
+            Ok(())
+        });
+        self
+    }
+
+    pub fn inspect<F>(mut self, mut action_fn: F) -> Self
+    where
+        F: FnMut(GenerationView<C, T>) + 'static,
+    {
+        self.add_action(move |ctx: &EvolutionContext<C, T>| {
+            action_fn(GenerationView::new(ctx));
+            Ok(())
+        });
+        self
+    }
+
+    pub fn on<EV: Event>(self, handler: impl EventHandler<EV>) -> Self
+    where
+        EV: Event,
+    {
+        self.engine.context().events().subscribe(handler);
+        self
     }
 }
 
@@ -186,6 +233,12 @@ where
 {
     pub fn logging(self) -> EngineRuntime<E> {
         init_logging();
+        let stream = self.engine.context().events();
+
+        stream.register(EngineLogger::<T>::new());
+        stream.register(HealthMonitor::<T>::default());
+        stream.subscribe(LoggingHandler);
+
         self
     }
 }

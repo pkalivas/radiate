@@ -186,12 +186,12 @@ where
     }
 
     fn start(&mut self) {
-        self.context.change_state(EngineState::Running);
+        self.context.set_running();
         self.stream.publish(EngineStart);
     }
 
     fn stop(&mut self) {
-        self.context.change_state(EngineState::Stopped);
+        self.context.set_stopped();
         self.stream.publish(EngineStop::from(&self.context));
     }
 
@@ -200,14 +200,14 @@ where
         match self.state() {
             EngineState::PreStart => self.start(),
             EngineState::Stopped => return Ok(()),
-            EngineState::Running | EngineState::Paused => {
+            _ => {
                 if self.context.stop_requested() {
                     self.stop();
                     return Ok(());
                 }
 
                 if self.context.pause_requested() {
-                    self.context.change_state(EngineState::Paused);
+                    self.context.set_paused();
                     self.context.wait();
 
                     if self.context.stop_requested() {
@@ -215,7 +215,7 @@ where
                         return Ok(());
                     }
 
-                    self.context.change_state(EngineState::Running);
+                    self.context.set_running();
                 }
             }
         }
@@ -249,6 +249,6 @@ where
     where
         F: Fn(Self::View<'_>) -> bool + 'static,
     {
-        self.iter().until(move |view| limit(view)).last()
+        self.iter().until(limit).last()
     }
 }

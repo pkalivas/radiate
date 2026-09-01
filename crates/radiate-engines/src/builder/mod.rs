@@ -11,8 +11,8 @@ mod species;
 use crate::builder::problem::ProblemParams;
 use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
+use crate::events::EventStream;
 use crate::events::*;
-use crate::events::{EngineLogger, EventStream, LoggingHandler};
 use crate::genome::phenotype::Phenotype;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
@@ -255,13 +255,9 @@ where
     /// parameters.
     fn build_event_stream(&mut self) -> Result<()> {
         let mut stream = self.params.event_stream.clone();
-
         let stream_executor = self.params.evaluation_params.event_stream_executor.clone();
-        stream.set_executor(stream_executor.executor);
 
-        stream.register(EngineLogger::<T>::new());
-        stream.register(HealthMonitor::<T>::default());
-        stream.subscribe(LoggingHandler);
+        stream.set_executor(stream_executor.executor);
 
         self.params.event_stream = stream;
 

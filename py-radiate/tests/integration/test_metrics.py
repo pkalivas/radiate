@@ -56,7 +56,7 @@ def test_metrics_from_events(random_seed):
             super().__init__(rd.EventType.EPOCH_COMPLETE)
 
         def on_event(self, event: rd.EngineEvent) -> None:
-            assert event.event_type() == rd.EventType.EPOCH_COMPLETE
+            assert event.event_type == rd.EventType.EPOCH_COMPLETE
 
             metrics = event.metrics()
             for key in metrics.keys():
