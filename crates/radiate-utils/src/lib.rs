@@ -9,7 +9,7 @@ mod primitives;
 mod stats;
 mod str;
 
-pub use array::{Shape, Strides, Tensor};
+pub use array::{Matrix, Shape, Strides, Tensor};
 pub use buff::{SortedBuffer, Value, VersionedCounts, WindowBuffer};
 pub use datatype::{
     AnyValue, DType, DataType, dedup_slice, dtype, dtype_names, pow_anyvalue, value,

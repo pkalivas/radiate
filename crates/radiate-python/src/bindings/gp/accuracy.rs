@@ -9,6 +9,7 @@ use pyo3::{
 };
 use radiate::{Accuracy, AccuracyResult, DataSet, EvalMut, GraphEvaluator, Loss, ops::OpFloat};
 use radiate_error::radiate_py_bail;
+use radiate_utils::Matrix;
 
 #[pyclass]
 pub struct PyAccuracy {
@@ -115,8 +116,8 @@ pub fn py_accuracy<'py>(
 
 fn run_accuracy<F, E>(
     evaluator: &mut E,
-    features: Vec<Vec<F>>,
-    targets: Vec<Vec<F>>,
+    features: Matrix<F>,
+    targets: Matrix<F>,
     loss: Loss,
     name: Option<String>,
 ) -> PyResult<PyAccuracy>
@@ -124,11 +125,11 @@ where
     F: OpFloat,
     E: EvalMut<[F], Vec<F>>,
 {
-    if features.len() != targets.len() {
+    if features.size() != targets.size() {
         radiate_py_bail!("Accuracy: Features and targets must have the same number of samples");
     }
 
-    let dataset = DataSet::new(features, targets);
+    let dataset = DataSet::from((features, targets));
     let mut accuracy = Accuracy::<F>::default().loss(loss);
 
     if let Some(name) = name {

@@ -65,18 +65,18 @@ impl<'a, F: OpFloat> Accuracy<'a, F> {
         if total_values > 0 {
             let mut sum = F::ZERO;
             for row in data_set.iter() {
-                sum = sum + row.output()[0];
+                sum = sum + row.1[0];
             }
             y_mean = sum / F::from(total_values).unwrap();
         }
 
         for row in data_set.iter() {
-            let output = eval.eval_mut(row.input());
+            let output = eval.eval_mut(row.0);
             outputs.push(output.clone());
 
             if output.len() == 1 {
                 is_regression = true;
-                let y_true = row.output()[0];
+                let y_true = row.1[0];
                 let y_pred = output[0];
 
                 mae = mae + (y_true - y_pred).abs();
@@ -94,7 +94,7 @@ impl<'a, F: OpFloat> Accuracy<'a, F> {
                     .enumerate()
                     .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
                 {
-                    if let Some(target) = row.output().iter().position(|&x| x == F::ONE) {
+                    if let Some(target) = row.1.iter().position(|&x| x == F::ONE) {
                         total_samples = total_samples + F::ONE;
                         if max_idx == target {
                             correct_predictions = correct_predictions + F::ONE;

@@ -31,6 +31,10 @@ where
 
         metrics.upsert(metric_names::FRONT_ADDITIONS, add_result.added_count);
         metrics.upsert(metric_names::FRONT_REMOVALS, add_result.removed_count);
+        metrics.upsert(
+            metric_names::FRONT_UNIQUE_REMOVALS,
+            add_result.unique_removed_count,
+        );
         metrics.upsert(metric_names::FRONT_COMPARISONS, add_result.comparisons);
         metrics.upsert(metric_names::FRONT_FILTERS, add_result.filter_count);
         metrics.upsert(metric_names::FRONT_SIZE, add_result.size);

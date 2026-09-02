@@ -43,11 +43,7 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
 
     for (idx, row) in dataset.iter().enumerate() {
         let output = outputs[idx].clone();
-        println!(
-            "{:?} -> expected: {:?}, actual: {output:.3?}",
-            row.input(),
-            row.output(),
-        );
+        println!("{:?} -> expected: {:?}, actual: {output:.3?}", row.0, row.1,);
     }
 
     println!("{result:?}");
@@ -55,11 +51,11 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
 
 fn dataset() -> DataSet<f32> {
     DataSet::default()
-        .row((vec![0.0], vec![0.0]))
-        .row((vec![0.0], vec![0.0]))
-        .row((vec![0.0], vec![1.0]))
-        .row((vec![1.0], vec![0.0]))
-        .row((vec![0.0], vec![0.0]))
-        .row((vec![0.0], vec![0.0]))
-        .row((vec![0.0], vec![1.0]))
+        .append(vec![0.0], vec![0.0])
+        .append(vec![0.0], vec![0.0])
+        .append(vec![0.0], vec![1.0])
+        .append(vec![1.0], vec![0.0])
+        .append(vec![0.0], vec![0.0])
+        .append(vec![0.0], vec![0.0])
+        .append(vec![0.0], vec![1.0])
 }

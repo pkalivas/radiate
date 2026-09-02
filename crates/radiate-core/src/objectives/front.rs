@@ -1,4 +1,5 @@
 use crate::objectives::{Objective, Scored, pareto};
+use radiate_utils::Matrix;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -11,7 +12,7 @@ const EPSILON: f32 = 1e-10;
 struct FrontScratch {
     remove: Vec<usize>,
     keep_idx: Vec<usize>,
-    scores: Vec<f32>,
+    scores: Matrix<f32>,
     dist: Vec<f32>,
     order: Vec<usize>,
 }
@@ -20,6 +21,7 @@ struct FrontScratch {
 pub struct FrontAddResult {
     pub added_count: usize,
     pub removed_count: usize,
+    pub unique_removed_count: usize,
     pub comparisons: usize,
     pub filter_count: usize,
     pub size: usize,
@@ -85,7 +87,7 @@ where
         let (n, m) = self.score_dims()?;
 
         Some(entropy_flat(
-            &self.scratch.scores,
+            self.scratch.scores.as_ref(),
             n,
             m,
             DEFAULT_ENTROPY_BINS,
@@ -98,6 +100,7 @@ where
     {
         let mut added_count = 0;
         let mut removed_count = 0;
+        let mut unique_removed_count = 0;
         let mut comparisons = 0;
         let mut filter_count = 0;
 
@@ -137,12 +140,13 @@ where
             // Remove dominated existing values efficiently (swap_remove).
             // Need stable removal: remove in descending index order.
             if !self.scratch.remove.is_empty() {
+                removed_count += self.scratch.remove.len();
                 self.scratch.remove.sort_unstable();
                 self.scratch.remove.dedup();
 
                 for &idx in self.scratch.remove.iter().rev() {
                     self.values.swap_remove(idx);
-                    removed_count += 1;
+                    unique_removed_count += 1;
                 }
             }
 
@@ -162,6 +166,7 @@ where
         FrontAddResult {
             added_count,
             removed_count,
+            unique_removed_count,
             comparisons,
             filter_count,
             size: self.values.len(),
@@ -335,18 +340,18 @@ where
         }
 
         // If already built and size matches, keep it.
-        if self.scratch.scores.len() == n * m {
+        if self.scratch.scores.size() == n * m {
             return Some(());
         }
 
-        self.scratch.scores.resize(n * m, 0.0);
+        self.scratch.scores.reshape_and_fill(n, m, 0.0);
         for (i, v) in self.values.iter().enumerate() {
             let s = v.score()?;
             if s.len() != m {
                 return None;
             }
 
-            let row = &mut self.scratch.scores[i * m..i * m + m];
+            let row = self.scratch.scores.row_mut(i);
             row.copy_from_slice(s.as_slice());
         }
 
@@ -371,16 +376,18 @@ where
 
         for dim in 0..m {
             let scores = &self.scratch.scores;
+
             self.scratch.order.sort_unstable_by(|&i, &j| {
-                let a = scores[i * m + dim];
-                let b = scores[j * m + dim];
+                let a = scores[i][dim];
+                let b = scores[j][dim];
                 a.partial_cmp(&b).unwrap_or(Ordering::Equal)
             });
 
             let first_idx = self.scratch.order[0];
             let last_idx = self.scratch.order[n - 1];
-            let min = self.scratch.scores[first_idx * m..first_idx * m + m][dim];
-            let max = self.scratch.scores[last_idx * m..last_idx * m + m][dim];
+            let min = self.scratch.scores[first_idx][dim];
+            let max = self.scratch.scores[last_idx][dim];
+
             let range = max - min;
 
             if !range.is_finite() || range == 0.0 {
@@ -393,8 +400,8 @@ where
             for k in 1..(n - 1) {
                 let prev_idx = self.scratch.order[k - 1];
                 let next_idx = self.scratch.order[k + 1];
-                let prev = self.scratch.scores[prev_idx * m..prev_idx * m + m][dim];
-                let next = self.scratch.scores[next_idx * m..next_idx * m + m][dim];
+                let prev = self.scratch.scores[prev_idx][dim];
+                let next = self.scratch.scores[next_idx][dim];
 
                 let contrib = (next - prev).abs() / range;
                 self.scratch.dist[self.scratch.order[k]] += contrib;

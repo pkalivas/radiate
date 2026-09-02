@@ -6,16 +6,16 @@ use pyo3::{
 };
 use radiate::DataType;
 use radiate_error::radiate_py_bail;
-use radiate_utils::Float;
+use radiate_utils::{Float, Matrix};
 
 pub(crate) enum FloatMatrixPair {
     F32 {
-        features: Vec<Vec<f32>>,
-        targets: Vec<Vec<f32>>,
+        features: Matrix<f32>,
+        targets: Matrix<f32>,
     },
     F64 {
-        features: Vec<Vec<f64>>,
-        targets: Vec<Vec<f64>>,
+        features: Matrix<f64>,
+        targets: Matrix<f64>,
     },
 }
 
@@ -28,23 +28,14 @@ pub(crate) fn extract_regression_pair<'py>(
     if let Ok(cast_features) = features.cast::<PyArrayDyn<f32>>()
         && let Ok(cast_targets) = targets.cast::<PyArrayDyn<f32>>()
     {
-        let nd_features = py_object_into_2d_vec::<f32>(cast_features)?;
-        let nd_targets = py_object_into_2d_vec::<f32>(cast_targets)?;
-
         match wanted_dtype {
             DataType::Float32 => Ok(FloatMatrixPair::F32 {
-                features: nd_features,
-                targets: nd_targets,
+                features: py_object_into_2d_vec::<f32>(cast_features)?,
+                targets: py_object_into_2d_vec::<f32>(cast_targets)?,
             }),
             DataType::Float64 => Ok(FloatMatrixPair::F64 {
-                features: nd_features
-                    .into_iter()
-                    .map(|row| row.into_iter().map(|v| v as f64).collect())
-                    .collect(),
-                targets: nd_targets
-                    .into_iter()
-                    .map(|row| row.into_iter().map(|v| v as f64).collect())
-                    .collect(),
+                features: py_object_into_2d_vec::<f64>(cast_features)?,
+                targets: py_object_into_2d_vec::<f64>(cast_targets)?,
             }),
             _ => radiate_py_bail!(
                 "Unsupported data type for regression pair extraction: {wanted_dtype:?}"
@@ -53,23 +44,14 @@ pub(crate) fn extract_regression_pair<'py>(
     } else if let Ok(cast_features) = features.cast::<PyArrayDyn<f64>>()
         && let Ok(cast_targets) = targets.cast::<PyArrayDyn<f64>>()
     {
-        let nd_features = py_object_into_2d_vec::<f64>(cast_features)?;
-        let nd_targets = py_object_into_2d_vec::<f64>(cast_targets)?;
-
         match wanted_dtype {
             DataType::Float32 => Ok(FloatMatrixPair::F32 {
-                features: nd_features
-                    .into_iter()
-                    .map(|row| row.into_iter().map(|v| v as f32).collect())
-                    .collect(),
-                targets: nd_targets
-                    .into_iter()
-                    .map(|row| row.into_iter().map(|v| v as f32).collect())
-                    .collect(),
+                features: py_object_into_2d_vec::<f32>(cast_features)?,
+                targets: py_object_into_2d_vec::<f32>(cast_targets)?,
             }),
             DataType::Float64 => Ok(FloatMatrixPair::F64 {
-                features: nd_features,
-                targets: nd_targets,
+                features: py_object_into_2d_vec::<f64>(cast_features)?,
+                targets: py_object_into_2d_vec::<f64>(cast_targets)?,
             }),
             _ => radiate_py_bail!(
                 "Unsupported data type for regression pair extraction: {wanted_dtype:?}"
@@ -80,7 +62,7 @@ pub(crate) fn extract_regression_pair<'py>(
     }
 }
 
-pub(crate) fn py_object_into_2d_vec<'py, F>(obj: &Bound<'py, PyAny>) -> PyResult<Vec<Vec<F>>>
+pub(crate) fn py_object_into_2d_vec<'py, F>(obj: &Bound<'py, PyAny>) -> PyResult<Matrix<F>>
 where
     F: Float + numpy::Element + FromPyObjectOwned<'py>,
 {
@@ -92,18 +74,18 @@ where
 
         let rows = array.shape()[0];
 
-        let mut result = Vec::with_capacity(rows);
+        let mut matrix = Matrix::empty();
         for i in 0..rows {
-            result.push(array.as_array().slice(s![i, ..]).to_vec());
+            matrix.append_row(array.as_array().slice(s![i, ..]).to_vec());
         }
 
-        return Ok(result);
+        return Ok(matrix);
     } else if let Ok(py_list) = obj.cast::<pyo3::types::PyList>() {
-        let mut result = Vec::new();
+        let mut matrix = Matrix::empty();
         for item in py_list.try_iter()? {
             match item?.cast::<PyList>() {
                 Ok(row_list) => {
-                    result.push(row_list.extract::<Vec<F>>()?);
+                    matrix.append_row(row_list.extract::<Vec<F>>()?);
                 }
                 Err(_) => {
                     radiate_py_bail!("All elements of the outer list must be lists",);
@@ -111,7 +93,7 @@ where
             }
         }
 
-        return Ok(result);
+        return Ok(matrix);
     }
 
     Err(pyo3::exceptions::PyTypeError::new_err(format!(

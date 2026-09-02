@@ -42,8 +42,8 @@ impl Loss {
         match self {
             Loss::MSE => {
                 for sample in data_set.iter() {
-                    eval_into_buf(sample.input(), buffer);
-                    for (&target, &pred) in sample.output().iter().zip(buffer.iter()) {
+                    eval_into_buf(&sample.0, buffer);
+                    for (&target, &pred) in sample.1.iter().zip(buffer.iter()) {
                         let d = target - pred;
                         sum = sum + d * d;
                     }
@@ -51,8 +51,8 @@ impl Loss {
             }
             Loss::MAE => {
                 for sample in data_set.iter() {
-                    eval_into_buf(sample.input(), buffer);
-                    let target = sample.output();
+                    eval_into_buf(&sample.0, buffer);
+                    let target = &sample.1;
                     for (&t, &p) in target.iter().zip(buffer.iter()) {
                         let d = t - p;
                         sum = sum + d.abs();
@@ -61,8 +61,8 @@ impl Loss {
             }
             Loss::XEnt => {
                 for sample in data_set.iter() {
-                    eval_into_buf(sample.input(), buffer);
-                    for (&target, &pred) in sample.output().iter().zip(buffer.iter()) {
+                    eval_into_buf(&sample.0, buffer);
+                    for (&target, &pred) in sample.1.iter().zip(buffer.iter()) {
                         let q = pred.clamp(F::LOG_EPS, F::ONE);
                         sum = sum - target * q.ln();
                     }
@@ -70,8 +70,8 @@ impl Loss {
             }
             Loss::Diff => {
                 for sample in data_set.iter() {
-                    eval_into_buf(sample.input(), buffer);
-                    let target = sample.output();
+                    eval_into_buf(&sample.0, buffer);
+                    let target = &sample.1;
                     for (&t, &p) in target.iter().zip(buffer.iter()) {
                         sum = sum + (t - p);
                     }
