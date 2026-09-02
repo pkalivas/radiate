@@ -18,11 +18,5 @@ fn main() {
         })
         .build();
 
-    radiate::ui(engine)
-        // engine
-        .iter()
-        // .logging()
-        .until_score(target.len())
-        .last()
-        .unwrap();
+    engine.iter().until_score(target.len()).last().unwrap();
 }
