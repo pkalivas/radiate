@@ -17,19 +17,19 @@ type GenIter<C, T> = Box<dyn Iterator<Item = Generation<C, T>>>;
 macro_rules! gene_variants {
     ($mac:path) => {
         $mac! {
-            UInt8       => IntChromosome<u8>,            PyAnyObject;
-            UInt16      => IntChromosome<u16>,           PyAnyObject;
-            UInt32      => IntChromosome<u32>,           PyAnyObject;
-            UInt64      => IntChromosome<u64>,           PyAnyObject;
-            Int8        => IntChromosome<i8>,            PyAnyObject;
-            Int16       => IntChromosome<i16>,           PyAnyObject;
-            Int32       => IntChromosome<i32>,           PyAnyObject;
-            Int64       => IntChromosome<i64>,           PyAnyObject;
-            Float32     => FloatChromosome<f32>,         PyAnyObject;
-            Float64     => FloatChromosome<f64>,         PyAnyObject;
-            Char        => CharChromosome,               PyAnyObject;
-            Bit         => BitChromosome,                PyAnyObject;
-            Permutation => PermutationChromosome<usize>, PyAnyObject;
+            UInt8         => IntChromosome<u8>,            PyAnyObject;
+            UInt16        => IntChromosome<u16>,           PyAnyObject;
+            UInt32        => IntChromosome<u32>,           PyAnyObject;
+            UInt64        => IntChromosome<u64>,           PyAnyObject;
+            Int8          => IntChromosome<i8>,            PyAnyObject;
+            Int16         => IntChromosome<i16>,           PyAnyObject;
+            Int32         => IntChromosome<i32>,           PyAnyObject;
+            Int64         => IntChromosome<i64>,           PyAnyObject;
+            Float32       => FloatChromosome<f32>,         PyAnyObject;
+            Float64       => FloatChromosome<f64>,         PyAnyObject;
+            Char          => CharChromosome,               PyAnyObject;
+            Bit           => BitChromosome,                PyAnyObject;
+            Permutation   => PermutationChromosome<usize>, PyAnyObject;
             Graph32       => GraphChromosome<Op<f32>>,     Graph<Op<f32>>;
             Graph64       => GraphChromosome<Op<f64>>,     Graph<Op<f64>>;
             Tree32        => TreeChromosome<Op<f32>>,      Vec<Tree<Op<f32>>>;

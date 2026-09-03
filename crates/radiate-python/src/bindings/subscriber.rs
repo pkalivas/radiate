@@ -10,14 +10,14 @@ use radiate::{
 use std::fmt::Debug;
 
 const EVENT_TYPES: &[&str] = &[
-    crate::constants::components::START_EVENT,
-    crate::constants::components::STOP_EVENT,
-    crate::constants::components::EPOCH_START_EVENT,
-    crate::constants::components::EPOCH_COMPLETE_EVENT,
-    crate::constants::components::ENGINE_IMPROVEMENT_EVENT,
-    crate::constants::components::LIMIT_TRIGGERED_EVENT,
-    crate::constants::components::LOG_EVENT,
-    crate::constants::components::CHECKPOINT_SAVED_EVENT,
+    crate::constants::event_types::START_EVENT,
+    crate::constants::event_types::STOP_EVENT,
+    crate::constants::event_types::EPOCH_START_EVENT,
+    crate::constants::event_types::EPOCH_COMPLETE_EVENT,
+    crate::constants::event_types::ENGINE_IMPROVEMENT_EVENT,
+    crate::constants::event_types::LIMIT_TRIGGERED_EVENT,
+    crate::constants::event_types::LOG_EVENT,
+    crate::constants::event_types::CHECKPOINT_SAVED_EVENT,
 ];
 
 #[pyclass(from_py_object)]
@@ -85,7 +85,7 @@ where
                 .getattr(intern!(py, "EngineEvent"))
                 .expect("Failed to get EngineEvent class")
                 .call1((
-                    crate::constants::components::STOP_EVENT,
+                    crate::constants::event_types::STOP_EVENT,
                     Some(event.index),
                     dict.into_any().unbind(),
                 ))
@@ -107,7 +107,7 @@ impl Handler<EpochStart> for PySubscriber {
                 .getattr(intern!(py, "EngineEvent"))
                 .expect("Failed to get EngineEvent class")
                 .call1((
-                    crate::constants::components::EPOCH_START_EVENT,
+                    crate::constants::event_types::EPOCH_START_EVENT,
                     Some(event.0),
                     py.None(),
                 ))
@@ -154,7 +154,7 @@ where
                 .getattr(intern!(py, "EngineEvent"))
                 .expect("Failed to get EngineEvent class")
                 .call1((
-                    crate::constants::components::EPOCH_COMPLETE_EVENT,
+                    crate::constants::event_types::EPOCH_COMPLETE_EVENT,
                     Some(event.index),
                     dict.into_any().unbind(),
                 ))
@@ -186,7 +186,7 @@ where
                 .getattr(intern!(py, "EngineEvent"))
                 .expect("Failed to get EngineEvent class")
                 .call1((
-                    crate::constants::components::ENGINE_IMPROVEMENT_EVENT,
+                    crate::constants::event_types::ENGINE_IMPROVEMENT_EVENT,
                     Some(event.index),
                     dict.into_any().unbind(),
                 ))
@@ -215,7 +215,7 @@ impl Handler<LimitTriggered> for PySubscriber {
 
             let py_event = class
                 .call1((
-                    crate::constants::components::LIMIT_TRIGGERED_EVENT,
+                    crate::constants::event_types::LIMIT_TRIGGERED_EVENT,
                     Some(event.0),
                     py_dict.into_any().unbind(),
                 ))
@@ -253,7 +253,7 @@ impl Handler<LogEvent> for PySubscriber {
 
             let py_event = class
                 .call1((
-                    crate::constants::components::LOG_EVENT,
+                    crate::constants::event_types::LOG_EVENT,
                     None::<usize>,
                     py_dict.into_any().unbind(),
                 ))
@@ -282,7 +282,7 @@ impl Handler<CheckpointSaved> for PySubscriber {
 
             let py_event = class
                 .call1((
-                    crate::constants::components::CHECKPOINT_SAVED_EVENT,
+                    crate::constants::event_types::CHECKPOINT_SAVED_EVENT,
                     Some(event.index),
                     py_dict.into_any().unbind(),
                 ))
@@ -304,36 +304,37 @@ where
     C: Chromosome + PartialEq + Clone,
     T: IntoPyAnyObject + Send + Sync + Clone + 'static,
 {
-    use crate::constants::components;
+    use crate::constants::event_types;
 
-    let equals_or_all = |name: &str, target: &str| name == target || name == components::ALL_EVENTS;
+    let equals_or_all =
+        |name: &str, target: &str| name == target || name == event_types::ALL_EVENTS;
 
     for subscriber in subscribers {
         let event_type = subscriber
             .event_name()
             .map(|name| name.to_string())
-            .unwrap_or_else(|| components::ALL_EVENTS.to_string());
+            .unwrap_or_else(|| event_types::ALL_EVENTS.to_string());
 
         for &event_name in EVENT_TYPES {
             builder = if equals_or_all(&event_type, event_name) {
                 match event_name {
-                    components::STOP_EVENT => {
+                    event_types::STOP_EVENT => {
                         builder.subscribe::<EngineStop<T>>(subscriber.clone())
                     }
-                    components::EPOCH_START_EVENT => {
+                    event_types::EPOCH_START_EVENT => {
                         builder.subscribe::<EpochStart>(subscriber.clone())
                     }
-                    components::EPOCH_COMPLETE_EVENT => {
+                    event_types::EPOCH_COMPLETE_EVENT => {
                         builder.subscribe::<EpochComplete<T>>(subscriber.clone())
                     }
-                    components::ENGINE_IMPROVEMENT_EVENT => {
+                    event_types::ENGINE_IMPROVEMENT_EVENT => {
                         builder.subscribe::<Improvement<T>>(subscriber.clone())
                     }
-                    components::LIMIT_TRIGGERED_EVENT => {
+                    event_types::LIMIT_TRIGGERED_EVENT => {
                         builder.subscribe::<LimitTriggered>(subscriber.clone())
                     }
-                    components::LOG_EVENT => builder.subscribe::<LogEvent>(subscriber.clone()),
-                    components::CHECKPOINT_SAVED_EVENT => {
+                    event_types::LOG_EVENT => builder.subscribe::<LogEvent>(subscriber.clone()),
+                    event_types::CHECKPOINT_SAVED_EVENT => {
                         builder.subscribe::<CheckpointSaved>(subscriber.clone())
                     }
 

@@ -3,11 +3,9 @@
 //! These are essential for evolutionary algorithms that need to handle
 //! multiple conflicting objectives.
 
-use std::collections::HashMap;
-
-use radiate_utils::Float;
-
 use crate::objectives::{Objective, Optimize};
+use radiate_utils::Float;
+use std::collections::HashMap;
 
 /// A small constant to avoid division by zero and ensure non-zero weights.
 const EPSILON: f32 = 1e-6;
@@ -55,7 +53,7 @@ pub fn buffered_crowding_distance<T: AsRef<[f32]>>(scores: &[T], buffer: &mut [f
         );
     }
 
-    let mut indices: Vec<usize> = (0..n).collect();
+    let mut indices = (0..n).collect::<Vec<usize>>();
     let m = scores[0].as_ref().len();
     for dim in 0..m {
         indices.sort_unstable_by(|&i, &j| {
@@ -401,6 +399,7 @@ where
             if idx < 0 {
                 idx = 0;
             }
+
             if idx >= bins_per_dim as i32 {
                 idx = bins_per_dim as i32 - 1;
             }

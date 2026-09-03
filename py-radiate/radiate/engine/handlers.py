@@ -5,19 +5,20 @@ from typing import Any, Callable
 from radiate.radiate import PySubscriber
 
 from .._bridge import RsObject
+from .._rd import event_types
 from .metrics import MetricSet
 
 
 class EventType(Enum):
-    ALL = "all"
-    START = "start_event"
-    STOP = "stop_event"
-    EPOCH_START = "epoch_start_event"
-    EPOCH_COMPLETE = "epoch_complete_event"
-    ENGINE_IMPROVEMENT = "engine_improvement_event"
-    LIMIT_TRIGGERED = "limit_triggered_event"
-    LOG = "log_event"
-    CHECKPOINT_SAVED = "checkpoint_saved_event"
+    ALL = event_types.ALL_EVENTS
+    START = event_types.START_EVENT
+    STOP = event_types.STOP_EVENT
+    EPOCH_START = event_types.EPOCH_START_EVENT
+    EPOCH_COMPLETE = event_types.EPOCH_COMPLETE_EVENT
+    ENGINE_IMPROVEMENT = event_types.ENGINE_IMPROVEMENT_EVENT
+    LIMIT_TRIGGERED = event_types.LIMIT_TRIGGERED_EVENT
+    LOG = event_types.LOG_EVENT
+    CHECKPOINT_SAVED = event_types.CHECKPOINT_SAVED_EVENT
 
 
 class EngineEvent(RsObject):

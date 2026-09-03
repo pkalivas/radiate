@@ -166,7 +166,7 @@ impl<C: Chromosome, T> Problem<C, T> for EngineProblem<C, T> {
             fitness_fn(phenotype)
         } else {
             return Err(radiate_err!(
-                Evaluation: "No fitness function defined for EngineProblem"
+                Fitness: "No fitness function defined for EngineProblem"
             ));
         };
 
@@ -175,7 +175,7 @@ impl<C: Chromosome, T> Problem<C, T> for EngineProblem<C, T> {
         }
 
         Err(radiate_err!(
-            Evaluation: "Invalid fitness score {:?} for objective {:?}",
+            Fitness: "Invalid fitness score {:?} for objective {:?}",
             score,
             self.objective
         ))
@@ -248,7 +248,7 @@ impl<C: Chromosome, T> Problem<C, T> for BatchEngineProblem<C, T> {
             batch_fn(phenotypes)
         } else {
             return Err(radiate_err!(
-                Evaluation: "No batch fitness function defined for BatchEngineProblem"
+                Fitness: "No batch fitness function defined for BatchEngineProblem"
             ));
         };
 
@@ -268,14 +268,14 @@ impl<C: Chromosome, T> Problem<C, T> for BatchEngineProblem<C, T> {
             batch_fn(phenotypes)
         } else {
             return Err(radiate_err!(
-                Evaluation: "No batch fitness function defined for BatchEngineProblem"
+                Fitness: "No batch fitness function defined for BatchEngineProblem"
             ));
         };
 
         for value in scores.iter() {
             if !self.objective.validate(value) {
                 return Err(radiate_err!(
-                    Evaluation: "Invalid fitness score {:?} for objective {:?}",
+                    Fitness: "Invalid fitness score {:?} for objective {:?}",
                     value,
                     self.objective
                 ));

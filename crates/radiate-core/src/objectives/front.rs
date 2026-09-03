@@ -24,10 +24,7 @@ struct FrontScratch {
 
 #[derive(Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct Front<T>
-where
-    T: Scored,
-{
+pub struct Front<T: Scored> {
     values: Vec<T>,
     range: Range<usize>,
     objective: Objective,
@@ -36,10 +33,7 @@ where
     scratch: FrontScratch,
 }
 
-impl<T> Front<T>
-where
-    T: Scored,
-{
+impl<T: Scored> Front<T> {
     pub fn new(range: Range<usize>, objective: Objective) -> Self {
         Front {
             values: Vec::new(),
@@ -114,9 +108,7 @@ where
         for new_member in items.into_iter() {
             self.scratch.remove_buff.clear();
 
-            // Decide accept/reject without mutating self.values
             let mut accept = true;
-
             for (idx, existing) in self.values.iter().enumerate() {
                 if existing == new_member {
                     accept = false;
@@ -159,7 +151,6 @@ where
             self.values.push(new_member.clone());
             added_count += 1;
 
-            // Filter if we exceed max
             if self.values.len() > self.range.end {
                 self.fast_filter();
                 filter_count += 1;

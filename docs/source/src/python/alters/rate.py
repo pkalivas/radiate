@@ -14,7 +14,7 @@ engine = (
     rd.Engine.float(10, init_range=(-5.0, 5.0))
     .fitness(my_fitness_fn)
     .minimizing()
-    .alters(
+    .alter(
         rd.Mutate.gaussian(rate=0.1),
         rd.Cross.blend(rate=0.5),
     )

@@ -1,5 +1,5 @@
 use crate::nodes::{AggExpr, BinaryExpr, EveryState, ScheduleExpr, TrinaryExpr, UnaryExpr, When};
-use crate::{Evaluate, ExprResult, ExprSelector, MetricField, MetricKind, SelectExpr};
+use crate::{Evaluate, ExprResult, ExprSelector, SelectExpr, StatisticField, StatisticKind};
 use radiate_error::{RadiateError, radiate_err};
 use radiate_utils::sentry_id;
 use radiate_utils::{AnyValue, SmallStr};
@@ -41,8 +41,8 @@ impl Expr {
     pub fn identity() -> Expr {
         Expr::new(ExprKind::Selector(SelectExpr {
             metric: None,
-            field: MetricField::LastValue,
-            kind: MetricKind::Value,
+            field: StatisticField::LastValue,
+            kind: StatisticKind::Value,
         }))
     }
 

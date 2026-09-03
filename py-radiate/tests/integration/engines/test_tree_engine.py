@@ -1,5 +1,6 @@
-import radiate as rd
 import pytest
+
+import radiate as rd
 
 
 @pytest.mark.integration
@@ -16,7 +17,7 @@ def test_engine_tree_regression(simple_regression_dataset, random_seed):
         )
         .regression(inputs, outputs)
         .select(rd.Select.tournament(3), rd.Select.elite())
-        .alters(rd.Cross.tree(0.5), rd.Mutate.hoist(0.1))
+        .alter(rd.Cross.tree(0.5), rd.Mutate.hoist(0.1))
         .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
     )
 

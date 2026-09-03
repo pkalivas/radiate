@@ -12,9 +12,9 @@ license.workspace = true
 homepage.workspace = true
 
 [dependencies]
+serde = { workspace = true, optional = true }
 radiate-error = { workspace = true }
 radiate-utils = { workspace = true }
-serde = { workspace = true, optional = true }
 
 [dev-dependencies]
 radiate-core = { workspace = true }

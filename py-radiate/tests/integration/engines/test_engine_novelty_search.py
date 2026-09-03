@@ -35,7 +35,7 @@ def test_engine_is_novel(random_seed):
         )
         .size(100)
         .select(rd.Select.tournament(3))
-        .alters(rd.Cross.uniform(0.5), rd.Mutate.gaussian(0.1))
+        .alter(rd.Cross.uniform(0.5), rd.Mutate.gaussian(0.1))
         .limit(rd.Limit.generations(100))
     )
 
@@ -60,7 +60,7 @@ def test_int_engine_novelty_with_decorator_creates(random_seed):
         .fitness(fit)
         .size(100)
         .select(offspring=rd.Select.tournament(3))
-        .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.1))
+        .alter(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.1))
         .limit(rd.Limit.generations(100))
     )
 

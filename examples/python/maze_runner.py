@@ -139,7 +139,7 @@ engine = (
     .fitness(calculate_path_length)
     .minimizing()
     .subscribe(visualize_path)
-    .alters(
+    .alter(
         # PartiallyMappedCrossover and SwapMutator are common for TSP-like problems
         # where we want to maintain the permutation structure. ie., we don't want to
         # create duplicates or invalid permutations - we want to keep all waypoints and just

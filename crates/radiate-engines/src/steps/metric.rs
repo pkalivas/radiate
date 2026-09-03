@@ -1,7 +1,8 @@
 use crate::steps::EngineStep;
 use radiate_core::{
     Chromosome, Ecosystem, Evaluate, MetricSet, MetricUpdate, Objective, Score, SmallStr,
-    math::distribution, metric_names, phenotype::PhenotypeId, rate::ExprSet, stats::TagType,
+    math::distribution, metric_names, phenotype::PhenotypeId, radiate_err, rate::ExprSet,
+    stats::TagType,
 };
 use radiate_error::Result;
 use std::{
@@ -242,10 +243,10 @@ impl<C: Chromosome> EngineStep<C> for MetricStep {
             };
 
             if !self.objective.validate(score) {
-                return Err(radiate_error::RadiateError::Fitness(format!(
+                return Err(radiate_err!(Step: format!("{}", self.name()),
                     "Score {:?} has invalid dimensions for the objective {:?}.",
                     score, self.objective
-                )));
+                ));
             }
 
             let id = p.id();

@@ -174,7 +174,7 @@ mod engine_tests {
 
         let result = engine
             .iter()
-            .limit(vec![
+            .limit([
                 Limit::Generation(15),
                 Limit::Seconds(Duration::from_secs_f64(3_f64)),
             ])

@@ -33,7 +33,7 @@ engine = (
         survivor=rd.Select.tournament(k=3),
         frac=0.5,
     )
-    .alters(*alters)  # Add the alterers to the engine
+    .alter(*alters)  # Add the alterers to the engine
     .limit(rd.Limit.score(0.01), rd.Limit.generations(1000))
     # ... other parameters ...
 )

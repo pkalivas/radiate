@@ -18,7 +18,7 @@ def test_engine_float_vector_maximization(random_seed):
         .maximizing()
         .size(50)
         .select(rd.Select.boltzmann(4.0), rd.Select.elite())
-        .alters(rd.Cross.uniform(0.7), rd.Mutate.arithmetic(0.01))
+        .alter(rd.Cross.uniform(0.7), rd.Mutate.arithmetic(0.01))
         .limit(rd.Limit.score(2.9), rd.Limit.generations(100))
     )
 
@@ -55,7 +55,7 @@ def test_engine_float_matrix_minimization(random_seed):
         .minimizing()
         .size(50)
         .select(rd.Select.tournament(3), rd.Select.elite())
-        .alters(rd.Cross.mean(0.7), rd.Mutate.gaussian(0.1))
+        .alter(rd.Cross.mean(0.7), rd.Mutate.gaussian(0.1))
         .limit(rd.Limit.score(0.1), rd.Limit.generations(200))
     )
 
@@ -112,7 +112,7 @@ def test_engine_float_simple_neural_network(
         .fitness(fit)
         .minimizing()
         .select(offspring=rd.Select.boltzmann(temp=4.0))
-        .alters(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
+        .alter(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
         .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
     )
 

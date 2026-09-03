@@ -207,22 +207,22 @@ impl ExprSelector for MetricSet {
         };
 
         let wrap = |v: f32| match sel.kind {
-            MetricKind::Value => AnyValue::Float32(v),
-            MetricKind::Duration => AnyValue::Duration(Duration::from_secs_f32(v)),
+            StatisticKind::Value => AnyValue::Float32(v),
+            StatisticKind::Duration => AnyValue::Duration(Duration::from_secs_f32(v)),
         };
 
         match sel.field {
-            MetricField::LastValue => wrap(metric.last_value()),
-            MetricField::Mean => wrap(metric.mean()),
-            MetricField::StdDev => wrap(metric.stddev()),
-            MetricField::Min => wrap(metric.min()),
-            MetricField::Max => wrap(metric.max()),
-            MetricField::Sum => wrap(metric.sum()),
-            MetricField::Var => wrap(metric.var()),
-            MetricField::Skew => AnyValue::Float32(metric.skew()),
-            MetricField::Count => AnyValue::UInt64(metric.count() as u64),
-            MetricField::Generation => AnyValue::UInt64(metric.generation() as u64),
-            MetricField::UpdateCount => AnyValue::UInt64(metric.update_count() as u64),
+            StatisticField::LastValue => wrap(metric.last_value()),
+            StatisticField::Mean => wrap(metric.mean()),
+            StatisticField::StdDev => wrap(metric.stddev()),
+            StatisticField::Min => wrap(metric.min()),
+            StatisticField::Max => wrap(metric.max()),
+            StatisticField::Sum => wrap(metric.sum()),
+            StatisticField::Var => wrap(metric.var()),
+            StatisticField::Skew => AnyValue::Float32(metric.skew()),
+            StatisticField::Count => AnyValue::UInt64(metric.count() as u64),
+            StatisticField::Version => AnyValue::UInt64(metric.generation() as u64),
+            StatisticField::UpdateCount => AnyValue::UInt64(metric.update_count() as u64),
         }
     }
 }

@@ -196,7 +196,7 @@ def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
         rd.Engine.float(6, init_range=(-5.0, 5.0))
         .fitness(fitness_func)
         .select(rd.Select.boltzmann(4.0))
-        .alters(
+        .alter(
             rd.Cross.blend(),
             rd.Mutate.gaussian(),
         )

@@ -112,7 +112,7 @@ engine = (
     .minimizing()
     .subscribe(ImageWriter(SAVE_EVERY, OUT))
     .select(rd.Select.tournament(3), rd.Select.roulette())
-    .alters(
+    .alter(
         rd.Cross.mean(0.3),
         rd.Mutate.jitter(0.01, 0.15),
         rd.Cross.uniform(0.4),

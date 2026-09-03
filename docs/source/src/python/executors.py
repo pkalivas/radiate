@@ -36,7 +36,7 @@ engine = (
         survivor=rd.Select.tournament(k=3),
         frac=0.5,
     )
-    .alters(
+    .alter(
         rd.Mutate.gaussian(rate=0.1),
         rd.Cross.blend(rate=0.8, alpha=0.5),
     )

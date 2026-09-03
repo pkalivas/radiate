@@ -4,10 +4,9 @@ use radiate_utils::SmallStr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-/// Which statistic to extract from a metric in a [`MetricSet`].
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum MetricField {
+pub enum StatisticField {
     LastValue,
     Mean,
     StdDev,
@@ -17,7 +16,7 @@ pub enum MetricField {
     Var,
     Skew,
     Count,
-    Generation,
+    Version,
     UpdateCount,
 }
 
@@ -25,7 +24,7 @@ pub enum MetricField {
 /// (or `u64` for count/generation/update_count); `Duration` reinterprets the f32 as seconds.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub enum MetricKind {
+pub enum StatisticKind {
     Value,
     Duration,
 }
@@ -35,25 +34,25 @@ pub enum MetricKind {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SelectExpr {
     pub metric: Option<SmallStr>,
-    pub field: MetricField,
-    pub kind: MetricKind,
+    pub field: StatisticField,
+    pub kind: StatisticKind,
 }
 
 impl SelectExpr {
     pub fn new(metric: impl Into<SmallStr>) -> Self {
         Self {
             metric: Some(metric.into()),
-            field: MetricField::LastValue,
-            kind: MetricKind::Value,
+            field: StatisticField::LastValue,
+            kind: StatisticKind::Value,
         }
     }
 
-    pub fn with_field(mut self, field: MetricField) -> Self {
+    pub fn with_field(mut self, field: StatisticField) -> Self {
         self.field = field;
         self
     }
 
-    pub fn with_kind(mut self, kind: MetricKind) -> Self {
+    pub fn with_kind(mut self, kind: StatisticKind) -> Self {
         self.kind = kind;
         self
     }

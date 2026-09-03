@@ -6,22 +6,23 @@ pub type Result<T> = std::result::Result<T, RadiateError>;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Code {
-    InvalidConfig,
+    Builder,
     Engine,
-    Codec,
-    Evaluation,
+    Step,
     Genome,
     Fitness,
+
     Metric,
     Expr,
     AnyValue,
-    Other,
-    Io,
+
     Python,
+
     Multiple,
-    Event,
     Context,
     IO,
+
+    Other,
 }
 
 #[derive(Error, Debug)]
@@ -32,14 +33,11 @@ pub enum RadiateError {
     #[error("Engine error: {0}")]
     Engine(String),
 
+    #[error("Step error: {0}")]
+    Step(String),
+
     #[error("Genome error: {0}")]
     Genome(String),
-
-    #[error("Codec error: {0}")]
-    Codec(String),
-
-    #[error("Evaluation error: {0}")]
-    Evaluation(String),
 
     #[error("Invalid fitness: {0}")]
     Fitness(String),
@@ -47,7 +45,7 @@ pub enum RadiateError {
     #[error("Metric error: {0}")]
     Metric(String),
 
-    #[error("Expression error: {0}")]
+    #[error("Expr error: {0}")]
     Expr(String),
 
     #[cfg(feature = "python")]
@@ -56,9 +54,6 @@ pub enum RadiateError {
 
     #[error("Multiple errors:\n{0}")]
     Multiple(String),
-
-    #[error("Event error: {0}")]
-    Event(String),
 
     #[error("AnyValue error: {0}")]
     AnyValue(String),
@@ -83,23 +78,21 @@ pub enum RadiateError {
 impl RadiateError {
     pub fn code(&self) -> Code {
         match self {
-            RadiateError::Builder { .. } => Code::InvalidConfig,
-            RadiateError::Engine { .. } => Code::Engine,
-            RadiateError::Genome { .. } => Code::Genome,
-            RadiateError::Codec { .. } => Code::Codec,
-            RadiateError::Fitness { .. } => Code::Fitness,
-            RadiateError::Metric { .. } => Code::Metric,
-            RadiateError::Expr { .. } => Code::Expr,
-            RadiateError::Evaluation { .. } => Code::Evaluation,
-            RadiateError::AnyValue { .. } => Code::AnyValue,
+            RadiateError::Builder(_) => Code::Builder,
+            RadiateError::Engine(_) => Code::Engine,
+            RadiateError::Step(_) => Code::Step,
+            RadiateError::Genome(_) => Code::Genome,
+            RadiateError::Metric(_) => Code::Metric,
+            RadiateError::Expr(_) => Code::Expr,
+            RadiateError::Fitness(_) => Code::Fitness,
+            RadiateError::AnyValue(_) => Code::AnyValue,
             RadiateError::Other(_) => Code::Other,
             #[cfg(feature = "python")]
-            RadiateError::Python { .. } => Code::Python,
+            RadiateError::Python(_) => Code::Python,
             RadiateError::Multiple(_) => Code::Multiple,
             RadiateError::Context { .. } => Code::Context,
             RadiateError::IO(_) => Code::IO,
             RadiateError::Fmt(_) => Code::Other,
-            RadiateError::Event { .. } => Code::Event,
         }
     }
     pub fn context(self, msg: impl Into<String>) -> Self {
@@ -157,14 +150,14 @@ macro_rules! radiate_err {
     (Engine: $fmt:literal $(, $arg:expr)* $(,)?) => {
         $crate::__private::must_use($crate::RadiateError::Engine(format!($fmt, $($arg),*)))
     };
+    (Step: $step:expr, $fmt:literal $(, $arg:expr)* $(,)?) => {
+        $crate::__private::must_use($crate::RadiateError::Step(format!($fmt, $($arg),*)))
+    };
     (Genome: $fmt:literal $(, $arg:expr)* $(,)?) => {
         $crate::__private::must_use($crate::RadiateError::Genome(format!($fmt, $($arg),*)))
     };
-    (Codec: $fmt:literal $(, $arg:expr)* $(,)?) => {
-        $crate::__private::must_use($crate::RadiateError::Codec(format!($fmt, $($arg),*)))
-    };
-    (Evaluation: $fmt:literal $(, $arg:expr)* $(,)?) => {
-        $crate::__private::must_use($crate::RadiateError::Evaluation(format!($fmt, $($arg),*)))
+    (Fitness: $fmt:literal $(, $arg:expr)* $(,)?) => {
+        $crate::__private::must_use($crate::RadiateError::Fitness(format!($fmt, $($arg),*)))
     };
     (Python: $fmt:literal $(, $arg:expr)* $(,)?) => {
         $crate::__private::must_use(pyo3::PyErr::new::<pyo3::exceptions::PyException, _>(format!($fmt, $($arg),*)))
@@ -184,10 +177,6 @@ macro_rules! radiate_err {
         $crate::__private::must_use($source.into().context($msg))
     };
 
-    (Event: $fmt:literal $(, $arg:expr)* $(,)?) => {
-        $crate::__private::must_use($crate::RadiateError::Event(format!($fmt, $($arg),*)))
-    };
-
     (IO: $fmt:literal $(, $arg:expr)* $(,)?) => {
         $crate::__private::must_use($crate::RadiateError::IO(format!($fmt, $($arg),*)))
     };
@@ -205,11 +194,8 @@ macro_rules! radiate_err {
     (Genome: $msg:expr $(,)?) => {
         $crate::__private::must_use($crate::RadiateError::Genome($msg.to_string()))
     };
-    (Codec: $msg:expr $(,)?) => {
-        $crate::__private::must_use($crate::RadiateError::Codec($msg.to_string()))
-    };
-    (Evaluation: $msg:expr $(,)?) => {
-        $crate::__private::must_use($crate::RadiateError::Evaluation($msg.to_string()))
+    (Fitness: $msg:expr $(,)?) => {
+        $crate::__private::must_use($crate::RadiateError::Fitness($msg.to_string()))
     };
     (Python: $msg:expr $(,)?) => {
         $crate::__private::must_use(pyo3::PyErr::new::<pyo3::exceptions::PyException, _>($msg.to_string()))

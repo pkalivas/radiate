@@ -2,18 +2,18 @@ use crate::nodes::{
     aggregate::{AggExpr, Rollup},
     ops::{BinaryExpr, BinaryOp, TrinaryExpr, TrinaryOp, UnaryExpr, UnaryOp, fuse_affine},
 };
-use crate::{Expr, MetricField, MetricKind, expr::ExprKind};
+use crate::{Expr, StatisticField, StatisticKind, expr::ExprKind};
 use radiate_utils::{DataType, Quantile};
 use std::ops::{Add, Div, Mul, Neg, Not, Sub};
 
 impl Expr {
     pub fn time(mut self) -> Expr {
-        self.try_swap_select_kind(MetricKind::Duration);
+        self.try_swap_select_kind(StatisticKind::Duration);
         self
     }
 
     pub fn value(mut self) -> Expr {
-        self.try_swap_select_kind(MetricKind::Value);
+        self.try_swap_select_kind(StatisticKind::Value);
         self
     }
 
@@ -45,61 +45,61 @@ impl Expr {
     }
 
     pub fn first(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(MetricField::LastValue, Rollup::First, |expr| {
+        self.try_reduce_select_agg_rollup_or(StatisticField::LastValue, Rollup::First, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::First)))
         })
     }
 
     pub fn last(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(MetricField::LastValue, Rollup::Last, |expr| {
+        self.try_reduce_select_agg_rollup_or(StatisticField::LastValue, Rollup::Last, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Last)))
         })
     }
 
     pub fn sum(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(MetricField::Sum, Rollup::Sum, |expr| {
+        self.try_reduce_select_agg_rollup_or(StatisticField::Sum, Rollup::Sum, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Sum)))
         })
     }
 
     pub fn mean(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(MetricField::Mean, Rollup::Mean, |expr| {
+        self.try_reduce_select_agg_rollup_or(StatisticField::Mean, Rollup::Mean, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Mean)))
         })
     }
 
     pub fn stddev(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(MetricField::StdDev, Rollup::StdDev, |expr| {
+        self.try_reduce_select_agg_rollup_or(StatisticField::StdDev, Rollup::StdDev, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::StdDev)))
         })
     }
 
     pub fn min(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(MetricField::Min, Rollup::Min, |expr| {
+        self.try_reduce_select_agg_rollup_or(StatisticField::Min, Rollup::Min, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Min)))
         })
     }
 
     pub fn max(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(MetricField::Max, Rollup::Max, |expr| {
+        self.try_reduce_select_agg_rollup_or(StatisticField::Max, Rollup::Max, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Max)))
         })
     }
 
     pub fn var(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(MetricField::Var, Rollup::Var, |expr| {
+        self.try_reduce_select_agg_rollup_or(StatisticField::Var, Rollup::Var, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Var)))
         })
     }
 
     pub fn skew(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(MetricField::Skew, Rollup::Skew, |expr| {
+        self.try_reduce_select_agg_rollup_or(StatisticField::Skew, Rollup::Skew, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Skew)))
         })
     }
 
     pub fn count(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(MetricField::Count, Rollup::Count, |expr| {
+        self.try_reduce_select_agg_rollup_or(StatisticField::Count, Rollup::Count, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Count)))
         })
     }
@@ -320,7 +320,7 @@ impl Expr {
         fuse_affine(self, 1.0 / target, -1.0)
     }
 
-    fn try_swap_select_kind(&mut self, to: MetricKind) -> bool {
+    fn try_swap_select_kind(&mut self, to: StatisticKind) -> bool {
         if let ExprKind::Selector(sel) = &mut self.kind {
             sel.kind = to;
             return true;
@@ -328,7 +328,7 @@ impl Expr {
         false
     }
 
-    fn try_swap_select_field(&mut self, to: MetricField) -> bool {
+    fn try_swap_select_field(&mut self, to: StatisticField) -> bool {
         if let ExprKind::Selector(sel) = &mut self.kind {
             sel.field = to;
             return true;
@@ -338,7 +338,7 @@ impl Expr {
 
     fn try_swap_select_field_or(
         mut self,
-        to: MetricField,
+        to: StatisticField,
         func: impl FnOnce(Self) -> Expr,
     ) -> Expr {
         if self.try_swap_select_field(to) {
@@ -349,16 +349,17 @@ impl Expr {
 
     fn try_swap_agg_rollup_or(mut self, to: Rollup, func: impl FnOnce(Self) -> Expr) -> Expr {
         if let ExprKind::Aggregate(ref mut agg) = self.kind
-            && agg.rollup != Rollup::Unique {
-                agg.rollup = to;
-                return self;
-            }
+            && agg.rollup != Rollup::Unique
+        {
+            agg.rollup = to;
+            return self;
+        }
         func(self)
     }
 
     fn try_reduce_select_agg_rollup_or(
         self,
-        field: MetricField,
+        field: StatisticField,
         to: Rollup,
         func: impl FnOnce(Self) -> Expr,
     ) -> Expr {

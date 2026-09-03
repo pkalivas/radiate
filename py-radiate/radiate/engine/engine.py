@@ -432,7 +432,7 @@ class Engine[G, T]:
         ...     .regression(
         ...         features, targets, loss=rd.MSE
         ...     )  # <- we directly pass our features/targets to the regression method. The engine is now also configured to minimize the mean squared error between the graph's output and our targets.
-        ...     .alters(
+        ...     .alter(
         ...         rd.Cross.graph(0.05, 0.5),
         ...         rd.Mutate.op(0.07, 0.05),
         ...         rd.Mutate.graph(0.1, 0.1, False),
@@ -535,7 +535,7 @@ class Engine[G, T]:
 
         return self
 
-    def alters(self, *alters: AlterBase) -> Engine[G, T]:
+    def alter(self, *alters: AlterBase) -> Engine[G, T]:
         """
         Set the alteration operators for the engine.
 
@@ -564,7 +564,7 @@ class Engine[G, T]:
         ...     .fitness(my_fitness_fn)
         ...     .minimizing()
         ...     .select(offspring=rd.Select.tournament(k=3))
-        ...     .alters(
+        ...     .alter(
         ...         rd.Cross.multipoint(
         ...             0.75, 2
         ...         ),  # <- multi-point crossover with 75% rate and 2 crossover points
@@ -805,7 +805,7 @@ class Engine[G, T]:
         ...     .fitness(fitness_fn)
         ...     .minimizing()
         ...     .population(population)
-        ...     .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.01))
+        ...     .alter(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.01))
         ... )
         """
         self._builder.set_population(population)
@@ -1144,7 +1144,7 @@ class Engine[G, T]:
         ...         output=rd.Op.linear(),
         ...     )
         ...     .regression(..., ...)
-        ...     .alters(
+        ...     .alter(
         ...         rd.Cross.graph(0.05, 0.5),
         ...         rd.Mutate.op(0.07, 0.05),
         ...         rd.Mutate.graph(0.1, 0.1, False),

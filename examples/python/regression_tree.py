@@ -33,7 +33,7 @@ engine = (
         root=rd.Op.linear(),
     )
     .regression(inputs, answers)
-    .alters(
+    .alter(
         rd.Cross.tree(0.7),
         rd.Mutate.hoist(0.01),
     )

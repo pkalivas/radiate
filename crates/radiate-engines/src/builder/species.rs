@@ -26,7 +26,7 @@ where
     }
 
     pub fn species_threshold(mut self, threshold: impl Into<Expr>) -> Self {
-        self.params.species_params.species_threshold = threshold.into();
+        self.params.species_params.species_threshold = threshold.into().compile();
         self
     }
 

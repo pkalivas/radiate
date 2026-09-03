@@ -1,6 +1,5 @@
-use radiate_error::RadiateError;
-
 use crate::AnyValue;
+use radiate_error::RadiateError;
 
 impl<'a> TryFrom<AnyValue<'a>> for f32 {
     type Error = RadiateError;

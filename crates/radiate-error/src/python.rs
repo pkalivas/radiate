@@ -1,30 +1,28 @@
 use crate::{Code, RadiateError};
 use pyo3::PyErr;
-use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 
 impl From<RadiateError> for PyErr {
     fn from(e: RadiateError) -> Self {
         match e {
             RadiateError::Builder(message) => PyValueError::new_err(message),
-            RadiateError::Codec(message) => PyTypeError::new_err(message),
-            RadiateError::Engine(message)
-            | RadiateError::Evaluation(message)
-            | RadiateError::Genome(message) => PyRuntimeError::new_err(message),
+            RadiateError::Engine(message) => PyRuntimeError::new_err(message),
             RadiateError::Fitness(message) => PyRuntimeError::new_err(message),
+            RadiateError::Genome(message) => PyRuntimeError::new_err(message),
+            RadiateError::Step(message) => PyRuntimeError::new_err(message),
             RadiateError::Metric(message) => PyRuntimeError::new_err(message),
-            RadiateError::Expr(message) => PyRuntimeError::new_err(message),
             RadiateError::Other(message) => PyRuntimeError::new_err(message),
             RadiateError::AnyValue(message) => PyRuntimeError::new_err(message),
+            RadiateError::Expr(message) => PyRuntimeError::new_err(message),
             RadiateError::Multiple(m) => PyRuntimeError::new_err(m),
-            RadiateError::Event(m) => PyRuntimeError::new_err(m),
             // Context wraps another error; classify by the root cause so the
             // exception type reflects what went wrong, while the message keeps
             // the full "context\nCaused by: ..." chain.
             RadiateError::Context { .. } => {
                 let message = e.to_string();
                 match e.leaf_code() {
-                    Code::InvalidConfig => PyValueError::new_err(message),
-                    Code::Codec => PyTypeError::new_err(message),
+                    Code::Builder => PyValueError::new_err(message),
+                    Code::Step => PyRuntimeError::new_err(message),
                     _ => PyRuntimeError::new_err(message),
                 }
             }

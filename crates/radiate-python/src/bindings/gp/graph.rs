@@ -27,6 +27,7 @@ fn graph_from_rust(py: Python<'_>) -> &Py<PyAny> {
     })
 }
 
+#[inline]
 fn eval_graph<'py, F>(
     py: Python<'py>,
     graph: &mut StatefulGraph<Op<F>, F>,
@@ -114,6 +115,7 @@ impl PyGraph {
         }
     }
 
+    #[inline]
     pub fn eval<'py>(
         &mut self,
         py: Python<'py>,

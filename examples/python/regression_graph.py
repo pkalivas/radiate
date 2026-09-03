@@ -46,7 +46,7 @@ engine = (
     # .minimizing()
     .regression(x, y, loss=rd.MSE)
     .select(rd.Select.boltzmann(temp=4.0))
-    .alters(
+    .alter(
         rd.Cross.graph(0.4, 0.5),
         rd.Mutate.op(0.07, 0.05),
         rd.Mutate.graph(0.1, 0.1, False),

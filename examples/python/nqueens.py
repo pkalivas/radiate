@@ -35,7 +35,7 @@ engine = (
     rd.Engine.int(N_QUEENS, init_range=(0, N_QUEENS), use_numpy=True, dtype=rd.UInt8)
     .fitness(fit)
     .minimizing()
-    .alters(
+    .alter(
         rd.Cross.multipoint(0.75, 2),
         rd.Mutate.uniform(0.05),
     )

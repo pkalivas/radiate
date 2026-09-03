@@ -43,7 +43,7 @@ engine = (
         rd.Dist.neat(excess=1.0, disjoint=1.0, weight_diff=3.0),
         target=5,
     )
-    .alters(
+    .alter(
         rd.Cross.graph(0.4, 0.5),
         rd.Mutate.op(0.07, 0.05),
         rd.Mutate.graph(0.1, 0.1, False),

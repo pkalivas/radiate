@@ -161,6 +161,7 @@ where
     }
 }
 
+#[inline]
 fn check_generation_limit<C, T>(
     ctx: &EvolutionContext<C, T>,
     limit: usize,
@@ -177,6 +178,7 @@ where
     })
 }
 
+#[inline]
 fn check_time_limit<C, T>(
     ctx: &EvolutionContext<C, T>,
     limit: Duration,
@@ -199,6 +201,7 @@ where
     })
 }
 
+#[inline]
 fn check_score_limit<C, T>(
     ctx: &EvolutionContext<C, T>,
     limit: &Score,
@@ -242,6 +245,7 @@ where
     Ok(outcome)
 }
 
+#[inline]
 fn check_convergence_limit<C, T>(
     ctx: &EvolutionContext<C, T>,
     window: usize,
@@ -294,6 +298,7 @@ where
     })
 }
 
+#[inline]
 fn check_expr_limit<C, T>(
     ctx: &EvolutionContext<C, T>,
     expr: &mut Expr,
@@ -302,7 +307,7 @@ where
     C: Chromosome,
 {
     let metrics = &ctx.metrics;
-    let result = expr.eval(metrics).unwrap_or(AnyValue::Null);
+    let result = expr.eval(metrics)?;
 
     if let AnyValue::Bool(b) = result {
         let proceed = !b;
@@ -380,6 +385,12 @@ impl From<(Limit, Limit, Limit)> for Limit {
 impl From<(Limit, Limit, Limit, Limit)> for Limit {
     fn from(value: (Limit, Limit, Limit, Limit)) -> Self {
         Limit::Combined(vec![value.0, value.1, value.2, value.3])
+    }
+}
+
+impl<const N: usize> From<[Limit; N]> for Limit {
+    fn from(value: [Limit; N]) -> Self {
+        Limit::Combined(value.into_iter().collect::<Vec<Limit>>())
     }
 }
 

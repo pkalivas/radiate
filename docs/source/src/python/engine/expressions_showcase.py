@@ -47,7 +47,7 @@ engine = (
     .metrics(
         distance_signal_mean=distance_signal_mean, species_count_mean=species_count_mean
     )
-    .alters(
+    .alter(
         rd.Cross.graph(0.05, 0.5),
         rd.Mutate.op(0.07, 0.05),
         rd.Mutate.graph(0.1, 0.1, False),

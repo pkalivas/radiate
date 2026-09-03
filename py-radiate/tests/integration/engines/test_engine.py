@@ -26,7 +26,7 @@ def test_engine_maintains_population_size(random_seed):
         .fitness(fitness_fn)
         .minimizing()
         .population(population)
-        .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.01))
+        .alter(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.01))
         .limit(rd.Limit.score(0.0001), rd.Limit.generations(1000))
     )
 
@@ -68,7 +68,7 @@ def test_engine_batch_fitness():
         .fitness(fitness_fn)
         .minimizing()
         .population(population)
-        .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.01))
+        .alter(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.01))
         .limit(rd.Limit.score(0.0001), rd.Limit.generations(1000))
     )
 
@@ -92,7 +92,7 @@ def test_engine_multi_objective(random_seed):
         rd.Engine.float(3, init_range=(-10.0, 10.0))
         .fitness(fitness_func)
         .objective(rd.MIN, rd.MAX)
-        .alters(rd.Cross.uniform(0.7), rd.Mutate.arithmetic(0.1))
+        .alter(rd.Cross.uniform(0.7), rd.Mutate.arithmetic(0.1))
         .select(rd.Select.tournament(3), rd.Select.nsga2())
         .limit(rd.Limit.generations(50))
     )

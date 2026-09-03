@@ -70,7 +70,7 @@ codec = rd.GraphCodec.directed(
 engine = (
     rd.Engine(codec)
     .regression(inputs, answers, loss=rd.MSE)
-    .alters(
+    .alter(
         rd.Cross.graph(0.5, 0.5),
         rd.Mutate.op(0.07, 0.05),
         rd.Mutate.graph(0.1, 0.1),

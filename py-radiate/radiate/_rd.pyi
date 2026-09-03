@@ -59,13 +59,6 @@ class _Components:
     MIN: Final[str]
     MAX: Final[str]
 
-    ALL_EVENTS: Final[str]
-    START_EVENT: Final[str]
-    STOP_EVENT: Final[str]
-    EPOCH_START_EVENT: Final[str]
-    EPOCH_COMPLETE_EVENT: Final[str]
-    ENGINE_IMPROVEMENT_EVENT: Final[str]
-
     SCORE_LIMIT: Final[str]
     GENERATIONS_LIMIT: Final[str]
     SECONDS_LIMIT: Final[str]
@@ -79,8 +72,20 @@ class _LossFunctions:
     CROSS_ENTROPY_LOSS: Final[str]
     DIFF_LOSS: Final[str]
 
+class _EventTypes:
+    ALL_EVENTS: Final[str]
+    START_EVENT: Final[str]
+    STOP_EVENT: Final[str]
+    EPOCH_START_EVENT: Final[str]
+    EPOCH_COMPLETE_EVENT: Final[str]
+    ENGINE_IMPROVEMENT_EVENT: Final[str]
+    LIMIT_TRIGGERED_EVENT: Final[str]
+    LOG_EVENT: Final[str]
+    CHECKPOINT_SAVED_EVENT: Final[str]
+
 components: _Components
 loss_functions: _LossFunctions
+event_types: _EventTypes
 
 class PyEngineInputType(StrEnum):
     Alterer = "Alterer"
@@ -107,12 +112,6 @@ class PyEngineInputType(StrEnum):
     Metric = "Metric"
     Filter = "Filter"
     Unknown = "Unknown"
-
-class PyEngineControl:
-    def pause(self) -> None: ...
-    def resume(self) -> None: ...
-    def stop(self) -> None: ...
-    def step(self) -> None: ...
 
 class PyGeneration:
     def index(self) -> int: ...
