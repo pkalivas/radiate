@@ -274,7 +274,7 @@ where
                 _ => Arc::default(),
             },
             ViewInner::Generation(epoch) => match &epoch.front {
-                Some(front) => Arc::clone(&front),
+                Some(front) => Arc::clone(front),
                 None => Arc::default(),
             },
         }

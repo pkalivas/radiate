@@ -36,17 +36,14 @@ where
     T: Send + Sync + 'static,
 {
     fn handle(&mut self, message: &EpochComplete<T>, ctx: &EventContext<'_, Self>) {
-        check_stagnation(&message, ctx);
-        check_diversity(&message, ctx);
-        check_species_collapse(&message, ctx);
+        check_stagnation(message, ctx);
+        check_diversity(message, ctx);
+        check_species_collapse(message, ctx);
     }
 }
 
 fn check_stagnation<T, H>(message: &EpochComplete<T>, ctx: &EventContext<'_, H>) {
-    match message.objective {
-        Objective::Multi(_) => return,
-        _ => {}
-    }
+    if let Objective::Multi(_) = message.objective { return }
 
     let stag_count = message
         .metrics

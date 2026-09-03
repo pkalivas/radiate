@@ -123,7 +123,7 @@ where
                     break;
                 }
 
-                match self.dom_cmp(existing, &new_member) {
+                match self.dom_cmp(existing, new_member) {
                     Ordering::Greater => {
                         // existing dominates new -> reject
                         accept = false;

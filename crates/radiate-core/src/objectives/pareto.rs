@@ -367,8 +367,8 @@ where
     let mut mins = vec![K::infinity(); m];
     let mut maxs = vec![K::neg_infinity(); m];
 
-    for i in 0..n {
-        let row = scores[i].as_ref();
+    for row in scores.iter().take(n) {
+        let row = row.as_ref();
         for d in 0..m {
             let x = row[d];
             if x < mins[d] {
@@ -388,8 +388,8 @@ where
 
     let mut cell_counts: HashMap<Vec<u8>, usize> = HashMap::new();
 
-    for i in 0..n {
-        let row = scores[i].as_ref();
+    for row in scores.iter().take(n) {
+        let row = row.as_ref();
         let mut cell = Vec::with_capacity(m);
 
         for d in 0..m {

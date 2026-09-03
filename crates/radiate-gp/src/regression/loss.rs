@@ -42,7 +42,7 @@ impl Loss {
         match self {
             Loss::MSE => {
                 for sample in data_set.iter() {
-                    eval_into_buf(&sample.0, buffer);
+                    eval_into_buf(sample.0, buffer);
                     for (&target, &pred) in sample.1.iter().zip(buffer.iter()) {
                         let d = target - pred;
                         sum = sum + d * d;
@@ -51,7 +51,7 @@ impl Loss {
             }
             Loss::MAE => {
                 for sample in data_set.iter() {
-                    eval_into_buf(&sample.0, buffer);
+                    eval_into_buf(sample.0, buffer);
                     let target = &sample.1;
                     for (&t, &p) in target.iter().zip(buffer.iter()) {
                         let d = t - p;
@@ -61,7 +61,7 @@ impl Loss {
             }
             Loss::XEnt => {
                 for sample in data_set.iter() {
-                    eval_into_buf(&sample.0, buffer);
+                    eval_into_buf(sample.0, buffer);
                     for (&target, &pred) in sample.1.iter().zip(buffer.iter()) {
                         let q = pred.clamp(F::LOG_EPS, F::ONE);
                         sum = sum - target * q.ln();
@@ -70,7 +70,7 @@ impl Loss {
             }
             Loss::Diff => {
                 for sample in data_set.iter() {
-                    eval_into_buf(&sample.0, buffer);
+                    eval_into_buf(sample.0, buffer);
                     let target = &sample.1;
                     for (&t, &p) in target.iter().zip(buffer.iter()) {
                         sum = sum + (t - p);

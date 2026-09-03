@@ -141,9 +141,7 @@ impl PyFront {
 
     pub fn values(&self) -> Vec<PyFrontValue> {
         match &self.inner {
-            PyFrontInner::Front(front) => {
-                front.values().iter().map(|v| v.clone()).collect::<Vec<_>>()
-            }
+            PyFrontInner::Front(front) => front.values().to_vec(),
             PyFrontInner::Values(values) => values.clone(),
         }
     }

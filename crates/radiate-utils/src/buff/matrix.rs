@@ -151,7 +151,7 @@ impl<T: Clone> Matrix<T> {
     pub fn append_column(&mut self, col_data: Vec<T>) {
         debug_assert!(col_data.len() == self.rows);
         let mut new_data = Vec::with_capacity((self.rows + 1) * self.cols);
-        for (row, col) in self.data.chunks(self.cols).zip(col_data.into_iter()) {
+        for (row, col) in self.data.chunks(self.cols).zip(col_data) {
             new_data.extend_from_slice(row);
             new_data.push(col);
         }
