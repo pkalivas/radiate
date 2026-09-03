@@ -1,4 +1,4 @@
-use crate::{Evaluate, ExprResult, ExprSelector, SelectExpr};
+use crate::{ExprEval, ExprResult, ExprSelect, SelectExpr};
 use crate::{
     Selector, metric_fields,
     nodes::{AggExpr, BinaryExpr, IndexState, ScheduleExpr, TrinaryExpr, UnaryExpr, When},
@@ -41,12 +41,24 @@ impl Expr {
         }
     }
 
+    pub fn select<'a, O>(&'a mut self, val: impl ExprSelect) -> Result<O, RadiateError>
+    where
+        O: TryFrom<AnyValue<'a>, Error = RadiateError>,
+    {
+        let result = self.eval(&val)?;
+        O::try_from(result)
+    }
+
     pub fn identity() -> Expr {
         Expr::new(ExprKind::Selector(SelectExpr::new(Selector::Identity)))
     }
 
     pub fn lit(value: impl Into<AnyValue<'static>>) -> Expr {
         Expr::new(ExprKind::Literal(value.into()))
+    }
+
+    pub fn range(sel: impl Into<std::ops::Range<usize>>) -> Expr {
+        Expr::new(ExprKind::Selector(SelectExpr::new(sel.into())))
     }
 
     pub fn metric(name: impl Into<SmallStr>) -> Expr {
@@ -110,9 +122,9 @@ impl Expr {
     }
 }
 
-impl<'a, T> Evaluate<'a, T> for Expr
+impl<'a, T> ExprEval<'a, T> for Expr
 where
-    T: ExprSelector,
+    T: ExprSelect,
 {
     #[inline]
     fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {

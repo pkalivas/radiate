@@ -1,5 +1,5 @@
-use super::{Evaluate, ExprResult};
-use crate::ExprSelector;
+use super::{ExprEval, ExprResult};
+use crate::ExprSelect;
 use radiate_utils::{DataType, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -22,9 +22,9 @@ impl SelectExpr {
     }
 }
 
-impl<'a, T> Evaluate<'a, T> for SelectExpr
+impl<'a, T> ExprEval<'a, T> for SelectExpr
 where
-    T: ExprSelector,
+    T: ExprSelect,
 {
     fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {
         Ok(metrics.select(&self.selector))
@@ -35,8 +35,8 @@ where
 #[derive(Clone, Debug, PartialEq)]
 pub enum Selector {
     Identity,
-    Matches(SmallStr),
     Index(usize),
+    Range(usize, usize),
     Metric {
         name: SmallStr,
         field: SmallStr,
@@ -44,21 +44,15 @@ pub enum Selector {
     },
 }
 
-impl From<SmallStr> for Selector {
-    fn from(s: SmallStr) -> Self {
-        Selector::Matches(s)
-    }
-}
-
-impl From<&str> for Selector {
-    fn from(s: &str) -> Self {
-        Selector::Matches(SmallStr::from_string(s.to_string()))
-    }
-}
-
 impl From<usize> for Selector {
     fn from(idx: usize) -> Self {
         Selector::Index(idx)
+    }
+}
+
+impl From<std::ops::Range<usize>> for Selector {
+    fn from(range: std::ops::Range<usize>) -> Self {
+        Selector::Range(range.start, range.end)
     }
 }
 

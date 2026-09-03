@@ -23,6 +23,16 @@ mod test {
     }
 
     #[test]
+    fn test_eval_vec() {
+        let vals = (0..20).map(|x| x as f32).collect::<Vec<_>>();
+        let mut expr = Expr::range(5..10);
+
+        let output: Vec<f32> = expr.select(vals).unwrap();
+
+        println!("output: {output:?}");
+    }
+
+    #[test]
     fn test_rolling_mean() {
         let mut expr = Expr::metric("accuracy").rolling(3).mean();
         let mut metrics = MetricSet::default();
@@ -337,7 +347,7 @@ mod test {
 
 #[cfg(test)]
 mod tests {
-    use radiate_metrics::{Evaluate, Expr, ExprKind, MetricSet};
+    use radiate_metrics::{Expr, ExprEval, ExprKind, MetricSet};
     use radiate_utils::{AnyValue, DataType};
 
     // fn is_fused_affine(e: &Expr) -> bool {

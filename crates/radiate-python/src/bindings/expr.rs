@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use radiate::{AnyValue, Evaluate, Expr, expr};
+use radiate::{AnyValue, ExprEval, Expr, expr};
 use radiate_error::radiate_py_bail;
 
 use crate::{PyMetricSet, Wrap, dtype_from_str};

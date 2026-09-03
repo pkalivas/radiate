@@ -197,7 +197,13 @@ impl MetricSet {
     }
 }
 
-impl ExprSelector for MetricSet {
+impl ExprSelect for &MetricSet {
+    fn select(&self, sel: &Selector) -> AnyValue<'static> {
+        (*self).select(sel)
+    }
+}
+
+impl ExprSelect for MetricSet {
     fn select(&self, sel: &Selector) -> AnyValue<'static> {
         let wrap = |v: f32, dtype: &DataType| match dtype {
             DataType::Float32 => AnyValue::Float32(v),
@@ -217,6 +223,7 @@ impl ExprSelector for MetricSet {
                     f if f == metric_fields::SUM => wrap(metric.sum(), dtype),
                     f if f == metric_fields::VARIANCE => wrap(metric.var(), dtype),
                     f if f == metric_fields::SKEWNESS => AnyValue::Float32(metric.skew()),
+                    f if f == metric_fields::KURTOSIS => AnyValue::Float32(metric.kurt()),
                     f if f == metric_fields::COUNT => AnyValue::UInt64(metric.count() as u64),
                     f if f == metric_fields::GENERATION => {
                         AnyValue::UInt64(metric.generation() as u64)
@@ -234,9 +241,6 @@ impl ExprSelector for MetricSet {
         match sel {
             Selector::Identity => AnyValue::Null,
             Selector::Metric { name, field, dtype } => match_field(name, field, dtype),
-            Selector::Matches(name) => {
-                match_field(name, &metric_fields::LAST_VALUE, &DataType::Float32)
-            }
             _ => AnyValue::Null,
         }
     }

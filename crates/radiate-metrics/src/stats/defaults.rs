@@ -14,7 +14,6 @@ pub mod metric_fields {
     pub const MIN: SmallStr = SmallStr::from_static("min");
     pub const MAX: SmallStr = SmallStr::from_static("max");
     pub const SUM: SmallStr = SmallStr::from_static("sum");
-    pub const QUANTILE: SmallStr = SmallStr::from_static("quantile");
     pub const GENERATION: SmallStr = SmallStr::from_static("generation");
     pub const UPDATE_COUNT: SmallStr = SmallStr::from_static("update_count");
 }

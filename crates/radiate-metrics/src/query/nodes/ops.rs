@@ -1,5 +1,5 @@
-use crate::ExprSelector;
-use crate::{Evaluate, Expr, ExprResult};
+use crate::ExprSelect;
+use crate::{Expr, ExprEval, ExprResult};
 use radiate_error::radiate_bail;
 use radiate_utils::{AnyValue, DataType};
 #[cfg(feature = "serde")]
@@ -53,9 +53,9 @@ impl UnaryExpr {
     }
 }
 
-impl<'a, T> Evaluate<'a, T> for UnaryExpr
+impl<'a, T> ExprEval<'a, T> for UnaryExpr
 where
-    T: ExprSelector,
+    T: ExprSelect,
 {
     fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {
         let value = self.child.eval(metrics)?;
@@ -159,9 +159,9 @@ impl BinaryExpr {
     }
 }
 
-impl<'a, T> Evaluate<'a, T> for BinaryExpr
+impl<'a, T> ExprEval<'a, T> for BinaryExpr
 where
-    T: ExprSelector,
+    T: ExprSelect,
 {
     fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {
         // Coalesce short-circuits: only evaluate rhs when lhs is bad.
@@ -238,9 +238,9 @@ impl TrinaryExpr {
     }
 }
 
-impl<'a, T> Evaluate<'a, T> for TrinaryExpr
+impl<'a, T> ExprEval<'a, T> for TrinaryExpr
 where
-    T: ExprSelector,
+    T: ExprSelect,
 {
     fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {
         match self.operation {

@@ -351,9 +351,6 @@ impl Expr {
                         dtype: dtype.clone(),
                     };
                 }
-                Selector::Matches(_) => {
-                    sel.selector = Selector::Matches(to);
-                }
 
                 _ => return false,
             }

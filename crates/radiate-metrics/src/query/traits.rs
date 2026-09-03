@@ -4,26 +4,50 @@ use radiate_utils::AnyValue;
 
 pub(crate) type ExprResult<'a, O = AnyValue<'a>> = Result<O, RadiateError>;
 
-pub trait Evaluate<'a, I, O = AnyValue<'a>>
+pub trait ExprEval<'a, I, O = AnyValue<'a>>
 where
-    I: ExprSelector,
+    I: ExprSelect,
 {
     fn eval(&'a mut self, metrics: &I) -> ExprResult<'a, O>;
 }
 
-pub trait ExprSelector {
+pub trait ExprSelect {
     fn select(&self, expr: &Selector) -> AnyValue<'static>;
 }
 
-impl ExprSelector for () {
+impl ExprSelect for () {
     fn select(&self, _expr: &Selector) -> AnyValue<'static> {
         AnyValue::Null
     }
 }
 
+impl<T> ExprSelect for Vec<T>
+where
+    T: ExprSelect,
+{
+    fn select(&self, expr: &Selector) -> AnyValue<'static> {
+        match expr {
+            Selector::Identity => AnyValue::Null,
+            Selector::Index(idx) => self
+                .get(*idx)
+                .map(|v| v.select(&Selector::Identity))
+                .unwrap_or(AnyValue::Null),
+            Selector::Range(start, end) => {
+                let slice = self.get(*start..*end).unwrap_or(&[]);
+                let values = slice
+                    .iter()
+                    .map(|v| v.select(&Selector::Identity))
+                    .collect::<Vec<AnyValue<'static>>>();
+                AnyValue::Vector(values)
+            }
+            _ => AnyValue::Null,
+        }
+    }
+}
+
 macro_rules! impl_select {
     ($t:ty, $dtype:ident) => {
-        impl ExprSelector for $t {
+        impl ExprSelect for $t {
             fn select(&self, _expr: &Selector) -> AnyValue<'static> {
                 AnyValue::$dtype(*self)
             }

@@ -26,3 +26,42 @@ impl<'a> TryFrom<AnyValue<'a>> for f32 {
         }
     }
 }
+
+impl<'a> TryFrom<AnyValue<'a>> for String {
+    type Error = RadiateError;
+
+    fn try_from(value: AnyValue<'a>) -> Result<Self, Self::Error> {
+        match value {
+            AnyValue::StrOwned(v) => Ok(v.to_string()),
+            AnyValue::Str(v) => Ok(v.to_string()),
+            _ => Err(RadiateError::AnyValue(format!(
+                "Expected String, found {:?}",
+                value.dtype()
+            ))),
+        }
+    }
+}
+
+impl<'a, T> TryFrom<AnyValue<'a>> for Vec<T>
+where
+    T: TryFrom<AnyValue<'a>, Error = RadiateError>,
+{
+    type Error = RadiateError;
+
+    fn try_from(value: AnyValue<'a>) -> Result<Self, Self::Error> {
+        match value {
+            AnyValue::Vector(v) => v
+                .into_iter()
+                .map(|v| T::try_from(v))
+                .collect::<Result<Vec<T>, RadiateError>>(),
+            AnyValue::Slice(slice) => slice
+                .iter()
+                .map(|v| T::try_from(v.clone()))
+                .collect::<Result<Vec<T>, RadiateError>>(),
+            _ => Err(RadiateError::AnyValue(format!(
+                "Expected Vector, found {:?}",
+                value.dtype()
+            ))),
+        }
+    }
+}
