@@ -7,7 +7,7 @@ mod set;
 mod tag;
 mod view;
 
-pub use defaults::{metric_names, metric_tags};
+pub use defaults::{metric_fields, metric_names, metric_tags};
 pub use fmt::{fmt_duration, render_dashboard, render_full, render_metric_rows_full, sparkline};
 pub use metric::*;
 

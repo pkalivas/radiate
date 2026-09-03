@@ -20,7 +20,7 @@ use crate::{
 use radiate_core::{
     AnyValue, Chromosome, Engine, Objective, Optimize, Score,
     error::RadiateResult,
-    rate::{Evaluate, Expr},
+    {Evaluate, Expr},
 };
 use radiate_error::radiate_bail;
 use std::{collections::VecDeque, fmt::Debug, time::Duration};

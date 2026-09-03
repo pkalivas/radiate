@@ -815,12 +815,10 @@ mod tests {
         for original in &values {
             let json = serde_json::to_string(original)
                 .unwrap_or_else(|e| panic!("serialize failed for {original:?}: {e}"));
-            let restored: AnyValue<'static> = serde_json::from_str(&json)
-                .unwrap_or_else(|e| panic!("deserialize failed for {original:?} (json={json}): {e}"));
-            assert_eq!(
-                original, &restored,
-                "round-trip mismatch for {original:?}"
-            );
+            let restored: AnyValue<'static> = serde_json::from_str(&json).unwrap_or_else(|e| {
+                panic!("deserialize failed for {original:?} (json={json}): {e}")
+            });
+            assert_eq!(original, &restored, "round-trip mismatch for {original:?}");
         }
     }
 }

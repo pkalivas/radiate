@@ -1,6 +1,24 @@
 use crate::stats::{Tag, TagType};
 use radiate_utils::SmallStr;
 
+pub mod metric_fields {
+    use radiate_utils::SmallStr;
+
+    pub const LAST_VALUE: SmallStr = SmallStr::from_static("last_value");
+    pub const COUNT: SmallStr = SmallStr::from_static("count");
+    pub const MEAN: SmallStr = SmallStr::from_static("mean");
+    pub const VARIANCE: SmallStr = SmallStr::from_static("variance");
+    pub const STDDEV: SmallStr = SmallStr::from_static("stddev");
+    pub const SKEWNESS: SmallStr = SmallStr::from_static("skewness");
+    pub const KURTOSIS: SmallStr = SmallStr::from_static("kurtosis");
+    pub const MIN: SmallStr = SmallStr::from_static("min");
+    pub const MAX: SmallStr = SmallStr::from_static("max");
+    pub const SUM: SmallStr = SmallStr::from_static("sum");
+    pub const QUANTILE: SmallStr = SmallStr::from_static("quantile");
+    pub const GENERATION: SmallStr = SmallStr::from_static("generation");
+    pub const UPDATE_COUNT: SmallStr = SmallStr::from_static("update_count");
+}
+
 pub mod metric_names {
     use radiate_utils::SmallStr;
 

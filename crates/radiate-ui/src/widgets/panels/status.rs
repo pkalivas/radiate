@@ -2,7 +2,7 @@ use crate::state::{AppState, EvoState};
 use crate::widgets::panels::MetricLineChartWidget;
 use crate::widgets::{AppWidget, FnWidget, MetricDetailPanelWidget, Panel, TabComponent};
 use radiate_engines::Chromosome;
-use radiate_engines::stats::fmt_duration;
+use radiate_engines::fmt_duration;
 use ratatui::prelude::*;
 use ratatui::style::{Color, Style, Stylize};
 use ratatui::widgets::{Paragraph, Row, Table};

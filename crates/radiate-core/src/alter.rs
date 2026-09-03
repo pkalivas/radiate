@@ -1,7 +1,7 @@
 use crate::{Chromosome, Gene, Genotype, math::indexes, random_provider};
-use crate::{GetPairMut, MetricSet, Phenotype};
+use crate::{GetPairMut, Phenotype};
 use crate::{RateSet, error::RadiateResult};
-pub use radiate_expr::*;
+pub use radiate_metrics::*;
 use radiate_utils::{SmallStr, ToSnakeCase, intern};
 use std::collections::HashMap;
 use std::sync::Arc;

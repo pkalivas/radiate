@@ -13,8 +13,9 @@ homepage = { workspace = true }
 
 [dependencies]
 radiate-error = { workspace = true }
-radiate-expr = { workspace = true }
+# radiate-expr = { workspace = true }
 radiate-utils = { workspace = true, default-features = false }
+radiate-metrics = { workspace = true, default-features = false }
 num-traits = { workspace = true }
 rand = { workspace = true }
 itertools = { workspace = true }
@@ -31,5 +32,5 @@ serde_json = { workspace = true }
 
 [features]
 default = []
-serde = ["dep:serde", "dep:serde_json", "radiate-utils/serde", "radiate-expr/serde"]
+serde = ["dep:serde", "dep:serde_json", "radiate-utils/serde", "radiate-metrics/serde"]
 rayon = ["dep:rayon"]

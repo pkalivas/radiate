@@ -2,10 +2,11 @@
 mod test {
 
     use radiate_core::{AnyValue, MetricSet};
-    pub use radiate_expr::*;
+    pub use radiate_metrics::*;
     use std::time::Duration;
 
     fn f32_of(value: AnyValue<'_>) -> f32 {
+        println!("f32_of: {value:?}");
         value.extract::<f32>().unwrap()
     }
 
@@ -268,7 +269,7 @@ mod test {
 
     #[test]
     fn test_abs_expr() {
-        let mut expr = Expr::select("a").sub(10.0).abs();
+        let mut expr = Expr::select("a").debug().sub(10.0).abs();
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 4.0);
@@ -337,7 +338,7 @@ mod test {
 #[cfg(test)]
 mod tests {
     use radiate_core::MetricSet;
-    use radiate_expr::{Evaluate, Expr, ExprKind};
+    use radiate_metrics::{Evaluate, Expr, ExprKind};
     use radiate_utils::{AnyValue, DataType};
 
     // fn is_fused_affine(e: &Expr) -> bool {

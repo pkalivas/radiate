@@ -1,4 +1,4 @@
-use crate::SelectExpr;
+use crate::{SelectExpr, Selector};
 use radiate_error::RadiateError;
 use radiate_utils::AnyValue;
 
@@ -12,11 +12,11 @@ where
 }
 
 pub trait ExprSelector {
-    fn select(&self, expr: &SelectExpr) -> AnyValue<'static>;
+    fn select(&self, expr: &Selector) -> AnyValue<'static>;
 }
 
 impl ExprSelector for () {
-    fn select(&self, _expr: &SelectExpr) -> AnyValue<'static> {
+    fn select(&self, _expr: &Selector) -> AnyValue<'static> {
         AnyValue::Null
     }
 }
@@ -24,7 +24,7 @@ impl ExprSelector for () {
 macro_rules! impl_select {
     ($t:ty, $dtype:ident) => {
         impl ExprSelector for $t {
-            fn select(&self, _expr: &SelectExpr) -> AnyValue<'static> {
+            fn select(&self, _expr: &Selector) -> AnyValue<'static> {
                 AnyValue::$dtype(*self)
             }
         }

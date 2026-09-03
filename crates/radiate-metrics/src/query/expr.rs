@@ -1,5 +1,8 @@
-use crate::nodes::{AggExpr, BinaryExpr, EveryState, ScheduleExpr, TrinaryExpr, UnaryExpr, When};
-use crate::{Evaluate, ExprResult, ExprSelector, SelectExpr, StatisticField, StatisticKind};
+use crate::{Evaluate, ExprResult, ExprSelector, SelectExpr};
+use crate::{
+    Selector,
+    nodes::{AggExpr, BinaryExpr, EveryState, ScheduleExpr, TrinaryExpr, UnaryExpr, When},
+};
 use radiate_error::{RadiateError, radiate_err};
 use radiate_utils::sentry_id;
 use radiate_utils::{AnyValue, SmallStr};
@@ -39,18 +42,19 @@ impl Expr {
     }
 
     pub fn identity() -> Expr {
-        Expr::new(ExprKind::Selector(SelectExpr {
-            metric: None,
-            field: StatisticField::LastValue,
-            kind: StatisticKind::Value,
-        }))
+        unimplemented!()
+        // Expr::new(ExprKind::Selector(SelectExpr {
+        //     metric: None,
+        //     field: StatisticField::LastValue,
+        //     kind: StatisticKind::Value,
+        // }))
     }
 
     pub fn lit(value: impl Into<AnyValue<'static>>) -> Expr {
         Expr::new(ExprKind::Literal(value.into()))
     }
 
-    pub fn select(name: impl Into<SmallStr>) -> Expr {
+    pub fn select(name: impl Into<Selector>) -> Expr {
         Expr::new(ExprKind::Selector(SelectExpr::new(name)))
     }
 

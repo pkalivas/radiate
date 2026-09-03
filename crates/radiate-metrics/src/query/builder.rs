@@ -1,19 +1,22 @@
-use crate::nodes::{
-    aggregate::{AggExpr, Rollup},
-    ops::{BinaryExpr, BinaryOp, TrinaryExpr, TrinaryOp, UnaryExpr, UnaryOp, fuse_affine},
+use crate::{Expr, Selector, query::ExprKind};
+use crate::{
+    metric_fields,
+    nodes::{
+        aggregate::{AggExpr, Rollup},
+        ops::{BinaryExpr, BinaryOp, TrinaryExpr, TrinaryOp, UnaryExpr, UnaryOp, fuse_affine},
+    },
 };
-use crate::{Expr, StatisticField, StatisticKind, expr::ExprKind};
-use radiate_utils::{DataType, Quantile};
+use radiate_utils::{DataType, Quantile, SmallStr};
 use std::ops::{Add, Div, Mul, Neg, Not, Sub};
 
 impl Expr {
     pub fn time(mut self) -> Expr {
-        self.try_swap_select_kind(StatisticKind::Duration);
+        self.try_swap_select_kind(DataType::Duration);
         self
     }
 
     pub fn value(mut self) -> Expr {
-        self.try_swap_select_kind(StatisticKind::Value);
+        self.try_swap_select_kind(DataType::Float32);
         self
     }
 
@@ -45,61 +48,61 @@ impl Expr {
     }
 
     pub fn first(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(StatisticField::LastValue, Rollup::First, |expr| {
+        self.try_reduce_select_agg_rollup_or(metric_fields::LAST_VALUE, Rollup::First, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::First)))
         })
     }
 
     pub fn last(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(StatisticField::LastValue, Rollup::Last, |expr| {
+        self.try_reduce_select_agg_rollup_or(metric_fields::LAST_VALUE, Rollup::Last, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Last)))
         })
     }
 
     pub fn sum(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(StatisticField::Sum, Rollup::Sum, |expr| {
+        self.try_reduce_select_agg_rollup_or(metric_fields::SUM, Rollup::Sum, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Sum)))
         })
     }
 
     pub fn mean(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(StatisticField::Mean, Rollup::Mean, |expr| {
+        self.try_reduce_select_agg_rollup_or(metric_fields::MEAN, Rollup::Mean, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Mean)))
         })
     }
 
     pub fn stddev(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(StatisticField::StdDev, Rollup::StdDev, |expr| {
+        self.try_reduce_select_agg_rollup_or(metric_fields::STDDEV, Rollup::StdDev, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::StdDev)))
         })
     }
 
     pub fn min(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(StatisticField::Min, Rollup::Min, |expr| {
+        self.try_reduce_select_agg_rollup_or(metric_fields::MIN, Rollup::Min, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Min)))
         })
     }
 
     pub fn max(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(StatisticField::Max, Rollup::Max, |expr| {
+        self.try_reduce_select_agg_rollup_or(metric_fields::MAX, Rollup::Max, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Max)))
         })
     }
 
     pub fn var(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(StatisticField::Var, Rollup::Var, |expr| {
+        self.try_reduce_select_agg_rollup_or(metric_fields::VARIANCE, Rollup::Var, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Var)))
         })
     }
 
     pub fn skew(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(StatisticField::Skew, Rollup::Skew, |expr| {
+        self.try_reduce_select_agg_rollup_or(metric_fields::SKEWNESS, Rollup::Skew, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Skew)))
         })
     }
 
     pub fn count(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(StatisticField::Count, Rollup::Count, |expr| {
+        self.try_reduce_select_agg_rollup_or(metric_fields::COUNT, Rollup::Count, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Count)))
         })
     }
@@ -320,27 +323,39 @@ impl Expr {
         fuse_affine(self, 1.0 / target, -1.0)
     }
 
-    fn try_swap_select_kind(&mut self, to: StatisticKind) -> bool {
+    fn try_swap_select_kind(&mut self, to: DataType) -> bool {
         if let ExprKind::Selector(sel) = &mut self.kind {
-            sel.kind = to;
+            match &mut sel.selector {
+                Selector::Matches(field) => {
+                    sel.selector = Selector::Field(field.clone(), to);
+                }
+                Selector::Field(field, _) => {
+                    sel.selector = Selector::Field(field.clone(), to);
+                }
+                _ => return false,
+            }
             return true;
         }
         false
     }
 
-    fn try_swap_select_field(&mut self, to: StatisticField) -> bool {
+    fn try_swap_select_field(&mut self, to: SmallStr) -> bool {
         if let ExprKind::Selector(sel) = &mut self.kind {
-            sel.field = to;
+            match &mut sel.selector {
+                Selector::Matches(_) => {
+                    sel.selector = Selector::Matches(to);
+                }
+                Selector::Field(_, dtype) => {
+                    sel.selector = Selector::Field(to, dtype.clone());
+                }
+                _ => return false,
+            }
             return true;
         }
         false
     }
 
-    fn try_swap_select_field_or(
-        mut self,
-        to: StatisticField,
-        func: impl FnOnce(Self) -> Expr,
-    ) -> Expr {
+    fn try_swap_select_field_or(mut self, to: SmallStr, func: impl FnOnce(Self) -> Expr) -> Expr {
         if self.try_swap_select_field(to) {
             return self;
         }
@@ -359,7 +374,7 @@ impl Expr {
 
     fn try_reduce_select_agg_rollup_or(
         self,
-        field: StatisticField,
+        field: SmallStr,
         to: Rollup,
         func: impl FnOnce(Self) -> Expr,
     ) -> Expr {
@@ -372,7 +387,7 @@ macro_rules! impl_from_literal {
         $(
             impl From<$ty> for Expr {
                 fn from(value: $ty) -> Self {
-                    use crate::expr::ExprKind;
+                    use crate::query::ExprKind;
                     Expr::new(ExprKind::Literal(value.into()))
                 }
             }

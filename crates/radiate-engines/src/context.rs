@@ -1,7 +1,7 @@
 use crate::{Chromosome, ThreadSync, events::EngineStateChange};
 use crate::{builder::config::EngineConfig, events::EventStream};
+use radiate_core::ExprSet;
 use radiate_core::error::RadiateResult;
-use radiate_core::rate::ExprSet;
 use radiate_core::{
     Ecosystem, EngineState, Front, MetricSet, Objective, Phenotype, Problem, Score, metric,
     metric_names,

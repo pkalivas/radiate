@@ -44,8 +44,9 @@ impl UnaryExpr {
     pub fn reset(&mut self) {
         self.child.reset();
         if let UnaryOp::Stagnation {
-                last_value, count, ..
-            } = &mut self.op {
+            last_value, count, ..
+        } = &mut self.op
+        {
             *last_value = None;
             *count = 0;
         }
@@ -286,7 +287,7 @@ where
 /// Shared between the `.affine(...)` builder and the compile-pass binary-fusion
 /// rewriters so both produce the same fused shape.
 pub(crate) fn fuse_affine(child: Expr, scale: f32, bias: f32) -> Expr {
-    use crate::expr::ExprKind;
+    use crate::query::ExprKind;
     if let ExprKind::Unary(u) = child.kind {
         if matches!(u.op, UnaryOp::Affine { .. }) {
             let UnaryExpr { child: inner, op } = u;

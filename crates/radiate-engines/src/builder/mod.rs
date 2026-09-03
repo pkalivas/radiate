@@ -36,9 +36,9 @@ use crate::{
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::{Alterer, Ecosystem, Expr, FitnessEvaluator, Valid, metric_names};
+use radiate_core::{ExprSet, ThreadSync};
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
-use radiate_core::{ThreadSync, rate::ExprSet};
 use radiate_core::{
     expr,
     problem::{BatchEngineProblem, EngineProblem},

@@ -1,6 +1,6 @@
 use crate::Expr;
-use crate::expr::ExprKind;
 use crate::nodes::ops::{BinaryExpr, BinaryOp, TrinaryExpr, UnaryExpr, UnaryOp, fuse_affine};
+use crate::query::ExprKind;
 use radiate_utils::AnyValue;
 
 impl Expr {

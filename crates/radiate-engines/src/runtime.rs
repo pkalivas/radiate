@@ -3,8 +3,8 @@ use crate::{
     events::{EngineLogger, Event, GenerationSnapshot, HealthMonitor, LoggingHandler},
 };
 use crate::{generation::GenerationView, init_logging};
+use radiate_core::Expr;
 use radiate_core::error::{RadiateResult, Result};
-use radiate_core::rate::Expr;
 use radiate_core::{Chromosome, EngineState, Score};
 use std::collections::VecDeque;
 use std::time::Duration;

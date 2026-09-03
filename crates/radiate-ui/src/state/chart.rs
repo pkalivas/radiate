@@ -1,5 +1,5 @@
 use crate::chart::RollingLineChart;
-use radiate_engines::{Metric, stats::TagType};
+use radiate_engines::{Metric, TagType};
 use radiate_utils::SmallStr;
 use std::collections::HashMap;
 

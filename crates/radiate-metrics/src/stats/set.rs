@@ -1,9 +1,9 @@
+pub use crate::query::*;
 use crate::{
-    Metric, MetricUpdate,
+    Metric, MetricUpdate, metric_fields,
     stats::{Meta, Tag, TagType, fmt},
 };
-pub use radiate_expr::*;
-use radiate_utils::{AnyValue, SmallStr};
+use radiate_utils::{AnyValue, DataType, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{
@@ -198,32 +198,77 @@ impl MetricSet {
 }
 
 impl ExprSelector for MetricSet {
-    fn select(&self, sel: &SelectExpr) -> AnyValue<'static> {
-        // Missing metrics return Null so downstream math can propagate it; the
-        // outer Clamp (or any consumer using non-finite fallback) then takes the
-        // floor instead of the engine seeing an unrelated error.
-        let Some(metric) = sel.metric.as_ref().and_then(|name| self.get(name.as_str())) else {
-            return AnyValue::Null;
+    fn select(&self, sel: &Selector) -> AnyValue<'static> {
+        println!("selecting metric: {:?}", sel);
+
+        let wrap = |v: f32, dtype: &DataType| match dtype {
+            DataType::Float32 => AnyValue::Float32(v),
+            DataType::Duration => AnyValue::Duration(Duration::from_secs_f32(v)),
+            DataType::UInt64 => AnyValue::UInt64(v as u64),
+            _ => AnyValue::Null,
         };
 
-        let wrap = |v: f32| match sel.kind {
-            StatisticKind::Value => AnyValue::Float32(v),
-            StatisticKind::Duration => AnyValue::Duration(Duration::from_secs_f32(v)),
+        let match_field = |metric: &Metric, field: &SmallStr, dtype: &DataType| match field.as_str()
+        {
+            f if f == metric_fields::LAST_VALUE => wrap(metric.last_value(), dtype),
+            f if f == metric_fields::MEAN => wrap(metric.mean(), dtype),
+            f if f == metric_fields::STDDEV => wrap(metric.stddev(), dtype),
+            f if f == metric_fields::MIN => wrap(metric.min(), dtype),
+            f if f == metric_fields::MAX => wrap(metric.max(), dtype),
+            f if f == metric_fields::SUM => wrap(metric.sum(), dtype),
+            f if f == metric_fields::VARIANCE => wrap(metric.var(), dtype),
+            f if f == metric_fields::SKEWNESS => AnyValue::Float32(metric.skew()),
+            f if f == metric_fields::COUNT => AnyValue::UInt64(metric.count() as u64),
+            f if f == metric_fields::GENERATION => AnyValue::UInt64(metric.generation() as u64),
+            f if f == metric_fields::UPDATE_COUNT => AnyValue::UInt64(metric.update_count() as u64),
+            _ => AnyValue::Null,
         };
 
-        match sel.field {
-            StatisticField::LastValue => wrap(metric.last_value()),
-            StatisticField::Mean => wrap(metric.mean()),
-            StatisticField::StdDev => wrap(metric.stddev()),
-            StatisticField::Min => wrap(metric.min()),
-            StatisticField::Max => wrap(metric.max()),
-            StatisticField::Sum => wrap(metric.sum()),
-            StatisticField::Var => wrap(metric.var()),
-            StatisticField::Skew => AnyValue::Float32(metric.skew()),
-            StatisticField::Count => AnyValue::UInt64(metric.count() as u64),
-            StatisticField::Version => AnyValue::UInt64(metric.generation() as u64),
-            StatisticField::UpdateCount => AnyValue::UInt64(metric.update_count() as u64),
+        match sel {
+            Selector::Matches(name) => {
+                let Some(metric) = self.get(name.as_str()) else {
+                    return AnyValue::Null;
+                };
+
+                match_field(metric, &metric_fields::LAST_VALUE, &DataType::Float32)
+            }
+            Selector::Field(name, dtype) => {
+                let Some(metric) = self.get(name.as_str()) else {
+                    return AnyValue::Null;
+                };
+
+                match_field(metric, &metric_fields::LAST_VALUE, dtype)
+            }
+            _ => AnyValue::Null,
         }
+
+        // let Selector::Struct(struct_select) = sel.selector() else {
+        //     return AnyValue::Null;
+        // };
+
+        // let wrap = |v: f32| match dtype {
+        //     DataType::Float32 => AnyValue::Float32(v),
+        //     DataType::Duration => AnyValue::Duration(Duration::from_secs_f32(v)),
+        //     DataType::UInt64 => AnyValue::UInt64(v as u64),
+        //     _ => AnyValue::Null,
+        // };
+
+        // match field {
+        //     f if f == &metric_fields::LAST_VALUE => wrap(metric.last_value()),
+        //     f if f == &metric_fields::MEAN => wrap(metric.mean()),
+        //     f if f == &metric_fields::STDDEV => wrap(metric.stddev()),
+        //     f if f == &metric_fields::MIN => wrap(metric.min()),
+        //     f if f == &metric_fields::MAX => wrap(metric.max()),
+        //     f if f == &metric_fields::SUM => wrap(metric.sum()),
+        //     f if f == &metric_fields::VARIANCE => wrap(metric.var()),
+        //     f if f == &metric_fields::SKEWNESS => AnyValue::Float32(metric.skew()),
+        //     f if f == &metric_fields::COUNT => AnyValue::UInt64(metric.count() as u64),
+        //     f if f == &metric_fields::GENERATION => AnyValue::UInt64(metric.generation() as u64),
+        //     f if f == &metric_fields::UPDATE_COUNT => {
+        //         AnyValue::UInt64(metric.update_count() as u64)
+        //     }
+        //     _ => AnyValue::Null,
+        // }
     }
 }
 
