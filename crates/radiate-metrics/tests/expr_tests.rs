@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod test {
 
-    use radiate_core::{AnyValue, MetricSet};
     pub use radiate_metrics::*;
+    use radiate_utils::AnyValue;
     use std::time::Duration;
 
     fn f32_of(value: AnyValue<'_>) -> f32 {
@@ -24,7 +24,7 @@ mod test {
 
     #[test]
     fn test_rolling_mean() {
-        let mut expr = Expr::select("accuracy").rolling(3).mean();
+        let mut expr = Expr::metric("accuracy").rolling(3).mean();
         let mut metrics = MetricSet::default();
 
         metrics.upsert("accuracy", 1.0);
@@ -42,7 +42,7 @@ mod test {
 
     #[test]
     fn test_rolling_sum() {
-        let mut expr = Expr::select("accuracy").rolling(3).sum();
+        let mut expr = Expr::metric("accuracy").rolling(3).sum();
         let mut metrics = MetricSet::default();
 
         metrics.upsert("accuracy", 1.0);
@@ -60,8 +60,8 @@ mod test {
 
     #[test]
     fn test_rolling_min_and_max() {
-        let mut min_expr = Expr::select("accuracy").rolling(4).min();
-        let mut max_expr = Expr::select("accuracy").rolling(4).max();
+        let mut min_expr = Expr::metric("accuracy").rolling(4).min();
+        let mut max_expr = Expr::metric("accuracy").rolling(4).max();
         let mut metrics = MetricSet::default();
 
         for value in [3.0, 1.0, 4.0, 2.0] {
@@ -76,7 +76,7 @@ mod test {
 
     #[test]
     fn test_rolling_count() {
-        let mut expr = Expr::select("accuracy").rolling(3).count();
+        let mut expr = Expr::metric("accuracy").rolling(3).count();
         let mut metrics = MetricSet::default();
 
         metrics.upsert("accuracy", 10.0);
@@ -94,7 +94,7 @@ mod test {
 
     #[test]
     fn test_rolling_n_unique() {
-        let mut expr = Expr::select("accuracy").rolling(5).unique().count();
+        let mut expr = Expr::metric("accuracy").rolling(5).unique().count();
         let mut metrics = MetricSet::default();
 
         metrics.upsert("accuracy", 1.0);
@@ -115,7 +115,7 @@ mod test {
 
     #[test]
     fn test_lt_comparison_true_and_false() {
-        let mut expr = Expr::select("accuracy").lt(Expr::select("loss"));
+        let mut expr = Expr::metric("accuracy").lt(Expr::metric("loss"));
         let mut metrics = MetricSet::default();
 
         metrics.upsert("accuracy", 0.8);
@@ -129,7 +129,7 @@ mod test {
 
     #[test]
     fn test_gte_comparison() {
-        let mut expr = Expr::select("accuracy").gte(Expr::select("target"));
+        let mut expr = Expr::metric("accuracy").gte(Expr::metric("target"));
         let mut metrics = MetricSet::default();
 
         metrics.upsert("accuracy", 0.95);
@@ -143,7 +143,7 @@ mod test {
 
     #[test]
     fn test_eq_comparison_uses_epsilon() {
-        let mut expr = Expr::select("a").eq(Expr::select("b"));
+        let mut expr = Expr::metric("a").eq(Expr::metric("b"));
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 1.0f32);
@@ -153,7 +153,7 @@ mod test {
 
     #[test]
     fn test_ne_comparison() {
-        let mut expr = Expr::select("a").ne(Expr::select("b"));
+        let mut expr = Expr::metric("a").ne(Expr::metric("b"));
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 1.0f32);
@@ -184,7 +184,7 @@ mod test {
 
     #[test]
     fn test_between_inclusive() {
-        let mut expr = Expr::select("x").between(1.0, 3.0);
+        let mut expr = Expr::metric("x").between(1.0, 3.0);
         let mut metrics = MetricSet::default();
 
         metrics.upsert("x", 1.0);
@@ -205,7 +205,7 @@ mod test {
 
     #[test]
     fn test_add_expr() {
-        let mut expr = Expr::select("a").add(Expr::select("b"));
+        let mut expr = Expr::metric("a").add(Expr::metric("b"));
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 2.0);
@@ -216,7 +216,7 @@ mod test {
 
     #[test]
     fn test_sub_expr() {
-        let mut expr = Expr::select("a").sub(Expr::select("b"));
+        let mut expr = Expr::metric("a").sub(Expr::metric("b"));
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 5.0);
@@ -227,7 +227,7 @@ mod test {
 
     #[test]
     fn test_mul_expr() {
-        let mut expr = Expr::select("a").mul(2.5);
+        let mut expr = Expr::metric("a").mul(2.5);
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 4.0);
@@ -237,7 +237,7 @@ mod test {
 
     #[test]
     fn test_div_expr() {
-        let mut expr = Expr::select("a").div(Expr::select("b"));
+        let mut expr = Expr::metric("a").div(Expr::metric("b"));
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 9.0);
@@ -248,7 +248,7 @@ mod test {
 
     #[test]
     fn test_div_by_zero_returns_null() {
-        let mut expr = Expr::select("a").div(Expr::select("b"));
+        let mut expr = Expr::metric("a").div(Expr::metric("b"));
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 9.0);
@@ -259,7 +259,7 @@ mod test {
 
     #[test]
     fn test_neg_expr() {
-        let mut expr = Expr::select("a").neg();
+        let mut expr = Expr::metric("a").neg();
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 4.0);
@@ -269,7 +269,7 @@ mod test {
 
     #[test]
     fn test_abs_expr() {
-        let mut expr = Expr::select("a").debug().sub(10.0).abs();
+        let mut expr = Expr::metric("a").debug().sub(10.0).abs();
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 4.0);
@@ -281,7 +281,7 @@ mod test {
 
     #[test]
     fn test_clamp_expr() {
-        let mut expr = Expr::select("a").clamp(0.1, 0.5);
+        let mut expr = Expr::metric("a").clamp(0.1, 0.5);
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 0.05);
@@ -296,7 +296,7 @@ mod test {
 
     #[test]
     fn test_duration_expr() {
-        let mut expr = Expr::select("time").time().rolling(10).min();
+        let mut expr = Expr::metric("time").time().rolling(10).min();
         let mut metrics = MetricSet::default();
 
         println!("{:#?}", expr);
@@ -314,7 +314,7 @@ mod test {
     #[test]
     fn test_every_expr() {
         let mut expr = Expr::every(3)
-            .then(Expr::select("accuracy").mean())
+            .then(Expr::metric("accuracy").mean())
             .otherwise(0.0);
 
         let mut metrics = MetricSet::default();
@@ -337,8 +337,7 @@ mod test {
 
 #[cfg(test)]
 mod tests {
-    use radiate_core::MetricSet;
-    use radiate_metrics::{Evaluate, Expr, ExprKind};
+    use radiate_metrics::{Evaluate, Expr, ExprKind, MetricSet};
     use radiate_utils::{AnyValue, DataType};
 
     // fn is_fused_affine(e: &Expr) -> bool {
@@ -750,7 +749,7 @@ mod tests {
     #[test]
     fn error_from_function_reads_metric() {
         let ms = metrics_with("foo", 12.0);
-        let mut e = Expr::select("foo").error(10.0);
+        let mut e = Expr::metric("foo").error(10.0);
         // (12 - 10) / 10 = 0.2
         assert!((f32_val(e.eval(&ms).unwrap()) - 0.2).abs() < 1e-6);
     }
@@ -759,7 +758,7 @@ mod tests {
 
     #[test]
     fn quantile_stream_returns_first_sample_until_buffer_fills() {
-        let mut e = Expr::select("foo").quantile(0.5);
+        let mut e = Expr::metric("foo").quantile(0.5);
         let ms = metrics_with("foo", 5.0);
         // First sample seeds the estimator; with one sample p50 == that sample.
         assert!((f32_val(e.eval(&ms).unwrap()) - 5.0).abs() < 1e-6);
@@ -767,14 +766,14 @@ mod tests {
 
     #[test]
     fn quantile_stream_null_when_metric_missing() {
-        let mut e = Expr::select("missing").quantile(0.95);
+        let mut e = Expr::metric("missing").quantile(0.95);
         let ms = MetricSet::new();
         assert!(matches!(e.eval(&ms).unwrap(), AnyValue::Null));
     }
 
     #[test]
     fn quantile_stream_converges_on_uniform_sequence() {
-        let mut e = Expr::select("foo").quantile(0.5);
+        let mut e = Expr::metric("foo").quantile(0.5);
         let mut ms = MetricSet::new();
         for i in 1..=200 {
             ms.upsert("foo", i as f32);
@@ -790,7 +789,7 @@ mod tests {
 
     #[test]
     fn quantile_stream_p95_approximates_high_tail() {
-        let mut e = Expr::select("foo").quantile(0.95);
+        let mut e = Expr::metric("foo").quantile(0.95);
         let mut ms = MetricSet::new();
         for i in 1..=1000 {
             ms.upsert("foo", i as f32);
@@ -802,7 +801,7 @@ mod tests {
 
     #[test]
     fn quantile_stream_reset_clears_estimator() {
-        let mut e = Expr::select("foo").quantile(0.5);
+        let mut e = Expr::metric("foo").quantile(0.5);
         let mut ms = MetricSet::new();
         for i in 1..=50 {
             ms.upsert("foo", i as f32);
@@ -831,7 +830,7 @@ mod tests {
     #[test]
     fn stagnation_increments_when_value_unchanged() {
         let ms = metrics_with("score", 1.0);
-        let mut e = Expr::select("score").stagnation(0.001);
+        let mut e = Expr::metric("score").stagnation(0.001);
 
         assert_eq!(f32_val(e.eval(&ms).unwrap()), 0.0); // seed
         assert_eq!(f32_val(e.eval(&ms).unwrap()), 1.0);
@@ -841,7 +840,7 @@ mod tests {
     #[test]
     fn stagnation_resets_on_large_change() {
         let mut ms = metrics_with("score", 1.0);
-        let mut e = Expr::select("score").stagnation(0.001);
+        let mut e = Expr::metric("score").stagnation(0.001);
 
         let _ = e.eval(&ms);
         let _ = e.eval(&ms); // count = 1
@@ -854,7 +853,7 @@ mod tests {
     #[test]
     fn stagnation_tolerates_tiny_noise() {
         let mut ms = metrics_with("score", 1.0);
-        let mut e = Expr::select("score").stagnation(0.01);
+        let mut e = Expr::metric("score").stagnation(0.01);
 
         let _ = e.eval(&ms);
         ms.upsert("score", 1.005); // within epsilon
@@ -866,14 +865,14 @@ mod tests {
     #[test]
     fn stagnation_returns_null_when_metric_missing() {
         let ms = MetricSet::new();
-        let mut e = Expr::select("missing").stagnation(0.001);
+        let mut e = Expr::metric("missing").stagnation(0.001);
         assert!(matches!(e.eval(&ms).unwrap(), AnyValue::Null));
     }
 
     #[test]
     fn is_stagnant_fires_at_patience_threshold() {
         let ms = metrics_with("score", 1.0);
-        let mut e = Expr::select("score").stagnation(0.001).gte(3);
+        let mut e = Expr::metric("score").stagnation(0.001).gte(3);
 
         assert!(!bool_val(e.eval(&ms).unwrap())); // count=0
         assert!(!bool_val(e.eval(&ms).unwrap())); // count=1
@@ -884,7 +883,7 @@ mod tests {
     #[test]
     fn stagnation_reset_clears_state() {
         let ms = metrics_with("score", 1.0);
-        let mut e = Expr::select("score").stagnation(0.001);
+        let mut e = Expr::metric("score").stagnation(0.001);
 
         let _ = e.eval(&ms);
         let _ = e.eval(&ms);
@@ -954,7 +953,7 @@ mod tests {
 
     #[test]
     fn compile_is_idempotent() {
-        let e = Expr::select("foo")
+        let e = Expr::metric("foo")
             .sub(Expr::lit(1.0f32))
             .mul(Expr::lit(2.0f32))
             .add(Expr::lit(3.0f32));

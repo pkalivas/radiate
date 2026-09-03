@@ -1,11 +1,11 @@
 use crate::{Evaluate, ExprResult, ExprSelector, SelectExpr};
 use crate::{
-    Selector,
-    nodes::{AggExpr, BinaryExpr, EveryState, ScheduleExpr, TrinaryExpr, UnaryExpr, When},
+    Selector, metric_fields,
+    nodes::{AggExpr, BinaryExpr, IndexState, ScheduleExpr, TrinaryExpr, UnaryExpr, When},
 };
 use radiate_error::{RadiateError, radiate_err};
-use radiate_utils::sentry_id;
 use radiate_utils::{AnyValue, SmallStr};
+use radiate_utils::{DataType, sentry_id};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -42,20 +42,20 @@ impl Expr {
     }
 
     pub fn identity() -> Expr {
-        unimplemented!()
-        // Expr::new(ExprKind::Selector(SelectExpr {
-        //     metric: None,
-        //     field: StatisticField::LastValue,
-        //     kind: StatisticKind::Value,
-        // }))
+        Expr::new(ExprKind::Selector(SelectExpr::new(Selector::Identity)))
     }
 
     pub fn lit(value: impl Into<AnyValue<'static>>) -> Expr {
         Expr::new(ExprKind::Literal(value.into()))
     }
 
-    pub fn select(name: impl Into<Selector>) -> Expr {
-        Expr::new(ExprKind::Selector(SelectExpr::new(name)))
+    pub fn metric(name: impl Into<SmallStr>) -> Expr {
+        let name = name.into();
+        Expr::new(ExprKind::Selector(SelectExpr::new(Selector::Metric {
+            name,
+            field: metric_fields::LAST_VALUE,
+            dtype: DataType::Float32,
+        })))
     }
 
     pub fn when(cond: impl Into<Expr>) -> When {
@@ -63,8 +63,14 @@ impl Expr {
     }
 
     pub fn every(interval: usize) -> When {
-        When::new(Expr::new(ExprKind::Schedule(ScheduleExpr::Every(
-            EveryState::new(interval),
+        When::new(Expr::new(ExprKind::Schedule(ScheduleExpr::Interval(
+            IndexState::new(interval),
+        ))))
+    }
+
+    pub fn throttle(duration: std::time::Duration) -> When {
+        When::new(Expr::new(ExprKind::Schedule(ScheduleExpr::Duration(
+            duration.into(),
         ))))
     }
 
@@ -85,19 +91,11 @@ impl Expr {
         self
     }
 
-    pub fn try_extract_lit<T: TryFrom<AnyValue<'static>>>(&self) -> Option<T> {
-        if let ExprKind::Literal(value) = &self.kind {
-            T::try_from(value.clone()).ok()
-        } else {
-            None
-        }
-    }
-
     pub fn reset(&mut self) {
         match &mut self.kind {
             ExprKind::Literal(_) | ExprKind::Selector(_) => {}
             ExprKind::Aggregate(a) => a.reset(),
-            ExprKind::Schedule(ScheduleExpr::Every(s)) => s.reset(),
+            ExprKind::Schedule(s) => s.reset(),
             ExprKind::Binary(b) => {
                 b.lhs.reset();
                 b.rhs.reset();

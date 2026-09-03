@@ -6,16 +6,16 @@ const KI: f32 = 0.005_f32;
 const KD: f32 = 0.02_f32;
 
 pub fn species_error_signal(count: usize) -> Expr {
-    Expr::select(metric_names::SPECIES_COUNT).error(count as f32)
+    Expr::metric(metric_names::SPECIES_COUNT).error(count as f32)
 }
 
 pub fn species_target_control(target: usize, base_val: f32) -> Expr {
     let target_f32 = target as f32;
 
-    let raw_error = Expr::select(metric_names::SPECIES_COUNT).error(target_f32);
+    let raw_error = Expr::metric(metric_names::SPECIES_COUNT).error(target_f32);
 
     // Proportional: smoothed count so single-gen bursts don't cause hard jumps
-    let proportional = Expr::select(metric_names::SPECIES_COUNT)
+    let proportional = Expr::metric(metric_names::SPECIES_COUNT)
         .rolling(3)
         .mean()
         .error(target_f32)
@@ -26,10 +26,10 @@ pub fn species_target_control(target: usize, base_val: f32) -> Expr {
     let integral = raw_error.clone().rolling(20).sum() * KI;
     let derivative = raw_error.rolling(5).slope() * KD;
 
-    Expr::when(Expr::select(metric_names::INDEX).lt(2_i32))
+    Expr::when(Expr::metric(metric_names::INDEX).lt(2_i32))
         .then(base_val)
         .otherwise(
-            Expr::select(metric_names::SPECIES_THRESHOLD) + proportional + integral + derivative,
+            Expr::metric(metric_names::SPECIES_THRESHOLD) + proportional + integral + derivative,
         )
         .clamp(0.0_f32, target_f32 * 2.5_f32)
         .alias(metric_names::SPECIES_THRESHOLD)
@@ -37,7 +37,7 @@ pub fn species_target_control(target: usize, base_val: f32) -> Expr {
 
 // Rolling slope of best score — useful for limits and convergence detection
 pub fn score_trend_signal(window: usize) -> Expr {
-    Expr::select(metric_names::BEST_SCORES)
+    Expr::metric(metric_names::BEST_SCORES)
         .rolling(window)
         .slope()
         .alias(format!("{}.[{}]", metric_names::SCORES_TREND, window))
@@ -45,11 +45,11 @@ pub fn score_trend_signal(window: usize) -> Expr {
 
 // Coefficient of variation — normalized score spread
 pub fn score_cv_signal(window: usize) -> Expr {
-    Expr::select(metric_names::BEST_SCORES)
+    Expr::metric(metric_names::BEST_SCORES)
         .rolling(window)
         .stddev()
         .div(
-            Expr::select(metric_names::BEST_SCORES)
+            Expr::metric(metric_names::BEST_SCORES)
                 .rolling(window)
                 .mean(),
         )
@@ -57,7 +57,7 @@ pub fn score_cv_signal(window: usize) -> Expr {
 
 // Throttles add-vertex/add-edge rates as genome grows past target
 pub fn genome_size_throttle(base_rate: impl Into<Expr>, target_size: usize) -> Expr {
-    let pressure = Expr::select(metric_names::GENOME_SIZE)
+    let pressure = Expr::metric(metric_names::GENOME_SIZE)
         .rolling(10)
         .mean()
         .div(target_size as f32)
@@ -67,7 +67,7 @@ pub fn genome_size_throttle(base_rate: impl Into<Expr>, target_size: usize) -> E
 
 // Higher mutation when diversity is low, lower when healthy
 pub fn diversity_signal(window: usize, min: f32, max: f32) -> Expr {
-    let diversity = Expr::select(metric_names::PCT_DIVERSITY)
+    let diversity = Expr::metric(metric_names::PCT_DIVERSITY)
         .rolling(window)
         .mean();
     (Expr::lit(1.0_f32) - diversity)
@@ -79,7 +79,7 @@ pub fn diversity_signal(window: usize, min: f32, max: f32) -> Expr {
 
 // True when best score hasn't meaningfully moved in `window` generations
 pub fn stagnation_expr(window: usize, epsilon: f32) -> Expr {
-    Expr::select(metric_names::BEST_SCORES)
+    Expr::metric(metric_names::BEST_SCORES)
         .rolling(window)
         .slope()
         .abs()

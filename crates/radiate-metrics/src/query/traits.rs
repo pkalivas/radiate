@@ -1,4 +1,4 @@
-use crate::{SelectExpr, Selector};
+use crate::Selector;
 use radiate_error::RadiateError;
 use radiate_utils::AnyValue;
 

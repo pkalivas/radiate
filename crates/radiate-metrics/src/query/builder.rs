@@ -11,12 +11,12 @@ use std::ops::{Add, Div, Mul, Neg, Not, Sub};
 
 impl Expr {
     pub fn time(mut self) -> Expr {
-        self.try_swap_select_kind(DataType::Duration);
+        self.try_swap_select_dtype(DataType::Duration);
         self
     }
 
     pub fn value(mut self) -> Expr {
-        self.try_swap_select_kind(DataType::Float32);
+        self.try_swap_select_dtype(DataType::Float32);
         self
     }
 
@@ -323,17 +323,19 @@ impl Expr {
         fuse_affine(self, 1.0 / target, -1.0)
     }
 
-    fn try_swap_select_kind(&mut self, to: DataType) -> bool {
+    fn try_swap_select_dtype(&mut self, to: DataType) -> bool {
         if let ExprKind::Selector(sel) = &mut self.kind {
             match &mut sel.selector {
-                Selector::Matches(field) => {
-                    sel.selector = Selector::Field(field.clone(), to);
-                }
-                Selector::Field(field, _) => {
-                    sel.selector = Selector::Field(field.clone(), to);
+                Selector::Metric { name, field, .. } => {
+                    sel.selector = Selector::Metric {
+                        name: name.clone(),
+                        field: field.clone(),
+                        dtype: to,
+                    };
                 }
                 _ => return false,
             }
+
             return true;
         }
         false
@@ -342,16 +344,23 @@ impl Expr {
     fn try_swap_select_field(&mut self, to: SmallStr) -> bool {
         if let ExprKind::Selector(sel) = &mut self.kind {
             match &mut sel.selector {
+                Selector::Metric { name, dtype, .. } => {
+                    sel.selector = Selector::Metric {
+                        name: name.clone(),
+                        field: to,
+                        dtype: dtype.clone(),
+                    };
+                }
                 Selector::Matches(_) => {
                     sel.selector = Selector::Matches(to);
                 }
-                Selector::Field(_, dtype) => {
-                    sel.selector = Selector::Field(to, dtype.clone());
-                }
+
                 _ => return false,
             }
+
             return true;
         }
+
         false
     }
 

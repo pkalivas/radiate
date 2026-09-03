@@ -30,7 +30,7 @@ impl PyExpr {
     #[staticmethod]
     #[pyo3(signature = (name, dtype=None))]
     pub fn select(name: &str, dtype: Option<&str>) -> Self {
-        let mut e = Expr::select(name);
+        let mut e = Expr::metric(name);
         if let Some(d) = dtype
             && dtype_is_duration(d)
         {
@@ -67,13 +67,13 @@ impl PyExpr {
     #[staticmethod]
     #[pyo3(signature = (metric, epsilon=1e-4))]
     pub fn stagnation(metric: &str, epsilon: f32) -> Self {
-        Expr::select(metric).stagnation(epsilon).into()
+        Expr::metric(metric).stagnation(epsilon).into()
     }
 
     #[staticmethod]
     #[pyo3(signature = (metric, patience, epsilon=1e-4))]
     pub fn is_stagnant(metric: &str, patience: u32, epsilon: f32) -> Self {
-        Expr::select(metric)
+        Expr::metric(metric)
             .stagnation(epsilon)
             .gte(patience)
             .into()

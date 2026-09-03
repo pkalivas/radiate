@@ -6,4 +6,4 @@ pub(crate) mod schedule;
 pub(crate) use aggregate::AggExpr;
 pub(crate) use logical::When;
 pub(crate) use ops::{BinaryExpr, TrinaryExpr, UnaryExpr};
-pub(crate) use schedule::{EveryState, ScheduleExpr};
+pub(crate) use schedule::{IndexState, ScheduleExpr};

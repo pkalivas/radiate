@@ -16,6 +16,9 @@ serde = { workspace = true, optional = true }
 radiate-error = { workspace = true }
 radiate-utils = { workspace = true }
 
+[dev-dependencies]
+radiate-test = { workspace = true }
+
 [features]
 default = []
 serde = ["dep:serde", "radiate-utils/serde"]
