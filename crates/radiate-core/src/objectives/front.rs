@@ -1,30 +1,25 @@
 use crate::objectives::{Objective, Scored, pareto};
-use radiate_utils::Matrix;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::{cmp::Ordering, ops::Range, sync::Arc};
+use std::{cmp::Ordering, ops::Range};
 
 const DEFAULT_ENTROPY_BINS: usize = 20;
-const EPSILON: f32 = 1e-10;
-
-#[derive(Clone, Default)]
-struct FrontScratch {
-    remove: Vec<usize>,
-    keep_idx: Vec<usize>,
-    scores: Matrix<f32>,
-    dist: Vec<f32>,
-    order: Vec<usize>,
-}
 
 #[derive(Debug)]
 pub struct FrontAddResult {
     pub added_count: usize,
     pub removed_count: usize,
-    pub unique_removed_count: usize,
     pub comparisons: usize,
     pub filter_count: usize,
     pub size: usize,
+}
+
+#[derive(Clone, Default)]
+struct FrontScratch {
+    remove_buff: Vec<usize>,
+    index_buff: Vec<usize>,
+    crowding_buff: Vec<f32>,
+    filter_buff: Vec<bool>,
 }
 
 #[derive(Clone)]
@@ -33,7 +28,7 @@ pub struct Front<T>
 where
     T: Scored,
 {
-    values: Vec<Arc<T>>,
+    values: Vec<T>,
     range: Range<usize>,
     objective: Objective,
 
@@ -70,54 +65,65 @@ where
         self.values.is_empty()
     }
 
-    pub fn values(&self) -> &[Arc<T>] {
+    pub fn values(&self) -> &[T] {
         &self.values
     }
 
     pub fn crowding_distance(&mut self) -> Option<&[f32]> {
-        self.ensure_score_matrix()?;
-        let (n, _) = self.score_dims()?;
-        self.crowding_distance_in_place(n);
+        let scores = self
+            .values
+            .iter()
+            .filter_map(|v| v.score())
+            .collect::<Vec<_>>();
 
-        Some(&self.scratch.dist[..n])
+        if scores.is_empty() {
+            return None;
+        }
+
+        self.scratch.crowding_buff.clear();
+        self.scratch.crowding_buff.resize(scores.len(), 0.0);
+
+        pareto::buffered_crowding_distance(&scores, &mut self.scratch.crowding_buff);
+
+        Some(&self.scratch.crowding_buff[..])
     }
 
     pub fn entropy(&mut self) -> Option<f32> {
-        self.ensure_score_matrix()?;
-        let (n, m) = self.score_dims()?;
+        let scores = self
+            .values
+            .iter()
+            .filter_map(|v| v.score())
+            .collect::<Vec<_>>();
 
-        Some(entropy_flat(
-            self.scratch.scores.as_ref(),
-            n,
-            m,
-            DEFAULT_ENTROPY_BINS,
-        ))
+        if scores.is_empty() {
+            return None;
+        }
+
+        Some(pareto::entropy(scores.as_slice(), DEFAULT_ENTROPY_BINS))
     }
 
-    pub fn add_all(&mut self, items: Vec<T>) -> FrontAddResult
+    pub fn try_add_all<'a>(&mut self, items: impl Iterator<Item = &'a T>) -> FrontAddResult
     where
-        T: Eq + Clone + Send + Sync + 'static,
+        T: Eq + Clone + 'static,
     {
         let mut added_count = 0;
         let mut removed_count = 0;
-        let mut unique_removed_count = 0;
         let mut comparisons = 0;
         let mut filter_count = 0;
 
         for new_member in items.into_iter() {
-            self.scratch.remove.clear();
+            self.scratch.remove_buff.clear();
 
             // Decide accept/reject without mutating self.values
             let mut accept = true;
 
             for (idx, existing) in self.values.iter().enumerate() {
-                if existing.as_ref() == &new_member {
+                if existing == new_member {
                     accept = false;
                     break;
                 }
 
-                // dominance checks
-                match self.dom_cmp(existing.as_ref(), &new_member) {
+                match self.dom_cmp(existing, &new_member) {
                     Ordering::Greater => {
                         // existing dominates new -> reject
                         accept = false;
@@ -126,7 +132,7 @@ where
                     }
                     Ordering::Less => {
                         // new dominates existing -> mark for removal
-                        self.scratch.remove.push(idx);
+                        self.scratch.remove_buff.push(idx);
                         comparisons += 1;
                     }
                     Ordering::Equal => comparisons += 1,
@@ -139,18 +145,18 @@ where
 
             // Remove dominated existing values efficiently (swap_remove).
             // Need stable removal: remove in descending index order.
-            if !self.scratch.remove.is_empty() {
-                removed_count += self.scratch.remove.len();
-                self.scratch.remove.sort_unstable();
-                self.scratch.remove.dedup();
+            if !self.scratch.remove_buff.is_empty() {
+                self.scratch.remove_buff.sort_unstable();
+                self.scratch.remove_buff.dedup();
 
-                for &idx in self.scratch.remove.iter().rev() {
+                removed_count += self.scratch.remove_buff.len();
+
+                for &idx in self.scratch.remove_buff.iter().rev() {
                     self.values.swap_remove(idx);
-                    unique_removed_count += 1;
                 }
             }
 
-            self.values.push(Arc::new(new_member));
+            self.values.push(new_member.clone());
             added_count += 1;
 
             // Filter if we exceed max
@@ -158,15 +164,11 @@ where
                 self.fast_filter();
                 filter_count += 1;
             }
-
-            // Invalidate the cached score matrix
-            self.scratch.scores.clear();
         }
 
         FrontAddResult {
             added_count,
             removed_count,
-            unique_removed_count,
             comparisons,
             filter_count,
             size: self.values.len(),
@@ -186,67 +188,43 @@ where
             return None;
         }
 
-        self.ensure_score_matrix()?;
-        let (n, _m) = self.score_dims()?;
-
-        self.crowding_distance_in_place(n);
+        let (n, _) = self.score_dims()?;
 
         let drop = ((n as f32) * trim).floor() as usize;
         if drop == 0 {
             return None;
         }
 
-        // We want to drop the *largest* distances (most isolated).
-        self.scratch.order.clear();
-        self.scratch.order.extend(0..n);
+        let scores = self
+            .values
+            .iter()
+            .filter_map(|v| v.score())
+            .collect::<Vec<_>>();
 
-        let dist = &self.scratch.dist;
-        self.scratch.order.sort_unstable_by(|&i, &j| {
-            let a = dist[i];
-            let b = dist[j];
+        self.scratch.crowding_buff.clear();
+        self.scratch.crowding_buff.resize(scores.len(), 0.0);
 
-            match (a.is_infinite(), b.is_infinite()) {
-                (true, true) => Ordering::Equal,
-                (true, false) => Ordering::Less,
-                (false, true) => Ordering::Greater,
-                _ => b.partial_cmp(&a).unwrap_or(Ordering::Equal),
-            }
+        self.scratch.index_buff.clear();
+        self.scratch.index_buff.extend(0..scores.len());
+
+        pareto::buffered_crowding_distance(&scores, &mut self.scratch.crowding_buff);
+
+        self.scratch.index_buff.sort_unstable_by(|&i, &j| {
+            self.scratch.crowding_buff[j]
+                .partial_cmp(&self.scratch.crowding_buff[i])
+                .unwrap_or(Ordering::Equal)
         });
 
-        self.scratch.remove.clear();
-        self.scratch
-            .remove
-            .extend(self.scratch.order.iter().take(drop).copied());
+        self.scratch.index_buff.truncate(drop);
+        self.scratch.index_buff.sort_unstable();
+        self.scratch.index_buff.dedup();
 
-        self.scratch.remove.sort_unstable();
-        self.scratch.remove.dedup();
-        let removed = self.scratch.remove.len();
-        for &idx in self.scratch.remove.iter().rev() {
+        let removed = self.scratch.index_buff.len();
+        for &idx in self.scratch.index_buff.iter().rev() {
             self.values.swap_remove(idx);
         }
 
-        self.scratch.scores.clear();
         Some(removed)
-    }
-
-    #[inline]
-    fn dom_cmp(&self, one: &T, two: &T) -> Ordering {
-        let one_score = one.score();
-        let two_score = two.score();
-
-        if one_score.is_none() || two_score.is_none() {
-            return Ordering::Equal;
-        }
-
-        let (a, b) = (one_score.unwrap(), two_score.unwrap());
-
-        if pareto::dominance(a, b, &self.objective) {
-            Ordering::Greater
-        } else if pareto::dominance(b, a, &self.objective) {
-            Ordering::Less
-        } else {
-            Ordering::Equal
-        }
     }
 
     pub fn fronts(&mut self) -> Vec<Front<T>>
@@ -258,8 +236,7 @@ where
             let mut updated = false;
 
             for front in fronts.iter_mut() {
-                let to_insert = (*(*member)).clone();
-                let result = front.add_all(vec![to_insert]);
+                let result = front.try_add_all(std::iter::once(member));
 
                 if result.added_count > 0 {
                     updated = true;
@@ -269,8 +246,7 @@ where
 
             if !updated {
                 let mut new_front = Front::new(self.range.clone(), self.objective.clone());
-                let to_insert = (*(*member)).clone();
-                new_front.add_all(vec![to_insert]);
+                new_front.try_add_all(std::iter::once(member));
                 fronts.push(new_front);
             }
         }
@@ -284,40 +260,74 @@ where
             return;
         }
 
-        // Build score matrix + crowding distances into scratch
-        if self.ensure_score_matrix().is_none() {
-            return;
-        }
+        let scores = self
+            .values
+            .iter()
+            .filter_map(|v| v.score())
+            .collect::<Vec<_>>();
 
-        let (n, _m) = match self.score_dims() {
-            Some(x) => x,
-            None => return,
-        };
+        self.scratch.crowding_buff.clear();
+        self.scratch.crowding_buff.resize(scores.len(), 0.0);
 
-        self.crowding_distance_in_place(n);
+        self.scratch.index_buff.clear();
+        self.scratch.index_buff.extend(0..scores.len());
 
-        // Pick top `keep` by crowding distance without sorting all n.
-        self.scratch.keep_idx.clear();
-        self.scratch.keep_idx.extend(0..n);
+        pareto::buffered_crowding_distance(&scores, &mut self.scratch.crowding_buff);
 
-        let dist = &self.scratch.dist;
-
-        // Partition so that [0..keep] are the best (in any order)
         self.scratch
-            .keep_idx
-            .select_nth_unstable_by(keep, |&i, &j| {
-                dist[j].partial_cmp(&dist[i]).unwrap_or(Ordering::Equal)
+            .index_buff
+            .select_nth_unstable_by(keep, |&a, &b| {
+                self.scratch.crowding_buff[b]
+                    .partial_cmp(&self.scratch.crowding_buff[a])
+                    .unwrap_or(Ordering::Equal)
             });
+        self.scratch.index_buff.truncate(keep);
 
-        self.scratch.keep_idx.truncate(keep);
+        self.retain_indices();
+    }
 
-        let mut new_values = Vec::with_capacity(keep);
-        for &i in self.scratch.keep_idx.iter() {
-            new_values.push(Arc::clone(&self.values[i]));
+    #[inline]
+    fn dom_cmp(&self, one: &T, two: &T) -> Ordering {
+        let one_score = one.score();
+        let two_score = two.score();
+
+        if one_score.is_none() || two_score.is_none() {
+            return Ordering::Equal;
         }
 
-        self.values = new_values;
-        self.scratch.scores.clear();
+        if let Some((a, b)) = one_score.zip(two_score) {
+            if pareto::dominance(a, b, &self.objective) {
+                return Ordering::Greater;
+            } else if pareto::dominance(b, a, &self.objective) {
+                return Ordering::Less;
+            }
+        }
+        Ordering::Equal
+    }
+
+    /// Keep only the elements at `indices`, in `self.values`' current order.
+    /// Reuses `scratch.keep_true` as scan-line scratch instead of allocating
+    /// a fresh mask on every call.
+    fn retain_indices(&mut self) {
+        self.scratch.filter_buff.clear();
+        self.scratch.filter_buff.resize(self.values.len(), false);
+
+        for &idx in self.scratch.index_buff.iter() {
+            self.scratch.filter_buff[idx] = true;
+        }
+
+        // Bind disjoint fields locally so the borrow checker sees this as
+        // two separate borrows of `self.values` and `self.scratch.keep_true`
+        // rather than one borrow of `self`.
+        let values = &mut self.values;
+        let keep_true = &self.scratch.filter_buff;
+
+        let mut idx = 0;
+        values.retain(|_| {
+            let retain = keep_true[idx];
+            idx += 1;
+            retain
+        });
     }
 
     #[inline]
@@ -331,83 +341,6 @@ where
         let first = self.values.iter().find_map(|v| v.score())?;
         Some((n, first.len()))
     }
-
-    fn ensure_score_matrix(&mut self) -> Option<()> {
-        let (n, m) = self.score_dims()?;
-
-        if m == 0 {
-            return None;
-        }
-
-        // If already built and size matches, keep it.
-        if self.scratch.scores.size() == n * m {
-            return Some(());
-        }
-
-        self.scratch.scores.reshape_and_fill(n, m, 0.0);
-        for (i, v) in self.values.iter().enumerate() {
-            let s = v.score()?;
-            if s.len() != m {
-                return None;
-            }
-
-            let row = self.scratch.scores.row_mut(i);
-            row.copy_from_slice(s.as_slice());
-        }
-
-        Some(())
-    }
-
-    fn crowding_distance_in_place(&mut self, n: usize) {
-        let (_, m) = match self.score_dims() {
-            Some(x) => x,
-            None => return,
-        };
-
-        if n == 0 || m == 0 {
-            return;
-        }
-
-        self.scratch.dist.clear();
-        self.scratch.dist.resize(n, 0.0);
-
-        self.scratch.order.clear();
-        self.scratch.order.extend(0..n);
-
-        for dim in 0..m {
-            let scores = &self.scratch.scores;
-
-            self.scratch.order.sort_unstable_by(|&i, &j| {
-                let a = scores[i][dim];
-                let b = scores[j][dim];
-                a.partial_cmp(&b).unwrap_or(Ordering::Equal)
-            });
-
-            let first_idx = self.scratch.order[0];
-            let last_idx = self.scratch.order[n - 1];
-            let min = self.scratch.scores[first_idx][dim];
-            let max = self.scratch.scores[last_idx][dim];
-
-            let range = max - min;
-
-            if !range.is_finite() || range == 0.0 {
-                continue;
-            }
-
-            self.scratch.dist[self.scratch.order[0]] = f32::INFINITY;
-            self.scratch.dist[self.scratch.order[n - 1]] = f32::INFINITY;
-
-            for k in 1..(n - 1) {
-                let prev_idx = self.scratch.order[k - 1];
-                let next_idx = self.scratch.order[k + 1];
-                let prev = self.scratch.scores[prev_idx][dim];
-                let next = self.scratch.scores[next_idx][dim];
-
-                let contrib = (next - prev).abs() / range;
-                self.scratch.dist[self.scratch.order[k]] += contrib;
-            }
-        }
-    }
 }
 
 impl<T> Default for Front<T>
@@ -417,81 +350,4 @@ where
     fn default() -> Self {
         Front::new(0..0, Objective::default())
     }
-}
-
-/// Calculate the Shannon entropy of a set of scores in multidimensional space.
-/// The scores are discretized into a grid of bins, and the entropy is computed
-/// based on the distribution of scores across these bins. Higher entropy indicates
-/// a more diverse set of scores. This can be interpreted as a measure of how well
-/// the solutions are spread out in the objective space.
-///
-/// It works by:
-/// 1. Determining the min and max values for each objective dimension.
-/// 2. Mapping each score to a discrete bin index based on its normalized position
-///    within the min-max range for each dimension.
-/// 3. Counting the number of scores in each bin (cell).
-/// 4. Calculating the probabilities of each occupied bin and computing the
-///    Shannon entropy using these probabilities.
-/// 5. Optionally normalizing the entropy by the maximum possible entropy given
-///    the number of occupied bins and total scores.
-fn entropy_flat(scores: &[f32], n: usize, m: usize, bins_per_dim: usize) -> f32 {
-    if n == 0 || m == 0 || bins_per_dim == 0 {
-        return 0.0;
-    }
-
-    // mins/maxs per dim
-    let mut mins = vec![f32::INFINITY; m];
-    let mut maxs = vec![f32::NEG_INFINITY; m];
-
-    for i in 0..n {
-        let row = &scores[i * m..i * m + m];
-        for d in 0..m {
-            let x = row[d];
-            if x < mins[d] {
-                mins[d] = x;
-            }
-            if x > maxs[d] {
-                maxs[d] = x;
-            }
-        }
-    }
-
-    for d in 0..m {
-        if (maxs[d] - mins[d]).abs() < EPSILON {
-            maxs[d] = mins[d] + 1.0;
-        }
-    }
-
-    let mut cell_counts: HashMap<Vec<u8>, usize> = HashMap::new();
-
-    for i in 0..n {
-        let row = &scores[i * m..i * m + m];
-        let mut cell = Vec::with_capacity(m);
-
-        for d in 0..m {
-            let norm = (row[d] - mins[d]) / (maxs[d] - mins[d]); // [0,1]
-            let mut idx = (norm * bins_per_dim as f32).floor() as i32;
-            if idx < 0 {
-                idx = 0;
-            }
-            if idx >= bins_per_dim as i32 {
-                idx = bins_per_dim as i32 - 1;
-            }
-            cell.push(idx as u8);
-        }
-
-        *cell_counts.entry(cell).or_insert(0) += 1;
-    }
-
-    let n_f = n as f32;
-    let mut h = 0.0_f32;
-    for &count in cell_counts.values() {
-        let p = count as f32 / n_f;
-        if p > 0.0 {
-            h -= p * p.ln();
-        }
-    }
-
-    let k = cell_counts.len().min(n);
-    if k > 1 { h / (k as f32).ln() } else { 0.0 }
 }

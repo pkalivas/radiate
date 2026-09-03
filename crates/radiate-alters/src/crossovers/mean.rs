@@ -42,12 +42,12 @@ where
         let mut count = 0;
 
         random_provider::with_rng(|rand| {
-            for (gene_one, gene_two) in chrom_one.iter_mut().zip(chrom_two.iter()) {
+            chrom_one.zip_mut(chrom_two).for_each(|gene_one, gene_two| {
                 if rand.bool(ctx.rate()) {
                     *gene_one = gene_one.mean(gene_two);
                     count += 1;
                 }
-            }
+            });
         });
 
         count.into()

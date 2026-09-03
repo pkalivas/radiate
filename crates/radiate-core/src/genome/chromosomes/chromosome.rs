@@ -49,20 +49,33 @@ pub trait Chromosome: Valid {
         self.as_mut_slice().iter_mut()
     }
 
-    fn zip_mut<'a>(
-        &'a mut self,
-        other: &'a mut Self,
-    ) -> impl Iterator<Item = (&'a mut Self::Gene, &'a mut Self::Gene)> {
-        self.iter_mut().zip(other.iter_mut())
-    }
-
-    fn apply_paired<F>(&mut self, other: &mut Self, mut op: F)
+    fn zip_mut<'a>(&'a mut self, other: &'a mut Self) -> ZippedChromosome<'a, Self>
     where
         Self: Sized,
-        F: FnMut(&mut Self::Gene, &mut Self::Gene),
     {
-        for (a, b) in self.iter_mut().zip(other.iter_mut()) {
-            op(a, b);
+        ZippedChromosome {
+            chrom_one: self,
+            chrom_two: other,
+        }
+    }
+}
+
+pub struct ZippedChromosome<'a, C: Chromosome> {
+    chrom_one: &'a mut C,
+    chrom_two: &'a mut C,
+}
+
+impl<'a, C: Chromosome> ZippedChromosome<'a, C> {
+    pub fn iter(&'a mut self) -> impl Iterator<Item = (&'a mut C::Gene, &'a mut C::Gene)> {
+        self.chrom_one.iter_mut().zip(self.chrom_two.iter_mut())
+    }
+
+    pub fn for_each<F>(&'a mut self, mut f: F)
+    where
+        F: FnMut(&'a mut C::Gene, &'a mut C::Gene),
+    {
+        for (gene_one, gene_two) in self.iter() {
+            f(gene_one, gene_two);
         }
     }
 }

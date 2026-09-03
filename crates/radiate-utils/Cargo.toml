@@ -23,8 +23,6 @@ smallvec = { workspace = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 radiate-error = { workspace = true }
-crossbeam = { workspace = true }
-
 
 [features]
 default = []

@@ -3,6 +3,10 @@
 //! These are essential for evolutionary algorithms that need to handle
 //! multiple conflicting objectives.
 
+use std::collections::HashMap;
+
+use radiate_utils::Float;
+
 use crate::objectives::{Objective, Optimize};
 
 /// A small constant to avoid division by zero and ensure non-zero weights.
@@ -26,19 +30,33 @@ const EPSILON: f32 = 1e-6;
 /// ```
 #[inline]
 pub fn crowding_distance<T: AsRef<[f32]>>(scores: &[T]) -> Vec<f32> {
+    let mut buffer = vec![0.0; scores.len()];
+
+    if !ensure_buffer_len(scores, &mut buffer) {
+        return buffer;
+    }
+
+    buffered_crowding_distance(scores, &mut buffer);
+    buffer
+}
+
+#[inline]
+pub fn buffered_crowding_distance<T: AsRef<[f32]>>(scores: &[T], buffer: &mut [f32]) {
+    if !ensure_buffer_len(scores, buffer) {
+        return;
+    }
+
     let n = scores.len();
-    if n == 0 {
-        return Vec::new();
+    if buffer.len() < n {
+        panic!(
+            "Buffer length {} is less than number of scores {}",
+            buffer.len(),
+            n
+        );
     }
 
-    let m = scores[0].as_ref().len();
-    if m == 0 {
-        return vec![0.0; n];
-    }
-
-    let mut result = vec![0.0f32; n];
     let mut indices: Vec<usize> = (0..n).collect();
-
+    let m = scores[0].as_ref().len();
     for dim in 0..m {
         indices.sort_unstable_by(|&i, &j| {
             scores[i].as_ref()[dim]
@@ -54,20 +72,16 @@ pub fn crowding_distance<T: AsRef<[f32]>>(scores: &[T]) -> Vec<f32> {
             continue;
         }
 
-        // Boundary points get infinite distance so they’re always preserved
-        result[indices[0]] = f32::INFINITY;
-        result[indices[n - 1]] = f32::INFINITY;
+        buffer[indices[0]] = f32::INFINITY;
+        buffer[indices[n - 1]] = f32::INFINITY;
 
-        // Interior points: normalized distance
         for k in 1..(n - 1) {
             let prev = scores[indices[k - 1]].as_ref()[dim];
             let next = scores[indices[k + 1]].as_ref()[dim];
             let contrib = (next - prev).abs() / range;
-            result[indices[k]] += contrib;
+            buffer[indices[k]] += contrib;
         }
     }
-
-    result
 }
 
 #[inline]
@@ -336,6 +350,96 @@ pub fn das_dennis(m: usize, p: usize) -> Vec<Vec<f32>> {
 
     rec(0, m, p, p, &mut current, &mut out);
     out
+}
+
+pub fn entropy<T, K>(scores: &[T], bins_per_dim: usize) -> K
+where
+    K: Float + PartialOrd,
+    T: AsRef<[K]>,
+{
+    let n = scores.len();
+    let m = if n > 0 { scores[0].as_ref().len() } else { 0 };
+
+    if n == 0 || m == 0 || bins_per_dim == 0 {
+        return K::zero();
+    }
+
+    let mut mins = vec![K::infinity(); m];
+    let mut maxs = vec![K::neg_infinity(); m];
+
+    for i in 0..n {
+        let row = scores[i].as_ref();
+        for d in 0..m {
+            let x = row[d];
+            if x < mins[d] {
+                mins[d] = x;
+            }
+            if x > maxs[d] {
+                maxs[d] = x;
+            }
+        }
+    }
+
+    for d in 0..m {
+        if (maxs[d] - mins[d]).abs() < K::EPS {
+            maxs[d] = mins[d] + K::one();
+        }
+    }
+
+    let mut cell_counts: HashMap<Vec<u8>, usize> = HashMap::new();
+
+    for i in 0..n {
+        let row = scores[i].as_ref();
+        let mut cell = Vec::with_capacity(m);
+
+        for d in 0..m {
+            let norm = (row[d] - mins[d]) / (maxs[d] - mins[d]);
+            let mut idx = (norm * K::from(bins_per_dim).unwrap())
+                .floor()
+                .to_i32()
+                .unwrap();
+            if idx < 0 {
+                idx = 0;
+            }
+            if idx >= bins_per_dim as i32 {
+                idx = bins_per_dim as i32 - 1;
+            }
+            cell.push(idx as u8);
+        }
+
+        *cell_counts.entry(cell).or_insert(0) += 1;
+    }
+
+    let n_f = K::from(n).unwrap();
+    let mut h = K::zero();
+    for &count in cell_counts.values() {
+        let p = K::from(count).unwrap() / n_f;
+        if p > K::zero() {
+            h = h - p * p.ln();
+        }
+    }
+
+    let k = cell_counts.len().min(n);
+    if k > 1 {
+        h / K::from(k).unwrap().ln()
+    } else {
+        K::zero()
+    }
+}
+
+fn ensure_buffer_len<T: AsRef<[f32]>>(scores: &[T], buffer: &mut [f32]) -> bool {
+    let n = scores.len();
+    if n == 0 {
+        return false;
+    }
+
+    let m = scores[0].as_ref().len();
+    if m == 0 {
+        buffer.fill(0.0);
+        return false;
+    }
+
+    true
 }
 
 #[cfg(test)]

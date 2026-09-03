@@ -29,7 +29,6 @@ pub mod metric_names {
 
     pub const FRONT_ADDITIONS: SmallStr = SmallStr::from_static("front.additions");
     pub const FRONT_REMOVALS: SmallStr = SmallStr::from_static("front.removals");
-    pub const FRONT_UNIQUE_REMOVALS: SmallStr = SmallStr::from_static("front.removals.unique");
     pub const FRONT_ENTROPY: SmallStr = SmallStr::from_static("front.entropy");
     pub const FRONT_COMPARISONS: SmallStr = SmallStr::from_static("front.comparisons");
     pub const FRONT_FILTERS: SmallStr = SmallStr::from_static("front.filters");
@@ -168,7 +167,6 @@ const EXACT_TAGS: &[(&SmallStr, &[TagType])] = &[
     //
     (&metric_names::FRONT_ADDITIONS, &[TagType::Front]),
     (&metric_names::FRONT_REMOVALS, &[TagType::Front]),
-    (&metric_names::FRONT_UNIQUE_REMOVALS, &[TagType::Front]),
     (&metric_names::FRONT_COMPARISONS, &[TagType::Front]),
     (&metric_names::FRONT_ENTROPY, &[TagType::Front]),
     (&metric_names::FRONT_FILTERS, &[TagType::Front]),

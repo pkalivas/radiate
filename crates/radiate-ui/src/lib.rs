@@ -53,17 +53,3 @@ where
         UiInput::EngineRenderInterval(input.0, input.1)
     }
 }
-
-impl<C, T> From<(GeneticEngine<C, T>, bool)> for UiInput<C, T>
-where
-    C: Chromosome,
-    T: Clone + Send + Sync,
-{
-    fn from(input: (GeneticEngine<C, T>, bool)) -> Self {
-        if input.1 {
-            UiInput::Engine(input.0)
-        } else {
-            UiInput::EngineRenderInterval(input.0, DEFAULT_RENDER_INTERVAL)
-        }
-    }
-}

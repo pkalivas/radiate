@@ -1,19 +1,42 @@
 use radiate_core::{Chromosome, Objective, Optimize, Phenotype, Select, pareto};
+use radiate_utils::Matrix;
 use std::cmp::Ordering;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, OnceLock};
 
 const EPS: f32 = 1e-12;
 
+/// Reference directions plus their precomputed self-dot norms, so
+/// `nearest_reference_direction` never recomputes `dot(dir, dir)` per call.
+#[derive(Debug)]
+pub struct ReferenceDirs {
+    dirs: Vec<Vec<f32>>,
+    norms: Vec<f32>,
+}
+
+impl ReferenceDirs {
+    pub fn new(dirs: Vec<Vec<f32>>) -> Self {
+        let norms = dirs.iter().map(|d| dot(d, d)).collect();
+        Self { dirs, norms }
+    }
+
+    fn build(dims: usize, partitions: usize) -> Self {
+        Self::new(pareto::das_dennis(dims, partitions))
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct NSGA3Selector {
-    ref_dirs: Arc<Mutex<Vec<Vec<f32>>>>,
+    // Computed once per (dims, partitions) and shared cheaply thereafter --
+    // `get_or_init` costs one atomic check on the fast path, and cloning the
+    // Arc is a refcount bump rather than a deep copy of every direction.
+    ref_dirs: Arc<OnceLock<Arc<ReferenceDirs>>>,
     partitions: usize,
 }
 
 impl NSGA3Selector {
     pub fn new(partitions: usize) -> Self {
         Self {
-            ref_dirs: Arc::new(Mutex::new(Vec::new())),
+            ref_dirs: Arc::new(OnceLock::new()),
             partitions,
         }
     }
@@ -22,14 +45,10 @@ impl NSGA3Selector {
         self.partitions
     }
 
-    fn reference_dirs(&self, dims: usize) -> Vec<Vec<f32>> {
-        let mut dirs = self.ref_dirs.lock().unwrap();
-
-        if dirs.is_empty() {
-            *dirs = pareto::das_dennis(dims, self.partitions);
-        }
-
-        dirs.clone()
+    fn reference_dirs(&self, dims: usize) -> Arc<ReferenceDirs> {
+        self.ref_dirs
+            .get_or_init(|| Arc::new(ReferenceDirs::build(dims, self.partitions)))
+            .clone()
     }
 }
 
@@ -52,16 +71,18 @@ impl<C: Chromosome> Select<C> for NSGA3Selector {
             .iter()
             .filter_map(|p| p.score())
             .map(|score| to_minimization_space(score.as_ref(), objective))
-            .collect::<Vec<_>>();
+            .collect::<Matrix<f32>>();
+
+        let score_rows = scores.iter().collect::<Vec<&[f32]>>();
 
         let min_objective = minimization_objective(objective.dims());
-        let ranks = pareto::rank(&scores, &min_objective);
+        let ranks = pareto::rank(&score_rows, &min_objective);
         let fronts = fronts_from_ranks(&ranks);
 
         let ref_dirs = self.reference_dirs(objective.dims());
 
         let mut selected = Vec::with_capacity(count);
-        let mut front_idx = 0usize;
+        let mut front_idx = 0;
 
         while front_idx < fronts.len() && selected.len() + fronts[front_idx].len() <= count {
             selected.extend_from_slice(&fronts[front_idx]);
@@ -134,7 +155,7 @@ pub struct ObjectiveBounds {
 }
 
 impl ObjectiveBounds {
-    pub fn from_scores(scores: &[Vec<f32>]) -> Self {
+    pub fn from_scores(scores: &Matrix<f32>) -> Self {
         if scores.is_empty() {
             return Self {
                 ideal: Vec::new(),
@@ -142,14 +163,14 @@ impl ObjectiveBounds {
             };
         }
 
-        let dims = scores[0].len();
+        let dims = scores.cols();
         let mut ideal = vec![f32::INFINITY; dims];
         let mut nadir = vec![f32::NEG_INFINITY; dims];
 
-        for score in scores {
+        for row in scores.iter() {
             for dim in 0..dims {
-                ideal[dim] = ideal[dim].min(score[dim]);
-                nadir[dim] = nadir[dim].max(score[dim]);
+                ideal[dim] = ideal[dim].min(row[dim]);
+                nadir[dim] = nadir[dim].max(row[dim]);
             }
         }
 
@@ -186,18 +207,18 @@ struct Association {
 ///
 /// Returns additional indices from `last_front` using NSGA-III niching.
 pub fn niching_fill(
-    scores: &[Vec<f32>],
-    ref_dirs: &[Vec<f32>],
+    scores: &Matrix<f32>,
+    ref_dirs: &ReferenceDirs,
     already_selected: &[usize],
     last_front: &[usize],
     remaining: usize,
 ) -> Vec<usize> {
-    if remaining == 0 || last_front.is_empty() || ref_dirs.is_empty() {
+    if remaining == 0 || last_front.is_empty() || ref_dirs.dirs.is_empty() {
         return Vec::new();
     }
 
     let bounds = ObjectiveBounds::from_scores(scores);
-    let mut niche_count = vec![0usize; ref_dirs.len()];
+    let mut niche_count = vec![0usize; ref_dirs.dirs.len()];
 
     for &idx in already_selected {
         let normalized = bounds.normalize(&scores[idx]);
@@ -259,11 +280,11 @@ fn closest_candidate_in_niche(candidates: &[Association], niche: usize) -> usize
 }
 
 #[inline]
-pub fn nearest_reference_direction(point: &[f32], ref_dirs: &[Vec<f32>]) -> (usize, f32) {
+pub fn nearest_reference_direction(point: &[f32], refs: &ReferenceDirs) -> (usize, f32) {
     let mut best = (0usize, f32::INFINITY);
 
-    for (idx, direction) in ref_dirs.iter().enumerate() {
-        let direction_norm = dot(direction, direction);
+    for (idx, direction) in refs.dirs.iter().enumerate() {
+        let direction_norm = refs.norms[idx];
 
         if direction_norm <= EPS || !direction_norm.is_finite() {
             continue;

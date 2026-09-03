@@ -41,7 +41,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
     }
 
     pub fn front(&self) -> Arc<RwLock<Front<Phenotype<C>>>> {
-        self.front.clone()
+        Arc::clone(&self.front)
     }
 
     pub fn events(&self) -> &EventStream {

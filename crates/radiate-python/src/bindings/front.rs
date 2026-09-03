@@ -90,7 +90,7 @@ impl PyFront {
             ))
         } else {
             match &self.inner {
-                PyFrontInner::Front(front) => Ok((*front.values()[idx as usize]).clone()),
+                PyFrontInner::Front(front) => Ok((front.values()[idx as usize]).clone()),
                 PyFrontInner::Values(values) => Ok(values[idx as usize].clone()),
             }
         }
@@ -130,7 +130,7 @@ impl PyFront {
             .collect::<Vec<_>>();
 
         if let PyFrontInner::Front(front) = &mut self.inner {
-            Ok(Wrap(Arc::make_mut(front).add_all(value))
+            Ok(Wrap(Arc::make_mut(front).try_add_all(value.iter()))
                 .into_pyobject(py)?
                 .unbind()
                 .into())
@@ -141,11 +141,9 @@ impl PyFront {
 
     pub fn values(&self) -> Vec<PyFrontValue> {
         match &self.inner {
-            PyFrontInner::Front(front) => front
-                .values()
-                .iter()
-                .map(|v| (*(*v)).clone())
-                .collect::<Vec<_>>(),
+            PyFrontInner::Front(front) => {
+                front.values().iter().map(|v| v.clone()).collect::<Vec<_>>()
+            }
             PyFrontInner::Values(values) => values.clone(),
         }
     }
@@ -203,7 +201,7 @@ impl PyFront {
         if let PyFrontInner::Values(values) = &mut self.inner {
             let rng = values.len()..values.len();
             let mut front = Front::new(rng, self.objective.clone());
-            front.add_all(values.clone());
+            front.try_add_all(values.iter());
             let arc_front = Arc::new(front);
             self.inner = PyFrontInner::Front(arc_front.clone());
         }

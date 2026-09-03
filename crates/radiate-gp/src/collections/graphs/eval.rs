@@ -6,7 +6,6 @@ use crate::{
 };
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::ops::Range;
 
 /// A cache for storing intermediate results during graph evaluation.
 ///
@@ -21,7 +20,7 @@ pub struct GraphEvalCache<V> {
     eval_order: Vec<usize>,
     outputs: Vec<V>,
     inputs: Vec<V>,
-    input_ranges: Vec<Range<usize>>,
+    input_ranges: Vec<(usize, usize)>,
     output_indices: Vec<usize>,
 }
 
@@ -56,7 +55,7 @@ where
 
         for node in nodes {
             let k = node.incoming().len();
-            input_ranges.push(total_inputs..total_inputs + k);
+            input_ranges.push((total_inputs, total_inputs + k));
             total_inputs += k;
         }
 
@@ -110,8 +109,8 @@ where
             if incoming.is_empty() {
                 self.inner.outputs[index] = node.eval(input);
             } else {
-                let range = &self.inner.input_ranges[index];
-                let buf = &mut self.inner.inputs[range.clone()];
+                let (start, end) = &self.inner.input_ranges[index];
+                let buf = &mut self.inner.inputs[*start..*end];
 
                 for (dst, &src_idx) in buf.iter_mut().zip(incoming.iter()) {
                     *dst = self.inner.outputs[src_idx];

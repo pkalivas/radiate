@@ -75,7 +75,7 @@ fn main() {
     let front: &Front<Phenotype<FloatChromosome<f32>>> = result.front().unwrap();
 
     // Get the members of the Pareto front:
-    let individuals: &[Arc<Phenotype<FloatChromosome<f32>>>] = front.values();
+    let individuals: &[Phenotype<FloatChromosome<f32>>] = front.values();
     // --8<-- [end:multi_objective]
 
     // --8<-- [start:generation_view]

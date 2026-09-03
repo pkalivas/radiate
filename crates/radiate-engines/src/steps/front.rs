@@ -23,18 +23,12 @@ where
         let phenotypes = ecosystem
             .population()
             .iter()
-            .filter(|ind| ind.age(generation) == 0)
-            .cloned()
-            .collect::<Vec<Phenotype<C>>>();
+            .filter(|ind| ind.age(generation) == 0);
 
-        let add_result = self.front.write().unwrap().add_all(phenotypes);
+        let add_result = self.front.write().unwrap().try_add_all(phenotypes);
 
         metrics.upsert(metric_names::FRONT_ADDITIONS, add_result.added_count);
         metrics.upsert(metric_names::FRONT_REMOVALS, add_result.removed_count);
-        metrics.upsert(
-            metric_names::FRONT_UNIQUE_REMOVALS,
-            add_result.unique_removed_count,
-        );
         metrics.upsert(metric_names::FRONT_COMPARISONS, add_result.comparisons);
         metrics.upsert(metric_names::FRONT_FILTERS, add_result.filter_count);
         metrics.upsert(metric_names::FRONT_SIZE, add_result.size);

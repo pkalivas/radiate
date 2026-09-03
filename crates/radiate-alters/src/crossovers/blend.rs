@@ -53,7 +53,7 @@ where
         let alpha = A::from(self.alpha).unwrap();
 
         random_provider::with_rng(|rand| {
-            chrom_one.apply_paired(chrom_two, |one, two| {
+            chrom_one.zip_mut(chrom_two).for_each(|one, two| {
                 if rand.bool(ctx.rate()) {
                     let allele_one = *one.allele();
                     let allele_two = *two.allele();

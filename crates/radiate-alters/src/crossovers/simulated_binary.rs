@@ -46,11 +46,8 @@ where
         }
 
         let mut count = 0;
-
         random_provider::with_rng(|rand| {
-            let one_slice = chrom_one.as_mut_slice();
-            let two_slice = chrom_two.as_slice();
-            for i in 0..length {
+            chrom_one.zip_mut(chrom_two).for_each(|gene_one, gene_two| {
                 if rand.bool(0.5) {
                     let u = rand.random::<f32>();
                     let beta = A::from(if u <= 0.5 {
@@ -60,8 +57,8 @@ where
                     })
                     .unwrap();
 
-                    let v1 = *one_slice[i].allele();
-                    let v2 = *two_slice[i].allele();
+                    let v1 = *gene_one.allele();
+                    let v2 = *gene_two.allele();
 
                     let v = if rand.bool(0.5) {
                         ((v1 - v2) * A::HALF) - (beta * A::HALF * (v1 - v2).abs())
@@ -69,14 +66,14 @@ where
                         ((v1 - v2) * A::HALF) + (beta * A::HALF * (v1 - v2).abs())
                     };
 
-                    let (one_min, one_max) = one_slice[i].bound_range();
+                    let (one_min, one_max) = gene_one.bound_range();
                     let new_gene = v.clamp(*one_min, *one_max);
 
                     count += 1;
 
-                    *one_slice[i].allele_mut() = new_gene;
+                    *gene_one.allele_mut() = new_gene;
                 }
-            }
+            });
         });
 
         AlterResult::from(count)

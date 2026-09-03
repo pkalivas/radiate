@@ -1,8 +1,11 @@
 use crate::{IntoPyAnyObject, PyAnyObject, Wrap};
 use numpy::PyArrayDyn;
 use pyo3::{
-    Bound, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyResult, Python, intern,
-    prelude::FromPyObjectOwned, pyclass, pymethods, sync::PyOnceLock, types::PyAnyMethods,
+    Bound, BoundObject, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyResult, Python, intern,
+    prelude::FromPyObjectOwned,
+    pyclass, pymethods,
+    sync::PyOnceLock,
+    types::{PyAnyMethods, PyBytes, PyBytesMethods},
 };
 use radiate::{DataType, Eval, Format, Op, RadiateResult, ToDot, Tree};
 use radiate_utils::Float;
@@ -72,8 +75,29 @@ impl PyTree {
             .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid JSON: {}", e)))
     }
 
+    #[staticmethod]
+    pub fn from_pickle<'py>(pickle_bytes: &Bound<'py, PyBytes>) -> PyResult<Self> {
+        serde_pickle::from_slice::<PyTree>(
+            pickle_bytes.as_bytes(),
+            serde_pickle::DeOptions::default(),
+        )
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid Pickle: {}", e)))
+    }
+
     pub fn to_json(&self) -> String {
         serde_json::to_string(&self).unwrap()
+    }
+
+    pub fn to_pickle<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
+        let pickle =
+            serde_pickle::to_vec(self, serde_pickle::SerOptions::default()).map_err(|e| {
+                pyo3::exceptions::PyValueError::new_err(format!(
+                    "Failed to serialize to pickle: {}",
+                    e
+                ))
+            })?;
+
+        Ok(PyBytes::new(python, &pickle).into_bound())
     }
 
     pub fn to_dot(&self) -> String {

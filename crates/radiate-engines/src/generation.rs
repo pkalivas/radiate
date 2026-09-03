@@ -6,7 +6,7 @@ use radiate_core::{Ecosystem, Front, MetricSet, Objective, Phenotype, Population
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 /// A [Generation] represents a single generation in the evolutionary process.
@@ -264,11 +264,17 @@ where
         }
     }
 
-    pub fn front(&self) -> Arc<RwLock<Front<Phenotype<C>>>> {
+    pub fn front(&self) -> Arc<Front<Phenotype<C>>>
+    where
+        C: Clone,
+    {
         match &self.inner {
-            ViewInner::Context(ctx) => ctx.front.clone(),
+            ViewInner::Context(ctx) => match ctx.objective {
+                Objective::Multi(_) => Arc::new(ctx.front.read().unwrap().clone()),
+                _ => Arc::default(),
+            },
             ViewInner::Generation(epoch) => match &epoch.front {
-                Some(_) => Arc::default(), // Arc::clone(front), --- IGNORE ---
+                Some(front) => Arc::clone(&front),
                 None => Arc::default(),
             },
         }

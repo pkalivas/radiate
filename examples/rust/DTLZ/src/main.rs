@@ -15,19 +15,16 @@ fn main() {
         .fitness_fn(|geno: Vec<f32>| dtlz_1(&geno))
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .offspring_selector(TournamentSelector::new(5))
-        .survivor_selector(NSGA3Selector::new(12))
-        .front_size(200..250)
+        // .survivor_selector(NSGA3Selector::new(12))
+        .survivor_selector(NSGA2Selector::new())
+        .front_size(1000..1100)
         .alter(alters!(
-            SimulatedBinaryCrossover::new(1_f32, 2.0),
-            UniformMutator::new(0.1),
+            SimulatedBinaryCrossover::new(1_f32, 2.5),
+            UniformMutator::new(1.0 / VARIABLES as f32),
         ))
         .build();
 
-    let result = radiate::ui((engine, true))
-        .iter()
-        .limit(1000)
-        .last()
-        .unwrap();
+    let result = engine.iter().limit(1000).logging().last().unwrap();
 
     println!("{:?}", result);
     println!("{}", result.metrics().dashboard());

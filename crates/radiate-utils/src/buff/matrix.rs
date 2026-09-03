@@ -33,6 +33,42 @@ impl<T> Matrix<T> {
         }
     }
 
+    pub fn from_rows<I>(rows: I) -> Self
+    where
+        I: IntoIterator<Item = Vec<T>>,
+    {
+        let mut iter = rows.into_iter();
+
+        let Some(first) = iter.next() else {
+            return Self {
+                data: Vec::new(),
+                rows: 0,
+                cols: 0,
+            };
+        };
+
+        let cols = first.len();
+        let (lower, upper) = iter.size_hint();
+
+        let mut data = Vec::with_capacity(cols.saturating_mul(1 + upper.unwrap_or(lower)));
+
+        data.extend(first);
+
+        let mut row_count = 1;
+
+        for row in iter {
+            assert_eq!(row.len(), cols);
+            data.extend(row);
+            row_count += 1;
+        }
+
+        Self {
+            data,
+            rows: row_count,
+            cols,
+        }
+    }
+
     pub fn rows(&self) -> usize {
         self.rows
     }
@@ -175,6 +211,22 @@ impl<T: Clone> Matrix<T> {
 
     pub fn fill(&mut self, value: T) {
         self.data.fill(value);
+    }
+
+    pub fn transpose(&self) -> Self {
+        let mut transposed_data = Vec::with_capacity(self.data.len());
+
+        for col in 0..self.cols {
+            for row in 0..self.rows {
+                transposed_data.push(self[(row, col)].clone());
+            }
+        }
+
+        Matrix {
+            data: transposed_data,
+            rows: self.cols,
+            cols: self.rows,
+        }
     }
 }
 
@@ -328,6 +380,12 @@ impl<T> From<(usize, usize, Vec<T>)> for Matrix<T> {
             "Data length must match rows * cols"
         );
         Matrix { data, rows, cols }
+    }
+}
+
+impl<T> FromIterator<Vec<T>> for Matrix<T> {
+    fn from_iter<I: IntoIterator<Item = Vec<T>>>(iter: I) -> Self {
+        Matrix::from_rows(iter)
     }
 }
 

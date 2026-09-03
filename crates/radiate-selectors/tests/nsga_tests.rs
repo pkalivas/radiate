@@ -1,12 +1,13 @@
 #[cfg(test)]
 mod nsga_tests {
-    use radiate_test::*;
     use radiate_core::*;
     use radiate_selectors::nsga3::{
-        ObjectiveBounds, fronts_from_ranks, nearest_reference_direction, niching_fill,
-        to_minimization_space,
+        ObjectiveBounds, ReferenceDirs, fronts_from_ranks, nearest_reference_direction,
+        niching_fill, to_minimization_space,
     };
     use radiate_selectors::*;
+    use radiate_test::*;
+    use radiate_utils::Matrix;
 
     fn min2() -> Objective {
         Objective::Multi(vec![Optimize::Minimize, Optimize::Minimize])
@@ -206,15 +207,15 @@ mod nsga_tests {
         // near y-axis (niche 1, count = 0). Niching must prefer niche 1.
         //
         // Scores are in minimization space (passed directly to niching_fill).
-        let scores = vec![
+        let scores = Matrix::from(vec![
             vec![1.0f32, 0.0], // idx 0 — already selected, maps to niche 0
             vec![0.9f32, 0.1], // idx 1 — candidate, maps to niche 0
             vec![0.1f32, 0.9], // idx 2 — candidate, maps to niche 1
-        ];
-        let ref_dirs = vec![
+        ]);
+        let ref_dirs = ReferenceDirs::new(vec![
             vec![1.0f32, 0.0], // niche 0: x-axis
             vec![0.0f32, 1.0], // niche 1: y-axis
-        ];
+        ]);
 
         let result = niching_fill(&scores, &ref_dirs, &[0], &[1, 2], 1);
 
@@ -293,14 +294,14 @@ mod nsga_tests {
     #[test]
     fn objective_bounds_empty_input() {
         // Empty scores → empty bounds; normalize on an empty point round-trips empty.
-        let bounds = ObjectiveBounds::from_scores(&[]);
+        let bounds = ObjectiveBounds::from_scores(&Matrix::<f32>::empty());
         assert!(bounds.normalize(&[]).is_empty());
     }
 
     #[test]
     fn objective_bounds_single_point_is_degenerate() {
         // Single point → ideal == nadir on every dim → normalize must return zeros.
-        let bounds = ObjectiveBounds::from_scores(&[vec![2.0f32, 5.0]]);
+        let bounds = ObjectiveBounds::from_scores(&Matrix::from(vec![vec![2.0f32, 5.0]]));
         assert_eq!(bounds.normalize(&[2.0, 5.0]), vec![0.0, 0.0]);
     }
 
@@ -308,7 +309,7 @@ mod nsga_tests {
     fn objective_bounds_known_values_normalize_correctly() {
         // ideal = [1, 2], nadir = [3, 5]. The corners map to 0 and 1 respectively,
         // which exercises that from_scores computed both bounds correctly.
-        let scores = vec![vec![1.0f32, 4.0], vec![3.0, 2.0], vec![2.0, 5.0]];
+        let scores = Matrix::from(vec![vec![1.0f32, 4.0], vec![3.0, 2.0], vec![2.0, 5.0]]);
         let bounds = ObjectiveBounds::from_scores(&scores);
 
         assert_eq!(bounds.normalize(&[1.0, 2.0]), vec![0.0, 0.0]);
@@ -318,7 +319,8 @@ mod nsga_tests {
     #[test]
     fn objective_bounds_normalize_known_values() {
         // ideal = [0, 0], nadir = [10, 10] → [5, 2] → [0.5, 0.2].
-        let bounds = ObjectiveBounds::from_scores(&[vec![0.0f32, 0.0], vec![10.0, 10.0]]);
+        let bounds =
+            ObjectiveBounds::from_scores(&Matrix::from(vec![vec![0.0f32, 0.0], vec![10.0, 10.0]]));
         let result = bounds.normalize(&[5.0, 2.0]);
 
         assert!((result[0] - 0.5).abs() < 1e-5);
@@ -328,7 +330,8 @@ mod nsga_tests {
     #[test]
     fn objective_bounds_zero_range_dimension_is_zero() {
         // dim 0 has ideal == nadir (every point has 5.0 on dim 0) → degenerate, must output 0.0.
-        let bounds = ObjectiveBounds::from_scores(&[vec![5.0f32, 0.0], vec![5.0, 10.0]]);
+        let bounds =
+            ObjectiveBounds::from_scores(&Matrix::from(vec![vec![5.0f32, 0.0], vec![5.0, 10.0]]));
         let result = bounds.normalize(&[5.0, 7.0]);
 
         assert_eq!(result[0], 0.0);
@@ -341,10 +344,7 @@ mod nsga_tests {
 
     #[test]
     fn nearest_reference_direction_picks_closest() {
-        let ref_dirs = vec![
-            vec![1.0f32, 0.0], // x-axis
-            vec![0.0f32, 1.0], // y-axis
-        ];
+        let ref_dirs = ReferenceDirs::new(vec![vec![1.0f32, 0.0], vec![0.0, 1.0]]);
         // Point mostly along x-axis → should associate with direction 0.
         let (k, _) = nearest_reference_direction(&[0.9, 0.1], &ref_dirs);
         assert_eq!(k, 0, "expected x-axis direction");
@@ -356,7 +356,7 @@ mod nsga_tests {
 
     #[test]
     fn nearest_reference_direction_exact_alignment_has_zero_distance() {
-        let ref_dirs = vec![vec![1.0f32, 0.0], vec![0.0f32, 1.0]];
+        let ref_dirs = ReferenceDirs::new(vec![vec![1.0f32, 0.0], vec![0.0f32, 1.0]]);
         let (k, d) = nearest_reference_direction(&[1.0, 0.0], &ref_dirs);
         assert_eq!(k, 0);
         assert!(d < 1e-5, "exact alignment must have near-zero distance");
@@ -368,22 +368,22 @@ mod nsga_tests {
 
     #[test]
     fn niching_fill_zero_remaining_is_empty() {
-        let scores = vec![vec![0.0f32, 1.0]];
-        let ref_dirs = vec![vec![1.0f32, 0.0]];
+        let scores = Matrix::from(vec![vec![0.0f32, 1.0]]);
+        let ref_dirs = ReferenceDirs::new(vec![vec![1.0f32, 0.0]]);
         let result = niching_fill(&scores, &ref_dirs, &[], &[0], 0);
         assert!(result.is_empty());
     }
 
     #[test]
     fn niching_fill_returns_correct_count() {
-        let scores = vec![
+        let scores = Matrix::from(vec![
             vec![1.0f32, 0.0],
             vec![0.5, 0.5],
             vec![0.0, 1.0],
             vec![0.8, 0.2],
             vec![0.2, 0.8],
-        ];
-        let ref_dirs = vec![vec![1.0f32, 0.0], vec![0.5, 0.5], vec![0.0, 1.0]];
+        ]);
+        let ref_dirs = ReferenceDirs::new(vec![vec![1.0f32, 0.0], vec![0.5, 0.5], vec![0.0, 1.0]]);
         let result = niching_fill(&scores, &ref_dirs, &[0, 2], &[1, 3, 4], 2);
         assert_eq!(result.len(), 2);
     }
@@ -393,12 +393,12 @@ mod nsga_tests {
         // Niche 0 already has 1 member (idx 0). Niche 1 is empty.
         // Candidate idx 1 maps to niche 0; candidate idx 2 maps to niche 1.
         // Niching must pick idx 2.
-        let scores = vec![
+        let scores = Matrix::from(vec![
             vec![1.0f32, 0.0], // idx 0 — already selected → niche 0 count = 1
             vec![0.9f32, 0.1], // idx 1 — candidate → niche 0
             vec![0.1f32, 0.9], // idx 2 — candidate → niche 1
-        ];
-        let ref_dirs = vec![vec![1.0f32, 0.0], vec![0.0f32, 1.0]];
+        ]);
+        let ref_dirs = ReferenceDirs::new(vec![vec![1.0f32, 0.0], vec![0.0f32, 1.0]]);
 
         let result = niching_fill(&scores, &ref_dirs, &[0], &[1, 2], 1);
         assert_eq!(result.len(), 1);
