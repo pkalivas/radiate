@@ -2,7 +2,7 @@ use radiate_error::RadiateError;
 use radiate_utils::AnyValue;
 use std::time::Duration;
 
-use crate::nodes::Selector;
+use crate::{Expr, nodes::Selector};
 
 pub(crate) type ExprResult<'a, O = AnyValue<'a>> = Result<O, RadiateError>;
 
@@ -14,6 +14,16 @@ pub struct NoInput;
 impl<'a> ExprSelect<'a> for NoInput {
     fn select(&'a self, _sel: &Selector) -> AnyValue<'a> {
         AnyValue::Null
+    }
+}
+
+pub trait EvalNoInput: Sized {
+    fn evaluate(&mut self) -> ExprResult<'static>;
+}
+
+impl EvalNoInput for Expr {
+    fn evaluate(&mut self) -> ExprResult<'static> {
+        EvalExpr::evaluate(self, &NoInput).map(AnyValue::into_static)
     }
 }
 

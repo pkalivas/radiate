@@ -153,7 +153,7 @@ where
         match outcome {
             LimitOutcome::Proceed => Ok(true),
             LimitOutcome::Stop => {
-                ctx.events()
+                ctx.event_stream()
                     .publish(LimitTriggered(ctx.index, self.clone()));
                 Ok(false)
             }
@@ -312,7 +312,7 @@ where
     if let AnyValue::Bool(b) = result {
         let proceed = !b;
         if !proceed {
-            ctx.events()
+            ctx.event_stream()
                 .publish(LimitTriggered(ctx.index, Limit::Expr(expr.clone())));
         }
         Ok(if proceed {
@@ -420,7 +420,8 @@ where
         let view = GenerationView::new(ctx);
         let proceed = !(self)(view);
         if !proceed {
-            ctx.events().publish(LimitTriggered(ctx.index, Limit::Fn));
+            ctx.event_stream()
+                .publish(LimitTriggered(ctx.index, Limit::Fn));
         }
         Ok(proceed)
     }

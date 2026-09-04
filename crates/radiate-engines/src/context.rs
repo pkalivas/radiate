@@ -44,7 +44,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         Arc::clone(&self.front)
     }
 
-    pub fn events(&self) -> &EventStream {
+    pub fn event_stream(&self) -> &EventStream {
         &self.events
     }
 

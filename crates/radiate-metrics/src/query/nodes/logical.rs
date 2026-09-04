@@ -19,6 +19,12 @@ impl When {
     }
 }
 
+impl Into<Expr> for When {
+    fn into(self) -> Expr {
+        self.then(true).otherwise(false)
+    }
+}
+
 pub struct Then {
     pub(crate) cond: Expr,
     pub(crate) then_expr: Expr,

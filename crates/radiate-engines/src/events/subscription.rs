@@ -1,4 +1,4 @@
-use radiate_core::{AnyValue, Expr};
+use radiate_core::{AnyValue, EvalNoInput, Expr};
 use radiate_utils::sentry_id;
 use std::{
     fmt::Debug,
@@ -15,19 +15,14 @@ sentry_id!(SubscriptionId);
 pub enum Schedule {
     #[default]
     Always,
-    EveryN(Arc<RwLock<Expr>>),
-    Duration(Arc<RwLock<Expr>>),
+    Expr(Expr),
 }
 
 impl Schedule {
-    pub fn is_scheduled(&self) -> bool {
+    pub fn is_scheduled(&mut self) -> bool {
         match self {
             Schedule::Always => true,
-            Schedule::EveryN(counter) => match counter.write().unwrap().tick() {
-                Ok(AnyValue::Bool(fired)) => fired,
-                _ => false,
-            },
-            Schedule::Duration(last_time) => match last_time.write().unwrap().tick() {
+            Schedule::Expr(expr) => match expr.evaluate() {
                 Ok(AnyValue::Bool(fired)) => fired,
                 _ => false,
             },
@@ -37,15 +32,13 @@ impl Schedule {
 
 impl From<usize> for Schedule {
     fn from(n: usize) -> Self {
-        Schedule::EveryN(Arc::new(RwLock::new(
-            Expr::every(n).then(true).otherwise(false),
-        )))
+        Schedule::Expr(Expr::every(n).into())
     }
 }
 
 impl From<Duration> for Schedule {
     fn from(duration: Duration) -> Self {
-        Schedule::Duration(Arc::new(RwLock::new(Expr::throttle(duration))))
+        Schedule::Expr(Expr::throttle(duration).into())
     }
 }
 
@@ -119,7 +112,8 @@ impl Subscription {
     }
 
     fn try_schedule(&self) -> bool {
-        if let Some(inner) = &*self.schedule.read().unwrap() {
+        let mut guard = self.schedule.write().unwrap();
+        if let Some(inner) = &mut *guard {
             inner.is_scheduled()
         } else {
             false

@@ -91,7 +91,7 @@ where
 
         self.engine
             .context()
-            .events()
+            .event_stream()
             .subscribe(move |ctx: &GenerationSnapshot<C, T>| {
                 let inner = &ctx.generation;
                 action_fn(GenerationView::from(inner.as_ref()));
@@ -100,8 +100,23 @@ where
         self
     }
 
+    pub fn throttle<F>(self, duration: std::time::Duration, mut action_fn: F) -> Self
+    where
+        F: FnMut(GenerationView<C, T>) + Send + Sync + 'static,
+    {
+        self.engine
+            .context()
+            .event_stream()
+            .subscribe(move |ctx: &GenerationSnapshot<C, T>| {
+                let inner = &ctx.generation;
+                action_fn(GenerationView::from(inner.as_ref()));
+            })
+            .schedule(duration);
+        self
+    }
+
     pub fn subscribe<EV: Event>(self, handler: impl Handler<EV>) -> Self {
-        self.engine.context().events().subscribe(handler);
+        self.engine.context().event_stream().subscribe(handler);
         self
     }
 }
@@ -195,7 +210,7 @@ where
 {
     pub fn logging(self) -> EngineRuntime<E> {
         init_logging();
-        let stream = self.engine.context().events();
+        let stream = self.engine.context().event_stream();
 
         stream.attatch(EngineLogger::<T>::new());
         stream.attatch(HealthMonitor::<T>::default());

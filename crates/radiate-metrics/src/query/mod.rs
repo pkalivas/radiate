@@ -9,4 +9,4 @@ mod traits;
 pub use expr::{Expr, ExprNode};
 pub use set::ExprSet;
 pub(crate) use traits::ExprResult;
-pub use traits::{EvalExpr, ExprSelect};
+pub use traits::{EvalExpr, EvalNoInput, ExprSelect};
