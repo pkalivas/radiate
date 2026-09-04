@@ -45,6 +45,10 @@ impl AggExpr {
         self
     }
 
+    pub fn swap_rollup(&mut self, rollup: Rollup) {
+        self.rollup = rollup;
+    }
+
     pub fn reset(&mut self) {
         if let Some(buf) = &mut self.buffer {
             buf.clear();

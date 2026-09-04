@@ -44,6 +44,19 @@ impl Expr {
         }
     }
 
+    pub fn id(&self) -> ExprId {
+        self.id
+    }
+
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn alias(mut self, name: impl Into<SmallStr>) -> Self {
+        self.name = name.into();
+        self
+    }
+
     pub fn is_literal(&self) -> bool {
         matches!(self.node, ExprNode::Literal(_))
     }
@@ -92,6 +105,26 @@ impl Expr {
         None
     }
 
+    pub fn reset(&mut self) {
+        match &mut self.node {
+            ExprNode::Literal(_) | ExprNode::Selector(_) => {}
+            ExprNode::Aggregate(a) => a.reset(),
+            ExprNode::Schedule(s) => s.reset(),
+            ExprNode::Binary(b) => {
+                b.lhs.reset();
+                b.rhs.reset();
+            }
+            ExprNode::Unary(u) => u.reset(),
+            ExprNode::Trinary(t) => {
+                t.first.reset();
+                t.second.reset();
+                t.third.reset();
+            }
+        }
+    }
+}
+
+impl Expr {
     pub fn identity() -> Expr {
         Expr::from(SelectExpr::new(Selector::Identity))
     }
@@ -125,37 +158,6 @@ impl Expr {
     pub fn throttle(duration: std::time::Duration) -> When {
         When::new(Expr::from(ScheduleExpr::Duration(duration.into())))
     }
-
-    pub fn id(&self) -> ExprId {
-        self.id
-    }
-
-    pub fn name(&self) -> &str {
-        self.name.as_str()
-    }
-
-    pub fn alias(mut self, name: impl Into<SmallStr>) -> Self {
-        self.name = name.into();
-        self
-    }
-
-    pub fn reset(&mut self) {
-        match &mut self.node {
-            ExprNode::Literal(_) | ExprNode::Selector(_) => {}
-            ExprNode::Aggregate(a) => a.reset(),
-            ExprNode::Schedule(s) => s.reset(),
-            ExprNode::Binary(b) => {
-                b.lhs.reset();
-                b.rhs.reset();
-            }
-            ExprNode::Unary(u) => u.reset(),
-            ExprNode::Trinary(t) => {
-                t.first.reset();
-                t.second.reset();
-                t.third.reset();
-            }
-        }
-    }
 }
 
 impl<'a, T> EvalExpr<'a, T> for Expr
@@ -163,15 +165,15 @@ where
     T: ExprSelect<'a>,
 {
     #[inline]
-    fn evaluate(&'a mut self, metrics: &'a T) -> ExprResult<'a> {
+    fn evaluate(&'a mut self, input: &'a T) -> ExprResult<'a> {
         match &mut self.node {
             ExprNode::Literal(value) => Ok(value.clone()),
-            ExprNode::Selector(selector) => selector.evaluate(metrics),
-            ExprNode::Aggregate(child) => child.evaluate(metrics),
-            ExprNode::Trinary(child) => child.evaluate(metrics),
-            ExprNode::Binary(child) => child.evaluate(metrics),
-            ExprNode::Unary(child) => child.evaluate(metrics),
-            ExprNode::Schedule(child) => child.evaluate(metrics),
+            ExprNode::Selector(selector) => selector.evaluate(input),
+            ExprNode::Aggregate(child) => child.evaluate(input),
+            ExprNode::Trinary(child) => child.evaluate(input),
+            ExprNode::Binary(child) => child.evaluate(input),
+            ExprNode::Unary(child) => child.evaluate(input),
+            ExprNode::Schedule(child) => child.evaluate(input),
         }
     }
 }

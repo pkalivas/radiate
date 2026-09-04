@@ -31,9 +31,6 @@ impl Expr {
             ExprNode::Aggregate(agg) => {
                 Expr::from(AggExpr::new(*agg.child, agg.rollup).rolling(window_size))
             }
-            ExprNode::Selector(select) => {
-                Expr::from(AggExpr::new(Expr::from(select), Rollup::Last).rolling(window_size))
-            }
             kind => Expr::from(AggExpr::new(Expr::new(kind), Rollup::Last).rolling(window_size)),
         }
     }

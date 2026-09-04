@@ -303,12 +303,14 @@ impl Metric {
 }
 
 impl<'a> ExprSelect<'a> for &Metric {
+    #[inline]
     fn select(&'a self, sel: &Selector) -> Result<AnyValue<'a>, RadiateError> {
         (*self).select(sel)
     }
 }
 
 impl<'a> ExprSelect<'a> for Metric {
+    #[inline]
     fn select(&self, sel: &Selector) -> Result<AnyValue<'a>, RadiateError> {
         let wrap = |v: f32| match self.dtype {
             DTYPE_FLOAT32 | DTYPE_LIST => AnyValue::Float32(v),

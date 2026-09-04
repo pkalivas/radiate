@@ -199,12 +199,14 @@ impl MetricSet {
 }
 
 impl<'a> ExprSelect<'a> for &MetricSet {
+    #[inline]
     fn select(&'a self, sel: &Selector) -> Result<AnyValue<'a>, RadiateError> {
         (*self).select(sel)
     }
 }
 
 impl<'a> ExprSelect<'a> for MetricSet {
+    #[inline]
     fn select(&'a self, sel: &Selector) -> Result<AnyValue<'a>, RadiateError> {
         match sel {
             Selector::Nested { parent, child } => {
