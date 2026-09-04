@@ -37,8 +37,7 @@ impl SelectExpr {
 
 impl<'a, T: ExprSelect<'a>> EvalExpr<'a, T> for SelectExpr {
     fn evaluate(&'a mut self, metrics: &'a T) -> ExprResult<'a> {
-        let selected = metrics.select(&self.selector);
-        Ok(selected)
+        metrics.select(&self.selector)
     }
 }
 

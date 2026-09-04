@@ -303,13 +303,13 @@ impl Metric {
 }
 
 impl<'a> ExprSelect<'a> for &Metric {
-    fn select(&'a self, sel: &Selector) -> AnyValue<'a> {
+    fn select(&'a self, sel: &Selector) -> Result<AnyValue<'a>, RadiateError> {
         (*self).select(sel)
     }
 }
 
 impl<'a> ExprSelect<'a> for Metric {
-    fn select(&self, sel: &Selector) -> AnyValue<'a> {
+    fn select(&self, sel: &Selector) -> Result<AnyValue<'a>, RadiateError> {
         let wrap = |v: f32| match self.dtype {
             DTYPE_FLOAT32 | DTYPE_LIST => AnyValue::Float32(v),
             DTYPE_DURATION => AnyValue::Duration(Duration::from_secs_f32(v)),
@@ -336,9 +336,9 @@ impl<'a> ExprSelect<'a> for Metric {
 
         match sel {
             Selector::Field(field) => {
-                match_field(self, field)
+                Ok(match_field(self, field))
             }
-            _ => AnyValue::Null,
+            _ => Ok(AnyValue::Null),
         }
     }
 

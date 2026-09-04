@@ -322,14 +322,16 @@ pub(crate) fn fuse_affine(child: Expr, scale: f32, bias: f32) -> Expr {
 
 #[cfg(test)]
 mod tests {
+    use radiate_error::RadiateError;
+
     use crate::nodes::Selector;
 
     use super::*;
 
     struct NullMetrics;
     impl<'a> ExprSelect<'a> for NullMetrics {
-        fn select(&'a self, _sel: &Selector) -> AnyValue<'a> {
-            AnyValue::Null
+        fn select(&'a self, _: &Selector) -> Result<AnyValue<'a>, RadiateError> {
+            Ok(AnyValue::Null)
         }
     }
 

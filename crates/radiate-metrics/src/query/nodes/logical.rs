@@ -19,9 +19,9 @@ impl When {
     }
 }
 
-impl Into<Expr> for When {
-    fn into(self) -> Expr {
-        self.then(true).otherwise(false)
+impl From<When> for Expr {
+    fn from(val: When) -> Self {
+        val.then(true).otherwise(false)
     }
 }
 

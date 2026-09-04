@@ -45,7 +45,7 @@ impl From<Duration> for Schedule {
 #[derive(Clone)]
 pub struct Subscription {
     pub(crate) id: SubscriptionId,
-    pub(crate) schedule: Arc<RwLock<Option<Schedule>>>,
+    pub(crate) schedule: Arc<RwLock<Schedule>>,
     pub(crate) permits: Arc<AtomicUsize>,
     pub(crate) alive: Arc<AtomicBool>,
 }
@@ -54,7 +54,7 @@ impl Subscription {
     pub(super) fn new() -> Self {
         Subscription {
             id: SubscriptionId::new(),
-            schedule: Arc::new(RwLock::new(Some(Schedule::default()))),
+            schedule: Arc::new(RwLock::new(Schedule::default())),
             permits: Arc::new(AtomicUsize::new(0)),
             alive: Arc::new(AtomicBool::new(true)),
         }
@@ -69,7 +69,7 @@ impl Subscription {
     }
 
     pub fn schedule(&self, schedule: impl Into<Schedule>) {
-        *self.schedule.write().unwrap() = Some(schedule.into());
+        *self.schedule.write().unwrap() = schedule.into();
     }
 
     pub fn unsubscribe(&self) {
@@ -113,10 +113,6 @@ impl Subscription {
 
     fn try_schedule(&self) -> bool {
         let mut guard = self.schedule.write().unwrap();
-        if let Some(inner) = &mut *guard {
-            inner.is_scheduled()
-        } else {
-            false
-        }
+        guard.is_scheduled()
     }
 }

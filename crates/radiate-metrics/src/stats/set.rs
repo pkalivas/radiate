@@ -4,6 +4,7 @@ use crate::{
     nodes::Selector,
     stats::{Meta, Tag, TagType, fmt},
 };
+use radiate_error::RadiateError;
 use radiate_utils::{AnyValue, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -198,27 +199,24 @@ impl MetricSet {
 }
 
 impl<'a> ExprSelect<'a> for &MetricSet {
-    fn select(&'a self, sel: &Selector) -> AnyValue<'a> {
+    fn select(&'a self, sel: &Selector) -> Result<AnyValue<'a>, RadiateError> {
         (*self).select(sel)
     }
 }
 
 impl<'a> ExprSelect<'a> for MetricSet {
-    fn select(&'a self, sel: &Selector) -> AnyValue<'a> {
+    fn select(&'a self, sel: &Selector) -> Result<AnyValue<'a>, RadiateError> {
         match sel {
             Selector::Nested { parent, child } => {
-                match parent.as_ref() {
-                    Selector::Field(name) => {
-                        if let Some(metric) = self.get(name) {
-                            return (*metric).select(child);
-                        }
-                    }
-                    _ => {}
+                if let Selector::Field(name) = parent.as_ref()
+                    && let Some(metric) = self.get(name)
+                {
+                    return (*metric).select(child);
                 }
 
-                return AnyValue::Null;
+                Ok(AnyValue::Null)
             }
-            _ => AnyValue::Null,
+            _ => Ok(AnyValue::Null),
         }
     }
 }
