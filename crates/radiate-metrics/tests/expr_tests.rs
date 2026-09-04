@@ -19,25 +19,8 @@ mod test {
         value.extract::<u64>().unwrap()
     }
 
-    // fn iter_and_add(
-    //     expr: Expr,
-    //     name: &str,
-    //     values: &[f32],
-    // ) -> impl Iterator<Item = AnyValue<'static>> {
-    //     let mut metrics = MetricSet::default();
-    //     let mut cloned = expr.clone();
-    //     values.iter().map(move |&value| {
-    //         metrics.upsert(name, value);
-    //         cloned.evaluate(&metrics).unwrap().into_static()
-    //     })
-    // }
-
     #[test]
     fn test_rolling_mean() {
-        // let expr = Expr::metric("a").rolling(3).mean().debug();
-        // let values = [1.0, 2.0, 3.0, 4.0];
-        // let results: Vec<_> = iter_and_add(expr, "a", &values).collect();
-
         let mut expr = Expr::metric("a").rolling(3).mean();
         let mut metrics = MetricSet::default();
 
@@ -331,7 +314,7 @@ mod test {
         }
     }
 
-    use radiate_metrics::{EvalExpr, Expr, ExprNode, MetricSet};
+    use radiate_metrics::{EvalExpr, EvalNoInput, Expr, MetricSet};
     use radiate_utils::DataType;
 
     fn metrics() -> MetricSet {
@@ -354,15 +337,15 @@ mod test {
     #[test]
     fn lit_evaluates_to_its_value() {
         let mut e = Expr::lit(3.14f32);
-        assert!((f32_val(e.evaluate(&metrics()).unwrap()) - 3.14).abs() < 1e-6);
+        assert!((f32_val(e.compute().unwrap()) - 3.14).abs() < 1e-6);
     }
 
     #[test]
     fn lit_ignores_input() {
         let mut e = Expr::lit(42.0f32);
         // Same result regardless of what the input is
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 42.0);
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 42.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 42.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 42.0);
     }
 
     // ---- Unary ops ----
@@ -370,34 +353,33 @@ mod test {
     #[test]
     fn neg_negates_numeric() {
         let mut e = Expr::lit(5.0f32).neg();
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), -5.0);
+        assert_eq!(f32_val(e.compute().unwrap()), -5.0);
     }
 
     #[test]
     fn abs_returns_magnitude() {
         let mut e = Expr::lit(-7.0f32).abs();
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 7.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 7.0);
     }
 
     #[test]
     fn not_inverts_bool() {
         let mut t = Expr::lit(AnyValue::Bool(true)).not();
         let mut f = Expr::lit(AnyValue::Bool(false)).not();
-        assert!(!bool_val(t.evaluate(&metrics()).unwrap()));
-        assert!(bool_val(f.evaluate(&metrics()).unwrap()));
+        assert!(!bool_val(t.compute().unwrap()));
+        assert!(bool_val(f.compute().unwrap()));
     }
 
     #[test]
     fn not_on_non_bool_errors() {
         let mut e = Expr::lit(1.0f32).not();
-        assert!(e.evaluate(&metrics()).is_err());
+        assert!(e.compute().is_err());
     }
 
     #[test]
     fn cast_f32_to_i32_truncates() {
         let mut e = Expr::lit(3.9f32).cast(DataType::Int32);
-        let metrics = metrics();
-        let result = e.evaluate(&metrics).unwrap();
+        let result = e.compute().unwrap();
         assert_eq!(result.extract::<i32>(), Some(3));
     }
 
@@ -406,31 +388,31 @@ mod test {
     #[test]
     fn add_two_literals() {
         let mut e = Expr::lit(2.0f32).add(Expr::lit(3.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 5.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 5.0);
     }
 
     #[test]
     fn sub_two_literals() {
         let mut e = Expr::lit(10.0f32).sub(Expr::lit(3.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 7.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 7.0);
     }
 
     #[test]
     fn mul_two_literals() {
         let mut e = Expr::lit(4.0f32) * 2.5f32;
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 10.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 10.0);
     }
 
     #[test]
     fn div_two_literals() {
         let mut e = Expr::lit(9.0f32).div(Expr::lit(3.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 3.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 3.0);
     }
 
     #[test]
     fn pow_two_literals() {
         let mut e = Expr::lit(2.0f32).pow(Expr::lit(8.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 256.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 256.0);
     }
 
     // ---- Operator overloads ----
@@ -438,19 +420,19 @@ mod test {
     #[test]
     fn add_operator_overload() {
         let mut e = Expr::from(3.0f32) + Expr::from(4.0f32);
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 7.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 7.0);
     }
 
     #[test]
     fn neg_operator_overload() {
         let mut e = -Expr::from(5.0f32);
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), -5.0);
+        assert_eq!(f32_val(e.compute().unwrap()), -5.0);
     }
 
     #[test]
     fn not_operator_overload() {
         let mut e = !Expr::lit(AnyValue::Bool(true));
-        assert!(!bool_val(e.evaluate(&metrics()).unwrap()));
+        assert!(!bool_val(e.compute().unwrap()));
     }
 
     // ---- Comparison ops ----
@@ -459,62 +441,44 @@ mod test {
     fn lt_lte_gt_gte_correct() {
         let five = || Expr::lit(5.0f32);
         let ten = || Expr::lit(10.0f32);
-        let input = &metrics();
 
-        assert!(bool_val(five().lt(ten()).evaluate(input).unwrap()));
-        assert!(!bool_val(ten().lt(five()).evaluate(input).unwrap()));
-        assert!(bool_val(five().lte(five()).evaluate(input).unwrap()));
-        assert!(bool_val(ten().gt(five()).evaluate(input).unwrap()));
-        assert!(bool_val(ten().gte(ten()).evaluate(input).unwrap()));
-        assert!(!bool_val(five().gte(ten()).evaluate(input).unwrap()));
+        assert!(bool_val(five().lt(ten()).compute().unwrap()));
+        assert!(!bool_val(ten().lt(five()).compute().unwrap()));
+        assert!(bool_val(five().lte(five()).compute().unwrap()));
+        assert!(bool_val(ten().gt(five()).compute().unwrap()));
+        assert!(bool_val(ten().gte(ten()).compute().unwrap()));
+        assert!(!bool_val(five().gte(ten()).compute().unwrap()));
     }
 
     #[test]
     fn eq_and_ne_correct() {
-        let input = &metrics();
-        assert!(bool_val(
-            Expr::lit(5.0f32)
-                .eq(Expr::lit(5.0f32))
-                .evaluate(input)
-                .unwrap()
-        ));
-        assert!(!bool_val(
-            Expr::lit(5.0f32)
-                .eq(Expr::lit(6.0f32))
-                .evaluate(input)
-                .unwrap()
-        ));
-        assert!(bool_val(
-            Expr::lit(5.0f32)
-                .ne(Expr::lit(6.0f32))
-                .evaluate(input)
-                .unwrap()
-        ));
+        assert!(bool_val(Expr::lit(5.0f32).eq(5.0f32).compute().unwrap()));
+        assert!(!bool_val(Expr::lit(5.0f32).eq(6.0f32).compute().unwrap()));
+        assert!(bool_val(Expr::lit(5.0f32).ne(6.0f32).compute().unwrap()));
     }
 
     #[test]
     fn between_is_inclusive_on_both_ends() {
-        let input = &metrics();
         let range = || (Expr::lit(1.0f32), Expr::lit(10.0f32));
 
         let (lo, hi) = range();
         assert!(bool_val(
-            Expr::lit(5.0f32).between(lo, hi).evaluate(input).unwrap()
+            Expr::lit(5.0f32).between(lo, hi).compute().unwrap()
         ));
 
         let (lo, hi) = range();
         assert!(bool_val(
-            Expr::lit(1.0f32).between(lo, hi).evaluate(input).unwrap()
+            Expr::lit(1.0f32).between(lo, hi).compute().unwrap()
         ));
 
         let (lo, hi) = range();
         assert!(bool_val(
-            Expr::lit(10.0f32).between(lo, hi).evaluate(input).unwrap()
+            Expr::lit(10.0f32).between(lo, hi).compute().unwrap()
         ));
 
         let (lo, hi) = range();
         assert!(!bool_val(
-            Expr::lit(0.0f32).between(lo, hi).evaluate(input).unwrap()
+            Expr::lit(0.0f32).between(lo, hi).compute().unwrap()
         ));
     }
 
@@ -522,14 +486,13 @@ mod test {
 
     #[test]
     fn and_or_short_circuit_values() {
-        let input = &metrics();
         let t = || Expr::lit(AnyValue::Bool(true));
         let f = || Expr::lit(AnyValue::Bool(false));
 
-        assert!(!bool_val(t().and(f()).evaluate(input).unwrap()));
-        assert!(bool_val(t().and(t()).evaluate(input).unwrap()));
-        assert!(bool_val(f().or(t()).evaluate(input).unwrap()));
-        assert!(!bool_val(f().or(f()).evaluate(input).unwrap()));
+        assert!(!bool_val(t().and(f()).compute().unwrap()));
+        assert!(bool_val(t().and(t()).compute().unwrap()));
+        assert!(bool_val(f().or(t()).compute().unwrap()));
+        assert!(!bool_val(f().or(f()).compute().unwrap()));
     }
 
     // ---- When / then / otherwise ----
@@ -537,74 +500,74 @@ mod test {
     #[test]
     fn when_selects_then_branch_on_true() {
         let mut e = Expr::when(Expr::lit(AnyValue::Bool(true)))
-            .then(Expr::lit(1.0f32))
-            .otherwise(Expr::lit(2.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 1.0);
+            .then(1.0f32)
+            .otherwise(2.0f32);
+        assert_eq!(f32_val(e.compute().unwrap()), 1.0);
     }
 
     #[test]
     fn when_selects_otherwise_branch_on_false() {
         let mut e = Expr::when(false).then(1.0f32).otherwise(2.0f32);
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 2.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 2.0);
     }
 
     #[test]
     fn when_condition_can_be_a_comparison() {
         let mut e = Expr::when(Expr::lit(5.0f32).gt(Expr::lit(3.0f32)))
-            .then(Expr::lit(100.0f32))
-            .otherwise(Expr::lit(0.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 100.0);
+            .then(100.0f32)
+            .otherwise(0.0f32);
+        assert_eq!(f32_val(e.compute().unwrap()), 100.0);
     }
 
     // ---- Clamp ----
 
     #[test]
     fn clamp_below_min_returns_min() {
-        let mut e = Expr::lit(-5.0f32).clamp(Expr::lit(0.0f32), Expr::lit(1.0f32));
+        let mut e = Expr::lit(-5.0f32).clamp(0.0f32, 1.0f32);
 
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 0.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 0.0);
     }
 
     #[test]
     fn clamp_above_max_returns_max() {
-        let mut e = Expr::lit(10.0f32).clamp(Expr::lit(0.0f32), Expr::lit(1.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 1.0);
+        let mut e = Expr::lit(10.0f32).clamp(0.0f32, 1.0f32);
+        assert_eq!(f32_val(e.compute().unwrap()), 1.0);
     }
 
     #[test]
     fn clamp_within_range_unchanged() {
-        let mut e = Expr::lit(0.5f32).clamp(Expr::lit(0.0f32), Expr::lit(1.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 0.5);
+        let mut e = Expr::lit(0.5f32).clamp(0.0f32, 1.0f32);
+        assert_eq!(f32_val(e.compute().unwrap()), 0.5);
     }
 
     #[test]
     fn clamp_null_input_returns_min() {
-        let mut e = Expr::lit(AnyValue::Null).clamp(Expr::lit(0.05f32), Expr::lit(2.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 0.05);
+        let mut e = Expr::lit(AnyValue::Null).clamp(0.05f32, 2.0f32);
+        assert_eq!(f32_val(e.compute().unwrap()), 0.05);
     }
 
     #[test]
     fn clamp_nan_input_returns_min() {
-        let mut e = Expr::lit(f32::NAN).clamp(Expr::lit(0.05f32), Expr::lit(2.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 0.05);
+        let mut e = Expr::lit(f32::NAN).clamp(0.05f32, 2.0f32);
+        assert_eq!(f32_val(e.compute().unwrap()), 0.05);
     }
 
     #[test]
     fn clamp_pos_inf_input_returns_min() {
-        let mut e = Expr::lit(f32::INFINITY).clamp(Expr::lit(0.05f32), Expr::lit(2.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 0.05);
+        let mut e = Expr::lit(f32::INFINITY).clamp(0.05f32, 2.0f32);
+        assert_eq!(f32_val(e.compute().unwrap()), 0.05);
     }
 
     #[test]
     fn clamp_neg_inf_input_returns_min() {
-        let mut e = Expr::lit(f32::NEG_INFINITY).clamp(Expr::lit(0.05f32), Expr::lit(2.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 0.05);
+        let mut e = Expr::lit(f32::NEG_INFINITY).clamp(0.05f32, 2.0f32);
+        assert_eq!(f32_val(e.compute().unwrap()), 0.05);
     }
 
     #[test]
     fn clamp_missing_bounds_errors() {
-        let mut e = Expr::lit(0.5f32).clamp(Expr::lit(AnyValue::Null), Expr::lit(2.0f32));
-        assert!(e.evaluate(&metrics()).is_err());
+        let mut e = Expr::lit(0.5f32).clamp(AnyValue::Null, 2.0f32);
+        assert!(e.compute().is_err());
     }
 
     // ---- or_else (Coalesce) ----
@@ -612,31 +575,31 @@ mod test {
     #[test]
     fn or_else_finite_passes_through() {
         let mut e = Expr::lit(3.0f32).or_else(Expr::lit(99.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 3.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 3.0);
     }
 
     #[test]
     fn or_else_null_falls_back() {
         let mut e = Expr::lit(AnyValue::Null).or_else(Expr::lit(99.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 99.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 99.0);
     }
 
     #[test]
     fn or_else_nan_falls_back() {
         let mut e = Expr::lit(f32::NAN).or_else(Expr::lit(99.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 99.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 99.0);
     }
 
     #[test]
     fn or_else_inf_falls_back() {
         let mut e = Expr::lit(f32::INFINITY).or_else(Expr::lit(99.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 99.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 99.0);
     }
 
     #[test]
     fn or_else_neg_inf_falls_back() {
         let mut e = Expr::lit(f32::NEG_INFINITY).or_else(Expr::lit(99.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 99.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 99.0);
     }
 
     #[test]
@@ -644,7 +607,7 @@ mod test {
         let mut e = Expr::lit(AnyValue::Null)
             .or_else(Expr::lit(f32::NAN))
             .or_else(Expr::lit(7.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 7.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 7.0);
     }
 
     // ---- min_with / max_with ----
@@ -652,33 +615,33 @@ mod test {
     #[test]
     fn min_with_picks_smaller() {
         let mut e = Expr::lit(5.0f32).min_with(Expr::lit(3.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 3.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 3.0);
     }
 
     #[test]
     fn max_with_picks_larger() {
         let mut e = Expr::lit(5.0f32).max_with(Expr::lit(8.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 8.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 8.0);
     }
 
     #[test]
     fn min_with_nan_on_one_side_returns_other() {
         // f32::min(a, NaN) = a (IEEE 754-2019 minNum semantics)
         let mut e = Expr::lit(5.0f32).min_with(Expr::lit(f32::NAN));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 5.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 5.0);
     }
 
     #[test]
     fn max_with_nan_on_one_side_returns_other() {
         let mut e = Expr::lit(5.0f32).max_with(Expr::lit(f32::NAN));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 5.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 5.0);
     }
 
     #[test]
     fn floor_via_max_with_constant() {
         // Common pattern: max_with as a floor without an upper ceiling.
         let mut e = Expr::lit(-3.0f32).max_with(Expr::lit(0.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 0.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 0.0);
     }
 
     // ---- Expr::reset ----
@@ -691,17 +654,17 @@ mod test {
             .then(Expr::lit(1.0f32))
             .otherwise(Expr::lit(0.0f32));
 
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 0.0);
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 0.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 0.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 0.0);
 
         e.reset();
 
         // Two more calls — should still be the "otherwise" branch since the
         // counter restarted at 0.
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 0.0);
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 0.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 0.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 0.0);
         // Third call from a fresh counter — should fire.
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 1.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 1.0);
     }
 
     #[test]
@@ -709,23 +672,21 @@ mod test {
         let mut e = Expr::lit(42.0f32);
         e.reset();
         e.reset();
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 42.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 42.0);
     }
 
     // ---- Schedule: every(n) ----
 
     #[test]
     fn every_fires_on_nth_call_then_resets() {
-        let mut e = Expr::every(3)
-            .then(Expr::lit(AnyValue::Bool(true)))
-            .otherwise(Expr::lit(AnyValue::Bool(false)));
+        let mut e = Expr::every(3).then(true).otherwise(false);
 
-        assert!(!bool_val(e.evaluate(&metrics()).unwrap())); // tick 1
-        assert!(!bool_val(e.evaluate(&metrics()).unwrap())); // tick 2
-        assert!(bool_val(e.evaluate(&metrics()).unwrap())); // tick 3 — fires
-        assert!(!bool_val(e.evaluate(&metrics()).unwrap())); // tick 1 again
-        assert!(!bool_val(e.evaluate(&metrics()).unwrap())); // tick 2 again
-        assert!(bool_val(e.evaluate(&metrics()).unwrap())); // tick 3 — fires again
+        assert!(!bool_val(e.compute().unwrap())); // tick 1
+        assert!(!bool_val(e.compute().unwrap())); // tick 2
+        assert!(bool_val(e.compute().unwrap())); // tick 3 — fires
+        assert!(!bool_val(e.compute().unwrap())); // tick 1 again
+        assert!(!bool_val(e.compute().unwrap())); // tick 2 again
+        assert!(bool_val(e.compute().unwrap())); // tick 3 — fires again
     }
 
     // ---- Pre-built composers ----
@@ -742,7 +703,7 @@ mod test {
         let e = Expr::lit(15.0f32).error(10.0);
         // assert!(is_fused_affine(&e), "expected fused Affine, got {e:?}");
         let mut e = e;
-        assert!((f32_val(e.evaluate(&metrics()).unwrap()) - 0.5).abs() < 1e-6);
+        assert!((f32_val(e.compute().unwrap()) - 0.5).abs() < 1e-6);
     }
 
     #[test]
@@ -892,63 +853,15 @@ mod test {
         assert_eq!(f32_val(e.evaluate(&ms).unwrap()), 0.0); // fresh seed
     }
 
-    #[test]
-    fn is_converged_fires_when_window_is_flat() {
-        // let ms = metrics_with("score", 1.0);
-        // let mut e = Expr::is_converged("score", 3, 0.01);
-
-        // // Buffers seed up to size 3.
-        // let _ = e.eval(&ms);
-        // let _ = e.eval(&ms);
-        // // Third eval: both first and last buffers full, both should hold ~1.0.
-        // assert!(bool_val(e.eval(&ms).unwrap()));
-    }
-
-    #[test]
-    fn is_converged_does_not_fire_when_window_drifts() {
-        // let mut ms = metrics_with("score", 1.0);
-        // let mut e = Expr::is_converged("score", 3, 0.01);
-
-        // let _ = e.eval(&ms);
-        // ms.upsert("score", 2.0);
-        // let _ = e.eval(&ms);
-        // ms.upsert("score", 3.0);
-        // // first=1.0, last=3.0, diff=2.0 > epsilon
-        // assert!(!bool_val(e.eval(&ms).unwrap()));
-    }
-
     // ---- compile() ----
 
     #[test]
     fn compile_folds_pure_literal_subtree() {
-        let e = Expr::lit(2.0f32).add(Expr::lit(3.0f32)).compile();
-        assert!(matches!(e.kind(), ExprNode::Literal(_)));
+        let e = Expr::lit(2.0f32).add(3.0f32).compile();
+        assert!(e.is_literal());
         let mut e = e;
         assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 5.0);
     }
-
-    // #[test]
-    // fn compile_wraps_metric_plus_lit_as_affine() {
-    //     let e = Expr::select("foo").add(Expr::lit(3.0f32)).compile();
-    //     assert!(is_fused_affine(&e), "expected Affine, got {e:?}");
-    // }
-
-    // #[test]
-    // fn compile_collapses_controller_chain_to_single_affine() {
-    //     // Replicates the species-threshold count_error chain:
-    //     //   (x - target) / target * GAIN + 1.0
-    //     //   = x * (GAIN / target) + (1 - GAIN)
-    //     let target = 10.0f32;
-    //     let gain = 0.999f32;
-    //     let e = Expr::select("count.species")
-    //         .sub(Expr::lit(target))
-    //         .div(Expr::lit(target))
-    //         .mul(Expr::lit(gain))
-    //         .add(Expr::lit(1.0f32))
-    //         .compile();
-
-    //     assert!(is_fused_affine(&e), "expected single Affine, got {e:?}");
-    // }
 
     #[test]
     fn compile_is_idempotent() {
@@ -961,17 +874,13 @@ mod test {
         assert_eq!(format!("{:?}", once), format!("{:?}", twice));
     }
 
-    // ---- Affine ----
-
-    // ---- Composition ----
-
     #[test]
     fn composed_expr_add_then_compare() {
         // (2 + 3) > 4 → true
         let mut e = Expr::lit(2.0f32)
             .add(Expr::lit(3.0f32))
             .gt(Expr::lit(4.0f32));
-        assert!(bool_val(e.evaluate(&metrics()).unwrap()));
+        assert!(bool_val(e.compute().unwrap()));
     }
 
     #[test]
@@ -980,7 +889,7 @@ mod test {
         let mut e = Expr::lit(-5.0f32)
             .clamp(Expr::lit(0.0f32), Expr::lit(1.0f32))
             .mul(Expr::lit(10.0f32));
-        assert_eq!(f32_val(e.evaluate(&metrics()).unwrap()), 0.0);
+        assert_eq!(f32_val(e.compute().unwrap()), 0.0);
     }
 
     #[test]

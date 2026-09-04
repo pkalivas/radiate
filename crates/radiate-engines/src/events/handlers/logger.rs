@@ -4,6 +4,7 @@ use crate::{
 };
 use crate::{LimitTriggered, events::EpochComplete};
 use radiate_core::Objective;
+use radiate_core::error::RadiateResult;
 use std::marker::PhantomData;
 
 pub struct EngineLogger<T> {
@@ -28,12 +29,13 @@ impl<T> EventHandler for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
-    fn start(&mut self, ctx: &EventContext<'_, Self>) {
+    fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
         ctx.subscribe::<LimitTriggered>();
         ctx.subscribe::<Warning>();
         ctx.subscribe::<CheckpointSaved>();
         ctx.subscribe::<EpochComplete<T>>();
         ctx.subscribe::<EngineStateChange>();
+        Ok(())
     }
 }
 

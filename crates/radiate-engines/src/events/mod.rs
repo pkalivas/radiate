@@ -13,4 +13,4 @@ pub use messages::{
 };
 pub use stream::EventStream;
 pub use subscriber::{Event, EventContext, EventHandler, Handler, Subscriber};
-pub use subscription::{Schedule, Subscription, SubscriptionId};
+pub use subscription::{Subscription, SubscriptionId};

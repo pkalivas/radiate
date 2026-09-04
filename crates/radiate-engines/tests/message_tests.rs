@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod event_stream_tests {
-    use radiate_core::Executor;
+    use radiate_core::{Executor, error::RadiateResult};
     use radiate_engines::events::{EventContext, EventHandler, EventStream, Handler};
     use std::sync::Arc;
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -130,9 +130,10 @@ mod event_stream_tests {
     }
 
     impl EventHandler for Both {
-        fn start(&mut self, ctx: &EventContext<'_, Self>) {
+        fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
             ctx.subscribe::<Ping>();
             ctx.subscribe::<Pong>();
+            Ok(())
         }
     }
 
@@ -154,10 +155,12 @@ mod event_stream_tests {
         let pings = Arc::new(AtomicUsize::new(0));
         let pongs = Arc::new(AtomicUsize::new(0));
 
-        stream.attatch(Both {
-            pings: Arc::clone(&pings),
-            pongs: Arc::clone(&pongs),
-        });
+        stream
+            .attatch(Both {
+                pings: Arc::clone(&pings),
+                pongs: Arc::clone(&pongs),
+            })
+            .unwrap();
 
         stream.publish(Ping(1));
         stream.publish(Pong(2));
@@ -213,10 +216,12 @@ mod event_stream_tests {
         let built = Arc::new(AtomicUsize::new(0));
         let built_clone = Arc::clone(&built);
 
-        stream.lazy_publish(move || {
-            built_clone.fetch_add(1, Ordering::SeqCst);
-            Ping(1)
-        });
+        stream
+            .lazy_publish(move || {
+                built_clone.fetch_add(1, Ordering::SeqCst);
+                Ping(1)
+            })
+            .unwrap();
 
         assert_eq!(built.load(Ordering::SeqCst), 0);
     }
@@ -233,10 +238,11 @@ mod event_stream_tests {
                     total.fetch_add(1, Ordering::SeqCst);
                 }
             })
-            .schedule(3_usize);
+            .schedule(3_usize)
+            .unwrap();
 
         for i in 0..6 {
-            stream.lazy_publish(move || Ping(i));
+            stream.lazy_publish(move || Ping(i)).unwrap();
         }
 
         // Due on the 3rd and 6th publish only.

@@ -224,11 +224,11 @@ where
         self.pipeline.run(&mut self.context)?;
         if self.context.try_advance_one()? {
             self.stream
-                .lazy_publish(|| Improvement::from(&self.context));
+                .lazy_publish(|| Improvement::from(&self.context))?;
         }
         self.stream.publish(EpochComplete::from(&self.context));
         self.stream
-            .lazy_publish(|| GenerationSnapshot::from(&self.context));
+            .lazy_publish(|| GenerationSnapshot::from(&self.context))?;
 
         Ok(())
     }

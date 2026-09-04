@@ -30,7 +30,7 @@ pub mod dtype_names {
 }
 
 pub trait DType {
-    fn dtype(&self) -> DataType;
+    fn dtype() -> DataType;
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]

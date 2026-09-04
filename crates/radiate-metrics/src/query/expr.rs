@@ -1,4 +1,6 @@
-use crate::{EvalExpr, ExprResult, ExprSelect, nodes::Selector, query::traits::NoInput};
+use std::time::Duration;
+
+use crate::{EvalExpr, ExprResult, ExprSelect, nodes::Selector};
 use crate::{
     metric_fields,
     nodes::{
@@ -42,8 +44,52 @@ impl Expr {
         }
     }
 
-    pub fn tick(&mut self) -> ExprResult<'static> {
-        self.evaluate(&NoInput).map(|v| v.into_static())
+    pub fn is_literal(&self) -> bool {
+        matches!(self.node, ExprNode::Literal(_))
+    }
+
+    pub fn is_selector(&self) -> bool {
+        matches!(self.node, ExprNode::Selector(_))
+    }
+
+    pub fn is_aggregate(&self) -> bool {
+        matches!(self.node, ExprNode::Aggregate(_))
+    }
+
+    pub fn is_schedule(&self) -> bool {
+        matches!(self.node, ExprNode::Schedule(_))
+    }
+
+    pub fn is_binary(&self) -> bool {
+        matches!(self.node, ExprNode::Binary(_))
+    }
+
+    pub fn is_unary(&self) -> bool {
+        matches!(self.node, ExprNode::Unary(_))
+    }
+
+    pub fn is_trinary(&self) -> bool {
+        matches!(self.node, ExprNode::Trinary(_))
+    }
+
+    pub fn into_schedule(self) -> Option<Expr> {
+        if self.is_schedule() {
+            return Some(self);
+        }
+
+        if let ExprNode::Literal(value) = self.node {
+            if value.is_numeric() {
+                return value
+                    .extract::<usize>()
+                    .map(|interval| Expr::every(interval).into());
+            } else if value.is_duration() {
+                return value
+                    .extract::<f32>()
+                    .map(|seconds| Expr::throttle(Duration::from_secs_f32(seconds)).into());
+            }
+        }
+
+        None
     }
 
     pub fn identity() -> Expr {
@@ -78,10 +124,6 @@ impl Expr {
 
     pub fn throttle(duration: std::time::Duration) -> When {
         When::new(Expr::from(ScheduleExpr::Duration(duration.into())))
-    }
-
-    pub fn kind(&self) -> &ExprNode {
-        &self.node
     }
 
     pub fn id(&self) -> ExprId {

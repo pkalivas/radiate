@@ -45,7 +45,7 @@ impl AggExpr {
         self
     }
 
-    pub(crate) fn reset(&mut self) {
+    pub fn reset(&mut self) {
         if let Some(buf) = &mut self.buffer {
             buf.clear();
         }
@@ -71,7 +71,7 @@ impl AggExpr {
         if values.len() == 1 {
             return match rollup {
                 Rollup::Count => Ok(AnyValue::UInt64(1)),
-                Rollup::Unique => Ok(values[0].clone()),
+                Rollup::Unique => Ok(AnyValue::Vector(values.to_vec())),
                 _ => Ok(values[0].clone()),
             };
         }

@@ -96,7 +96,8 @@ where
                 let inner = &ctx.generation;
                 action_fn(GenerationView::from(inner.as_ref()));
             })
-            .schedule(guarded_interval);
+            .schedule(Expr::every(guarded_interval))
+            .unwrap();
         self
     }
 
@@ -111,7 +112,8 @@ where
                 let inner = &ctx.generation;
                 action_fn(GenerationView::from(inner.as_ref()));
             })
-            .schedule(duration);
+            .schedule(Expr::throttle(duration))
+            .unwrap();
         self
     }
 
@@ -212,8 +214,8 @@ where
         init_logging();
         let stream = self.engine.context().event_stream();
 
-        stream.attatch(EngineLogger::<T>::new());
-        stream.attatch(HealthMonitor::<T>::default());
+        stream.attatch(EngineLogger::<T>::new()).unwrap();
+        stream.attatch(HealthMonitor::<T>::default()).unwrap();
         stream.subscribe(LoggingHandler);
 
         self

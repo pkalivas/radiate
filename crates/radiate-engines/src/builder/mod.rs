@@ -170,7 +170,7 @@ where
 
     #[cfg(feature = "serde")]
     pub fn checkpoint_with<F>(
-        self,
+        mut self,
         interval: usize,
         path: impl AsRef<std::path::Path>,
         writer: F,
@@ -190,7 +190,18 @@ where
 
         let handler =
             CheckpointWriterHandler::<C, T>::new(interval, path_without_extension.into(), writer);
-        self.params.event_stream.attatch(handler);
+        let attached = self.params.event_stream.attatch(handler);
+
+        if attached.is_err() {
+            self.add_error_if(
+                || true,
+                &format!(
+                    "Failed to attach checkpoint handler: {}",
+                    attached.err().unwrap()
+                ),
+            );
+        }
+
         self
     }
 }

@@ -4,6 +4,7 @@ use crate::{
     events::{EventContext, EventHandler, Warning},
 };
 use radiate_core::Objective;
+use radiate_core::error::RadiateResult;
 use std::marker::PhantomData;
 
 const STAGNATION_WARNING_THRESHOLD: usize = 200;
@@ -26,8 +27,9 @@ impl<T> EventHandler for HealthMonitor<T>
 where
     T: Send + Sync + 'static,
 {
-    fn start(&mut self, ctx: &EventContext<'_, Self>) {
+    fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
         ctx.subscribe::<EpochComplete<T>>();
+        Ok(())
     }
 }
 
@@ -43,7 +45,9 @@ where
 }
 
 fn check_stagnation<T, H>(message: &EpochComplete<T>, ctx: &EventContext<'_, H>) {
-    if let Objective::Multi(_) = message.objective { return }
+    if let Objective::Multi(_) = message.objective {
+        return;
+    }
 
     let stag_count = message
         .metrics

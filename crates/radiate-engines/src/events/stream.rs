@@ -2,7 +2,7 @@ use crate::{
     EventHandler,
     events::{Event, Handler, Subscriber, Subscription, SubscriptionId},
 };
-use radiate_core::Executor;
+use radiate_core::{Executor, error::RadiateResult};
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
@@ -40,10 +40,10 @@ impl EventStream {
         self.executor = executor;
     }
 
-    pub fn attatch<H: EventHandler>(&self, handler: H) -> Subscriber<H> {
+    pub fn attatch<H: EventHandler>(&self, handler: H) -> RadiateResult<Subscriber<H>> {
         let subscriber = Subscriber::new(handler, Arc::clone(&self.executor), self.clone());
-        subscriber.start();
-        subscriber
+        subscriber.start()?;
+        Ok(subscriber)
     }
 
     pub fn subscribe<E: Event>(&self, handler: impl Handler<E>) -> Subscription {
@@ -61,21 +61,22 @@ impl EventStream {
         self.dispatch(&group, Arc::new(event), false);
     }
 
-    pub fn lazy_publish<E: Event>(&self, f: impl FnOnce() -> E) {
+    pub fn lazy_publish<E: Event>(&self, f: impl FnOnce() -> E) -> RadiateResult<()> {
         let type_id = TypeId::of::<E>();
         let Some(group) = self.subscribers.read().unwrap().get(&type_id).cloned() else {
-            return;
+            return Ok(());
         };
 
         let any_due = group
             .iter()
-            .any(|registration| registration.subscription.reserve());
+            .any(|registration| registration.subscription.reserve().is_ok_and(|val| val));
 
         if !any_due {
-            return;
+            return Ok(());
         }
 
         self.dispatch(&group, Arc::new(f()), true);
+        Ok(())
     }
 
     pub fn unsubscribe(&self, id: SubscriptionId) {

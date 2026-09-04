@@ -1,5 +1,7 @@
-use radiate_core::{AnyValue, EvalNoInput, Expr};
+use radiate_core::{EvalNoInput, Expr, RadiateError, error::RadiateResult, radiate_err};
+use radiate_error::radiate_bail;
 use radiate_utils::sentry_id;
+use std::sync::atomic::AtomicUsize;
 use std::{
     fmt::Debug,
     sync::{
@@ -7,45 +9,13 @@ use std::{
         atomic::{AtomicBool, Ordering},
     },
 };
-use std::{sync::atomic::AtomicUsize, time::Duration};
 
 sentry_id!(SubscriptionId);
-
-#[derive(Clone, Default)]
-pub enum Schedule {
-    #[default]
-    Always,
-    Expr(Expr),
-}
-
-impl Schedule {
-    pub fn is_scheduled(&mut self) -> bool {
-        match self {
-            Schedule::Always => true,
-            Schedule::Expr(expr) => match expr.evaluate() {
-                Ok(AnyValue::Bool(fired)) => fired,
-                _ => false,
-            },
-        }
-    }
-}
-
-impl From<usize> for Schedule {
-    fn from(n: usize) -> Self {
-        Schedule::Expr(Expr::every(n).into())
-    }
-}
-
-impl From<Duration> for Schedule {
-    fn from(duration: Duration) -> Self {
-        Schedule::Expr(Expr::throttle(duration).into())
-    }
-}
 
 #[derive(Clone)]
 pub struct Subscription {
     pub(crate) id: SubscriptionId,
-    pub(crate) schedule: Arc<RwLock<Schedule>>,
+    pub(crate) schedule: Arc<RwLock<Option<Expr>>>,
     pub(crate) permits: Arc<AtomicUsize>,
     pub(crate) alive: Arc<AtomicBool>,
 }
@@ -54,7 +24,7 @@ impl Subscription {
     pub(super) fn new() -> Self {
         Subscription {
             id: SubscriptionId::new(),
-            schedule: Arc::new(RwLock::new(Schedule::default())),
+            schedule: Arc::new(RwLock::new(None)),
             permits: Arc::new(AtomicUsize::new(0)),
             alive: Arc::new(AtomicBool::new(true)),
         }
@@ -68,8 +38,18 @@ impl Subscription {
         self.id
     }
 
-    pub fn schedule(&self, schedule: impl Into<Schedule>) {
-        *self.schedule.write().unwrap() = schedule.into();
+    pub fn schedule(&self, schedule: impl Into<Expr>) -> Result<bool, RadiateError> {
+        let maybe_expr = schedule.into();
+
+        match maybe_expr.clone().into_schedule() {
+            Some(expr) => {
+                *self.schedule.write().unwrap() = Some(expr);
+                return Ok(true);
+            }
+            _ => {
+                radiate_bail!(Expr: format!("Invalid schedule expression: {:?}", maybe_expr))
+            }
+        }
     }
 
     pub fn unsubscribe(&self) {
@@ -77,18 +57,18 @@ impl Subscription {
         self.permits.store(0, Ordering::Release);
     }
 
-    pub(super) fn reserve(&self) -> bool {
+    pub(super) fn reserve(&self) -> RadiateResult<bool> {
         if !self.is_alive() {
-            return false;
+            return Ok(false);
         }
 
-        if !self.try_schedule() {
-            return false;
+        if !self.try_schedule()? {
+            return Ok(false);
         }
 
         self.permits.fetch_add(1, Ordering::Release);
 
-        true
+        Ok(true)
     }
 
     pub(super) fn take_permit(&self) -> bool {
@@ -111,8 +91,15 @@ impl Subscription {
         }
     }
 
-    fn try_schedule(&self) -> bool {
+    fn try_schedule(&self) -> RadiateResult<bool> {
         let mut guard = self.schedule.write().unwrap();
-        guard.is_scheduled()
+        if let Some(expr) = &mut *guard {
+            return expr
+                .compute()?
+                .extract_bool()
+                .ok_or_else(|| radiate_err!(Expr: "Failed to compute schedule as bool"));
+        }
+
+        return Ok(false);
     }
 }

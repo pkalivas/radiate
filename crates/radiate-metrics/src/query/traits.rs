@@ -5,8 +5,7 @@ use std::time::Duration;
 
 pub(crate) type ExprResult<'a, O = AnyValue<'a>> = Result<O, RadiateError>;
 
-pub struct NoInput;
-
+struct NoInput;
 impl<'a> ExprSelect<'a> for NoInput {
     fn select(&'a self, _sel: &Selector) -> Result<AnyValue<'a>, RadiateError> {
         Ok(AnyValue::Null)
@@ -14,11 +13,11 @@ impl<'a> ExprSelect<'a> for NoInput {
 }
 
 pub trait EvalNoInput: Sized {
-    fn evaluate(&mut self) -> ExprResult<'static>;
+    fn compute(&mut self) -> ExprResult<'static>;
 }
 
 impl EvalNoInput for Expr {
-    fn evaluate(&mut self) -> ExprResult<'static> {
+    fn compute(&mut self) -> ExprResult<'static> {
         EvalExpr::evaluate(self, &NoInput).map(AnyValue::into_static)
     }
 }
@@ -39,11 +38,10 @@ impl<'a, T: ExprSelect<'a>> ExprSelect<'a> for Vec<T> {
                     .filter_map(|v| v.select(&Selector::Identity).ok())
                     .collect::<Vec<AnyValue<'a>>>(),
             )),
-            Selector::Index(idx) => Ok(self
+            Selector::Index(idx) => self
                 .get(*idx)
                 .map(|v| v.select(&Selector::Identity))
-                .transpose()?
-                .unwrap_or(AnyValue::Null)),
+                .unwrap_or(Ok(AnyValue::Null)),
             Selector::Range(start, end) => {
                 let slice = self.get(*start..*end).unwrap_or(&[]);
                 let values = slice

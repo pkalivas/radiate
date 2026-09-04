@@ -1,5 +1,5 @@
 use crate::events::{EventStream, Subscription, SubscriptionId};
-use radiate_core::Executor;
+use radiate_core::{Executor, error::RadiateResult};
 use std::sync::{Arc, Mutex};
 
 pub trait Event: Send + Sync + 'static {
@@ -16,10 +16,11 @@ pub trait Handler<E: Event>: Send + 'static {
 }
 
 pub trait EventHandler: Send + 'static {
-    fn start(&mut self, _ctx: &EventContext<'_, Self>)
+    fn start(&mut self, _ctx: &EventContext<'_, Self>) -> RadiateResult<()>
     where
         Self: Sized,
     {
+        Ok(())
     }
 }
 
@@ -76,12 +77,12 @@ impl<H: Send + 'static> Subscriber<H> {
         self.stream.unsubscribe(id);
     }
 
-    pub(super) fn start(&self)
+    pub(super) fn start(&self) -> RadiateResult<()>
     where
         H: EventHandler,
     {
         let ctx = EventContext(self);
-        self.handler.lock().unwrap().start(&ctx);
+        self.handler.lock().unwrap().start(&ctx)
     }
 
     pub(super) fn send_shared<E>(&self, event: Arc<E>)

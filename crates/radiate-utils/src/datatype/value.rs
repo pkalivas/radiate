@@ -126,6 +126,11 @@ impl<'a> AnyValue<'a> {
     }
 
     #[inline]
+    pub fn is_duration(&self) -> bool {
+        matches!(self, Self::Duration(_))
+    }
+
+    #[inline]
     pub fn type_name(&self) -> &'static str {
         match self {
             Self::Null => "null",
@@ -250,7 +255,6 @@ impl<'a> AnyValue<'a> {
             (v, D::Duration) => v
                 .extract()
                 .map(|ms| AnyValue::Duration(Duration::from_secs_f32(ms))),
-            // .map(|ms| AnyValue::Duration(Duration::from_millis(ms))),
             (v, D::Char) => v.extract::<u8>().map(|b| AnyValue::Char(b as char)),
             (v @ AnyValue::Str(_), D::String) | (v @ AnyValue::StrOwned(_), D::String) => {
                 Some(v.into_static())
@@ -299,26 +303,6 @@ impl<'a> AnyValue<'a> {
                     .map(|(name, dtype, value)| (name, dtype, value.into_static()))
                     .collect(),
             ),
-        }
-    }
-
-    pub fn extract<T: NumCast>(&self) -> Option<T> {
-        match self {
-            AnyValue::UInt8(v) => NumCast::from(*v),
-            AnyValue::UInt16(v) => NumCast::from(*v),
-            AnyValue::UInt32(v) => NumCast::from(*v),
-            AnyValue::UInt64(v) => NumCast::from(*v),
-            AnyValue::UInt128(v) => NumCast::from(*v),
-            AnyValue::Int8(v) => NumCast::from(*v),
-            AnyValue::Int16(v) => NumCast::from(*v),
-            AnyValue::Int32(v) => NumCast::from(*v),
-            AnyValue::Int64(v) => NumCast::from(*v),
-            AnyValue::Int128(v) => NumCast::from(*v),
-            AnyValue::Float32(v) => NumCast::from(*v),
-            AnyValue::Float64(v) => NumCast::from(*v),
-            AnyValue::Usize(v) => NumCast::from(*v),
-            AnyValue::Duration(d) => NumCast::from(d.as_secs_f32()),
-            _ => None,
         }
     }
 
@@ -373,6 +357,36 @@ impl<'a> AnyValue<'a> {
                 .iter()
                 .find(|(f, _, _)| f == field_str)
                 .map(|(_, _, value)| value.clone()),
+            _ => None,
+        }
+    }
+}
+
+impl<'a> AnyValue<'a> {
+    pub fn extract<T: NumCast>(&self) -> Option<T> {
+        match self {
+            AnyValue::UInt8(v) => NumCast::from(*v),
+            AnyValue::UInt16(v) => NumCast::from(*v),
+            AnyValue::UInt32(v) => NumCast::from(*v),
+            AnyValue::UInt64(v) => NumCast::from(*v),
+            AnyValue::UInt128(v) => NumCast::from(*v),
+            AnyValue::Int8(v) => NumCast::from(*v),
+            AnyValue::Int16(v) => NumCast::from(*v),
+            AnyValue::Int32(v) => NumCast::from(*v),
+            AnyValue::Int64(v) => NumCast::from(*v),
+            AnyValue::Int128(v) => NumCast::from(*v),
+            AnyValue::Float32(v) => NumCast::from(*v),
+            AnyValue::Float64(v) => NumCast::from(*v),
+            AnyValue::Usize(v) => NumCast::from(*v),
+            AnyValue::Duration(d) => NumCast::from(d.as_secs_f32()),
+            AnyValue::Bool(b) => NumCast::from(*b as u8),
+            _ => None,
+        }
+    }
+
+    pub fn extract_bool(&self) -> Option<bool> {
+        match self {
+            AnyValue::Bool(b) => Some(*b),
             _ => None,
         }
     }

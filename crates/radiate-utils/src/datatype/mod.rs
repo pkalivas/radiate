@@ -17,7 +17,7 @@ pub use value::{AnyValue, dedup_slice};
 macro_rules! impl_dtype {
     ($t:ty, $dtype:expr) => {
         impl DType for $t {
-            fn dtype(&self) -> DataType {
+            fn dtype() -> DataType {
                 $dtype
             }
         }

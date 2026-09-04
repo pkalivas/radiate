@@ -9,7 +9,7 @@ use crate::{
     Handler,
     events::{EventContext, EventHandler, GenerationSnapshot},
 };
-use radiate_core::Chromosome;
+use radiate_core::{Chromosome, error::RadiateResult};
 use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -46,9 +46,10 @@ where
     C: Chromosome + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,
 {
-    fn start(&mut self, ctx: &EventContext<'_, Self>) {
+    fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
         ctx.subscribe::<GenerationSnapshot<C, T>>()
-            .schedule(self.interval);
+            .schedule(self.interval)?;
+        Ok(())
     }
 }
 
