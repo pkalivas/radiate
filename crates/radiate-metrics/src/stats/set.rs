@@ -1,6 +1,7 @@
 pub use crate::query::*;
 use crate::{
     Metric, MetricUpdate,
+    nodes::Selector,
     stats::{Meta, Tag, TagType, fmt},
 };
 use radiate_utils::{AnyValue, SmallStr};

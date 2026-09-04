@@ -1,4 +1,4 @@
-use crate::{Expr, Selector, query::ExprNode};
+use crate::{Expr, nodes::Selector, query::ExprNode};
 use crate::{
     metric_fields,
     nodes::{

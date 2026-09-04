@@ -1,7 +1,9 @@
-use crate::{EvalExpr, ExprResult, ExprSelect, SelectExpr, query::traits::NoInput};
+use crate::{EvalExpr, ExprResult, ExprSelect, nodes::Selector, query::traits::NoInput};
 use crate::{
-    Selector, metric_fields,
-    nodes::{AggExpr, BinaryExpr, IndexState, ScheduleExpr, TrinaryExpr, UnaryExpr, When},
+    metric_fields,
+    nodes::{
+        AggExpr, BinaryExpr, IndexState, ScheduleExpr, SelectExpr, TrinaryExpr, UnaryExpr, When,
+    },
 };
 use radiate_utils::sentry_id;
 use radiate_utils::{AnyValue, SmallStr};
@@ -34,7 +36,7 @@ impl Expr {
     pub fn new(node: ExprNode) -> Self {
         let id = ExprId::new();
         Self {
-            name: SmallStr::from_string(format!("Expr<{:?}>.{:?}", id, node)),
+            name: SmallStr::from_string(format!("Expr<{:?}>", id)),
             id,
             node,
         }

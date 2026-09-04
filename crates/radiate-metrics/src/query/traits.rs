@@ -1,7 +1,8 @@
-use crate::Selector;
 use radiate_error::RadiateError;
 use radiate_utils::AnyValue;
 use std::time::Duration;
+
+use crate::nodes::Selector;
 
 pub(crate) type ExprResult<'a, O = AnyValue<'a>> = Result<O, RadiateError>;
 
@@ -15,6 +16,7 @@ impl<'a> ExprSelect<'a> for NoInput {
         AnyValue::Null
     }
 }
+
 pub trait EvalExpr<'a, I: ExprSelect<'a>, O = AnyValue<'a>> {
     fn evaluate(&'a mut self, input: &'a I) -> ExprResult<'a, O>;
 }

@@ -322,8 +322,9 @@ pub(crate) fn fuse_affine(child: Expr, scale: f32, bias: f32) -> Expr {
 
 #[cfg(test)]
 mod tests {
+    use crate::nodes::Selector;
+
     use super::*;
-    use crate::Selector;
 
     struct NullMetrics;
     impl<'a> ExprSelect<'a> for NullMetrics {

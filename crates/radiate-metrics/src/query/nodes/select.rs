@@ -1,5 +1,4 @@
-use super::{EvalExpr, ExprResult};
-use crate::ExprSelect;
+use crate::{EvalExpr, ExprResult, ExprSelect};
 use radiate_utils::SmallStr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
