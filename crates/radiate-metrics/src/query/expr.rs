@@ -1,4 +1,4 @@
-use crate::{ExprEval, ExprResult, ExprSelect, SelectExpr};
+use crate::{EvalExpr, ExprResult, ExprSelect, SelectExpr};
 use crate::{
     Selector, metric_fields,
     nodes::{AggExpr, BinaryExpr, IndexState, ScheduleExpr, TrinaryExpr, UnaryExpr, When},
@@ -54,11 +54,15 @@ impl Expr {
 
     pub fn metric(name: impl Into<SmallStr>) -> Expr {
         let name = name.into();
-        Expr::new(ExprNode::Selector(SelectExpr::new(Selector::Metric {
-            name,
-            field: metric_fields::LAST_VALUE,
-            dtype: DataType::Float32,
+        Expr::new(ExprNode::Selector(SelectExpr::new(Selector::Nested {
+            parent: Box::new(Selector::Field(name.clone())),
+            child: Box::new(Selector::Field(metric_fields::LAST_VALUE)),
         })))
+        // Expr::new(ExprNode::Selector(SelectExpr::new(Selector::Metric {
+        //     name,
+        //     field: metric_fields::LAST_VALUE,
+        //     dtype: DataType::Float32,
+        // })))
     }
 
     pub fn when(cond: impl Into<Expr>) -> When {
@@ -113,12 +117,12 @@ impl Expr {
     }
 }
 
-impl<'a, T> ExprEval<'a, T> for Expr
+impl<'a, T> EvalExpr<'a, T> for Expr
 where
-    T: ExprSelect,
+    T: ExprSelect<'a>,
 {
     #[inline]
-    fn evaluate(&'a mut self, metrics: &T) -> ExprResult<'a> {
+    fn evaluate(&'a mut self, metrics: &'a T) -> ExprResult<'a> {
         match &mut self.node {
             ExprNode::Literal(value) => Ok(value.clone()),
             ExprNode::Selector(selector) => selector.evaluate(metrics),

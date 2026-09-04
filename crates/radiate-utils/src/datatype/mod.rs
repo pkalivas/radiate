@@ -2,6 +2,7 @@ mod arithmetic;
 mod compare;
 pub mod dtype;
 mod from;
+mod list;
 mod scalar;
 pub mod value;
 

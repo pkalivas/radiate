@@ -1,4 +1,4 @@
-use super::{ExprEval, ExprResult};
+use super::{EvalExpr, ExprResult};
 use crate::ExprSelect;
 use radiate_utils::{DataType, SmallStr};
 #[cfg(feature = "serde")]
@@ -18,12 +18,10 @@ impl SelectExpr {
     }
 }
 
-impl<'a, T> ExprEval<'a, T> for SelectExpr
-where
-    T: ExprSelect,
-{
-    fn evaluate(&'a mut self, metrics: &T) -> ExprResult<'a> {
-        Ok(metrics.select(&self.selector))
+impl<'a, T: ExprSelect<'a>> EvalExpr<'a, T> for SelectExpr {
+    fn evaluate(&'a mut self, metrics: &'a T) -> ExprResult<'a> {
+        let selected = metrics.select(&self.selector);
+        Ok(selected)
     }
 }
 
@@ -33,10 +31,10 @@ pub enum Selector {
     Identity,
     Index(usize),
     Range(usize, usize),
-    Metric {
-        name: SmallStr,
-        field: SmallStr,
-        dtype: DataType,
+    Field(SmallStr),
+    Nested {
+        parent: Box<Selector>,
+        child: Box<Selector>,
     },
 }
 
@@ -52,8 +50,8 @@ impl From<std::ops::Range<usize>> for Selector {
     }
 }
 
-impl From<(SmallStr, SmallStr, DataType)> for Selector {
-    fn from((name, field, dtype): (SmallStr, SmallStr, DataType)) -> Self {
-        Selector::Metric { name, field, dtype }
-    }
-}
+// impl From<(SmallStr, SmallStr, DataType)> for Selector {
+//     fn from((name, field, dtype): (SmallStr, SmallStr, DataType)) -> Self {
+//         Selector::Metric { name, field, dtype }
+//     }
+// }

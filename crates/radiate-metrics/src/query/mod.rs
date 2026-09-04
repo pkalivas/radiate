@@ -11,4 +11,4 @@ pub use expr::{Expr, ExprNode};
 pub use select::{SelectExpr, Selector};
 pub use set::ExprSet;
 pub(crate) use traits::ExprResult;
-pub use traits::{ExprEval, ExprSelect};
+pub use traits::{EvalExpr, ExprSelect};

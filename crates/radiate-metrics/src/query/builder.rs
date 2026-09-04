@@ -29,8 +29,9 @@ use std::ops::{Add, Div, Mul, Neg, Not, Sub};
 
 impl Expr {
     pub fn time(mut self) -> Expr {
-        self.try_swap_select_dtype(DataType::Duration);
-        self
+        self.cast(DataType::Duration)
+        // self.try_swap_select_dtype(DataType::Duration);
+        // self
     }
 
     pub fn value(mut self) -> Expr {
@@ -344,13 +345,13 @@ impl Expr {
     fn try_swap_select_dtype(&mut self, to: DataType) -> bool {
         if let ExprNode::Selector(sel) = &mut self.node {
             match &mut sel.selector {
-                Selector::Metric { name, field, .. } => {
-                    sel.selector = Selector::Metric {
-                        name: name.clone(),
-                        field: field.clone(),
-                        dtype: to,
-                    };
-                }
+                // Selector::Metric { name, field, .. } => {
+                //     sel.selector = Selector::Metric {
+                //         name: name.clone(),
+                //         field: field.clone(),
+                //         dtype: to,
+                //     };
+                // }
                 _ => return false,
             }
 
@@ -362,14 +363,22 @@ impl Expr {
     fn try_swap_select_field(&mut self, to: SmallStr) -> bool {
         if let ExprNode::Selector(sel) = &mut self.node {
             match &mut sel.selector {
-                Selector::Metric { name, dtype, .. } => {
-                    sel.selector = Selector::Metric {
-                        name: name.clone(),
-                        field: to,
-                        dtype: dtype.clone(),
+                Selector::Field(_) => {
+                    sel.selector = Selector::Field(to);
+                }
+                Selector::Nested { parent, child } => {
+                    sel.selector = Selector::Nested {
+                        parent: parent.clone(),
+                        child: Box::new(Selector::Field(to)),
                     };
                 }
-
+                // Selector::Metric { name, dtype, .. } => {
+                //     sel.selector = Selector::Metric {
+                //         name: name.clone(),
+                //         field: to,
+                //         dtype: dtype.clone(),
+                //     };
+                // }
                 _ => return false,
             }
 

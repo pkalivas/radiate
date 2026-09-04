@@ -1,4 +1,4 @@
-use crate::{ExprEval, ExprResult, ExprSelect};
+use crate::{EvalExpr, ExprResult, ExprSelect};
 use radiate_utils::AnyValue;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -67,9 +67,9 @@ impl ScheduleExpr {
     }
 }
 
-impl<'a, T> ExprEval<'a, T> for ScheduleExpr
+impl<'a, T> EvalExpr<'a, T> for ScheduleExpr
 where
-    T: ExprSelect,
+    T: ExprSelect<'a>,
 {
     fn evaluate(&'a mut self, _: &T) -> ExprResult<'a> {
         match self {

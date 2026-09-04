@@ -249,7 +249,8 @@ impl<'a> AnyValue<'a> {
             (v, D::Usize) => v.extract().map(AnyValue::Usize),
             (v, D::Duration) => v
                 .extract()
-                .map(|ms| AnyValue::Duration(Duration::from_millis(ms))),
+                .map(|ms| AnyValue::Duration(Duration::from_secs_f32(ms))),
+            // .map(|ms| AnyValue::Duration(Duration::from_millis(ms))),
             (v, D::Char) => v.extract::<u8>().map(|b| AnyValue::Char(b as char)),
             (v @ AnyValue::Str(_), D::String) | (v @ AnyValue::StrOwned(_), D::String) => {
                 Some(v.into_static())
@@ -316,7 +317,7 @@ impl<'a> AnyValue<'a> {
             AnyValue::Float32(v) => NumCast::from(*v),
             AnyValue::Float64(v) => NumCast::from(*v),
             AnyValue::Usize(v) => NumCast::from(*v),
-            AnyValue::Duration(d) => NumCast::from(d.as_millis()),
+            AnyValue::Duration(d) => NumCast::from(d.as_secs_f32()),
             _ => None,
         }
     }

@@ -197,14 +197,14 @@ impl MetricSet {
     }
 }
 
-impl ExprSelect for &MetricSet {
-    fn select(&self, sel: &Selector) -> AnyValue<'static> {
+impl<'a> ExprSelect<'a> for &MetricSet {
+    fn select(&'a self, sel: &Selector) -> AnyValue<'a> {
         (*self).select(sel)
     }
 }
 
-impl ExprSelect for MetricSet {
-    fn select(&self, sel: &Selector) -> AnyValue<'static> {
+impl<'a> ExprSelect<'a> for MetricSet {
+    fn select(&self, sel: &Selector) -> AnyValue<'a> {
         let wrap = |v: f32, dtype: &DataType| match dtype {
             DataType::Float32 => AnyValue::Float32(v),
             DataType::Duration => AnyValue::Duration(Duration::from_secs_f32(v)),
@@ -240,7 +240,14 @@ impl ExprSelect for MetricSet {
 
         match sel {
             Selector::Identity => AnyValue::Null,
-            Selector::Metric { name, field, dtype } => match_field(name, field, dtype),
+            Selector::Nested { parent, child } => match parent.as_ref() {
+                Selector::Field(name) => match child.as_ref() {
+                    Selector::Field(field) => match_field(name, field, &DataType::Float32),
+                    _ => AnyValue::Null,
+                },
+                _ => AnyValue::Null,
+            },
+            // Selector::Metric { name, field, dtype } => match_field(name, field, dtype),
             _ => AnyValue::Null,
         }
     }

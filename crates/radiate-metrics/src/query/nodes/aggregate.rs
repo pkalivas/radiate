@@ -1,4 +1,4 @@
-use crate::{Expr, ExprEval, ExprResult, ExprSelect};
+use crate::{EvalExpr, Expr, ExprResult, ExprSelect};
 use radiate_error::radiate_bail;
 use radiate_utils::{AnyValue, DataType, Quantile, Slope, Statistic, WindowBuffer, dedup_slice};
 #[cfg(feature = "serde")]
@@ -128,11 +128,11 @@ impl AggExpr {
     }
 }
 
-impl<'a, T> ExprEval<'a, T> for AggExpr
+impl<'a, T> EvalExpr<'a, T> for AggExpr
 where
-    T: ExprSelect,
+    T: ExprSelect<'a>,
 {
-    fn evaluate(&'a mut self, metrics: &T) -> ExprResult<'a> {
+    fn evaluate(&'a mut self, metrics: &'a T) -> ExprResult<'a> {
         let child_output = self.child.evaluate(metrics)?;
         let dtype = child_output.dtype();
 
