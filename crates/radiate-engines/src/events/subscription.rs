@@ -1,3 +1,4 @@
+use radiate_core::{AnyValue, Expr};
 use radiate_utils::sentry_id;
 use std::{
     fmt::Debug,
@@ -5,7 +6,6 @@ use std::{
         Arc, RwLock,
         atomic::{AtomicBool, Ordering},
     },
-    time::Instant,
 };
 use std::{sync::atomic::AtomicUsize, time::Duration};
 
@@ -15,47 +15,44 @@ sentry_id!(SubscriptionId);
 pub enum Schedule {
     #[default]
     Always,
-    EveryN(usize, Arc<AtomicUsize>),
-    Duration(Duration, Arc<RwLock<Instant>>),
+    EveryN(Arc<RwLock<Expr>>),
+    Duration(Arc<RwLock<Expr>>),
 }
 
 impl Schedule {
     pub fn is_scheduled(&self) -> bool {
         match self {
             Schedule::Always => true,
-            Schedule::EveryN(n, counter) => {
-                let current = counter.fetch_add(1, Ordering::Relaxed);
-                current.saturating_add(1).is_multiple_of(*n)
-            }
-            Schedule::Duration(duration, last_time) => {
-                let now = Instant::now();
-                if now.duration_since(*last_time.read().unwrap()) >= *duration {
-                    *last_time.write().unwrap() = now;
-                    true
-                } else {
-                    false
-                }
-            }
+            Schedule::EveryN(counter) => match counter.write().unwrap().tick() {
+                Ok(AnyValue::Bool(fired)) => fired,
+                _ => false,
+            },
+            Schedule::Duration(last_time) => match last_time.write().unwrap().tick() {
+                Ok(AnyValue::Bool(fired)) => fired,
+                _ => false,
+            },
         }
     }
 }
 
 impl From<usize> for Schedule {
     fn from(n: usize) -> Self {
-        Schedule::EveryN(n, Arc::new(AtomicUsize::new(0)))
+        Schedule::EveryN(Arc::new(RwLock::new(
+            Expr::every(n).then(true).otherwise(false),
+        )))
     }
 }
 
 impl From<Duration> for Schedule {
     fn from(duration: Duration) -> Self {
-        Schedule::Duration(duration, Arc::new(RwLock::new(Instant::now())))
+        Schedule::Duration(Arc::new(RwLock::new(Expr::throttle(duration))))
     }
 }
 
 #[derive(Clone)]
 pub struct Subscription {
     pub(crate) id: SubscriptionId,
-    pub(crate) schedule: Arc<RwLock<Schedule>>,
+    pub(crate) schedule: Arc<RwLock<Option<Schedule>>>,
     pub(crate) permits: Arc<AtomicUsize>,
     pub(crate) alive: Arc<AtomicBool>,
 }
@@ -64,7 +61,7 @@ impl Subscription {
     pub(super) fn new() -> Self {
         Subscription {
             id: SubscriptionId::new(),
-            schedule: Arc::new(RwLock::new(Schedule::default())),
+            schedule: Arc::new(RwLock::new(Some(Schedule::default()))),
             permits: Arc::new(AtomicUsize::new(0)),
             alive: Arc::new(AtomicBool::new(true)),
         }
@@ -79,7 +76,7 @@ impl Subscription {
     }
 
     pub fn schedule(&self, schedule: impl Into<Schedule>) {
-        *self.schedule.write().unwrap() = schedule.into();
+        *self.schedule.write().unwrap() = Some(schedule.into());
     }
 
     pub fn unsubscribe(&self) {
@@ -122,6 +119,10 @@ impl Subscription {
     }
 
     fn try_schedule(&self) -> bool {
-        self.schedule.read().unwrap().is_scheduled()
+        if let Some(inner) = &*self.schedule.read().unwrap() {
+            inner.is_scheduled()
+        } else {
+            false
+        }
     }
 }

@@ -28,6 +28,9 @@ fn main() {
     engine
         .iter()
         .logging()
+        .every(5, move |generation| {
+            println!("Generation: {}", generation.index());
+        })
         .until_score(MIN_SCORE)
         .last()
         .inspect(display)

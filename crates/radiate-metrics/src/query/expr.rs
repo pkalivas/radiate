@@ -1,4 +1,4 @@
-use crate::{EvalExpr, ExprResult, ExprSelect, SelectExpr};
+use crate::{EvalExpr, ExprResult, ExprSelect, SelectExpr, query::traits::NoInput};
 use crate::{
     Selector, metric_fields,
     nodes::{AggExpr, BinaryExpr, IndexState, ScheduleExpr, TrinaryExpr, UnaryExpr, When},
@@ -40,24 +40,28 @@ impl Expr {
         }
     }
 
+    pub fn tick(&mut self) -> ExprResult<'static> {
+        self.evaluate(&NoInput).map(|v| v.into_static())
+    }
+
     pub fn identity() -> Expr {
-        Expr::new(ExprNode::Selector(SelectExpr::new(Selector::Identity)))
+        Expr::from(SelectExpr::new(Selector::Identity))
     }
 
     pub fn lit(value: impl Into<AnyValue<'static>>) -> Expr {
-        Expr::new(ExprNode::Literal(value.into()))
+        Expr::from(value.into())
     }
 
     pub fn range(sel: impl Into<std::ops::Range<usize>>) -> Expr {
-        Expr::new(ExprNode::Selector(SelectExpr::new(sel.into())))
+        Expr::from(SelectExpr::new(sel.into()))
     }
 
     pub fn metric(name: impl Into<SmallStr>) -> Expr {
         let name = name.into();
-        Expr::new(ExprNode::Selector(SelectExpr::new(Selector::Nested {
+        Expr::from(SelectExpr::new(Selector::Nested {
             parent: Box::new(Selector::Field(name)),
             child: Box::new(Selector::Field(metric_fields::LAST_VALUE)),
-        })))
+        }))
     }
 
     pub fn when(cond: impl Into<Expr>) -> When {
@@ -65,15 +69,15 @@ impl Expr {
     }
 
     pub fn every(interval: usize) -> When {
-        When::new(Expr::new(ExprNode::Schedule(ScheduleExpr::Interval(
-            IndexState::new(interval),
+        When::new(Expr::from(ScheduleExpr::Interval(IndexState::new(
+            interval,
         ))))
     }
 
-    pub fn throttle(duration: std::time::Duration) -> When {
-        When::new(Expr::new(ExprNode::Schedule(ScheduleExpr::Duration(
-            duration.into(),
-        ))))
+    pub fn throttle(duration: std::time::Duration) -> Expr {
+        When::new(Expr::from(ScheduleExpr::Duration(duration.into())))
+            .then(true)
+            .otherwise(false)
     }
 
     pub fn kind(&self) -> &ExprNode {
@@ -127,5 +131,47 @@ where
             ExprNode::Unary(child) => child.evaluate(metrics),
             ExprNode::Schedule(child) => child.evaluate(metrics),
         }
+    }
+}
+
+impl<'a> From<AnyValue<'a>> for Expr {
+    fn from(value: AnyValue<'a>) -> Self {
+        Expr::new(ExprNode::Literal(value.into_static()))
+    }
+}
+
+impl From<SelectExpr> for Expr {
+    fn from(selector: SelectExpr) -> Self {
+        Expr::new(ExprNode::Selector(selector))
+    }
+}
+
+impl From<AggExpr> for Expr {
+    fn from(agg: AggExpr) -> Self {
+        Expr::new(ExprNode::Aggregate(agg))
+    }
+}
+
+impl From<ScheduleExpr> for Expr {
+    fn from(schedule: ScheduleExpr) -> Self {
+        Expr::new(ExprNode::Schedule(schedule))
+    }
+}
+
+impl From<TrinaryExpr> for Expr {
+    fn from(trinary: TrinaryExpr) -> Self {
+        Expr::new(ExprNode::Trinary(trinary))
+    }
+}
+
+impl From<BinaryExpr> for Expr {
+    fn from(binary: BinaryExpr) -> Self {
+        Expr::new(ExprNode::Binary(binary))
+    }
+}
+
+impl From<UnaryExpr> for Expr {
+    fn from(unary: UnaryExpr) -> Self {
+        Expr::new(ExprNode::Unary(unary))
     }
 }

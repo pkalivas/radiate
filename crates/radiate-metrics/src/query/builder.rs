@@ -1,4 +1,4 @@
-use crate::{Expr, SelectExpr, Selector, query::ExprNode};
+use crate::{Expr, Selector, query::ExprNode};
 use crate::{
     metric_fields,
     nodes::{
@@ -9,132 +9,104 @@ use crate::{
 use radiate_utils::{DataType, Quantile, SmallStr};
 use std::ops::{Add, Div, Mul, Neg, Not, Sub};
 
-// pub trait ExprNodeBuilder {
-//     fn is_leaf(&self) -> bool;
-// }
-
-// pub struct ExprBuilder {
-//     current: Expr,
-// }
-
-// impl ExprBuilder {
-//     pub fn new(expr: Expr) -> Self {
-//         Self { current: expr }
-//     }
-
-//     pub fn build(self) -> Expr {
-//         self.current.compile()
-//     }
-// }
-
 impl Expr {
-    pub fn time(mut self) -> Expr {
+    pub fn time(self) -> Expr {
         self.cast(DataType::Duration)
-        // self.try_swap_select_dtype(DataType::Duration);
-        // self
     }
 
-    pub fn value(mut self) -> Expr {
-        self.try_swap_select_dtype(DataType::Float32);
-        self
+    pub fn value(self) -> Expr {
+        self.cast(DataType::Float32)
     }
 
     pub fn debug(self) -> Expr {
-        Expr::new(ExprNode::Unary(UnaryExpr::new(self, UnaryOp::Debug)))
+        Expr::from(UnaryExpr::new(self, UnaryOp::Debug))
     }
 
     pub fn coalesce(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprNode::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Coalesce,
-        )))
+        Expr::from(BinaryExpr::new(self, rhs.into(), BinaryOp::Coalesce))
     }
 
     pub fn rolling(self, window_size: usize) -> Expr {
         match self.node {
-            ExprNode::Aggregate(agg) => Expr::new(ExprNode::Aggregate(
-                AggExpr::new(*agg.child, agg.rollup).rolling(window_size),
-            )),
-            ExprNode::Selector(select) => Expr::new(ExprNode::Aggregate(
-                AggExpr::new(Expr::new(ExprNode::Selector(select)), Rollup::Last)
-                    .rolling(window_size),
-            )),
-            kind => Expr::new(ExprNode::Aggregate(
-                AggExpr::new(Expr::new(kind), Rollup::Last).rolling(window_size),
-            )),
+            ExprNode::Aggregate(agg) => {
+                Expr::from(AggExpr::new(*agg.child, agg.rollup).rolling(window_size))
+            }
+            ExprNode::Selector(select) => {
+                Expr::from(AggExpr::new(Expr::from(select), Rollup::Last).rolling(window_size))
+            }
+            kind => Expr::from(AggExpr::new(Expr::new(kind), Rollup::Last).rolling(window_size)),
         }
     }
 
     pub fn first(self) -> Expr {
         self.try_reduce_select_agg_rollup_or(metric_fields::LAST_VALUE, Rollup::First, |expr| {
-            Expr::new(ExprNode::Aggregate(AggExpr::new(expr, Rollup::First)))
+            Expr::from(AggExpr::new(expr, Rollup::First))
         })
     }
 
     pub fn last(self) -> Expr {
         self.try_reduce_select_agg_rollup_or(metric_fields::LAST_VALUE, Rollup::Last, |expr| {
-            Expr::new(ExprNode::Aggregate(AggExpr::new(expr, Rollup::Last)))
+            Expr::from(AggExpr::new(expr, Rollup::Last))
         })
     }
 
     pub fn sum(self) -> Expr {
         self.try_reduce_select_agg_rollup_or(metric_fields::SUM, Rollup::Sum, |expr| {
-            Expr::new(ExprNode::Aggregate(AggExpr::new(expr, Rollup::Sum)))
+            Expr::from(AggExpr::new(expr, Rollup::Sum))
         })
     }
 
     pub fn mean(self) -> Expr {
         self.try_reduce_select_agg_rollup_or(metric_fields::MEAN, Rollup::Mean, |expr| {
-            Expr::new(ExprNode::Aggregate(AggExpr::new(expr, Rollup::Mean)))
+            Expr::from(AggExpr::new(expr, Rollup::Mean))
         })
     }
 
     pub fn stddev(self) -> Expr {
         self.try_reduce_select_agg_rollup_or(metric_fields::STDDEV, Rollup::StdDev, |expr| {
-            Expr::new(ExprNode::Aggregate(AggExpr::new(expr, Rollup::StdDev)))
+            Expr::from(AggExpr::new(expr, Rollup::StdDev))
         })
     }
 
     pub fn min(self) -> Expr {
         self.try_reduce_select_agg_rollup_or(metric_fields::MIN, Rollup::Min, |expr| {
-            Expr::new(ExprNode::Aggregate(AggExpr::new(expr, Rollup::Min)))
+            Expr::from(AggExpr::new(expr, Rollup::Min))
         })
     }
 
     pub fn max(self) -> Expr {
         self.try_reduce_select_agg_rollup_or(metric_fields::MAX, Rollup::Max, |expr| {
-            Expr::new(ExprNode::Aggregate(AggExpr::new(expr, Rollup::Max)))
+            Expr::from(AggExpr::new(expr, Rollup::Max))
         })
     }
 
     pub fn var(self) -> Expr {
         self.try_reduce_select_agg_rollup_or(metric_fields::VARIANCE, Rollup::Var, |expr| {
-            Expr::new(ExprNode::Aggregate(AggExpr::new(expr, Rollup::Var)))
+            Expr::from(AggExpr::new(expr, Rollup::Var))
         })
     }
 
     pub fn skew(self) -> Expr {
         self.try_reduce_select_agg_rollup_or(metric_fields::SKEWNESS, Rollup::Skew, |expr| {
-            Expr::new(ExprNode::Aggregate(AggExpr::new(expr, Rollup::Skew)))
+            Expr::from(AggExpr::new(expr, Rollup::Skew))
         })
     }
 
     pub fn count(self) -> Expr {
         self.try_reduce_select_agg_rollup_or(metric_fields::COUNT, Rollup::Count, |expr| {
-            Expr::new(ExprNode::Aggregate(AggExpr::new(expr, Rollup::Count)))
+            Expr::from(AggExpr::new(expr, Rollup::Count))
         })
     }
 
     pub fn slope(self) -> Expr {
         self.try_swap_agg_rollup_or(Rollup::Slope, |expr| {
-            Expr::new(ExprNode::Aggregate(AggExpr::new(expr, Rollup::Slope)))
+            Expr::from(AggExpr::new(expr, Rollup::Slope))
         })
     }
 
     pub fn unique(self) -> Expr {
         self.try_swap_agg_rollup_or(Rollup::Unique, |expr| {
-            Expr::new(ExprNode::Aggregate(AggExpr::new(expr, Rollup::Unique)))
+            Expr::from(AggExpr::new(expr, Rollup::Unique))
         })
     }
 
@@ -147,51 +119,27 @@ impl Expr {
     }
 
     pub fn lt(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprNode::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Lt,
-        )))
+        Expr::from(BinaryExpr::new(self, rhs.into(), BinaryOp::Lt))
     }
 
     pub fn lte(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprNode::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Lte,
-        )))
+        Expr::from(BinaryExpr::new(self, rhs.into(), BinaryOp::Lte))
     }
 
     pub fn gt(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprNode::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Gt,
-        )))
+        Expr::from(BinaryExpr::new(self, rhs.into(), BinaryOp::Gt))
     }
 
     pub fn gte(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprNode::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Gte,
-        )))
+        Expr::from(BinaryExpr::new(self, rhs.into(), BinaryOp::Gte))
     }
 
     pub fn eq(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprNode::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Eq,
-        )))
+        Expr::from(BinaryExpr::new(self, rhs.into(), BinaryOp::Eq))
     }
 
     pub fn ne(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprNode::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Ne,
-        )))
+        Expr::from(BinaryExpr::new(self, rhs.into(), BinaryOp::Ne))
     }
 
     pub fn between(self, low: impl Into<Expr>, high: impl Into<Expr>) -> Expr {
@@ -201,109 +149,73 @@ impl Expr {
     }
 
     pub fn and(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprNode::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::And,
-        )))
+        Expr::from(BinaryExpr::new(self, rhs.into(), BinaryOp::And))
     }
 
     pub fn or(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprNode::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Or,
-        )))
+        Expr::from(BinaryExpr::new(self, rhs.into(), BinaryOp::Or))
     }
 
     #[allow(clippy::should_implement_trait)]
     pub fn not(self) -> Expr {
-        Expr::new(ExprNode::Unary(UnaryExpr::new(self, UnaryOp::Not)))
+        Expr::from(UnaryExpr::new(self, UnaryOp::Not))
     }
 
     #[allow(clippy::should_implement_trait)]
     pub fn neg(self) -> Expr {
-        Expr::new(ExprNode::Unary(UnaryExpr::new(self, UnaryOp::Neg)))
+        Expr::from(UnaryExpr::new(self, UnaryOp::Neg))
     }
 
     pub fn abs(self) -> Expr {
-        Expr::new(ExprNode::Unary(UnaryExpr::new(self, UnaryOp::Abs)))
+        Expr::from(UnaryExpr::new(self, UnaryOp::Abs))
     }
 
     #[allow(clippy::should_implement_trait)]
     pub fn add(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprNode::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Add,
-        )))
+        Expr::from(BinaryExpr::new(self, rhs.into(), BinaryOp::Add))
     }
 
     #[allow(clippy::should_implement_trait)]
     pub fn sub(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprNode::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Sub,
-        )))
+        Expr::from(BinaryExpr::new(self, rhs.into(), BinaryOp::Sub))
     }
 
     #[allow(clippy::should_implement_trait)]
     pub fn mul(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprNode::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Mul,
-        )))
+        Expr::from(BinaryExpr::new(self, rhs.into(), BinaryOp::Mul))
     }
 
     #[allow(clippy::should_implement_trait)]
     pub fn div(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprNode::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Div,
-        )))
+        Expr::from(BinaryExpr::new(self, rhs.into(), BinaryOp::Div))
     }
 
     pub fn clamp(self, min: impl Into<Expr>, max: impl Into<Expr>) -> Expr {
-        Expr::new(ExprNode::Trinary(TrinaryExpr::new(
+        Expr::from(TrinaryExpr::new(
             self,
             min.into(),
             max.into(),
             TrinaryOp::Clamp,
-        )))
+        ))
     }
 
     /// Returns `self` if it evaluates to a finite number, otherwise `rhs`.
     /// Triggers fallback on Null, NaN, and ±Inf. Short-circuits — `rhs` is only
     /// evaluated when needed, so it's safe to use as a non-trivial default.
     pub fn or_else(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprNode::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Coalesce,
-        )))
+        Expr::from(BinaryExpr::new(self, rhs.into(), BinaryOp::Coalesce))
     }
 
     /// Elementwise min: `min(self, rhs)`. NaN on one side returns the other.
     /// Use as a ceiling: `expr.min_with(2.0)`.
     pub fn min_with(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprNode::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Min,
-        )))
+        Expr::from(BinaryExpr::new(self, rhs.into(), BinaryOp::Min))
     }
 
     /// Elementwise max: `max(self, rhs)`. NaN on one side returns the other.
     /// Use as a floor: `expr.max_with(0.05)`.
     pub fn max_with(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprNode::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Max,
-        )))
+        Expr::from(BinaryExpr::new(self, rhs.into(), BinaryOp::Max))
     }
 
     /// Quantile at `q ∈ [0, 1]` via linear interpolation between adjacent ranks.
@@ -311,26 +223,23 @@ impl Expr {
     /// O(n log n) per evaluation — fine for window sizes ≤ ~1000.
     pub fn quantile(self, q: f32) -> Expr {
         self.try_swap_agg_rollup_or(Rollup::Quantile(Quantile::new(q)), |expr| {
-            Expr::new(ExprNode::Aggregate(AggExpr::new(
-                expr,
-                Rollup::Quantile(Quantile::new(q)),
-            )))
+            Expr::from(AggExpr::new(expr, Rollup::Quantile(Quantile::new(q))))
         })
     }
 
     pub fn stagnation(self, epsilon: f32) -> Expr {
-        Expr::new(ExprNode::Unary(UnaryExpr::new(
+        Expr::from(UnaryExpr::new(
             self,
             UnaryOp::Stagnation {
                 epsilon,
                 last_value: None,
                 count: 0,
             },
-        )))
+        ))
     }
 
     pub fn cast(self, to: DataType) -> Expr {
-        Expr::new(ExprNode::Unary(UnaryExpr::new(self, UnaryOp::Cast(to))))
+        Expr::from(UnaryExpr::new(self, UnaryOp::Cast(to)))
     }
 
     /// Relative error from a target: `(self - target) / target`. Fuses into
@@ -340,34 +249,6 @@ impl Expr {
     pub fn error(self, target: f32) -> Expr {
         // (x - target) / target == x * (1/target) + (-1)
         fuse_affine(self, 1.0 / target, -1.0)
-    }
-
-    fn select(mut self, selector: impl Into<Selector>) -> Expr {
-        let selector = selector.into();
-        if let ExprNode::Selector(sel) = &mut self.node {
-            return Expr::new(ExprNode::Selector(
-                (*sel).clone().nest_or_swap_child(selector),
-            ));
-        }
-        self
-    }
-
-    fn try_swap_select_dtype(&mut self, to: DataType) -> bool {
-        if let ExprNode::Selector(sel) = &mut self.node {
-            match &mut sel.selector {
-                // Selector::Metric { name, field, .. } => {
-                //     sel.selector = Selector::Metric {
-                //         name: name.clone(),
-                //         field: field.clone(),
-                //         dtype: to,
-                //     };
-                // }
-                _ => return false,
-            }
-
-            return true;
-        }
-        false
     }
 
     fn try_swap_select_field(&mut self, to: SmallStr) -> bool {

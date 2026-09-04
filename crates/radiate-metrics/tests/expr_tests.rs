@@ -19,39 +19,39 @@ mod test {
         value.extract::<u64>().unwrap()
     }
 
-    fn iter_and_add(
-        expr: Expr,
-        name: &str,
-        values: &[f32],
-    ) -> impl Iterator<Item = AnyValue<'static>> {
-        let mut metrics = MetricSet::default();
-        let mut cloned = expr.clone();
-        values.iter().map(move |&value| {
-            metrics.upsert(name, value);
-            cloned.evaluate(&metrics).unwrap().into_static()
-        })
-    }
+    // fn iter_and_add(
+    //     expr: Expr,
+    //     name: &str,
+    //     values: &[f32],
+    // ) -> impl Iterator<Item = AnyValue<'static>> {
+    //     let mut metrics = MetricSet::default();
+    //     let mut cloned = expr.clone();
+    //     values.iter().map(move |&value| {
+    //         metrics.upsert(name, value);
+    //         cloned.evaluate(&metrics).unwrap().into_static()
+    //     })
+    // }
 
     #[test]
     fn test_rolling_mean() {
-        let expr = Expr::metric("a").rolling(3).mean().debug();
-        let values = [1.0, 2.0, 3.0, 4.0];
+        // let expr = Expr::metric("a").rolling(3).mean().debug();
+        // let values = [1.0, 2.0, 3.0, 4.0];
         // let results: Vec<_> = iter_and_add(expr, "a", &values).collect();
 
-        // let mut expr = Expr::metric("a").rolling(3).mean();
-        // let mut metrics = MetricSet::default();
+        let mut expr = Expr::metric("a").rolling(3).mean();
+        let mut metrics = MetricSet::default();
 
-        // metrics.upsert("a", 1.0);
-        // assert!((f32_of(expr.evaluate(&metrics).unwrap()) - 1.0).abs() < 1e-6);
+        metrics.upsert("a", 1.0);
+        assert!((f32_of(expr.evaluate(&metrics).unwrap()) - 1.0).abs() < 1e-6);
 
-        // metrics.upsert("a", 2.0);
-        // assert!((f32_of(expr.evaluate(&metrics).unwrap()) - 1.5).abs() < 1e-6);
+        metrics.upsert("a", 2.0);
+        assert!((f32_of(expr.evaluate(&metrics).unwrap()) - 1.5).abs() < 1e-6);
 
-        // metrics.upsert("a", 3.0);
-        // assert!((f32_of(expr.evaluate(&metrics).unwrap()) - 2.0).abs() < 1e-6);
+        metrics.upsert("a", 3.0);
+        assert!((f32_of(expr.evaluate(&metrics).unwrap()) - 2.0).abs() < 1e-6);
 
-        // metrics.upsert("a", 4.0);
-        // assert!((f32_of(expr.evaluate(&metrics).unwrap()) - 3.0).abs() < 1e-6);
+        metrics.upsert("a", 4.0);
+        assert!((f32_of(expr.evaluate(&metrics).unwrap()) - 3.0).abs() < 1e-6);
     }
 
     #[test]

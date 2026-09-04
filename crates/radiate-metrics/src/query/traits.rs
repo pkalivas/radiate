@@ -5,6 +5,16 @@ use std::time::Duration;
 
 pub(crate) type ExprResult<'a, O = AnyValue<'a>> = Result<O, RadiateError>;
 
+/// A selector for expression trees that need no metric input — schedules,
+/// pure literals, throttles. `select` should never actually be reached by a
+/// well-formed schedule tree; it exists to satisfy `T: ExprSelect<'a>`.
+pub struct NoInput;
+
+impl<'a> ExprSelect<'a> for NoInput {
+    fn select(&'a self, _sel: &Selector) -> AnyValue<'a> {
+        AnyValue::Null
+    }
+}
 pub trait EvalExpr<'a, I: ExprSelect<'a>, O = AnyValue<'a>> {
     fn evaluate(&'a mut self, input: &'a I) -> ExprResult<'a, O>;
 }
@@ -35,6 +45,12 @@ impl<'a, T: ExprSelect<'a>> ExprSelect<'a> for Vec<T> {
             }
             _ => AnyValue::Null,
         }
+    }
+}
+
+impl<'a> ExprSelect<'a> for AnyValue<'a> {
+    fn select(&'a self, _: &Selector) -> AnyValue<'a> {
+        self.clone()
     }
 }
 

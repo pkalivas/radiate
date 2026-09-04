@@ -1,6 +1,6 @@
 use super::{EvalExpr, ExprResult};
 use crate::ExprSelect;
-use radiate_utils::{DataType, SmallStr};
+use radiate_utils::SmallStr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -68,8 +68,11 @@ impl From<std::ops::Range<usize>> for Selector {
     }
 }
 
-// impl From<(SmallStr, SmallStr, DataType)> for Selector {
-//     fn from((name, field, dtype): (SmallStr, SmallStr, DataType)) -> Self {
-//         Selector::Metric { name, field, dtype }
-//     }
-// }
+impl From<(SmallStr, SmallStr)> for Selector {
+    fn from((parent, child): (SmallStr, SmallStr)) -> Self {
+        Selector::Nested {
+            parent: Box::new(Selector::Field(parent)),
+            child: Box::new(Selector::Field(child)),
+        }
+    }
+}

@@ -94,9 +94,7 @@ where
             .events()
             .subscribe(move |ctx: &GenerationSnapshot<C, T>| {
                 let inner = &ctx.generation;
-                if inner.index().is_multiple_of(guarded_interval) {
-                    action_fn(GenerationView::from(inner.as_ref()));
-                }
+                action_fn(GenerationView::from(inner.as_ref()));
             })
             .schedule(guarded_interval);
         self

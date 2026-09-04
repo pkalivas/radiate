@@ -1,15 +1,14 @@
 pub use crate::query::*;
 use crate::{
-    Metric, MetricUpdate, metric_fields,
+    Metric, MetricUpdate,
     stats::{Meta, Tag, TagType, fmt},
 };
-use radiate_utils::{AnyValue, DataType, SmallStr};
+use radiate_utils::{AnyValue, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fmt::{Debug, Display},
-    time::Duration,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -205,7 +204,6 @@ impl<'a> ExprSelect<'a> for &MetricSet {
 
 impl<'a> ExprSelect<'a> for MetricSet {
     fn select(&'a self, sel: &Selector) -> AnyValue<'a> {
-        println!("Selecting with selector: {:?}", sel);
         match sel {
             Selector::Nested { parent, child } => {
                 match parent.as_ref() {
