@@ -3,7 +3,7 @@ use crate::{
     Selector, metric_fields,
     nodes::{AggExpr, BinaryExpr, IndexState, ScheduleExpr, TrinaryExpr, UnaryExpr, When},
 };
-use radiate_error::{RadiateError, radiate_err};
+use radiate_error::RadiateError;
 use radiate_utils::{AnyValue, SmallStr};
 use radiate_utils::{DataType, sentry_id};
 #[cfg(feature = "serde")]
@@ -13,7 +13,7 @@ sentry_id!(ExprId);
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
-pub enum ExprKind {
+pub enum ExprNode {
     Literal(AnyValue<'static>),
     Selector(SelectExpr),
     Aggregate(AggExpr),
@@ -28,16 +28,16 @@ pub enum ExprKind {
 pub struct Expr {
     pub(crate) name: SmallStr,
     pub(crate) id: ExprId,
-    pub(crate) kind: ExprKind,
+    pub(crate) node: ExprNode,
 }
 
 impl Expr {
-    pub fn new(kind: ExprKind) -> Self {
+    pub fn new(node: ExprNode) -> Self {
         let id = ExprId::new();
         Self {
-            name: SmallStr::from_string(format!("Expr<{:?}>.{:?}", id, kind)),
+            name: SmallStr::from_string(format!("Expr<{:?}>.{:?}", id, node)),
             id,
-            kind,
+            node,
         }
     }
 
@@ -50,20 +50,20 @@ impl Expr {
     }
 
     pub fn identity() -> Expr {
-        Expr::new(ExprKind::Selector(SelectExpr::new(Selector::Identity)))
+        Expr::new(ExprNode::Selector(SelectExpr::new(Selector::Identity)))
     }
 
     pub fn lit(value: impl Into<AnyValue<'static>>) -> Expr {
-        Expr::new(ExprKind::Literal(value.into()))
+        Expr::new(ExprNode::Literal(value.into()))
     }
 
     pub fn range(sel: impl Into<std::ops::Range<usize>>) -> Expr {
-        Expr::new(ExprKind::Selector(SelectExpr::new(sel.into())))
+        Expr::new(ExprNode::Selector(SelectExpr::new(sel.into())))
     }
 
     pub fn metric(name: impl Into<SmallStr>) -> Expr {
         let name = name.into();
-        Expr::new(ExprKind::Selector(SelectExpr::new(Selector::Metric {
+        Expr::new(ExprNode::Selector(SelectExpr::new(Selector::Metric {
             name,
             field: metric_fields::LAST_VALUE,
             dtype: DataType::Float32,
@@ -75,19 +75,19 @@ impl Expr {
     }
 
     pub fn every(interval: usize) -> When {
-        When::new(Expr::new(ExprKind::Schedule(ScheduleExpr::Interval(
+        When::new(Expr::new(ExprNode::Schedule(ScheduleExpr::Interval(
             IndexState::new(interval),
         ))))
     }
 
     pub fn throttle(duration: std::time::Duration) -> When {
-        When::new(Expr::new(ExprKind::Schedule(ScheduleExpr::Duration(
+        When::new(Expr::new(ExprNode::Schedule(ScheduleExpr::Duration(
             duration.into(),
         ))))
     }
 
-    pub fn kind(&self) -> &ExprKind {
-        &self.kind
+    pub fn kind(&self) -> &ExprNode {
+        &self.node
     }
 
     pub fn id(&self) -> ExprId {
@@ -104,16 +104,16 @@ impl Expr {
     }
 
     pub fn reset(&mut self) {
-        match &mut self.kind {
-            ExprKind::Literal(_) | ExprKind::Selector(_) => {}
-            ExprKind::Aggregate(a) => a.reset(),
-            ExprKind::Schedule(s) => s.reset(),
-            ExprKind::Binary(b) => {
+        match &mut self.node {
+            ExprNode::Literal(_) | ExprNode::Selector(_) => {}
+            ExprNode::Aggregate(a) => a.reset(),
+            ExprNode::Schedule(s) => s.reset(),
+            ExprNode::Binary(b) => {
                 b.lhs.reset();
                 b.rhs.reset();
             }
-            ExprKind::Unary(u) => u.reset(),
-            ExprKind::Trinary(t) => {
+            ExprNode::Unary(u) => u.reset(),
+            ExprNode::Trinary(t) => {
                 t.first.reset();
                 t.second.reset();
                 t.third.reset();
@@ -128,30 +128,14 @@ where
 {
     #[inline]
     fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {
-        match &mut self.kind {
-            ExprKind::Literal(value) => Ok(value.clone()),
-            ExprKind::Selector(selector) => selector.eval(metrics),
-            ExprKind::Aggregate(child) => child.eval(metrics),
-            ExprKind::Trinary(child) => child.eval(metrics),
-            ExprKind::Binary(child) => child.eval(metrics),
-            ExprKind::Unary(child) => child.eval(metrics),
-            ExprKind::Schedule(child) => child.eval(metrics),
-        }
-    }
-}
-
-impl TryFrom<Expr> for f32 {
-    type Error = RadiateError;
-
-    fn try_from(value: Expr) -> Result<Self, Self::Error> {
-        if let ExprKind::Literal(lit) = value.kind {
-            let extracted = lit.extract::<f32>();
-            match extracted {
-                Some(val) => Ok(val),
-                None => Err(radiate_err!(Expr: "Failed to extract f32 from literal")),
-            }
-        } else {
-            Err(radiate_err!(Expr: "Cannot convert Expr to f32: Expr is not a literal"))
+        match &mut self.node {
+            ExprNode::Literal(value) => Ok(value.clone()),
+            ExprNode::Selector(selector) => selector.eval(metrics),
+            ExprNode::Aggregate(child) => child.eval(metrics),
+            ExprNode::Trinary(child) => child.eval(metrics),
+            ExprNode::Binary(child) => child.eval(metrics),
+            ExprNode::Unary(child) => child.eval(metrics),
+            ExprNode::Schedule(child) => child.eval(metrics),
         }
     }
 }

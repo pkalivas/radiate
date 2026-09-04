@@ -23,30 +23,20 @@ mod test {
     }
 
     #[test]
-    fn test_eval_vec() {
-        let vals = (0..20).map(|x| x as f32).collect::<Vec<_>>();
-        let mut expr = Expr::range(5..10);
-
-        let output: Vec<f32> = expr.select(vals).unwrap();
-
-        println!("output: {output:?}");
-    }
-
-    #[test]
     fn test_rolling_mean() {
-        let mut expr = Expr::metric("accuracy").rolling(3).mean();
+        let mut expr = Expr::metric("a").rolling(3).mean();
         let mut metrics = MetricSet::default();
 
-        metrics.upsert("accuracy", 1.0);
+        metrics.upsert("a", 1.0);
         assert!((f32_of(expr.eval(&metrics).unwrap()) - 1.0).abs() < 1e-6);
 
-        metrics.upsert("accuracy", 2.0);
+        metrics.upsert("a", 2.0);
         assert!((f32_of(expr.eval(&metrics).unwrap()) - 1.5).abs() < 1e-6);
 
-        metrics.upsert("accuracy", 3.0);
+        metrics.upsert("a", 3.0);
         assert!((f32_of(expr.eval(&metrics).unwrap()) - 2.0).abs() < 1e-6);
 
-        metrics.upsert("accuracy", 4.0);
+        metrics.upsert("a", 4.0);
         assert!((f32_of(expr.eval(&metrics).unwrap()) - 3.0).abs() < 1e-6);
     }
 
@@ -347,7 +337,7 @@ mod test {
 
 #[cfg(test)]
 mod tests {
-    use radiate_metrics::{Expr, ExprEval, ExprKind, MetricSet};
+    use radiate_metrics::{Expr, ExprEval, ExprNode, MetricSet};
     use radiate_utils::{AnyValue, DataType};
 
     // fn is_fused_affine(e: &Expr) -> bool {
@@ -933,7 +923,7 @@ mod tests {
     #[test]
     fn compile_folds_pure_literal_subtree() {
         let e = Expr::lit(2.0f32).add(Expr::lit(3.0f32)).compile();
-        assert!(matches!(e.kind(), ExprKind::Literal(_)));
+        assert!(matches!(e.kind(), ExprNode::Literal(_)));
         let mut e = e;
         assert_eq!(f32_val(e.eval(&metrics()).unwrap()), 5.0);
     }

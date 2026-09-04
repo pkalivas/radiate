@@ -1,12 +1,13 @@
 mod builder;
 mod compile;
 mod expr;
+mod from;
 pub mod nodes;
 mod select;
 mod set;
 mod traits;
 
-pub use expr::{Expr, ExprKind};
+pub use expr::{Expr, ExprNode};
 pub use select::{SelectExpr, Selector};
 pub use set::ExprSet;
 pub(crate) use traits::ExprResult;

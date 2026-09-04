@@ -287,8 +287,8 @@ where
 /// Shared between the `.affine(...)` builder and the compile-pass binary-fusion
 /// rewriters so both produce the same fused shape.
 pub(crate) fn fuse_affine(child: Expr, scale: f32, bias: f32) -> Expr {
-    use crate::query::ExprKind;
-    if let ExprKind::Unary(u) = child.kind {
+    use crate::query::ExprNode;
+    if let ExprNode::Unary(u) = child.node {
         if matches!(u.op, UnaryOp::Affine { .. }) {
             let UnaryExpr { child: inner, op } = u;
             let UnaryOp::Affine {
@@ -299,7 +299,7 @@ pub(crate) fn fuse_affine(child: Expr, scale: f32, bias: f32) -> Expr {
                 unreachable!()
             };
 
-            return Expr::new(ExprKind::Unary(UnaryExpr::new(
+            return Expr::new(ExprNode::Unary(UnaryExpr::new(
                 *inner,
                 UnaryOp::Affine {
                     scale: scale * s2,
@@ -308,13 +308,13 @@ pub(crate) fn fuse_affine(child: Expr, scale: f32, bias: f32) -> Expr {
             )));
         }
 
-        return Expr::new(ExprKind::Unary(UnaryExpr::new(
-            Expr::new(ExprKind::Unary(u)),
+        return Expr::new(ExprNode::Unary(UnaryExpr::new(
+            Expr::new(ExprNode::Unary(u)),
             UnaryOp::Affine { scale, bias },
         )));
     }
 
-    Expr::new(ExprKind::Unary(UnaryExpr::new(
+    Expr::new(ExprNode::Unary(UnaryExpr::new(
         child,
         UnaryOp::Affine { scale, bias },
     )))

@@ -246,6 +246,43 @@ impl ExprSelect for MetricSet {
     }
 }
 
+impl From<Vec<Metric>> for MetricSet {
+    fn from(metrics: Vec<Metric>) -> Self {
+        let mut by_name = HashMap::with_capacity(metrics.len());
+        for (i, m) in metrics.iter().enumerate() {
+            by_name.insert(m.name().clone(), MetricIdx::new(i as u32));
+        }
+
+        MetricSet {
+            metrics,
+            name_lookup: by_name,
+            meta: Meta::default(),
+        }
+    }
+}
+
+impl From<&[Metric]> for MetricSet {
+    fn from(metrics: &[Metric]) -> Self {
+        Self::from(metrics.to_vec())
+    }
+}
+
+impl<'a, S, T> From<(S, Vec<T>)> for MetricSet
+where
+    S: AsRef<str>,
+    T: Into<MetricUpdate<'a>>,
+{
+    fn from(tuple: (S, Vec<T>)) -> Self {
+        let (name, updates) = tuple;
+        let mut set = MetricSet::new();
+        for update in updates {
+            set.upsert(name.as_ref(), update.into());
+        }
+
+        set
+    }
+}
+
 impl Display for MetricSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let summary = self.summary();

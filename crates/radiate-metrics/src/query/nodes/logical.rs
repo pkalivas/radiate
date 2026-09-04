@@ -1,5 +1,5 @@
 use super::ops::{TrinaryExpr, TrinaryOp};
-use crate::{Expr, query::ExprKind};
+use crate::{Expr, query::ExprNode};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct When {
@@ -26,7 +26,7 @@ pub struct Then {
 
 impl Then {
     pub fn otherwise(self, else_expr: impl Into<Expr>) -> Expr {
-        Expr::new(ExprKind::Trinary(TrinaryExpr::new(
+        Expr::new(ExprNode::Trinary(TrinaryExpr::new(
             self.cond,
             self.then_expr,
             else_expr.into(),

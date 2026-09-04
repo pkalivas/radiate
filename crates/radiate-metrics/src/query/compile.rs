@@ -1,6 +1,6 @@
 use crate::Expr;
 use crate::nodes::ops::{BinaryExpr, BinaryOp, TrinaryExpr, UnaryExpr, UnaryOp, fuse_affine};
-use crate::query::ExprKind;
+use crate::query::ExprNode;
 use radiate_utils::AnyValue;
 
 impl Expr {
@@ -18,95 +18,99 @@ impl Expr {
     /// non-finite operands).
     pub fn compile(self) -> Expr {
         let name = self.name;
-        let kind = compile_kind(self.kind);
+        let kind = compile_kind(self.node);
         let id = self.id;
-        Expr { name, id, kind }
+        Expr {
+            name,
+            id,
+            node: kind,
+        }
     }
 }
 
-fn compile_kind(kind: ExprKind) -> ExprKind {
+fn compile_kind(kind: ExprNode) -> ExprNode {
     match kind {
-        ExprKind::Literal(_) | ExprKind::Selector(_) | ExprKind::Schedule(_) => kind,
+        ExprNode::Literal(_) | ExprNode::Selector(_) | ExprNode::Schedule(_) => kind,
 
-        ExprKind::Unary(u) => {
+        ExprNode::Unary(u) => {
             let UnaryExpr { child, op } = u;
             let child = child.compile();
             match op {
-                UnaryOp::Affine { scale, bias } => fuse_affine(child, scale, bias).kind,
-                other_op => ExprKind::Unary(UnaryExpr::new(child, other_op)),
+                UnaryOp::Affine { scale, bias } => fuse_affine(child, scale, bias).node,
+                other_op => ExprNode::Unary(UnaryExpr::new(child, other_op)),
             }
         }
 
-        ExprKind::Trinary(t) => ExprKind::Trinary(TrinaryExpr::new(
+        ExprNode::Trinary(t) => ExprNode::Trinary(TrinaryExpr::new(
             (*t.first).compile(),
             (*t.second).compile(),
             (*t.third).compile(),
             t.operation,
         )),
 
-        ExprKind::Binary(b) => {
+        ExprNode::Binary(b) => {
             let lhs = (*b.lhs).compile();
             let rhs = (*b.rhs).compile();
-            reduce_binary(lhs, rhs, b.op).kind
+            reduce_binary(lhs, rhs, b.op).node
         }
 
-        ExprKind::Aggregate(mut a) => {
+        ExprNode::Aggregate(mut a) => {
             let child = std::mem::replace(
                 a.child.as_mut(),
-                Expr::new(ExprKind::Literal(AnyValue::Null)),
+                Expr::new(ExprNode::Literal(AnyValue::Null)),
             );
             *a.child = child.compile();
-            ExprKind::Aggregate(a)
+            ExprNode::Aggregate(a)
         }
     }
 }
 
 fn reduce_binary(lhs: Expr, rhs: Expr, op: BinaryOp) -> Expr {
-    if let (ExprKind::Literal(l), ExprKind::Literal(r)) = (&lhs.kind, &rhs.kind)
+    if let (ExprNode::Literal(l), ExprNode::Literal(r)) = (&lhs.node, &rhs.node)
         && let Some(folded) = fold_literals(l, r, op)
     {
-        return Expr::new(ExprKind::Literal(folded));
+        return Expr::new(ExprNode::Literal(folded));
     }
 
     match op {
         BinaryOp::Add => {
-            if let ExprKind::Literal(v) = &rhs.kind
+            if let ExprNode::Literal(v) = &rhs.node
                 && let Some(k) = v.extract::<f32>()
             {
                 return fuse_affine(lhs, 1.0, k);
             }
-            if let ExprKind::Literal(v) = &lhs.kind
+            if let ExprNode::Literal(v) = &lhs.node
                 && let Some(k) = v.extract::<f32>()
             {
                 return fuse_affine(rhs, 1.0, k);
             }
         }
         BinaryOp::Sub => {
-            if let ExprKind::Literal(v) = &rhs.kind
+            if let ExprNode::Literal(v) = &rhs.node
                 && let Some(k) = v.extract::<f32>()
             {
                 return fuse_affine(lhs, 1.0, -k);
             }
-            if let ExprKind::Literal(v) = &lhs.kind
+            if let ExprNode::Literal(v) = &lhs.node
                 && let Some(k) = v.extract::<f32>()
             {
                 return fuse_affine(rhs, -1.0, k);
             }
         }
         BinaryOp::Mul => {
-            if let ExprKind::Literal(v) = &rhs.kind
+            if let ExprNode::Literal(v) = &rhs.node
                 && let Some(s) = v.extract::<f32>()
             {
                 return fuse_affine(lhs, s, 0.0);
             }
-            if let ExprKind::Literal(v) = &lhs.kind
+            if let ExprNode::Literal(v) = &lhs.node
                 && let Some(s) = v.extract::<f32>()
             {
                 return fuse_affine(rhs, s, 0.0);
             }
         }
         BinaryOp::Div => {
-            if let ExprKind::Literal(v) = &rhs.kind
+            if let ExprNode::Literal(v) = &rhs.node
                 && let Some(d) = v.extract::<f32>()
                 && d != 0.0
                 && d.is_finite()
@@ -117,7 +121,7 @@ fn reduce_binary(lhs: Expr, rhs: Expr, op: BinaryOp) -> Expr {
         _ => {}
     }
 
-    Expr::new(ExprKind::Binary(BinaryExpr::new(lhs, rhs, op)))
+    Expr::new(ExprNode::Binary(BinaryExpr::new(lhs, rhs, op)))
 }
 
 fn fold_literals(
