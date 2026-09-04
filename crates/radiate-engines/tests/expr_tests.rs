@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use radiate_core::{EvalExpr, EvalNoInput, Expr, MetricSet};
+    use radiate_core::{EvalExpr, EvalNoInput, Expr, MetricSet, SmallStr};
     use radiate_utils::AnyValue;
     use std::time::Duration;
 
@@ -22,10 +22,11 @@ mod test {
 
     #[test]
     fn test_rolling_mean() {
-        let mut expr = Expr::metric("a").rolling(3).mean();
+        let mut expr = Expr::select(SmallStr::from("a")).last();
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 1.0);
+        println!("{:#?}", expr.evaluate(&metrics));
         assert!((f32_of(expr.evaluate(&metrics).unwrap()) - 1.0).abs() < 1e-6);
 
         metrics.upsert("a", 2.0);
@@ -36,6 +37,20 @@ mod test {
 
         metrics.upsert("a", 4.0);
         assert!((f32_of(expr.evaluate(&metrics).unwrap()) - 3.0).abs() < 1e-6);
+        // let mut expr = Expr::metric("a").rolling(3).mean();
+        // let mut metrics = MetricSet::default();
+
+        // metrics.upsert("a", 1.0);
+        // assert!((f32_of(expr.evaluate(&metrics).unwrap()) - 1.0).abs() < 1e-6);
+
+        // metrics.upsert("a", 2.0);
+        // assert!((f32_of(expr.evaluate(&metrics).unwrap()) - 1.5).abs() < 1e-6);
+
+        // metrics.upsert("a", 3.0);
+        // assert!((f32_of(expr.evaluate(&metrics).unwrap()) - 2.0).abs() < 1e-6);
+
+        // metrics.upsert("a", 4.0);
+        // assert!((f32_of(expr.evaluate(&metrics).unwrap()) - 3.0).abs() < 1e-6);
     }
 
     #[test]

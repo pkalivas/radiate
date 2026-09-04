@@ -1,8 +1,5 @@
-use crate::nodes::{
-    AggExpr, BinaryExpr, IndexState, ScheduleExpr, SelectExpr, TrinaryExpr, UnaryExpr, When,
-    ops::{BinaryOp, TrinaryOp, UnaryOp},
-};
-use crate::{EvalExpr, ExprResult, ExprSelect, metric_fields, nodes::Selector};
+use crate::nodes::{AggExpr, BinaryExpr, ScheduleExpr, SelectExpr, TrinaryExpr, UnaryExpr, When};
+use crate::{EvalExpr, ExprResult, ExprSelect, metric_fields, nodes::SelectOp};
 use radiate_utils::sentry_id;
 use radiate_utils::{AnyValue, SmallStr};
 #[cfg(feature = "serde")]
@@ -123,7 +120,7 @@ impl Expr {
 
 impl Expr {
     pub fn identity() -> Expr {
-        Expr::from(SelectExpr::new(Selector::Identity))
+        Expr::from(SelectExpr::new(SelectOp::Identity))
     }
 
     pub fn lit(value: impl Into<AnyValue<'static>>) -> Expr {
@@ -134,11 +131,15 @@ impl Expr {
         Expr::from(SelectExpr::new(sel.into()))
     }
 
+    pub fn select(sel: impl Into<SelectOp>) -> Expr {
+        Expr::from(SelectExpr::new(sel.into()))
+    }
+
     pub fn metric(name: impl Into<SmallStr>) -> Expr {
         let name = name.into();
-        Expr::from(SelectExpr::new(Selector::Nested {
-            parent: Box::new(Selector::Field(name)),
-            child: Box::new(Selector::Field(metric_fields::LAST_VALUE)),
+        Expr::from(SelectExpr::new(SelectOp::Nested {
+            parent: Box::new(SelectOp::Field(name)),
+            child: Box::new(SelectOp::Field(metric_fields::LAST_VALUE)),
         }))
     }
 
@@ -147,13 +148,11 @@ impl Expr {
     }
 
     pub fn every(interval: usize) -> When {
-        When::new(Expr::from(ScheduleExpr::Interval(IndexState::new(
-            interval,
-        ))))
+        When::new(Expr::from(ScheduleExpr::from(interval)))
     }
 
     pub fn throttle(duration: std::time::Duration) -> When {
-        When::new(Expr::from(ScheduleExpr::Duration(duration.into())))
+        When::new(Expr::from(ScheduleExpr::from(duration)))
     }
 }
 
@@ -215,32 +214,4 @@ impl From<UnaryExpr> for Expr {
     fn from(unary: UnaryExpr) -> Self {
         Expr::new(ExprNode::Unary(unary))
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct NodeId(u32);
-
-pub enum FlatNode {
-    Literal(AnyValue<'static>),
-    Select(Selector),
-    Binary {
-        lhs: NodeId,
-        rhs: NodeId,
-        op: BinaryOp,
-    },
-    Unary {
-        child: NodeId,
-        op: UnaryOp,
-    },
-    Trinary {
-        a: NodeId,
-        b: NodeId,
-        c: NodeId,
-        op: TrinaryOp,
-    },
-    Aggregate {
-        child: NodeId,
-        rollup: Rollup,
-    },
-    Schedule(ScheduleExpr),
 }

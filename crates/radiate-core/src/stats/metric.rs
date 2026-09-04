@@ -1,6 +1,6 @@
 use crate::{ExprSelect, metric_fields, stats::{MetricView, Tag, TagType, defaults}};
 use radiate_error::{RadiateError, radiate_err};
-use radiate_expr::Selector;
+use radiate_expr::SelectOp;
 use radiate_utils::{
     AnyValue, DataType, SmallStr, Statistic
 };
@@ -305,14 +305,14 @@ impl Metric {
 
 impl<'a> ExprSelect<'a> for &Metric {
     #[inline]
-    fn select(&'a self, sel: &Selector) -> Result<AnyValue<'a>, RadiateError> {
+    fn select(&'a self, sel: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
         (*self).select(sel)
     }
 }
 
 impl<'a> ExprSelect<'a> for Metric {
     #[inline]
-    fn select(&self, sel: &Selector) -> Result<AnyValue<'a>, RadiateError> {
+    fn select(&self, sel: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
         let wrap = |v: f32| match self.dtype {
             DTYPE_FLOAT32 | DTYPE_LIST => AnyValue::Float32(v),
             DTYPE_DURATION => AnyValue::Duration(Duration::from_secs_f32(v)),
@@ -338,13 +338,49 @@ impl<'a> ExprSelect<'a> for Metric {
         };
 
         match sel {
-            Selector::Field(field) => {
+            SelectOp::Field(field) => {
                 Ok(match_field(self, field))
+            }
+            SelectOp::Identity => {
+                Ok(AnyValue::Struct(self.name().clone(), vec![
+                    ("last_value".into(), DataType::Float32, AnyValue::Float32(self.last_value())),
+                    ("mean".into(), DataType::Float32, AnyValue::Float32(self.mean())),
+                    ("stddev".into(), DataType::Float32, AnyValue::Float32(self.stddev())),
+                    ("min".into(), DataType::Float32, AnyValue::Float32(self.min())),
+                    ("max".into(), DataType::Float32, AnyValue::Float32(self.max())),
+                    ("sum".into(), DataType::Float32, AnyValue::Float32(self.sum())),
+                    ("variance".into(), DataType::Float32, AnyValue::Float32(self.var())),
+                    ("skewness".into(), DataType::Float32, AnyValue::Float32(self.skew())),
+                    ("kurtosis".into(), DataType::Float32, AnyValue::Float32(self.kurt())),
+                    ("count".into(), DataType::UInt64, AnyValue::UInt64(self.count() as u64)),
+                    ("generation".into(), DataType::UInt64, AnyValue::UInt64(self.generation() as u64)),
+                    ("update_count".into(), DataType::UInt64, AnyValue::UInt64(self.update_count() as u64)),
+                ]))
             }
             _ => Ok(AnyValue::Null),
         }
     }
+}
 
+impl From<&Metric> for AnyValue<'_> {
+    fn from(metric: &Metric) -> Self {
+        let mut fields = Vec::new();
+
+        fields.push(("last_value".into(), DataType::Float32, AnyValue::Float32(metric.last_value())));
+        fields.push(("mean".into(), DataType::Float32, AnyValue::Float32(metric.mean())));
+        fields.push(("stddev".into(), DataType::Float32, AnyValue::Float32(metric.stddev())));
+        fields.push(("min".into(), DataType::Float32, AnyValue::Float32(metric.min())));
+        fields.push(("max".into(), DataType::Float32, AnyValue::Float32(metric.max())));
+        fields.push(("sum".into(), DataType::Float32, AnyValue::Float32(metric.sum())));
+        fields.push(("variance".into(), DataType::Float32, AnyValue::Float32(metric.var())));
+        fields.push(("skewness".into(), DataType::Float32, AnyValue::Float32(metric.skew())));
+        fields.push(("kurtosis".into(), DataType::Float32, AnyValue::Float32(metric.kurt())));
+        fields.push(("count".into(), DataType::UInt64, AnyValue::UInt64(metric.count() as u64)));
+        fields.push(("generation".into(), DataType::UInt64, AnyValue::UInt64(metric.generation() as u64)));
+        fields.push(("update_count".into(), DataType::UInt64, AnyValue::UInt64(metric.update_count() as u64)));
+
+        AnyValue::Struct(metric.name().clone(), fields)
+    }
 }
 
 impl Hash for Metric {

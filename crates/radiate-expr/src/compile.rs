@@ -44,7 +44,7 @@ fn compile_kind(kind: ExprNode) -> ExprNode {
             (*t.first).compile(),
             (*t.second).compile(),
             (*t.third).compile(),
-            t.operation,
+            t.op,
         )),
 
         ExprNode::Binary(b) => {

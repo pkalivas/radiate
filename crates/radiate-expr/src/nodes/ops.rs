@@ -224,16 +224,16 @@ pub struct TrinaryExpr {
     pub(crate) first: Box<Expr>,
     pub(crate) second: Box<Expr>,
     pub(crate) third: Box<Expr>,
-    pub(crate) operation: TrinaryOp,
+    pub(crate) op: TrinaryOp,
 }
 
 impl TrinaryExpr {
-    pub fn new(first: Expr, second: Expr, third: Expr, operation: TrinaryOp) -> Self {
+    pub fn new(first: Expr, second: Expr, third: Expr, op: TrinaryOp) -> Self {
         Self {
             first: Box::new(first),
             second: Box::new(second),
             third: Box::new(third),
-            operation,
+            op,
         }
     }
 }
@@ -243,7 +243,7 @@ where
     T: ExprSelect<'a>,
 {
     fn evaluate(&'a mut self, metrics: &'a T) -> ExprResult<'a> {
-        match self.operation {
+        match self.op {
             TrinaryOp::If => {
                 let condition = self.first.evaluate(metrics)?;
 
@@ -319,15 +319,163 @@ pub(crate) fn fuse_affine(child: Expr, scale: f32, bias: f32) -> Expr {
     )))
 }
 
+impl BinaryOp {
+    pub fn apply(&self, lhs: &AnyValue<'static>, rhs: &AnyValue<'static>) -> ExprResult<'static> {
+        use BinaryOp::*;
+        match self {
+            Add | Sub | Mul | Div | Pow | Min | Max => {
+                let (Some(a), Some(b)) =
+                    (lhs.clone().extract::<f32>(), rhs.clone().extract::<f32>())
+                else {
+                    return Ok(AnyValue::Null);
+                };
+                Ok(AnyValue::Float32(match self {
+                    Add => a + b,
+                    Sub => a - b,
+                    Mul => a * b,
+                    Div => a / b,
+                    Pow => a.powf(b),
+                    Min => {
+                        if a.is_nan() {
+                            b
+                        } else if b.is_nan() {
+                            a
+                        } else {
+                            a.min(b)
+                        }
+                    }
+                    Max => {
+                        if a.is_nan() {
+                            b
+                        } else if b.is_nan() {
+                            a
+                        } else {
+                            a.max(b)
+                        }
+                    }
+                    _ => unreachable!(),
+                }))
+            }
+            Lt | Lte | Gt | Gte | Eq | Ne => {
+                let (Some(a), Some(b)) = (lhs.extract::<f32>(), rhs.clone().extract::<f32>())
+                else {
+                    return Ok(AnyValue::Null);
+                };
+                Ok(AnyValue::Bool(match self {
+                    Lt => a < b,
+                    Lte => a <= b,
+                    Gt => a > b,
+                    Gte => a >= b,
+                    Eq => a == b,
+                    Ne => a != b,
+                    _ => unreachable!(),
+                }))
+            }
+            And => {
+                let lhs = lhs.extract_bool();
+                let rhs = rhs.extract_bool();
+                Ok(AnyValue::Bool(lhs.unwrap_or(false) && rhs.unwrap_or(false)))
+            }
+            Or => {
+                let lhs = lhs.extract_bool();
+                let rhs = rhs.extract_bool();
+                Ok(AnyValue::Bool(lhs.unwrap_or(false) || rhs.unwrap_or(false)))
+            }
+            Mod => {
+                let Some(a) = lhs.clone().extract::<f32>() else {
+                    return Ok(AnyValue::Null);
+                };
+                let Some(b) = rhs.clone().extract::<f32>() else {
+                    return Ok(AnyValue::Null);
+                };
+                Ok(AnyValue::Float32(a % b))
+            }
+            // And => Ok(AnyValue::Bool(
+            //     lhs.clone().extract::<bool>().unwrap_or(false)
+            //         && rhs.clone().extract::<bool>().unwrap_or(false),
+            // )),
+            // Or => Ok(AnyValue::Bool(
+            //     lhs.clone().extract::<bool>().unwrap_or(false)
+            //         || rhs.clone().extract::<bool>().unwrap_or(false),
+            // )),
+            Coalesce => {
+                let ok = matches!(lhs, AnyValue::Null)
+                    || lhs.clone().extract::<f32>().is_some_and(|v| !v.is_finite());
+                Ok(if ok { rhs.clone() } else { lhs.clone() })
+            }
+        }
+    }
+}
+
+impl UnaryOp {
+    // Note: Stagnation is intentionally NOT handled here — it's stateful,
+    // so it's dispatched separately in eval() via ProgramState. See below.
+    pub fn apply(&self, child: &AnyValue<'static>) -> ExprResult<'static> {
+        use UnaryOp::*;
+        match self {
+            Not => Ok(AnyValue::Bool(!child.extract_bool().unwrap_or(false))),
+            Neg => Ok(AnyValue::Float32(
+                -child.clone().extract::<f32>().unwrap_or(0.0),
+            )),
+            Abs => Ok(AnyValue::Float32(
+                child.clone().extract::<f32>().unwrap_or(0.0).abs(),
+            )),
+            Cast(to) => match child.clone().cast(&to) {
+                Some(v) => Ok(v),
+                None => Ok(AnyValue::Null),
+            },
+            Debug => {
+                eprintln!("{child:?}");
+                Ok(child.clone())
+            }
+            Affine { scale, bias } => {
+                let Some(v) = child.clone().extract::<f32>() else {
+                    return Ok(AnyValue::Null);
+                };
+                Ok(AnyValue::Float32(v * scale + bias))
+            }
+            Stagnation { .. } => unreachable!("dispatched via ProgramState, not apply()"),
+        }
+    }
+}
+
+impl TrinaryOp {
+    pub fn apply(
+        &self,
+        a: &AnyValue<'static>,
+        b: &AnyValue<'static>,
+        c: &AnyValue<'static>,
+    ) -> ExprResult<'static> {
+        match self {
+            TrinaryOp::Clamp => {
+                let (Some(v), Some(lo), Some(hi)) = (
+                    a.clone().extract::<f32>(),
+                    b.clone().extract::<f32>(),
+                    c.clone().extract::<f32>(),
+                ) else {
+                    return Ok(AnyValue::Null);
+                };
+                Ok(AnyValue::Float32(v.clamp(lo, hi)))
+            }
+            TrinaryOp::If => {
+                let Some(cond) = a.extract_bool() else {
+                    return Ok(AnyValue::Null);
+                };
+                Ok(if cond { b.clone() } else { c.clone() })
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::nodes::Selector;
+    use crate::nodes::SelectOp;
     use radiate_error::RadiateError;
 
     struct NullMetrics;
     impl<'a> ExprSelect<'a> for NullMetrics {
-        fn select(&'a self, _: &Selector) -> Result<AnyValue<'a>, RadiateError> {
+        fn select(&'a self, _: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
             Ok(AnyValue::Null)
         }
     }

@@ -1,4 +1,4 @@
-use crate::{Expr, ExprNode, nodes::Selector};
+use crate::{Expr, ExprNode, nodes::SelectOp};
 use crate::{
     metric_fields,
     nodes::{
@@ -250,7 +250,7 @@ impl Expr {
 
     fn try_swap_select_field(&mut self, to: SmallStr) -> bool {
         if let ExprNode::Selector(sel) = &mut self.node {
-            (*sel) = sel.clone().nest_or_swap_child(Selector::Field(to));
+            (*sel) = sel.clone().nest_or_swap_child(SelectOp::Field(to));
             return true;
         }
 

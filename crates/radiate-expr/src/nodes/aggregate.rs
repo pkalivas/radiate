@@ -23,6 +23,63 @@ pub enum Rollup {
     Quantile(Quantile<f32>),
 }
 
+impl Rollup {
+    pub fn reduce(&self, values: &[AnyValue<'static>]) -> ExprResult<'static> {
+        if values.is_empty() {
+            return match self {
+                Rollup::Count => Ok(AnyValue::UInt64(0)),
+                _ => Ok(AnyValue::Float32(0.0)),
+            };
+        }
+
+        if values.len() == 1 {
+            return match self {
+                Rollup::Count => Ok(AnyValue::UInt64(1)),
+                Rollup::Unique => Ok(AnyValue::Vector(values.to_vec())),
+                _ => Ok(values[0].clone()),
+            };
+        }
+
+        if let Rollup::Unique = self {
+            return Ok(dedup_slice(values));
+        } else if let Rollup::Count = self {
+            return Ok(AnyValue::UInt64(values.len() as u64));
+        } else if let Rollup::First = self {
+            return Ok(values[0].clone());
+        } else if let Rollup::Last = self {
+            return Ok(values[values.len() - 1].clone());
+        } else if let Rollup::Slope = self {
+            if values.len() < 2 {
+                return Ok(AnyValue::Float32(0.0));
+            }
+
+            let slope = values
+                .iter()
+                .filter_map(|v| v.extract::<f32>())
+                .collect::<Slope<f32>>();
+
+            return Ok(AnyValue::Float32(slope.value().unwrap_or(0.0)));
+        }
+
+        let stats = values
+            .iter()
+            .filter_map(|val| val.extract::<f32>())
+            .collect::<Statistic>();
+
+        let result = match self {
+            Rollup::Mean => AnyValue::Float32(stats.mean()),
+            Rollup::StdDev => AnyValue::Float32(stats.std_dev().unwrap()),
+            Rollup::Min => AnyValue::Float32(stats.min()),
+            Rollup::Max => AnyValue::Float32(stats.max()),
+            Rollup::Sum => AnyValue::Float32(stats.sum()),
+            Rollup::Count => AnyValue::UInt64(stats.count() as u64),
+            _ => AnyValue::Null,
+        };
+
+        Ok(result)
+    }
+}
+
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct AggExpr {

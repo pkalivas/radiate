@@ -6,20 +6,20 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SelectExpr {
-    pub(crate) selector: Selector,
+    pub(crate) selector: SelectOp,
 }
 
 impl SelectExpr {
-    pub fn new(metric: impl Into<Selector>) -> Self {
+    pub fn new(metric: impl Into<SelectOp>) -> Self {
         Self {
             selector: metric.into(),
         }
     }
 
-    pub fn nest_or_swap_child(self, child: impl Into<Selector>) -> Self {
-        if let Selector::Nested { parent, .. } = &self.selector {
+    pub fn nest_or_swap_child(self, child: impl Into<SelectOp>) -> Self {
+        if let SelectOp::Nested { parent, .. } = &self.selector {
             return Self {
-                selector: Selector::Nested {
+                selector: SelectOp::Nested {
                     parent: parent.clone(),
                     child: Box::new(child.into()),
                 },
@@ -27,7 +27,7 @@ impl SelectExpr {
         }
 
         Self {
-            selector: Selector::Nested {
+            selector: SelectOp::Nested {
                 parent: Box::new(self.selector),
                 child: Box::new(child.into()),
             },
@@ -43,34 +43,40 @@ impl<'a, T: ExprSelect<'a>> EvalExpr<'a, T> for SelectExpr {
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
-pub enum Selector {
+pub enum SelectOp {
     Identity,
     Index(usize),
     Range(usize, usize),
     Field(SmallStr),
     Nested {
-        parent: Box<Selector>,
-        child: Box<Selector>,
+        parent: Box<SelectOp>,
+        child: Box<SelectOp>,
     },
 }
 
-impl From<usize> for Selector {
+impl From<usize> for SelectOp {
     fn from(idx: usize) -> Self {
-        Selector::Index(idx)
+        SelectOp::Index(idx)
     }
 }
 
-impl From<std::ops::Range<usize>> for Selector {
+impl From<std::ops::Range<usize>> for SelectOp {
     fn from(range: std::ops::Range<usize>) -> Self {
-        Selector::Range(range.start, range.end)
+        SelectOp::Range(range.start, range.end)
     }
 }
 
-impl From<(SmallStr, SmallStr)> for Selector {
+impl From<SmallStr> for SelectOp {
+    fn from(field: SmallStr) -> Self {
+        SelectOp::Field(field)
+    }
+}
+
+impl From<(SmallStr, SmallStr)> for SelectOp {
     fn from((parent, child): (SmallStr, SmallStr)) -> Self {
-        Selector::Nested {
-            parent: Box::new(Selector::Field(parent)),
-            child: Box::new(Selector::Field(child)),
+        SelectOp::Nested {
+            parent: Box::new(SelectOp::Field(parent)),
+            child: Box::new(SelectOp::Field(child)),
         }
     }
 }

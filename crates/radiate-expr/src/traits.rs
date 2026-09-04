@@ -1,4 +1,4 @@
-use crate::{Expr, nodes::Selector};
+use crate::{Expr, nodes::SelectOp};
 use radiate_error::RadiateError;
 use radiate_utils::AnyValue;
 use std::time::Duration;
@@ -7,7 +7,7 @@ pub(crate) type ExprResult<'a, O = AnyValue<'a>> = Result<O, RadiateError>;
 
 struct NoInput;
 impl<'a> ExprSelect<'a> for NoInput {
-    fn select(&'a self, _sel: &Selector) -> Result<AnyValue<'a>, RadiateError> {
+    fn select(&'a self, _sel: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
         Ok(AnyValue::Null)
     }
 }
@@ -27,26 +27,26 @@ pub trait EvalExpr<'a, I: ExprSelect<'a>, O = AnyValue<'a>> {
 }
 
 pub trait ExprSelect<'a> {
-    fn select(&'a self, expr: &Selector) -> Result<AnyValue<'a>, RadiateError>;
+    fn select(&'a self, expr: &SelectOp) -> Result<AnyValue<'a>, RadiateError>;
 }
 
 impl<'a, T: ExprSelect<'a>> ExprSelect<'a> for Vec<T> {
-    fn select(&'a self, expr: &Selector) -> Result<AnyValue<'a>, RadiateError> {
+    fn select(&'a self, expr: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
         match expr {
-            Selector::Identity => Ok(AnyValue::Vector(
+            SelectOp::Identity => Ok(AnyValue::Vector(
                 self.iter()
-                    .filter_map(|v| v.select(&Selector::Identity).ok())
+                    .filter_map(|v| v.select(&SelectOp::Identity).ok())
                     .collect::<Vec<AnyValue<'a>>>(),
             )),
-            Selector::Index(idx) => self
+            SelectOp::Index(idx) => self
                 .get(*idx)
-                .map(|v| v.select(&Selector::Identity))
+                .map(|v| v.select(&SelectOp::Identity))
                 .unwrap_or(Ok(AnyValue::Null)),
-            Selector::Range(start, end) => {
+            SelectOp::Range(start, end) => {
                 let slice = self.get(*start..*end).unwrap_or(&[]);
                 let values = slice
                     .iter()
-                    .filter_map(|v| v.select(&Selector::Identity).ok())
+                    .filter_map(|v| v.select(&SelectOp::Identity).ok())
                     .collect::<Vec<AnyValue<'a>>>();
                 Ok(AnyValue::Vector(values))
             }
@@ -56,13 +56,13 @@ impl<'a, T: ExprSelect<'a>> ExprSelect<'a> for Vec<T> {
 }
 
 impl<'a> ExprSelect<'a> for AnyValue<'a> {
-    fn select(&'a self, _: &Selector) -> Result<AnyValue<'a>, RadiateError> {
+    fn select(&'a self, _: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
         Ok(self.clone())
     }
 }
 
 impl<'a> ExprSelect<'a> for String {
-    fn select(&'a self, _: &Selector) -> Result<AnyValue<'a>, RadiateError> {
+    fn select(&'a self, _: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
         Ok(AnyValue::Str(self))
     }
 }
@@ -70,7 +70,7 @@ impl<'a> ExprSelect<'a> for String {
 macro_rules! impl_select {
     ($t:ty, $dtype:ident) => {
         impl<'a> ExprSelect<'a> for $t {
-            fn select(&'a self, _: &Selector) -> Result<AnyValue<'a>, RadiateError> {
+            fn select(&'a self, _: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
                 Ok(AnyValue::$dtype(*self))
             }
         }
