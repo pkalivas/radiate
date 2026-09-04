@@ -16,6 +16,24 @@ impl SelectExpr {
             selector: metric.into(),
         }
     }
+
+    pub fn nest_or_swap_child(self, child: impl Into<Selector>) -> Self {
+        if let Selector::Nested { parent, .. } = &self.selector {
+            return Self {
+                selector: Selector::Nested {
+                    parent: parent.clone(),
+                    child: Box::new(child.into()),
+                },
+            };
+        }
+
+        Self {
+            selector: Selector::Nested {
+                parent: Box::new(self.selector),
+                child: Box::new(child.into()),
+            },
+        }
+    }
 }
 
 impl<'a, T: ExprSelect<'a>> EvalExpr<'a, T> for SelectExpr {

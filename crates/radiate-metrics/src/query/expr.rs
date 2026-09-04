@@ -3,8 +3,8 @@ use crate::{
     Selector, metric_fields,
     nodes::{AggExpr, BinaryExpr, IndexState, ScheduleExpr, TrinaryExpr, UnaryExpr, When},
 };
+use radiate_utils::sentry_id;
 use radiate_utils::{AnyValue, SmallStr};
-use radiate_utils::{DataType, sentry_id};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -55,14 +55,9 @@ impl Expr {
     pub fn metric(name: impl Into<SmallStr>) -> Expr {
         let name = name.into();
         Expr::new(ExprNode::Selector(SelectExpr::new(Selector::Nested {
-            parent: Box::new(Selector::Field(name.clone())),
+            parent: Box::new(Selector::Field(name)),
             child: Box::new(Selector::Field(metric_fields::LAST_VALUE)),
         })))
-        // Expr::new(ExprNode::Selector(SelectExpr::new(Selector::Metric {
-        //     name,
-        //     field: metric_fields::LAST_VALUE,
-        //     dtype: DataType::Float32,
-        // })))
     }
 
     pub fn when(cond: impl Into<Expr>) -> When {

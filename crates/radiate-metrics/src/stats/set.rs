@@ -204,50 +204,21 @@ impl<'a> ExprSelect<'a> for &MetricSet {
 }
 
 impl<'a> ExprSelect<'a> for MetricSet {
-    fn select(&self, sel: &Selector) -> AnyValue<'a> {
-        let wrap = |v: f32, dtype: &DataType| match dtype {
-            DataType::Float32 => AnyValue::Float32(v),
-            DataType::Duration => AnyValue::Duration(Duration::from_secs_f32(v)),
-            DataType::UInt64 => AnyValue::UInt64(v as u64),
-            _ => AnyValue::Null,
-        };
-
-        let match_field = |metric_name: &SmallStr, field: &SmallStr, dtype: &DataType| {
-            if let Some(metric) = self.get(metric_name) {
-                match field.as_str() {
-                    f if f == metric_fields::LAST_VALUE => wrap(metric.last_value(), dtype),
-                    f if f == metric_fields::MEAN => wrap(metric.mean(), dtype),
-                    f if f == metric_fields::STDDEV => wrap(metric.stddev(), dtype),
-                    f if f == metric_fields::MIN => wrap(metric.min(), dtype),
-                    f if f == metric_fields::MAX => wrap(metric.max(), dtype),
-                    f if f == metric_fields::SUM => wrap(metric.sum(), dtype),
-                    f if f == metric_fields::VARIANCE => wrap(metric.var(), dtype),
-                    f if f == metric_fields::SKEWNESS => wrap(metric.skew(), dtype),
-                    f if f == metric_fields::KURTOSIS => wrap(metric.kurt(), dtype),
-                    f if f == metric_fields::COUNT => AnyValue::UInt64(metric.count() as u64),
-                    f if f == metric_fields::GENERATION => {
-                        AnyValue::UInt64(metric.generation() as u64)
-                    }
-                    f if f == metric_fields::UPDATE_COUNT => {
-                        AnyValue::UInt64(metric.update_count() as u64)
-                    }
-                    _ => AnyValue::Null,
-                }
-            } else {
-                AnyValue::Null
-            }
-        };
-
+    fn select(&'a self, sel: &Selector) -> AnyValue<'a> {
+        println!("Selecting with selector: {:?}", sel);
         match sel {
-            Selector::Identity => AnyValue::Null,
-            Selector::Nested { parent, child } => match parent.as_ref() {
-                Selector::Field(name) => match child.as_ref() {
-                    Selector::Field(field) => match_field(name, field, &DataType::Float32),
-                    _ => AnyValue::Null,
-                },
-                _ => AnyValue::Null,
-            },
-            // Selector::Metric { name, field, dtype } => match_field(name, field, dtype),
+            Selector::Nested { parent, child } => {
+                match parent.as_ref() {
+                    Selector::Field(name) => {
+                        if let Some(metric) = self.get(name) {
+                            return (*metric).select(child);
+                        }
+                    }
+                    _ => {}
+                }
+
+                return AnyValue::Null;
+            }
             _ => AnyValue::Null,
         }
     }

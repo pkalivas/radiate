@@ -1,4 +1,4 @@
-use crate::{Expr, Selector, query::ExprNode};
+use crate::{Expr, SelectExpr, Selector, query::ExprNode};
 use crate::{
     metric_fields,
     nodes::{
@@ -342,6 +342,16 @@ impl Expr {
         fuse_affine(self, 1.0 / target, -1.0)
     }
 
+    fn select(mut self, selector: impl Into<Selector>) -> Expr {
+        let selector = selector.into();
+        if let ExprNode::Selector(sel) = &mut self.node {
+            return Expr::new(ExprNode::Selector(
+                (*sel).clone().nest_or_swap_child(selector),
+            ));
+        }
+        self
+    }
+
     fn try_swap_select_dtype(&mut self, to: DataType) -> bool {
         if let ExprNode::Selector(sel) = &mut self.node {
             match &mut sel.selector {
@@ -362,26 +372,7 @@ impl Expr {
 
     fn try_swap_select_field(&mut self, to: SmallStr) -> bool {
         if let ExprNode::Selector(sel) = &mut self.node {
-            match &mut sel.selector {
-                Selector::Field(_) => {
-                    sel.selector = Selector::Field(to);
-                }
-                Selector::Nested { parent, child } => {
-                    sel.selector = Selector::Nested {
-                        parent: parent.clone(),
-                        child: Box::new(Selector::Field(to)),
-                    };
-                }
-                // Selector::Metric { name, dtype, .. } => {
-                //     sel.selector = Selector::Metric {
-                //         name: name.clone(),
-                //         field: to,
-                //         dtype: dtype.clone(),
-                //     };
-                // }
-                _ => return false,
-            }
-
+            (*sel) = sel.clone().nest_or_swap_child(Selector::Field(to));
             return true;
         }
 

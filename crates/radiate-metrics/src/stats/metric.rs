@@ -1,4 +1,4 @@
-use crate::stats::{MetricView, Tag, TagType, defaults};
+use crate::{ExprSelect, Selector, metric_fields, stats::{MetricView, Tag, TagType, defaults}};
 use radiate_error::{RadiateError, radiate_err};
 use radiate_utils::{
     AnyValue, DataType, SmallStr, Statistic
@@ -300,6 +300,48 @@ impl Metric {
     pub fn quantile(&self, q: f32) -> Option<f32> {
         self.distributions().and_then(|view| view.quantile(q))
     }
+}
+
+impl<'a> ExprSelect<'a> for &Metric {
+    fn select(&'a self, sel: &Selector) -> AnyValue<'a> {
+        (*self).select(sel)
+    }
+}
+
+impl<'a> ExprSelect<'a> for Metric {
+    fn select(&self, sel: &Selector) -> AnyValue<'a> {
+        let wrap = |v: f32| match self.dtype {
+            DTYPE_FLOAT32 | DTYPE_LIST => AnyValue::Float32(v),
+            DTYPE_DURATION => AnyValue::Duration(Duration::from_secs_f32(v)),
+            _ => AnyValue::Null,
+        };
+
+        let match_field = |metric: &Metric, field: &SmallStr| {
+            match field.as_str() {
+                f if f == metric_fields::LAST_VALUE => wrap(metric.last_value()),
+                f if f == metric_fields::MEAN => wrap(metric.mean()),
+                f if f == metric_fields::STDDEV => wrap(metric.stddev()),
+                f if f == metric_fields::MIN => wrap(metric.min()),
+                f if f == metric_fields::MAX => wrap(metric.max()),
+                f if f == metric_fields::SUM => wrap(metric.sum()),
+                f if f == metric_fields::VARIANCE => wrap(metric.var()),
+                f if f == metric_fields::SKEWNESS => wrap(metric.skew()),
+                f if f == metric_fields::KURTOSIS => wrap(metric.kurt()),
+                f if f == metric_fields::COUNT => AnyValue::UInt64(metric.count() as u64),
+                f if f == metric_fields::GENERATION => AnyValue::UInt64(metric.generation() as u64),
+                f if f == metric_fields::UPDATE_COUNT => AnyValue::UInt64(metric.update_count() as u64),
+                _ => AnyValue::Null,
+            }
+        };
+
+        match sel {
+            Selector::Field(field) => {
+                match_field(self, field)
+            }
+            _ => AnyValue::Null,
+        }
+    }
+
 }
 
 impl Hash for Metric {
