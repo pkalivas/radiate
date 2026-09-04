@@ -71,7 +71,7 @@ impl<'a, T> ExprEval<'a, T> for ScheduleExpr
 where
     T: ExprSelect,
 {
-    fn eval(&'a mut self, _: &T) -> ExprResult<'a> {
+    fn evaluate(&'a mut self, _: &T) -> ExprResult<'a> {
         match self {
             ScheduleExpr::Interval(state) => {
                 state.count += 1;

@@ -307,7 +307,7 @@ where
     C: Chromosome,
 {
     let metrics = &ctx.metrics;
-    let result = expr.eval(metrics)?;
+    let result = expr.evaluate(metrics)?;
 
     if let AnyValue::Bool(b) = result {
         let proceed = !b;

@@ -3,7 +3,6 @@ use crate::{
     Selector, metric_fields,
     nodes::{AggExpr, BinaryExpr, IndexState, ScheduleExpr, TrinaryExpr, UnaryExpr, When},
 };
-use radiate_error::RadiateError;
 use radiate_utils::{AnyValue, SmallStr};
 use radiate_utils::{DataType, sentry_id};
 #[cfg(feature = "serde")]
@@ -39,14 +38,6 @@ impl Expr {
             id,
             node,
         }
-    }
-
-    pub fn select<'a, O>(&'a mut self, val: impl ExprSelect) -> Result<O, RadiateError>
-    where
-        O: TryFrom<AnyValue<'a>, Error = RadiateError>,
-    {
-        let result = self.eval(&val)?;
-        O::try_from(result)
     }
 
     pub fn identity() -> Expr {
@@ -127,15 +118,15 @@ where
     T: ExprSelect,
 {
     #[inline]
-    fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {
+    fn evaluate(&'a mut self, metrics: &T) -> ExprResult<'a> {
         match &mut self.node {
             ExprNode::Literal(value) => Ok(value.clone()),
-            ExprNode::Selector(selector) => selector.eval(metrics),
-            ExprNode::Aggregate(child) => child.eval(metrics),
-            ExprNode::Trinary(child) => child.eval(metrics),
-            ExprNode::Binary(child) => child.eval(metrics),
-            ExprNode::Unary(child) => child.eval(metrics),
-            ExprNode::Schedule(child) => child.eval(metrics),
+            ExprNode::Selector(selector) => selector.evaluate(metrics),
+            ExprNode::Aggregate(child) => child.evaluate(metrics),
+            ExprNode::Trinary(child) => child.evaluate(metrics),
+            ExprNode::Binary(child) => child.evaluate(metrics),
+            ExprNode::Unary(child) => child.evaluate(metrics),
+            ExprNode::Schedule(child) => child.evaluate(metrics),
         }
     }
 }

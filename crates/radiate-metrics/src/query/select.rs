@@ -16,17 +16,13 @@ impl SelectExpr {
             selector: metric.into(),
         }
     }
-
-    pub fn selector(&self) -> &Selector {
-        &self.selector
-    }
 }
 
 impl<'a, T> ExprEval<'a, T> for SelectExpr
 where
     T: ExprSelect,
 {
-    fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {
+    fn evaluate(&'a mut self, metrics: &T) -> ExprResult<'a> {
         Ok(metrics.select(&self.selector))
     }
 }

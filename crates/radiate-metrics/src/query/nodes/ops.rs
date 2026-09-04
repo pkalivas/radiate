@@ -57,8 +57,8 @@ impl<'a, T> ExprEval<'a, T> for UnaryExpr
 where
     T: ExprSelect,
 {
-    fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {
-        let value = self.child.eval(metrics)?;
+    fn evaluate(&'a mut self, metrics: &T) -> ExprResult<'a> {
+        let value = self.child.evaluate(metrics)?;
 
         match self.op {
             UnaryOp::Not => match value {
@@ -163,23 +163,23 @@ impl<'a, T> ExprEval<'a, T> for BinaryExpr
 where
     T: ExprSelect,
 {
-    fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {
+    fn evaluate(&'a mut self, metrics: &T) -> ExprResult<'a> {
         // Coalesce short-circuits: only evaluate rhs when lhs is bad.
         if let BinaryOp::Coalesce = self.op {
-            let lhs = self.lhs.eval(metrics)?;
+            let lhs = self.lhs.evaluate(metrics)?;
             let is_bad = match lhs.extract::<f32>() {
                 Some(v) => !v.is_finite(),
                 None => matches!(lhs, AnyValue::Null),
             };
             return if is_bad {
-                self.rhs.eval(metrics)
+                self.rhs.evaluate(metrics)
             } else {
                 Ok(lhs)
             };
         }
 
-        let lhs = self.lhs.eval(metrics)?;
-        let rhs = self.rhs.eval(metrics)?;
+        let lhs = self.lhs.evaluate(metrics)?;
+        let rhs = self.rhs.evaluate(metrics)?;
 
         let result = match self.op {
             BinaryOp::Coalesce => unreachable!("handled above"),
@@ -242,10 +242,10 @@ impl<'a, T> ExprEval<'a, T> for TrinaryExpr
 where
     T: ExprSelect,
 {
-    fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {
+    fn evaluate(&'a mut self, metrics: &T) -> ExprResult<'a> {
         match self.operation {
             TrinaryOp::If => {
-                let condition = self.first.eval(metrics)?;
+                let condition = self.first.evaluate(metrics)?;
 
                 let cond = match condition {
                     AnyValue::Bool(b) => b,
@@ -253,15 +253,15 @@ where
                 };
 
                 if cond {
-                    self.second.eval(metrics)
+                    self.second.evaluate(metrics)
                 } else {
-                    self.third.eval(metrics)
+                    self.third.evaluate(metrics)
                 }
             }
             TrinaryOp::Clamp => {
-                let value = self.first.eval(metrics)?.extract::<f32>();
-                let min = self.second.eval(metrics)?.extract::<f32>();
-                let max = self.third.eval(metrics)?.extract::<f32>();
+                let value = self.first.evaluate(metrics)?.extract::<f32>();
+                let min = self.second.evaluate(metrics)?.extract::<f32>();
+                let max = self.third.evaluate(metrics)?.extract::<f32>();
 
                 let (min_v, max_v) = match (min, max) {
                     (Some(a), Some(b)) => (a, b),

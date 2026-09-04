@@ -78,7 +78,7 @@ impl RateSet {
             return Ok(metric.last_value());
         }
 
-        let output = expr.eval(metrics)?;
+        let output = expr.evaluate(metrics)?;
         match output.extract::<f32>() {
             Some(rate) => Ok(rate),
             None => {

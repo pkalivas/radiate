@@ -1,8 +1,7 @@
-use pyo3::prelude::*;
-use radiate::{AnyValue, ExprEval, Expr, expr};
-use radiate_error::radiate_py_bail;
-
 use crate::{PyMetricSet, Wrap, dtype_from_str};
+use pyo3::prelude::*;
+use radiate::{AnyValue, Expr, ExprEval, expr};
+use radiate_error::radiate_py_bail;
 
 fn dtype_is_duration(dtype_str: &str) -> bool {
     matches!(dtype_from_str(dtype_str), radiate::DataType::Duration)
@@ -86,7 +85,7 @@ impl PyExpr {
     }
 
     pub fn evaluate(&mut self, metrics: &PyMetricSet) -> PyResult<Wrap<AnyValue<'_>>> {
-        match self.inner.eval(metrics.inner()) {
+        match self.inner.evaluate(metrics.inner()) {
             Ok(value) => Ok(Wrap(value)),
             Err(e) => {
                 radiate_py_bail!(format!("Error evaluating expression: {}", e))

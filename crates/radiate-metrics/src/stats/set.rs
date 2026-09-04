@@ -59,22 +59,6 @@ impl MetricSet {
         self.meta.generation
     }
 
-    /// Resolve a name to a stable [`MetricIdx`], registering an empty metric if
-    /// the name has not been seen before. The returned handle is valid for the
-    /// lifetime of this `MetricSet`.
-    #[inline]
-    pub(crate) fn resolve(&mut self, name: impl AsRef<str>) -> MetricIdx {
-        if let Some(&idx) = self.name_lookup.get(name.as_ref()) {
-            return idx;
-        }
-
-        let idx = MetricIdx::new(self.metrics.len() as u32);
-        let name = SmallStr::from(name.as_ref());
-        self.name_lookup.insert(name.clone(), idx);
-        self.metrics.push(Metric::new(name));
-        idx
-    }
-
     #[inline]
     pub(crate) fn upsert_at<'a>(&mut self, idx: MetricIdx, update: impl Into<MetricUpdate<'a>>) {
         let generation = self.meta.generation;
@@ -195,6 +179,22 @@ impl MetricSet {
     pub fn dashboard(&self) -> String {
         fmt::render_full(self).unwrap_or_default()
     }
+
+    /// Resolve a name to a stable [`MetricIdx`], registering an empty metric if
+    /// the name has not been seen before. The returned handle is valid for the
+    /// lifetime of this `MetricSet`.
+    #[inline]
+    fn resolve(&mut self, name: impl AsRef<str>) -> MetricIdx {
+        if let Some(&idx) = self.name_lookup.get(name.as_ref()) {
+            return idx;
+        }
+
+        let idx = MetricIdx::new(self.metrics.len() as u32);
+        let name = SmallStr::from(name.as_ref());
+        self.name_lookup.insert(name.clone(), idx);
+        self.metrics.push(Metric::new(name));
+        idx
+    }
 }
 
 impl ExprSelect for &MetricSet {
@@ -222,8 +222,8 @@ impl ExprSelect for MetricSet {
                     f if f == metric_fields::MAX => wrap(metric.max(), dtype),
                     f if f == metric_fields::SUM => wrap(metric.sum(), dtype),
                     f if f == metric_fields::VARIANCE => wrap(metric.var(), dtype),
-                    f if f == metric_fields::SKEWNESS => AnyValue::Float32(metric.skew()),
-                    f if f == metric_fields::KURTOSIS => AnyValue::Float32(metric.kurt()),
+                    f if f == metric_fields::SKEWNESS => wrap(metric.skew(), dtype),
+                    f if f == metric_fields::KURTOSIS => wrap(metric.kurt(), dtype),
                     f if f == metric_fields::COUNT => AnyValue::UInt64(metric.count() as u64),
                     f if f == metric_fields::GENERATION => {
                         AnyValue::UInt64(metric.generation() as u64)

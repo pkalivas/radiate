@@ -132,8 +132,8 @@ impl<'a, T> ExprEval<'a, T> for AggExpr
 where
     T: ExprSelect,
 {
-    fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {
-        let child_output = self.child.eval(metrics)?;
+    fn evaluate(&'a mut self, metrics: &T) -> ExprResult<'a> {
+        let child_output = self.child.evaluate(metrics)?;
         let dtype = child_output.dtype();
 
         if let Some(buffer) = &mut self.buffer {

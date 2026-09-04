@@ -8,7 +8,7 @@ pub trait ExprEval<'a, I, O = AnyValue<'a>>
 where
     I: ExprSelect,
 {
-    fn eval(&'a mut self, metrics: &I) -> ExprResult<'a, O>;
+    fn evaluate(&'a mut self, input: &I) -> ExprResult<'a, O>;
 }
 
 pub trait ExprSelect {

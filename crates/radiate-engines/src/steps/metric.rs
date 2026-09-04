@@ -1,7 +1,7 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, ExprSet, MetricSet, MetricUpdate, Objective, Score, SmallStr, TagType,
-    math::distribution, metric_names, phenotype::PhenotypeId, radiate_err,
+    Chromosome, Ecosystem, ExprEval, ExprSet, MetricSet, MetricUpdate, Objective, Score, SmallStr,
+    TagType, math::distribution, metric_names, phenotype::PhenotypeId, radiate_err,
 };
 use radiate_error::Result;
 use std::{
@@ -154,7 +154,9 @@ impl MetricStep {
             let mut exprs = exprs.lock().unwrap();
 
             for (name, expr) in exprs.iter_mut() {
-                let update = expr.select::<MetricUpdate>(&*metrics)?;
+                let value = expr.evaluate(metrics)?;
+                let update = MetricUpdate::try_from(value)?;
+
                 metrics.upsert_tagged(name, update, TagType::Expr);
             }
         }

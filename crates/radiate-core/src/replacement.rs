@@ -95,7 +95,7 @@ impl<C: Chromosome> EcosystemFilter<C> for UniqueScoreFilter {
         replacer: Arc<dyn ReplacementStrategy<C>>,
         encoder: Arc<dyn Fn() -> Genotype<C> + Send + Sync>,
     ) -> RadiateResult<()> {
-        let should_filter = self.filter_cond.eval(metrics)?;
+        let should_filter = self.filter_cond.evaluate(metrics)?;
 
         let AnyValue::Bool(bool) = should_filter else {
             radiate_bail!(Engine: "Filter condition must evaluate to a boolean value, but got: {:?}", should_filter);
