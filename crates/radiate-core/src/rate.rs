@@ -1,6 +1,6 @@
-use crate::error::RadiateResult;
+use crate::{MetricSet, error::RadiateResult};
 use radiate_error::radiate_bail;
-use radiate_metrics::{EvalExpr, Expr, MetricSet};
+use radiate_expr::{EvalExpr, Expr};
 use radiate_utils::SmallStr;
 use smallvec::SmallVec;
 

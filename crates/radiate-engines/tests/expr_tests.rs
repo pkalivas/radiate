@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod test {
+    use radiate_core::{EvalExpr, EvalNoInput, Expr, MetricSet};
     use radiate_utils::AnyValue;
     use std::time::Duration;
 
@@ -314,7 +315,6 @@ mod test {
         }
     }
 
-    use radiate_metrics::{EvalExpr, EvalNoInput, Expr, MetricSet};
     use radiate_utils::DataType;
 
     fn metrics() -> MetricSet {

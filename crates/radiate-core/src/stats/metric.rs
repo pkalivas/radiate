@@ -1,5 +1,6 @@
-use crate::{ExprSelect, metric_fields, nodes::Selector, stats::{MetricView, Tag, TagType, defaults}};
+use crate::{ExprSelect, metric_fields, stats::{MetricView, Tag, TagType, defaults}};
 use radiate_error::{RadiateError, radiate_err};
+use radiate_expr::Selector;
 use radiate_utils::{
     AnyValue, DataType, SmallStr, Statistic
 };

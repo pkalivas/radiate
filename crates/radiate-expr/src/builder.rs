@@ -1,4 +1,4 @@
-use crate::{Expr, nodes::Selector, query::ExprNode};
+use crate::{Expr, ExprNode, nodes::Selector};
 use crate::{
     metric_fields,
     nodes::{
@@ -289,7 +289,7 @@ macro_rules! impl_from_literal {
         $(
             impl From<$ty> for Expr {
                 fn from(value: $ty) -> Self {
-                    use crate::query::ExprNode;
+                    use crate::ExprNode;
                     Expr::new(ExprNode::Literal(value.into()))
                 }
             }

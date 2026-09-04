@@ -1,5 +1,5 @@
-use crate::ExprSelect;
 use crate::{EvalExpr, Expr, ExprResult};
+use crate::{ExprNode, ExprSelect};
 use radiate_error::radiate_bail;
 use radiate_utils::{AnyValue, DataType};
 #[cfg(feature = "serde")]
@@ -287,7 +287,6 @@ where
 /// Shared between the `.affine(...)` builder and the compile-pass binary-fusion
 /// rewriters so both produce the same fused shape.
 pub(crate) fn fuse_affine(child: Expr, scale: f32, bias: f32) -> Expr {
-    use crate::query::ExprNode;
     if let ExprNode::Unary(u) = child.node {
         if matches!(u.op, UnaryOp::Affine { .. }) {
             let UnaryExpr { child: inner, op } = u;

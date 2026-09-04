@@ -1,16 +1,13 @@
-use std::time::Duration;
-
-use crate::{EvalExpr, ExprResult, ExprSelect, nodes::Selector};
-use crate::{
-    metric_fields,
-    nodes::{
-        AggExpr, BinaryExpr, IndexState, ScheduleExpr, SelectExpr, TrinaryExpr, UnaryExpr, When,
-    },
+use crate::nodes::{
+    AggExpr, BinaryExpr, IndexState, ScheduleExpr, SelectExpr, TrinaryExpr, UnaryExpr, When,
+    ops::{BinaryOp, TrinaryOp, UnaryOp},
 };
+use crate::{EvalExpr, ExprResult, ExprSelect, metric_fields, nodes::Selector};
 use radiate_utils::sentry_id;
 use radiate_utils::{AnyValue, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 sentry_id!(ExprId);
 
@@ -218,4 +215,32 @@ impl From<UnaryExpr> for Expr {
     fn from(unary: UnaryExpr) -> Self {
         Expr::new(ExprNode::Unary(unary))
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct NodeId(u32);
+
+pub enum FlatNode {
+    Literal(AnyValue<'static>),
+    Select(Selector),
+    Binary {
+        lhs: NodeId,
+        rhs: NodeId,
+        op: BinaryOp,
+    },
+    Unary {
+        child: NodeId,
+        op: UnaryOp,
+    },
+    Trinary {
+        a: NodeId,
+        b: NodeId,
+        c: NodeId,
+        op: TrinaryOp,
+    },
+    Aggregate {
+        child: NodeId,
+        rollup: Rollup,
+    },
+    Schedule(ScheduleExpr),
 }

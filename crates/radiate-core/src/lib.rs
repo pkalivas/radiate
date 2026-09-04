@@ -12,11 +12,11 @@ pub mod problem;
 pub mod rate;
 pub mod replacement;
 pub mod selector;
-// pub mod stats;
+pub mod stats;
 
 use radiate_error::Result;
 pub use radiate_error::{RadiateError, ensure, radiate_err};
-pub use radiate_metrics::*;
+pub use radiate_expr::*;
 
 pub use alter::{AlterContext, AlterResult, Alterer, Crossover, Mutate};
 pub use codecs::{
@@ -41,13 +41,13 @@ pub use replacement::{
 };
 
 pub use selector::Select;
-// pub use stats::{
-//     Metric, MetricSet, MetricUpdate, expr, metric_names, render_dashboard, render_full,
-// };
+pub use stats::{
+    Metric, MetricSet, MetricUpdate, TagType, expr, metric_names, render_dashboard, render_full,
+};
 
 pub mod prelude {
     pub use radiate_error::*;
-    pub use radiate_metrics::*;
+    pub use radiate_expr::*;
 
     pub use super::alter::{AlterContext, Alterer, Crossover, Mutate};
     pub use super::codecs::{
@@ -74,5 +74,7 @@ pub mod prelude {
     };
     pub use super::selector::Select;
 
-    // pub use super::stats::{Metric, MetricSet, expr, metric_names};
+    pub use super::stats::{
+        Metric, MetricSet, MetricUpdate, expr, metric_names, render_dashboard, render_full,
+    };
 }

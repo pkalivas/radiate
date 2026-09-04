@@ -3,7 +3,7 @@ use crate::state::{AppState, MetricChartType, Pane};
 use crate::styles;
 use crate::widgets::{AppWidget, FnWidget, LineChartWidget, Panel};
 use radiate_engines::{Chromosome, Metric};
-use radiate_engines::{TagType, fmt_duration};
+use radiate_engines::{TagType, stats::fmt_duration};
 use radiate_utils::SmallStr;
 use ratatui::prelude::*;
 use ratatui::style::{Color, Stylize};

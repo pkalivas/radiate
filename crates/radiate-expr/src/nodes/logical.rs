@@ -1,5 +1,5 @@
 use super::ops::{TrinaryExpr, TrinaryOp};
-use crate::{Expr, query::ExprNode};
+use crate::{Expr, ExprNode};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct When {

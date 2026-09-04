@@ -1,5 +1,5 @@
 [package]
-name = "radiate-metrics"
+name = "radiate-expr"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

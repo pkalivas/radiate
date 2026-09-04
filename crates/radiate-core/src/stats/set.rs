@@ -1,10 +1,9 @@
-pub use crate::query::*;
 use crate::{
     Metric, MetricUpdate,
-    nodes::Selector,
     stats::{Meta, Tag, TagType, fmt},
 };
 use radiate_error::RadiateError;
+use radiate_expr::{ExprSelect, Selector};
 use radiate_utils::{AnyValue, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
