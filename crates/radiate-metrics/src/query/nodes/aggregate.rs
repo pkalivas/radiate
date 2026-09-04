@@ -181,3 +181,128 @@ where
         }
     }
 }
+
+// #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+// #[derive(Clone, Debug, PartialEq)]
+// pub struct ReduceExpr {
+//     child: Box<Expr>,
+//     rollup: Rollup,
+// }
+
+// impl ReduceExpr {
+//     pub fn new(child: Expr, rollup: Rollup) -> Self {
+//         Self {
+//             child: Box::new(child),
+//             rollup,
+//         }
+//     }
+
+//     pub(crate) fn reset(&mut self) {
+//         self.child.reset();
+
+//         if let Rollup::Quantile(q) = &mut self.rollup {
+//             q.clear();
+//         }
+//     }
+
+//     fn compute_rollup<'a>(
+//         values: &[AnyValue<'a>],
+//         rollup: &mut Rollup,
+//         dtype: DataType,
+//     ) -> ExprResult<'a> {
+//         if values.is_empty() {
+//             return match rollup {
+//                 Rollup::Count => Ok(AnyValue::UInt64(0)),
+//                 _ => Ok(AnyValue::Float32(0.0)),
+//             };
+//         }
+
+//         if values.len() == 1 {
+//             return match rollup {
+//                 Rollup::Count => Ok(AnyValue::UInt64(1)),
+//                 Rollup::Unique => Ok(values[0].clone()),
+//                 _ => Ok(values[0].clone()),
+//             };
+//         }
+
+//         if let Rollup::Unique = rollup {
+//             return Ok(dedup_slice(values));
+//         } else if let Rollup::Count = rollup {
+//             return Ok(AnyValue::UInt64(values.len() as u64));
+//         } else if let Rollup::First = rollup {
+//             return Ok(values[0].clone());
+//         } else if let Rollup::Last = rollup {
+//             return Ok(values[values.len() - 1].clone());
+//         } else if let Rollup::Slope = rollup {
+//             if values.len() < 2 {
+//                 return Ok(AnyValue::Float32(0.0));
+//             }
+
+//             let slope = values
+//                 .iter()
+//                 .filter_map(|v| v.extract::<f32>())
+//                 .collect::<Slope<f32>>();
+
+//             return Ok(AnyValue::Float32(slope.value().unwrap_or(0.0)));
+//         } else if let Rollup::Quantile(quantile) = rollup {
+//             quantile.clear();
+//             for v in values.iter().filter_map(|v| v.extract::<f32>()) {
+//                 if v.is_finite() {
+//                     quantile.add(v);
+//                 }
+//             }
+
+//             return Ok(quantile
+//                 .value()
+//                 .map(AnyValue::Float32)
+//                 .unwrap_or(AnyValue::Null));
+//         }
+
+//         let stats = values
+//             .iter()
+//             .filter_map(|val| val.extract::<f32>())
+//             .collect::<Statistic>();
+
+//         let result = match rollup {
+//             Rollup::Mean => AnyValue::Float32(stats.mean()),
+//             Rollup::StdDev => AnyValue::Float32(stats.std_dev().unwrap()),
+//             Rollup::Min => AnyValue::Float32(stats.min()),
+//             Rollup::Max => AnyValue::Float32(stats.max()),
+//             Rollup::Sum => AnyValue::Float32(stats.sum()),
+//             Rollup::Count => AnyValue::UInt64(stats.count() as u64),
+//             _ => AnyValue::Null,
+//         };
+
+//         Ok(result.cast(&dtype).unwrap_or(AnyValue::Null))
+//     }
+// }
+
+// impl<'a, T> EvalExpr<'a, T> for ReduceExpr
+// where
+//     T: ExprSelect<'a>,
+// {
+//     fn evaluate(&'a mut self, metrics: &'a T) -> ExprResult<'a> {
+//         let child_output = self.child.evaluate(metrics)?;
+//         let dtype = child_output.dtype();
+
+//         match child_output {
+//             AnyValue::Slice(values) => {
+//                 let elem_dtype = if let DataType::List(inner) = dtype {
+//                     *inner
+//                 } else {
+//                     dtype
+//                 };
+//                 Self::compute_rollup(values, &mut self.rollup, elem_dtype)
+//             }
+//             AnyValue::Vector(values) => {
+//                 let elem_dtype = if let DataType::List(inner) = dtype {
+//                     *inner
+//                 } else {
+//                     dtype
+//                 };
+//                 Self::compute_rollup(&values, &mut self.rollup, elem_dtype)
+//             }
+//             _ => radiate_bail!(Expr: "Unsupported rollup operation"),
+//         }
+//     }
+// }

@@ -65,21 +65,16 @@ impl ScheduleExpr {
             ScheduleExpr::Duration(state) => state.last = None,
         }
     }
-}
 
-impl<'a, T> EvalExpr<'a, T> for ScheduleExpr
-where
-    T: ExprSelect<'a>,
-{
-    fn evaluate(&'a mut self, _: &T) -> ExprResult<'a> {
+    pub fn try_schedule(&mut self) -> bool {
         match self {
             ScheduleExpr::Interval(state) => {
                 state.count += 1;
                 if state.count >= state.max {
                     state.count = 0;
-                    Ok(AnyValue::Bool(true))
+                    true
                 } else {
-                    Ok(AnyValue::Bool(false))
+                    false
                 }
             }
             ScheduleExpr::Duration(state) => {
@@ -87,15 +82,24 @@ where
                 if let Some(last) = state.last {
                     if now.duration_since(last) >= state.interval {
                         state.last = Some(now);
-                        Ok(AnyValue::Bool(true))
+                        true
                     } else {
-                        Ok(AnyValue::Bool(false))
+                        false
                     }
                 } else {
                     state.last = Some(now);
-                    Ok(AnyValue::Bool(true))
+                    true
                 }
             }
         }
+    }
+}
+
+impl<'a, T> EvalExpr<'a, T> for ScheduleExpr
+where
+    T: ExprSelect<'a>,
+{
+    fn evaluate(&'a mut self, _: &T) -> ExprResult<'a> {
+        Ok(AnyValue::Bool(self.try_schedule()))
     }
 }

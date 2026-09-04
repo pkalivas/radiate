@@ -2,6 +2,7 @@ mod arithmetic;
 mod compare;
 pub mod dtype;
 mod from;
+#[allow(dead_code)]
 mod list;
 mod scalar;
 pub mod value;

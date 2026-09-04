@@ -77,9 +77,7 @@ impl Expr {
     }
 
     pub fn throttle(duration: std::time::Duration) -> Expr {
-        When::new(Expr::from(ScheduleExpr::Duration(duration.into())))
-            .then(true)
-            .otherwise(false)
+        Expr::from(ScheduleExpr::Duration(duration.into()))
     }
 
     pub fn kind(&self) -> &ExprNode {
