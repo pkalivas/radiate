@@ -19,7 +19,6 @@ pub struct MetricStep {
     best_score: Option<Score>,
 
     expressions: Option<Arc<Mutex<ExprSet>>>,
-    warned_this_streak: bool,
 
     scores_dist_matrix: Matrix<f32>,
 
@@ -134,7 +133,6 @@ impl MetricStep {
 
         if best_improved {
             self.stagnation_count = 0;
-            self.warned_this_streak = false;
         } else {
             self.stagnation_count += 1;
         }

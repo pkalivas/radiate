@@ -1,12 +1,8 @@
 #[inline]
 pub fn short_type_name<T: ?Sized>() -> String {
-    // Walk the full type name and strip the module path of every segment, not
-    // just the head. Segments are delimited by `<`, `>`, `,`, or space; each
-    // segment becomes whatever follows its last `::`. So
-    // `module::Foo<other::Bar<u8>>` renders as `Foo<Bar<u8>>`.
     let full = std::any::type_name::<T>();
     let mut out = String::with_capacity(full.len());
-    let mut segment_start = 0usize;
+    let mut segment_start = 0;
     for (i, c) in full.char_indices() {
         if matches!(c, '<' | '>' | ',' | ' ') {
             out.push_str(strip_path(&full[segment_start..i]));
@@ -86,3 +82,110 @@ impl ToSnakeCase<String> for String {
         snake_case
     }
 }
+
+pub fn generate_metric_key<T: ?Sized>(category: &str) -> String {
+    let struct_type_name = std::any::type_name::<T>();
+    let head = struct_type_name
+        .split('<')
+        .next()
+        .unwrap_or(struct_type_name);
+    let base = head.rsplit("::").next().unwrap_or(head).trim();
+
+    let mut parts = words(base);
+    parts.retain(|w| w != category);
+
+    let mut result = vec![category.to_string()];
+    result.extend(parts);
+    result.join(".")
+}
+
+fn words(s: &str) -> Vec<String> {
+    let chars: Vec<char> = s.chars().collect();
+    let mut words = Vec::new();
+    let mut current = String::new();
+
+    for (i, &c) in chars.iter().enumerate() {
+        if c == '_' || c == '-' || c.is_whitespace() {
+            if !current.is_empty() {
+                words.push(std::mem::take(&mut current));
+            }
+            continue;
+        }
+        if c.is_uppercase() {
+            let prev_lower_or_digit =
+                i > 0 && (chars[i - 1].is_lowercase() || chars[i - 1].is_ascii_digit());
+            let prev_upper = i > 0 && chars[i - 1].is_uppercase();
+            let next_lower = i + 1 < chars.len() && chars[i + 1].is_lowercase();
+            let boundary = prev_lower_or_digit || (prev_upper && next_lower);
+            if boundary && !current.is_empty() {
+                words.push(std::mem::take(&mut current));
+            }
+        }
+        current.push(c.to_ascii_lowercase());
+    }
+    if !current.is_empty() {
+        words.push(current);
+    }
+    words
+}
+
+// /// Turn a type's name into a dot-separated metric key.
+// ///
+// /// `GraphMutator<Op<T>>`              -> "graph.mutator"
+// /// `my_crate::FnMutator<FloatGene, F>` -> "fn.mutator"
+// /// `HTTPServerMutator`                 -> "http.server.mutator"
+// ///
+// /// Steps: drop everything from the first `<` onward (generic params carry no
+// /// naming information we want here), drop the module path (keep the last
+// /// `::` segment), then split the remaining PascalCase identifier at case
+// /// boundaries and lowercase+join with `.`.
+// pub fn type_name_to_dot_notation<T: ?Sized>() -> String {
+//     let type_name = std::any::type_name::<T>();
+//     str_to_dot_notation(type_name)
+// }
+
+// pub fn str_to_dot_notation(s: &str) -> String {
+//     let head = s.split('<').next().unwrap_or(s);
+//     let base = head.rsplit("::").next().unwrap_or(head).trim();
+//     words(base).join(".")
+// }
+
+// fn words(s: &str) -> Vec<String> {
+//     let chars: Vec<char> = s.chars().collect();
+//     let mut words = Vec::new();
+//     let mut current = String::new();
+
+//     for (i, &c) in chars.iter().enumerate() {
+//         if c == '_' || c == '-' || c.is_whitespace() {
+//             if !current.is_empty() {
+//                 words.push(std::mem::take(&mut current));
+//             }
+//             continue;
+//         }
+
+//         if c.is_uppercase() {
+//             let prev_lower_or_digit =
+//                 i > 0 && (chars[i - 1].is_lowercase() || chars[i - 1].is_ascii_digit());
+//             let prev_upper = i > 0 && chars[i - 1].is_uppercase();
+//             let next_lower = i + 1 < chars.len() && chars[i + 1].is_lowercase();
+
+//             // New word if the previous char was lowercase/digit (normal
+//             // PascalCase boundary), or if we're at the tail of an acronym
+//             // run about to hand off to a new word ("HTTPServer" -> boundary
+//             // right before "Server", not before every letter of "HTTP").
+//             let boundary = prev_lower_or_digit || (prev_upper && next_lower);
+
+//             if boundary && !current.is_empty() {
+//                 words.push(std::mem::take(&mut current));
+//             }
+//         }
+
+//         current.push(c.to_ascii_lowercase());
+//     }
+
+//     if !current.is_empty() {
+//         words.push(current);
+//     }
+
+//     words
+// }

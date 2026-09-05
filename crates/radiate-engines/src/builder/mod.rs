@@ -368,8 +368,8 @@ where
             return Ok(());
         }
 
-        let crossover = UniformCrossover::new(0.5).alterer();
-        let mutator = UniformMutator::new(0.1).alterer();
+        let crossover = UniformCrossover::new(0.5).into_alterer();
+        let mutator = UniformMutator::new(0.1).into_alterer();
 
         self.params.alterers.push(crossover);
         self.params.alterers.push(mutator);

@@ -352,20 +352,21 @@ impl<'a> ProjectExpr<'a> for Metric {
 impl From<&Metric> for AnyValue<'_> {
     fn from(metric: &Metric) -> Self {
         use AnyValue::*;
-        let mut fields = Vec::new();
+        let fields = Vec::from([
+        (metric_fields::LAST_VALUE, DataType::Float32, Float32(metric.last_value())),
+        (metric_fields::MEAN, DataType::Float32, Float32(metric.mean())),
+        (metric_fields::STDDEV, DataType::Float32, Float32(metric.stddev())),
+        (metric_fields::MIN, DataType::Float32, Float32(metric.min())),
+        (metric_fields::MAX, DataType::Float32, Float32(metric.max())),
+        (metric_fields::SUM, DataType::Float32, Float32(metric.sum())),
+        (metric_fields::VARIANCE, DataType::Float32, Float32(metric.var())),
+        (metric_fields::SKEWNESS, DataType::Float32, Float32(metric.skew())),
+        (metric_fields::KURTOSIS, DataType::Float32, Float32(metric.kurt())),
+        (metric_fields::COUNT, DataType::UInt64, UInt64(metric.count() as u64)),
+            (metric_fields::GENERATION, DataType::UInt64, UInt64(metric.generation() as u64)),
+        (metric_fields::UPDATE_COUNT, DataType::UInt64, UInt64(metric.update_count() as u64)),
+        ]);
 
-        fields.push((metric_fields::LAST_VALUE, DataType::Float32, Float32(metric.last_value())));
-        fields.push((metric_fields::MEAN, DataType::Float32, Float32(metric.mean())));
-        fields.push((metric_fields::STDDEV, DataType::Float32, Float32(metric.stddev())));
-        fields.push((metric_fields::MIN, DataType::Float32, Float32(metric.min())));
-        fields.push((metric_fields::MAX, DataType::Float32, Float32(metric.max())));
-        fields.push((metric_fields::SUM, DataType::Float32, Float32(metric.sum())));
-        fields.push((metric_fields::VARIANCE, DataType::Float32, Float32(metric.var())));
-        fields.push((metric_fields::SKEWNESS, DataType::Float32, Float32(metric.skew())));
-        fields.push((metric_fields::KURTOSIS, DataType::Float32, Float32(metric.kurt())));
-        fields.push((metric_fields::COUNT, DataType::UInt64, UInt64(metric.count() as u64)));
-        fields.push((metric_fields::GENERATION, DataType::UInt64, UInt64(metric.generation() as u64)));
-        fields.push((metric_fields::UPDATE_COUNT, DataType::UInt64, UInt64(metric.update_count() as u64)));
 
         AnyValue::Struct(metric.name().clone(), fields)
     }

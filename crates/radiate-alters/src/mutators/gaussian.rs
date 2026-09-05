@@ -22,7 +22,7 @@ impl GaussianMutator {
 
 impl<F, C> Mutate<C> for GaussianMutator
 where
-    F: Float + Primitive,
+    F: Float,
     C: Chromosome<Gene = FloatGene<F>>,
 {
     fn rates(&self) -> RateSet {

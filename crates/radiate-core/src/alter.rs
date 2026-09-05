@@ -1,8 +1,8 @@
-use crate::{Chromosome, Gene, MetricSet, math::indexes, random_provider};
+use crate::{Chromosome, Gene, MetricSet, math::indexes, random_provider, stats::metric_tags};
 use crate::{GetPairMut, Phenotype};
 use crate::{RateSet, error::RadiateResult};
 pub use radiate_expr::*;
-use radiate_utils::{SmallStr, ToSnakeCase, intern};
+use radiate_utils::{SmallStr, generate_metric_key};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ macro_rules! alters {
         {
             let mut vec: Vec<Alterer<_>> = Vec::new();
             $(
-                vec.push($struct_instance.alterer());
+                vec.push($struct_instance.into_alterer());
             )*
             vec
         }
@@ -148,11 +148,11 @@ pub struct Alterer<C: Chromosome> {
 }
 
 impl<C: Chromosome> Alterer<C> {
-    pub fn mutation(name: &'static str, m: Arc<dyn Mutate<C>>) -> Self {
+    pub fn mutation(name: impl Into<SmallStr>, m: Arc<dyn Mutate<C>>) -> Self {
         Self::build_internal(name, AlterInner::Mutate(m))
     }
 
-    pub fn crossover(name: &'static str, c: Arc<dyn Crossover<C>>) -> Self {
+    pub fn crossover(name: impl Into<SmallStr>, c: Arc<dyn Crossover<C>>) -> Self {
         Self::build_internal(name, AlterInner::Crossover(c))
     }
 
@@ -253,32 +253,18 @@ const MIN_NUM_PARENTS: usize = 2;
 /// entire population.
 pub trait Crossover<C: Chromosome>: Send + Sync {
     fn name(&self) -> String {
-        let name = std::any::type_name::<Self>()
-            .split("::")
-            .last()
-            .map(|s| s.to_snake_case())
-            .unwrap();
+        generate_metric_key::<Self>(metric_tags::CROSSOVER)
+    }
 
-        let path = name.split('_').collect::<Vec<&str>>();
-        let mut new_name = vec!["crossover"];
-        for part in path {
-            if !part.contains("crossov") {
-                new_name.push(part);
-            }
-        }
-
-        new_name.join(".")
+    fn into_alterer(self) -> Alterer<C>
+    where
+        Self: Sized + 'static,
+    {
+        Alterer::crossover(self.name(), Arc::new(self))
     }
 
     fn rates(&self) -> RateSet {
         RateSet::default()
-    }
-
-    fn alterer(self) -> Alterer<C>
-    where
-        Self: Sized + 'static,
-    {
-        Alterer::crossover(intern!(self.name()), Arc::new(self))
     }
 
     #[inline]
@@ -358,32 +344,18 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
 
 pub trait Mutate<C: Chromosome>: Send + Sync {
     fn name(&self) -> String {
-        let name = std::any::type_name::<Self>()
-            .split("::")
-            .last()
-            .map(|s| s.to_snake_case())
-            .unwrap();
+        generate_metric_key::<Self>(metric_tags::MUTATOR)
+    }
 
-        let path = name.split('_').collect::<Vec<&str>>();
-        let mut new_name = vec!["mutator"];
-        for part in path {
-            if !part.contains("mutat") {
-                new_name.push(part);
-            }
-        }
-
-        new_name.join(".")
+    fn into_alterer(self) -> Alterer<C>
+    where
+        Self: Sized + 'static,
+    {
+        Alterer::mutation(self.name(), Arc::new(self))
     }
 
     fn rates(&self) -> RateSet {
         RateSet::default()
-    }
-
-    fn alterer(self) -> Alterer<C>
-    where
-        Self: Sized + 'static,
-    {
-        Alterer::mutation(intern!(self.name()), Arc::new(self))
     }
 
     #[inline]

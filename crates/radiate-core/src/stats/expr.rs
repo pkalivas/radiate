@@ -88,8 +88,6 @@ pub fn stagnation_expr(window: usize, epsilon: f32) -> Expr {
 // Bloat pressure: throttle growth mutation only when genome size is
 // growing WITHOUT a corresponding fitness payoff. Distinguishes genuine
 // bloat (size↑, corr weak) from justified growth (size↑, corr strong) —
-// unlike genome_size_throttle, which throttles on raw size alone and
-// can't tell the difference.
 pub fn bloat_pressure_signal(base_rate: impl Into<Expr>, corr_floor: f32) -> Expr {
     let base_rate = base_rate.into();
     let growing = Expr::select(metric_names::GENOME_SIZE)

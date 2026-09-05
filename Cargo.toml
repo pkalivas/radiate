@@ -17,7 +17,7 @@ members = [
     "examples/rust/image-evo",
     "examples/rust/novelty_search",
     "examples/rust/snake",
-    "examples/rust/flappy-bird",
+    # "examples/rust/flappy-bird",
 
     "examples/rust/graphs/iris-graph",
     "examples/rust/graphs/regression-graph",
