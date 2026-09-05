@@ -220,7 +220,7 @@ pub(crate) fn reduce_eval<'a>(
             } else {
                 dtype
             };
-            rollup(op, &values, elem_dtype)
+            rollup(op, values, elem_dtype)
         }
         AnyValue::Vector(values) => {
             let elem_dtype = if let DataType::List(inner) = dtype {

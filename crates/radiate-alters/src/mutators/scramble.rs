@@ -1,4 +1,4 @@
-use radiate_core::{AlterContext, AlterCount, Chromosome, Expr, Mutate, RateSet, random_provider};
+use radiate_core::{AlterContext, Chromosome, Expr, Mutate, RateSet, random_provider};
 
 /// The [ScrambleMutator] is a simple mutator that scrambles a random section of the [Chromosome].
 ///
@@ -21,7 +21,7 @@ impl<C: Chromosome> Mutate<C> for ScrambleMutator {
     }
 
     #[inline]
-    fn mutate_chromosome(&mut self, chromosome: &mut C, ctx: &mut AlterContext) -> AlterCount {
+    fn mutate_chromosome(&mut self, chromosome: &mut C, ctx: &mut AlterContext) -> usize {
         let mut mutations = 0;
 
         random_provider::with_rng(|rand| {
@@ -35,6 +35,6 @@ impl<C: Chromosome> Mutate<C> for ScrambleMutator {
             }
         });
 
-        AlterCount::from(mutations)
+        mutations
     }
 }

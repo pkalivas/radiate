@@ -4,7 +4,7 @@ use crate::graphs::node::InnovationId;
 use crate::node::Node;
 use crate::{Factory, NodeType};
 use radiate_core::{AlterContext, Chromosome, Expr, RateSet, SmallStr, expr};
-use radiate_core::{AlterCount, Mutate, random_provider};
+use radiate_core::{Mutate, random_provider};
 use std::collections::HashMap;
 
 const SATURATED: SmallStr = SmallStr::from_static("mutator.graph.invalid.saturated");
@@ -145,7 +145,7 @@ where
         &mut self,
         chromosome: &mut GraphChromosome<T>,
         ctx: &mut AlterContext,
-    ) -> AlterCount {
+    ) -> usize {
         // If the chromosome has a maximum number of nodes then just return 0.
         // If we have reached this point, this graph is simply optimizing the
         // node's values and not the structure.
@@ -153,7 +153,7 @@ where
             && chromosome.len() >= max_nodes
         {
             ctx.upsert(SATURATED, 1);
-            return AlterCount::empty();
+            return 0;
         }
 
         self.innov_context.bump(ctx.generation());
@@ -164,7 +164,7 @@ where
             && let Some(store) = chromosome.store()
         {
             let Some(new_node) = store.new_instance((chromosome.len(), node_type)) else {
-                return AlterCount::empty();
+                return 0;
             };
 
             let mut graph = Graph::new(chromosome.take_nodes());
@@ -226,12 +226,12 @@ where
             return match result {
                 TransactionResult::Invalid(_, _) => {
                     ctx.upsert(REJECTED, 1);
-                    AlterCount::empty()
+                    0
                 }
-                TransactionResult::Valid(steps) => AlterCount::from(steps.len()),
+                TransactionResult::Valid(steps) => steps.len(),
             };
         }
 
-        AlterCount::empty()
+        0
     }
 }

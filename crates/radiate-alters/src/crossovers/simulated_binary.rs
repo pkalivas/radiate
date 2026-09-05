@@ -1,6 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterCount, BoundedGene, Chromosome, Crossover, Expr, Gene, RateSet,
-    random_provider,
+    AlterContext, BoundedGene, Chromosome, Crossover, Expr, Gene, RateSet, random_provider,
 };
 use radiate_utils::Float;
 
@@ -38,11 +37,11 @@ where
         chrom_one: &mut C,
         chrom_two: &mut C,
         _: &mut AlterContext,
-    ) -> AlterCount {
+    ) -> usize {
         let length = std::cmp::min(chrom_one.len(), chrom_two.len());
 
         if length < 2 {
-            return AlterCount::empty();
+            return 0;
         }
 
         let mut count = 0;
@@ -76,6 +75,6 @@ where
             });
         });
 
-        AlterCount::from(count)
+        count
     }
 }

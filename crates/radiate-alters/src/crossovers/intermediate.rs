@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterCount, BoundedGene, Chromosome, Crossover, Expr, FloatGene, Gene, RateSet,
+    AlterContext, BoundedGene, Chromosome, Crossover, Expr, FloatGene, Gene, RateSet,
     random_provider,
 };
 use radiate_utils::Float;
@@ -48,7 +48,7 @@ where
         chrom_one: &mut C,
         chrom_two: &mut C,
         ctx: &mut AlterContext,
-    ) -> AlterCount {
+    ) -> usize {
         let mut cross_count = 0;
         let alpha = F::from(self.alpha).unwrap();
 
@@ -73,6 +73,6 @@ where
             });
         });
 
-        cross_count.into()
+        cross_count
     }
 }

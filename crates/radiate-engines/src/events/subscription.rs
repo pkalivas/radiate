@@ -44,7 +44,7 @@ impl Subscription {
         match maybe_expr.clone().into_schedule() {
             Some(expr) => {
                 *self.schedule.write().unwrap() = Some(expr);
-                return Ok(true);
+                Ok(true)
             }
             _ => {
                 radiate_bail!(Expr: format!("Invalid schedule expression: {:?}", maybe_expr))
@@ -100,6 +100,6 @@ impl Subscription {
                 .ok_or_else(|| radiate_err!(Expr: "Failed to compute schedule as bool"));
         }
 
-        return Ok(true);
+        Ok(true)
     }
 }

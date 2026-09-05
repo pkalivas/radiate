@@ -90,12 +90,7 @@ impl<C: Chromosome> Select<C> for TournamentNSGA2Selector {
         while result.len() < count {
             let k = std::cmp::min(2 * count - result.len(), population.len());
             let mut g = vec![0; k];
-            indexes::subset(
-                population.len(),
-                k,
-                &mut g,
-                indexes::SubsetMode::StratifiedCorrect,
-            );
+            indexes::fill_subset(population.len(), &mut g);
 
             for i in (0..g.len()).step_by(2) {
                 if result.len() >= count || i + 1 >= g.len() {

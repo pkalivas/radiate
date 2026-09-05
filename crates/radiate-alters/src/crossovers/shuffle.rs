@@ -1,6 +1,4 @@
-use radiate_core::{
-    AlterContext, AlterCount, Chromosome, Crossover, Expr, RateSet, random_provider,
-};
+use radiate_core::{AlterContext, Chromosome, Crossover, Expr, RateSet, random_provider};
 
 pub struct ShuffleCrossover {
     rate: Expr,
@@ -23,10 +21,10 @@ impl<C: Chromosome + Clone> Crossover<C> for ShuffleCrossover {
         chrom_one: &mut C,
         chrom_two: &mut C,
         ctx: &mut AlterContext,
-    ) -> AlterCount {
+    ) -> usize {
         let length = std::cmp::min(chrom_one.len(), chrom_two.len());
         if length < 2 {
-            return AlterCount::empty();
+            return 0;
         }
 
         let mut cross_count = 0;
@@ -50,6 +48,6 @@ impl<C: Chromosome + Clone> Crossover<C> for ShuffleCrossover {
             }
         });
 
-        AlterCount::from(cross_count)
+        cross_count
     }
 }

@@ -32,11 +32,11 @@ where
     }
 }
 
-impl<'a, T> Into<AnyValue<'a>> for AnyList<'a, T>
+impl<'a, T> From<AnyList<'a, T>> for AnyValue<'a>
 where
     AnyValue<'a>: for<'b> From<&'b T>,
 {
-    fn into(self) -> AnyValue<'a> {
-        AnyValue::Vector(self.values.into_iter().map(|v| v.into()).collect())
+    fn from(val: AnyList<'a, T>) -> Self {
+        AnyValue::Vector(val.values.iter().map(|v| v.into()).collect())
     }
 }

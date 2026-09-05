@@ -1,6 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterCount, Chromosome, Crossover, Expr, PermutationChromosome, RateSet,
-    random_provider,
+    AlterContext, Chromosome, Crossover, Expr, PermutationChromosome, RateSet, random_provider,
 };
 use std::collections::{HashMap, HashSet};
 
@@ -94,7 +93,7 @@ where
         chrom_one: &mut PermutationChromosome<T>,
         chrom_two: &mut PermutationChromosome<T>,
         _: &mut AlterContext,
-    ) -> AlterCount {
+    ) -> usize {
         let parent1 = chrom_one.iter().map(|g| g.index()).collect::<Vec<usize>>();
         let parent2 = chrom_two.iter().map(|g| g.index()).collect::<Vec<usize>>();
 
@@ -128,7 +127,7 @@ where
             chrom_one.set(i, chrom_one.get(i).unwrap().with_index(*allele));
         }
 
-        1.into()
+        1
     }
 }
 
@@ -237,7 +236,7 @@ mod tests {
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
         // Should perform 1 crossover operation
-        assert_eq!(result.count(), 1);
+        assert_eq!(result, 1);
 
         // Check that the chromosome is still valid (no duplicates)
         let values: Vec<usize> = chrom_one.iter().map(|g| g.index()).collect();
@@ -277,7 +276,7 @@ mod tests {
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
         // Should still perform crossover even with identical parents
-        assert_eq!(result.count(), 1);
+        assert_eq!(result, 1);
 
         // The result should still be a valid permutation
         let values: Vec<usize> = chrom_one.iter().map(|g| g.index()).collect();
@@ -305,7 +304,7 @@ mod tests {
         let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
-        assert_eq!(result.count(), 1);
+        assert_eq!(result, 1);
 
         // Test with two elements
         let alleles: Arc<[usize]> = vec![0, 1].into_boxed_slice().into();
@@ -321,7 +320,7 @@ mod tests {
         let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
-        assert_eq!(result.count(), 1);
+        assert_eq!(result, 1);
     }
 
     #[test]
@@ -364,7 +363,7 @@ mod tests {
             let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
             // Should always perform exactly 1 crossover
-            assert_eq!(result.count(), 1);
+            assert_eq!(result, 1);
 
             // Result should be a valid permutation
             let values: Vec<usize> = chrom_one.iter().map(|g| g.index()).collect();
@@ -431,7 +430,7 @@ mod tests {
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
-        assert_eq!(result.count(), 1);
+        assert_eq!(result, 1);
 
         // Verify the result is a complete permutation
         let values: Vec<usize> = chrom_one.iter().map(|g| g.index()).collect();

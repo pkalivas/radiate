@@ -1,11 +1,10 @@
 use crate::collections::GraphChromosome;
 use crate::node::{Node, NodeExt};
 use radiate_core::genome::*;
-use radiate_core::{AlterContext, AlterCount, Crossover, Expr, RateSet, RdRand, random_provider};
+use radiate_core::{AlterContext, Crossover, Expr, RateSet, RdRand, random_provider};
 use std::cmp::Ordering;
 use std::fmt::Debug;
 
-const NUM_PARENTS: usize = 2;
 const PARENT_RATE: &str = "crossover.graph.rate.parent";
 
 pub struct GraphCrossover {
@@ -33,41 +32,35 @@ where
     #[inline]
     fn cross(
         &self,
-        mut population: &mut [Phenotype<GraphChromosome<T>>],
-        indexes: &[usize],
+        parent_one: &mut Phenotype<GraphChromosome<T>>,
+        parent_two: &mut Phenotype<GraphChromosome<T>>,
         ctx: &mut AlterContext,
-    ) -> AlterCount {
-        if population.len() <= NUM_PARENTS {
-            return AlterCount::empty();
-        }
-
+    ) -> usize {
         let parent_rate = ctx.internal_rate(0);
-        if let Some((parent_one, parent_two)) = population.get_pair_mut(indexes[0], indexes[1]) {
-            let is_speciated = !parent_one.species().is_empty() && !parent_two.species().is_empty();
-            let num_crosses = {
-                let geno_one = parent_one.genotype_mut();
-                let geno_two = parent_two.genotype();
 
-                random_provider::with_rng(|rand| {
-                    let chromo_index = rand.range(0..std::cmp::min(geno_one.len(), geno_two.len()));
-                    let chromo_one = geno_one.get_mut(chromo_index).unwrap();
-                    let chromo_two = geno_two.get(chromo_index).unwrap();
+        let is_speciated = !parent_one.species().is_empty() && !parent_two.species().is_empty();
 
-                    if is_speciated {
-                        crossover_speciated(chromo_one, chromo_two, parent_rate, rand)
-                    } else {
-                        crossover_uniform(chromo_one, chromo_two, parent_rate, rand)
-                    }
-                })
-            };
+        let geno_one = parent_one.genotype_mut();
+        let geno_two = parent_two.genotype();
 
-            if num_crosses > 0 {
-                parent_one.invalidate(ctx.generation());
-                return AlterCount::from(num_crosses);
+        let num_crosses = random_provider::with_rng(|rand| {
+            let chromo_index = rand.range(0..std::cmp::min(geno_one.len(), geno_two.len()));
+            let chromo_one = geno_one.get_mut(chromo_index).unwrap();
+            let chromo_two = geno_two.get(chromo_index).unwrap();
+
+            if is_speciated {
+                crossover_speciated(chromo_one, chromo_two, parent_rate, rand)
+            } else {
+                crossover_uniform(chromo_one, chromo_two, parent_rate, rand)
             }
+        });
+
+        if num_crosses > 0 {
+            parent_one.invalidate(ctx.generation());
+            return num_crosses;
         }
 
-        AlterCount::empty()
+        num_crosses
     }
 }
 

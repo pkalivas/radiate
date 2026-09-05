@@ -1,7 +1,7 @@
 use crate::node::{Node, NodeExt};
 use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome, NodeStore, NodeType, TreeChromosome};
-use radiate_core::{AlterContext, AlterCount, Expr, Mutate, RateSet, SmallStr};
+use radiate_core::{AlterContext, Expr, Mutate, RateSet, SmallStr};
 use radiate_core::{Chromosome, random_provider};
 
 const OP_MUTATED: SmallStr = SmallStr::from_static("mutator.op.mutated");
@@ -107,7 +107,7 @@ where
         &mut self,
         chromosome: &mut GraphChromosome<Op<T>>,
         ctx: &mut AlterContext,
-    ) -> AlterCount {
+    ) -> usize {
         let mutation_indexes = random_provider::cond_indices(0..chromosome.len(), ctx.rate());
         let store = chromosome.store().cloned();
 
@@ -130,7 +130,7 @@ where
             }
         }
 
-        AlterCount::from(metrics.len())
+        metrics.len()
     }
 }
 
@@ -147,7 +147,7 @@ where
         &mut self,
         chromosome: &mut TreeChromosome<Op<T>>,
         ctx: &mut AlterContext,
-    ) -> AlterCount {
+    ) -> usize {
         let store = chromosome.get_store();
         let mut metrics = OpMutateMetrics::default();
         if let Some(store) = store {
@@ -163,9 +163,9 @@ where
             ctx.upsert(OP_MUTATED, metrics.op_mutate);
             ctx.upsert(OP_NEW_INSTANCE, metrics.op_new_instance);
 
-            return AlterCount::from(metrics.len());
+            return metrics.len();
         }
 
-        AlterCount::empty()
+        0
     }
 }

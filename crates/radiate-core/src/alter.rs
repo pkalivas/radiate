@@ -19,49 +19,6 @@ macro_rules! alters {
     };
 }
 
-/// The [AlterResult] struct is used to represent the result of an
-/// alteration operation. It contains the number of operations
-/// performed and a vector of metrics that were collected
-/// during the alteration process.
-#[derive(Default)]
-pub struct AlterCount(pub usize);
-
-impl AlterCount {
-    pub fn empty() -> Self {
-        Default::default()
-    }
-
-    pub fn count(&self) -> usize {
-        self.0
-    }
-
-    pub fn merge(&mut self, other: AlterCount) {
-        let AlterCount(other_count) = other;
-        self.0 += other_count;
-    }
-
-    pub fn add(mut self, other: impl Into<AlterCount>) -> Self {
-        self.merge(other.into());
-        self
-    }
-}
-
-impl From<usize> for AlterCount {
-    fn from(value: usize) -> Self {
-        AlterCount(value)
-    }
-}
-
-impl FromIterator<AlterCount> for AlterCount {
-    fn from_iter<I: IntoIterator<Item = AlterCount>>(iter: I) -> Self {
-        let mut result = AlterCount::default();
-        for alter_count in iter {
-            result.merge(alter_count);
-        }
-        result
-    }
-}
-
 #[derive(Clone, Default)]
 pub struct AlterUpdates(pub HashMap<SmallStr, usize>);
 
@@ -203,24 +160,22 @@ impl<C: Chromosome> Alterer<C> {
 
         match &mut self.inner {
             AlterInner::Mutate(m) => {
+                let mutator = Arc::get_mut(&mut (*m)).unwrap();
+
                 let timer = std::time::Instant::now();
-                let mutator = Arc::get_mut(&mut (*m));
+                let result = mutator.mutate(population, &mut ctx);
+                metrics.upsert(&self.time_name, timer.elapsed());
+                metrics.upsert(&self.name, result);
 
-                if let Some(mutator) = mutator {
-                    let result = mutator.mutate(population, &mut ctx);
-                    metrics.upsert(&self.time_name, timer.elapsed());
-                    metrics.upsert(&self.name, result.count());
-
-                    for (name, count) in ctx.alter_counts.iter() {
-                        metrics.upsert(name, *count);
-                    }
+                for (name, count) in ctx.alter_counts.iter() {
+                    metrics.upsert(name, *count);
                 }
             }
             AlterInner::Crossover(c) => {
                 let timer = std::time::Instant::now();
                 let result = c.crossover(population, &mut ctx);
                 metrics.upsert(&self.time_name, timer.elapsed());
-                metrics.upsert(&self.name, result.count());
+                metrics.upsert(&self.name, result);
 
                 for (name, count) in ctx.alter_counts.iter() {
                     metrics.upsert(name, *count);
@@ -268,15 +223,19 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
     }
 
     #[inline]
-    fn crossover(&self, population: &mut [Phenotype<C>], ctx: &mut AlterContext) -> AlterCount {
-        let mut result = AlterCount::default();
-        let mut parents = [0usize; MIN_NUM_PARENTS];
+    fn crossover(&self, mut population: &mut [Phenotype<C>], ctx: &mut AlterContext) -> usize {
+        let mut result = 0;
+        let mut parents = [0; MIN_NUM_PARENTS];
+        let pop_size = population.len();
 
-        for i in 0..population.len() {
-            if random_provider::bool(ctx.rate()) && population.len() > MIN_POPULATION_SIZE {
-                indexes::individual_indexes(i, population.len(), MIN_NUM_PARENTS, &mut parents);
-                let cross_result = self.cross(population, &parents, ctx);
-                result.merge(cross_result);
+        for i in 0..pop_size {
+            if random_provider::bool(ctx.rate()) && pop_size > MIN_POPULATION_SIZE {
+                indexes::fill_subset_inclusive(i, pop_size, &mut parents);
+
+                result += population
+                    .get_pair_mut(parents[0], parents[1])
+                    .map(|(one, two)| self.cross(one, two, ctx))
+                    .unwrap_or(0);
             }
         }
 
@@ -286,35 +245,27 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
     #[inline]
     fn cross(
         &self,
-        mut population: &mut [Phenotype<C>],
-        parent_indexes: &[usize],
+        parent_one: &mut Phenotype<C>,
+        parent_two: &mut Phenotype<C>,
         ctx: &mut AlterContext,
-    ) -> AlterCount {
-        let mut result = AlterCount::default();
+    ) -> usize {
+        let geno_one = parent_one.genotype_mut();
+        let geno_two = parent_two.genotype_mut();
 
-        if let Some((one, two)) = population.get_pair_mut(parent_indexes[0], parent_indexes[1]) {
-            let cross_result = {
-                let geno_one = one.genotype_mut();
-                let geno_two = two.genotype_mut();
+        let min_len = std::cmp::min(geno_one.len(), geno_two.len());
+        let chromosome_index = random_provider::range(0..min_len);
 
-                let min_len = std::cmp::min(geno_one.len(), geno_two.len());
-                let chromosome_index = random_provider::range(0..min_len);
+        let chrom_one = &mut geno_one[chromosome_index];
+        let chrom_two = &mut geno_two[chromosome_index];
 
-                let chrom_one = &mut geno_one[chromosome_index];
-                let chrom_two = &mut geno_two[chromosome_index];
+        let cross_result = self.cross_chromosomes(chrom_one, chrom_two, ctx);
 
-                self.cross_chromosomes(chrom_one, chrom_two, ctx)
-            };
-
-            if cross_result.count() > 0 {
-                one.invalidate(ctx.generation());
-                two.invalidate(ctx.generation());
-
-                result.merge(cross_result);
-            }
+        if cross_result > 0 {
+            parent_one.invalidate(ctx.generation());
+            parent_two.invalidate(ctx.generation());
         }
 
-        result
+        cross_result
     }
 
     #[inline]
@@ -323,7 +274,7 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
         chrom_one: &mut C,
         chrom_two: &mut C,
         ctx: &mut AlterContext,
-    ) -> AlterCount {
+    ) -> usize {
         let mut cross_count = 0;
 
         for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
@@ -338,7 +289,7 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
             }
         }
 
-        AlterCount::from(cross_count)
+        cross_count
     }
 }
 
@@ -359,28 +310,28 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
     }
 
     #[inline]
-    fn mutate(&mut self, population: &mut [Phenotype<C>], ctx: &mut AlterContext) -> AlterCount {
+    fn mutate(&mut self, population: &mut [Phenotype<C>], ctx: &mut AlterContext) -> usize {
         population
             .iter_mut()
             .map(|phenotype| {
                 let mutate_result = phenotype
                     .genotype_mut()
                     .iter_mut()
-                    .fold(AlterCount::default(), |acc, chromosome| {
-                        acc.add(self.mutate_chromosome(chromosome, ctx))
+                    .fold(0, |acc, chromosome| {
+                        acc + self.mutate_chromosome(chromosome, ctx)
                     });
 
-                if mutate_result.count() > 0 {
+                if mutate_result > 0 {
                     phenotype.invalidate(ctx.generation());
                 }
 
                 mutate_result
             })
-            .collect::<AlterCount>()
+            .sum()
     }
 
     #[inline]
-    fn mutate_chromosome(&mut self, chromosome: &mut C, ctx: &mut AlterContext) -> AlterCount {
+    fn mutate_chromosome(&mut self, chromosome: &mut C, ctx: &mut AlterContext) -> usize {
         chromosome
             .iter_mut()
             .filter(|_| random_provider::bool(ctx.rate()))
@@ -388,6 +339,5 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
                 *gene = gene.new_instance();
                 acc + 1
             })
-            .into()
     }
 }

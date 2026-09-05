@@ -103,7 +103,7 @@ impl<'a, P> KNN<'a, P> {
                 continue;
             }
 
-            let dist = self.metric.distance(query, p).max(EPSILON);
+            let dist = self.metric.calculate(query, p).max(EPSILON);
             min_distance = min_distance.min(dist);
             max_distance = max_distance.max(dist);
             self.scratch.push((idx, dist));

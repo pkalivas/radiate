@@ -18,7 +18,7 @@ use radiate_error::Result;
 pub use radiate_error::{RadiateError, ensure, radiate_err};
 pub use radiate_expr::*;
 
-pub use alter::{AlterContext, AlterCount, Alterer, Crossover, Mutate};
+pub use alter::{AlterContext, Alterer, Crossover, Mutate};
 pub use codecs::{
     BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,
 };
