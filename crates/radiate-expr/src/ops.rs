@@ -15,6 +15,10 @@ pub enum ScheduleOp {
         last: Option<std::time::Instant>,
         interval: std::time::Duration,
     },
+    Warmup {
+        period: usize,
+        current: usize,
+    },
 }
 
 impl Debug for ScheduleOp {
@@ -29,6 +33,9 @@ impl Debug for ScheduleOp {
                     "Duration {{ last: {:?}, interval: {:?} }}",
                     last, interval
                 )
+            }
+            ScheduleOp::Warmup { period, current } => {
+                write!(f, "Warmup {{ period: {}, current: {} }}", period, current)
             }
         }
     }

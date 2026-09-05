@@ -30,6 +30,14 @@ pub(crate) fn try_schedule(op: &mut ScheduleOp) -> ExprResult<'static> {
                 Ok(AnyValue::Bool(true))
             }
         }
+        ScheduleOp::Warmup { period, current } => {
+            if *current <= *period {
+                *current += 1;
+                Ok(AnyValue::Bool(false))
+            } else {
+                Ok(AnyValue::Bool(true))
+            }
+        }
     }
 }
 

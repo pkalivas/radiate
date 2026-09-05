@@ -158,6 +158,47 @@ impl<T> NodeStore<T> {
 
         None
     }
+
+    pub fn with_inputs<K: Into<NodeValue<T>>>(self, values: Vec<K>) -> Self {
+        self.insert(NodeType::Input, values);
+        self
+    }
+
+    pub fn with_outputs<K: Into<NodeValue<T>>>(self, values: Vec<K>) -> Self {
+        self.insert(NodeType::Output, values);
+        self
+    }
+
+    pub fn with_vertices<K: Into<NodeValue<T>>>(self, values: Vec<K>) -> Self {
+        self.insert(NodeType::Vertex, values);
+        self
+    }
+
+    pub fn with_edges<K: Into<NodeValue<T>>>(self, values: Vec<K>) -> Self {
+        self.insert(NodeType::Edge, values);
+        self
+    }
+
+    pub fn with_leaves<K: Into<NodeValue<T>>>(self, values: Vec<K>) -> Self {
+        self.insert(NodeType::Leaf, values);
+        self
+    }
+
+    pub fn with_roots<K: Into<NodeValue<T>>>(self, values: Vec<K>) -> Self {
+        self.insert(NodeType::Root, values);
+        self
+    }
+
+    /// Auto-classifies each value by its own arity via `allowed_node_types()`,
+    /// same dispatch as `add()` — for values that should land in whichever
+    /// node type(s) they're actually suited for, rather than one fixed slot.
+    pub fn with_auto(self, values: Vec<T>) -> Self
+    where
+        T: Into<NodeValue<T>> + Clone,
+    {
+        self.add(values);
+        self
+    }
 }
 
 impl<T> From<HashMap<NodeType, Vec<T>>> for NodeStore<T>

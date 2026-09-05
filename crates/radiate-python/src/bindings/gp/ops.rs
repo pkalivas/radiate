@@ -205,6 +205,11 @@ where
         "mish" => Op::mish(),
         "swish" => Op::swish(),
         "softplus" => Op::softplus(),
+        "gaussian" => Op::gaussian(),
+        "weight2" => Op::weight2(),
+        "tooth" => Op::tooth(),
+        "sign" => Op::sign(),
+        "reciprocal" => Op::reciprocal(),
         _ => radiate_py_bail!(format!("Unknown Op name: {:?}", name)),
     };
 

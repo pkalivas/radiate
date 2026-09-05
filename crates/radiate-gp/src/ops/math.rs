@@ -77,6 +77,66 @@ fn floor<F: OpFloat>(vals: &[F]) -> F {
 }
 
 #[inline]
+fn reciprocal<F: OpFloat>(vals: &[F]) -> F {
+    if vals[0].abs() < F::EPS {
+        F::ONE
+    } else {
+        clamp(F::ONE / vals[0])
+    }
+}
+
+#[inline]
+fn sign<F: OpFloat>(vals: &[F]) -> F {
+    let x = vals[0];
+    if x > F::ZERO {
+        F::ONE
+    } else if x < F::ZERO {
+        -F::ONE
+    } else {
+        F::ZERO
+    }
+}
+
+#[inline]
+fn pow<F: OpFloat>(vals: &[F]) -> F {
+    clamp(vals[0].powf(vals[1]))
+}
+
+#[inline]
+fn sqrt<F: OpFloat>(vals: &[F]) -> F {
+    clamp(vals[0].sqrt())
+}
+
+#[inline]
+fn exp<F: OpFloat>(vals: &[F]) -> F {
+    clamp(vals[0].exp())
+}
+
+#[inline]
+fn log<F: OpFloat>(vals: &[F]) -> F {
+    if vals[0] > F::ZERO {
+        clamp(vals[0].ln())
+    } else {
+        F::ZERO
+    }
+}
+
+#[inline]
+fn sin<F: OpFloat>(vals: &[F]) -> F {
+    clamp(vals[0].sin())
+}
+
+#[inline]
+fn cos<F: OpFloat>(vals: &[F]) -> F {
+    clamp(vals[0].cos())
+}
+
+#[inline]
+fn tan<F: OpFloat>(vals: &[F]) -> F {
+    clamp(vals[0].tan())
+}
+
+#[inline]
 fn logsumexp<F: OpFloat>(xs: &[F]) -> F {
     let mut m = F::neg_infinity();
     let mut s = F::ZERO;
@@ -111,16 +171,11 @@ pub enum AggregateOperations {
     Sum,
     Prod,
     Diff,
-    Pow,
-    Sqrt,
-    Exp,
-    Log,
-    Sin,
-    Cos,
-    Tan,
     Max,
     Min,
     LogSumExp,
+    Gaussian,
+    Tooth,
 }
 
 /// Implementations of the enum. These are the basic math operations.
@@ -135,20 +190,17 @@ impl AggregateOperations {
             AggregateOperations::Prod => {
                 clamp(inputs.iter().copied().fold(F::ONE, |acc, x| acc * x))
             }
-            AggregateOperations::Pow => clamp(inputs[0].powf(inputs[1])),
-            AggregateOperations::Sqrt => clamp(inputs[0].sqrt()),
-            AggregateOperations::Exp => clamp(inputs[0].exp()),
-            AggregateOperations::Log => clamp(if inputs[0] > F::ZERO {
-                inputs[0].ln()
-            } else {
-                F::ZERO
-            }),
-            AggregateOperations::Sin => clamp(inputs[0].sin()),
-            AggregateOperations::Cos => clamp(inputs[0].cos()),
-            AggregateOperations::Tan => clamp(inputs[0].tan()),
             AggregateOperations::Max => clamp(inputs.iter().copied().fold(-F::MAX_VALUE, F::max)),
             AggregateOperations::Min => clamp(inputs.iter().copied().fold(F::MAX_VALUE, F::min)),
             AggregateOperations::LogSumExp => clamp(logsumexp(inputs)),
+            AggregateOperations::Gaussian => {
+                let x = clamp(aggregate(inputs));
+                clamp((-x * x).exp())
+            }
+            AggregateOperations::Tooth => {
+                let x = clamp(aggregate(inputs));
+                clamp(x % F::ONE)
+            }
         }
     }
 }
@@ -213,6 +265,10 @@ impl<F: OpFloat> Op<F> {
         Self::weight_with(random_provider::range(-F::ONE..F::ONE))
     }
 
+    pub fn weight2() -> Self {
+        Self::weight2_with((F::ONE, F::ONE))
+    }
+
     pub fn weight_with(value: F) -> Self {
         let supplier = || random_provider::range(-F::ONE..F::ONE);
 
@@ -231,6 +287,42 @@ impl<F: OpFloat> Op<F> {
         )
     }
 
+    pub fn weight2_with((a, b): (F, F)) -> Self {
+        let supplier = || {
+            let a = random_provider::range(-F::ONE..F::ONE);
+            let b = random_provider::range(-F::ONE..F::ONE);
+            (a, b)
+        };
+
+        let operation =
+            |inputs: &[F], weight: &(F, F)| clamp(inputs[0] * weight.0 + inputs[1] * weight.1);
+
+        let modifier = |current: &mut (F, F)| {
+            let side = random_provider::bool(0.5);
+            let diff = random_provider::range(-F::ONE..F::ONE) * F::TENTH;
+            if side {
+                current.0 = clamp(current.0 + diff);
+            } else {
+                current.1 = clamp(current.1 + diff);
+            }
+        };
+
+        Op::Pair(
+            op_names::WEIGHT2,
+            2.into(),
+            Param::new((clamp(a), clamp(b)), supplier, modifier),
+            operation,
+        )
+    }
+
+    pub fn sign() -> Self {
+        Op::Fn(op_names::SIGN, 1.into(), sign::<F>)
+    }
+
+    pub fn reciprocal() -> Self {
+        Op::Fn(op_names::RECIPROCAL, 1.into(), reciprocal::<F>)
+    }
+
     pub fn add() -> Self {
         Op::Fn(op_names::ADD, 2.into(), add::<F>)
     }
@@ -245,6 +337,62 @@ impl<F: OpFloat> Op<F> {
 
     pub fn div() -> Self {
         Op::Fn(op_names::DIV, 2.into(), div::<F>)
+    }
+
+    pub fn neg() -> Self {
+        Op::Fn(op_names::NEG, 1.into(), neg::<F>)
+    }
+
+    pub fn pow() -> Self {
+        Op::Fn(op_names::POW, 2.into(), pow::<F>)
+    }
+
+    pub fn sqrt() -> Self {
+        Op::Fn(op_names::SQRT, 1.into(), sqrt::<F>)
+    }
+
+    pub fn abs() -> Self {
+        Op::Fn(op_names::ABS, 1.into(), abs::<F>)
+    }
+
+    pub fn exp() -> Self {
+        Op::Fn(op_names::EXP, 1.into(), exp::<F>)
+    }
+
+    pub fn log() -> Self {
+        Op::Fn(op_names::LOG, 1.into(), log::<F>)
+    }
+
+    pub fn sin() -> Self {
+        Op::Fn(op_names::SIN, 1.into(), sin::<F>)
+    }
+
+    pub fn cos() -> Self {
+        Op::Fn(op_names::COS, 1.into(), cos::<F>)
+    }
+
+    pub fn tan() -> Self {
+        Op::Fn(op_names::TAN, 1.into(), tan::<F>)
+    }
+
+    pub fn ceil() -> Self {
+        Op::Fn(op_names::CEIL, 1.into(), ceil::<F>)
+    }
+
+    pub fn floor() -> Self {
+        Op::Fn(op_names::FLOOR, 1.into(), floor::<F>)
+    }
+
+    pub fn tooth() -> Self {
+        Op::Fn(op_names::TOOTH, Arity::Any, |inputs: &[F]| {
+            AggregateOperations::Tooth.apply(inputs)
+        })
+    }
+
+    pub fn gaussian() -> Self {
+        Op::Fn(op_names::GAUSSIAN, Arity::Any, |inputs: &[F]| {
+            AggregateOperations::Gaussian.apply(inputs)
+        })
     }
 
     pub fn sum() -> Self {
@@ -265,50 +413,6 @@ impl<F: OpFloat> Op<F> {
         })
     }
 
-    pub fn neg() -> Self {
-        Op::Fn(op_names::NEG, 1.into(), neg::<F>)
-    }
-
-    pub fn pow() -> Self {
-        Op::Fn(op_names::POW, 2.into(), |inputs: &[F]| {
-            AggregateOperations::Pow.apply(inputs)
-        })
-    }
-
-    pub fn sqrt() -> Self {
-        Op::Fn(op_names::SQRT, 1.into(), |inputs: &[F]| {
-            AggregateOperations::Sqrt.apply(inputs)
-        })
-    }
-
-    pub fn abs() -> Self {
-        Op::Fn(op_names::ABS, 1.into(), abs::<F>)
-    }
-
-    pub fn exp() -> Self {
-        Op::Fn(op_names::EXP, 1.into(), |inputs: &[F]| {
-            AggregateOperations::Exp.apply(inputs)
-        })
-    }
-
-    pub fn log() -> Self {
-        Op::Fn(op_names::LOG, 1.into(), |inputs: &[F]| {
-            AggregateOperations::Log.apply(inputs)
-        })
-    }
-
-    pub fn sin() -> Self {
-        Op::Fn(op_names::SIN, 1.into(), |inputs: &[F]| {
-            AggregateOperations::Sin.apply(inputs)
-        })
-    }
-
-    pub fn cos() -> Self {
-        Op::Fn(op_names::COS, 1.into(), |inputs: &[F]| {
-            AggregateOperations::Cos.apply(inputs)
-        })
-    }
-
     pub fn max() -> Self {
         Op::Fn(op_names::MAX, Arity::Any, |inputs: &[F]| {
             AggregateOperations::Max.apply(inputs)
@@ -319,20 +423,6 @@ impl<F: OpFloat> Op<F> {
         Op::Fn(op_names::MIN, Arity::Any, |inputs: &[F]| {
             AggregateOperations::Min.apply(inputs)
         })
-    }
-
-    pub fn tan() -> Self {
-        Op::Fn(op_names::TAN, 1.into(), |inputs: &[F]| {
-            AggregateOperations::Tan.apply(inputs)
-        })
-    }
-
-    pub fn ceil() -> Self {
-        Op::Fn(op_names::CEIL, 1.into(), ceil::<F>)
-    }
-
-    pub fn floor() -> Self {
-        Op::Fn(op_names::FLOOR, 1.into(), floor::<F>)
     }
 
     pub fn sigmoid() -> Self {
@@ -420,6 +510,10 @@ pub fn math_ops<F: OpFloat>() -> Vec<Op<F>> {
         Op::max(),
         Op::min(),
         Op::logsumexp(),
+        Op::tooth(),
+        Op::reciprocal(),
+        Op::gaussian(),
+        Op::sign(),
     ]
 }
 
@@ -497,11 +591,6 @@ mod tests {
         assert_eq!(AggregateOperations::Sum.apply(&xs), 9.0);
         assert_eq!(AggregateOperations::Prod.apply(&xs), 24.0);
         assert_eq!(AggregateOperations::Diff.apply(&xs), -9.0);
-
-        let p = AggregateOperations::Pow.apply(&[3.0_f32, 2.0]);
-        assert_eq!(p, 9.0);
-
-        assert_eq!(AggregateOperations::Sqrt.apply(&[9.0_f32]), 3.0);
     }
 
     #[test]

@@ -27,6 +27,11 @@ enum OpVariant<T> {
         arity: Arity,
         value: T,
     },
+    Pair {
+        name: String,
+        arity: Arity,
+        value: (T, T),
+    },
 }
 
 #[cfg(feature = "serde")]
@@ -90,6 +95,11 @@ impl<T: Clone> From<Op<T>> for OpVariant<T> {
                 arity,
                 value: value.data().clone(),
             },
+            Op::Pair(name, arity, value, ..) => OpVariant::Pair {
+                name: name.to_string(),
+                arity,
+                value: value.data().clone(),
+            },
         }
     }
 }
@@ -131,6 +141,10 @@ impl<F: OpFloat> From<OpVariant<F>> for Result<Op<F>, serde::de::value::Error> {
                     op_names::SOFTPLUS => Ok(Op::softplus()),
                     op_names::IDENTITY => Ok(Op::identity()),
                     op_names::LOGSUMEXP => Ok(Op::logsumexp()),
+                    op_names::GAUSSIAN => Ok(Op::gaussian()),
+                    op_names::TOOTH => Ok(Op::tooth()),
+                    op_names::SIGN => Ok(Op::sign()),
+                    op_names::RECIPROCAL => Ok(Op::reciprocal()),
                     _ => Err(serde::de::Error::custom(format!(
                         "Unknown function name: {}",
                         name
@@ -153,6 +167,17 @@ impl<F: OpFloat> From<OpVariant<F>> for Result<Op<F>, serde::de::value::Error> {
                 "w" => Ok(Op::weight_with(value)),
                 _ => Err(serde::de::Error::custom(format!(
                     "Unknown mutable constant name: {}",
+                    name
+                ))),
+            },
+            OpVariant::Pair {
+                name,
+                arity: _,
+                value,
+            } => match name.as_str() {
+                "w2" => Ok(Op::weight2_with(value)),
+                _ => Err(serde::de::Error::custom(format!(
+                    "Unknown pair weight name: {}",
                     name
                 ))),
             },
@@ -202,6 +227,10 @@ impl From<OpVariant<bool>> for Result<Op<bool>, serde::de::value::Error> {
                 let name = radiate_utils::intern!(name);
                 Ok(Op::Const(name, value))
             }
+            OpVariant::Pair { name, .. } => Err(serde::de::Error::custom(format!(
+                "Mutable pair constants are not supported for boolean ops: {}",
+                name
+            ))),
         }
     }
 }

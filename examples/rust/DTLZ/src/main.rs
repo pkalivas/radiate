@@ -15,11 +15,10 @@ fn main() {
         .fitness_fn(|geno: Vec<f32>| dtlz_1(&geno))
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .offspring_selector(TournamentSelector::new(5))
-        // .survivor_selector(NSGA3Selector::new(12))
-        .survivor_selector(NSGA2Selector::new())
+        .survivor_selector(NSGA3Selector::new(12))
         .front_size(1000..1100)
         .alter(alters!(
-            SimulatedBinaryCrossover::new(1_f32, 2.5),
+            SimulatedBinaryCrossover::new(1_f32, 2.0),
             UniformMutator::new(1.0 / VARIABLES as f32),
         ))
         .build();

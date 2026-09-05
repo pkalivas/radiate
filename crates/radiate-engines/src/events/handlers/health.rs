@@ -7,7 +7,7 @@ use radiate_core::Objective;
 use radiate_core::error::RadiateResult;
 use std::marker::PhantomData;
 
-const STAGNATION_WARNING_THRESHOLD: usize = 200;
+const STAGNATION_WARNING_THRESHOLD: usize = 500;
 const DIVERSITY_WARNING_THRESHOLD: f32 = 0.1;
 const LARGEST_SPECIES_SHARE_WARNING_THRESHOLD: f32 = 0.9;
 

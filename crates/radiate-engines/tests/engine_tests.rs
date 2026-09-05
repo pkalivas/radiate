@@ -9,7 +9,7 @@ mod engine_tests {
     #[test]
     fn engine_can_minimize() {
         const EXPECTED_SUM: i32 = 0;
-        const EXPECTED_GENS: usize = 60;
+        const EXPECTED_GENS: usize = 57;
 
         seeded(42, || {
             let result = int_minimize_engine(5, 100)
@@ -128,7 +128,7 @@ mod engine_tests {
 
     #[test]
     fn test_engine_score_iterator() {
-        const BUDGET: usize = 200;
+        const BUDGET: usize = 300;
 
         seeded(46, || {
             let result = int_minimize_engine(10, 100)

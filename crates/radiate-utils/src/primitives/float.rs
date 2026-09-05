@@ -10,6 +10,9 @@ pub trait Float: Primitive + num_traits::Float + NumHash + NumOrd<Self> {
     const EPS: Self;
     const NAN: Self;
     const TENTH: Self;
+    const HUNDREDTH: Self;
+    const THOUSANDTH: Self;
+    const PI: Self;
 
     fn safe_clamp(self, min: Self, max: Self) -> Self {
         if self.is_finite() {
@@ -22,7 +25,7 @@ pub trait Float: Primitive + num_traits::Float + NumHash + NumOrd<Self> {
 
 #[macro_export]
 macro_rules! impl_float_scalar {
-    ($t:ty, $dtype:ident, $eps:expr) => {
+    ($t:ty, $dtype:ident, $eps:expr, $pi:expr) => {
         impl Primitive for $t {
             const HALF: Self = 0.5;
             const MIN: Self = <$t>::MIN;
@@ -71,9 +74,12 @@ macro_rules! impl_float_scalar {
             const NAN: Self = <$t>::NAN;
             const EPS: Self = $eps;
             const TENTH: Self = 0.1;
+            const HUNDREDTH: Self = 0.01;
+            const THOUSANDTH: Self = 0.001;
+            const PI: Self = $pi;
         }
     };
 }
 
-impl_float_scalar!(f32, Float32, 1e-6_f32);
-impl_float_scalar!(f64, Float64, 1e-12_f64);
+impl_float_scalar!(f32, Float32, 1e-6_f32, std::f32::consts::PI);
+impl_float_scalar!(f64, Float64, 1e-12_f64, std::f64::consts::PI);

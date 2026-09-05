@@ -27,6 +27,13 @@ impl Expr {
         Expr::from(SelectOp::Field(name.into()))
     }
 
+    pub fn warmup(period: usize) -> When {
+        When::new(Expr::new(ExprNode::Schedule(ScheduleOp::Warmup {
+            period,
+            current: 0,
+        })))
+    }
+
     pub fn when(cond: impl Into<Expr>) -> When {
         When::new(cond.into())
     }

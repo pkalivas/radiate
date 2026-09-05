@@ -1,5 +1,5 @@
-use crate::Expr;
 use crate::metric_names;
+use crate::{Expr, stats::metric_fields};
 
 const KP: f32 = 0.05_f32;
 const KI: f32 = 0.005_f32;
@@ -11,8 +11,7 @@ pub fn species_error_signal(count: usize) -> Expr {
 
 pub fn species_target_control(target: usize, base_val: f32) -> Expr {
     let target_f32 = target as f32;
-
-    let raw_error = Expr::select(metric_names::SPECIES_COUNT).error(target_f32);
+    let raw_error = species_error_signal(target);
 
     // Proportional: smoothed count so single-gen bursts don't cause hard jumps
     let proportional = Expr::select(metric_names::SPECIES_COUNT)
@@ -65,7 +64,7 @@ pub fn genome_size_throttle(base_rate: impl Into<Expr>, target_size: usize) -> E
     base_rate.into().div(pressure)
 }
 
-// Higher mutation when diversity is low, lower when healthy
+// Higher when diversity is low, lower when healthy
 pub fn diversity_signal(window: usize, min: f32, max: f32) -> Expr {
     let diversity = Expr::select(metric_names::PCT_DIVERSITY)
         .rolling(window)
@@ -86,67 +85,30 @@ pub fn stagnation_expr(window: usize, epsilon: f32) -> Expr {
         .lt(epsilon)
 }
 
-// pub trait MetricExprExt {
-//     fn last(self) -> Expr;
-//     fn min(self) -> Expr;
-//     fn max(self) -> Expr;
-//     fn sum(self) -> Expr;
-//     fn mean(self) -> Expr;
-//     fn variance(self) -> Expr;
-//     fn stddev(self) -> Expr;
-//     fn skewness(self) -> Expr;
-//     fn kurtosis(self) -> Expr;
-//     fn count(self) -> Expr;
-//     fn generation(self) -> Expr;
-//     fn update_count(self) -> Expr;
-// }
+// Bloat pressure: throttle growth mutation only when genome size is
+// growing WITHOUT a corresponding fitness payoff. Distinguishes genuine
+// bloat (size↑, corr weak) from justified growth (size↑, corr strong) —
+// unlike genome_size_throttle, which throttles on raw size alone and
+// can't tell the difference.
+pub fn bloat_pressure_signal(base_rate: impl Into<Expr>, corr_floor: f32) -> Expr {
+    let base_rate = base_rate.into();
+    let growing = Expr::select(metric_names::GENOME_SIZE)
+        .attr(metric_fields::MEAN)
+        .rolling(10)
+        .slope()
+        .gt(0.0_f32);
 
-// impl MetricExprExt for SelectExpr {
-//     fn last(self) -> Expr {
-//         self.clone().add_attr(metric_fields::LAST_VALUE).into()
-//     }
+    let weak_payoff = Expr::select(metric_names::SIZE_SCORE_CORR)
+        .rolling(10)
+        .mean()
+        .abs()
+        .lt(corr_floor);
 
-//     fn min(self) -> Expr {
-//         self.clone().add_attr(metric_fields::MIN).into()
-//     }
-
-//     fn max(self) -> Expr {
-//         self.clone().add_attr(metric_fields::MAX).into()
-//     }
-
-//     fn sum(self) -> Expr {
-//         self.clone().add_attr(metric_fields::SUM).into()
-//     }
-
-//     fn mean(self) -> Expr {
-//         self.clone().add_attr(metric_fields::MEAN).into()
-//     }
-
-//     fn variance(self) -> Expr {
-//         self.clone().add_attr(metric_fields::VARIANCE).into()
-//     }
-
-//     fn stddev(self) -> Expr {
-//         self.clone().add_attr(metric_fields::STDDEV).into()
-//     }
-
-//     fn skewness(self) -> Expr {
-//         self.clone().add_attr(metric_fields::SKEWNESS).into()
-//     }
-
-//     fn kurtosis(self) -> Expr {
-//         self.clone().add_attr(metric_fields::KURTOSIS).into()
-//     }
-
-//     fn count(self) -> Expr {
-//         self.clone().add_attr(metric_fields::COUNT).into()
-//     }
-
-//     fn generation(self) -> Expr {
-//         self.clone().add_attr(metric_fields::GENERATION).into()
-//     }
-
-//     fn update_count(self) -> Expr {
-//         self.clone().add_attr(metric_fields::UPDATE_COUNT).into()
-//     }
-// }
+    Expr::warmup(1)
+        .then(
+            Expr::when(growing.and(weak_payoff))
+                .then(base_rate.clone() * 0.5_f32)
+                .otherwise(base_rate.clone()),
+        )
+        .otherwise(base_rate)
+}
