@@ -66,16 +66,23 @@ pub struct ZippedChromosome<'a, C: Chromosome> {
 }
 
 impl<'a, C: Chromosome> ZippedChromosome<'a, C> {
-    pub fn iter(&'a mut self) -> impl Iterator<Item = (&'a mut C::Gene, &'a mut C::Gene)> {
+    pub fn iter(&mut self) -> impl Iterator<Item = (&mut C::Gene, &mut C::Gene)> {
         self.chrom_one.iter_mut().zip(self.chrom_two.iter_mut())
     }
 
-    pub fn for_each<F>(&'a mut self, mut f: F)
+    pub fn for_each<F>(&mut self, mut f: F)
     where
-        F: FnMut(&'a mut C::Gene, &'a mut C::Gene),
+        F: FnMut(&mut C::Gene, &mut C::Gene),
     {
         for (gene_one, gene_two) in self.iter() {
             f(gene_one, gene_two);
         }
+    }
+
+    pub fn combine<F>(&mut self, f: F)
+    where
+        F: FnMut(&mut C::Gene, &mut C::Gene),
+    {
+        self.for_each(f);
     }
 }

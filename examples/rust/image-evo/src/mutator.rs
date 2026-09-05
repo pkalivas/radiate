@@ -20,7 +20,7 @@ impl Mutate<ImageChromosome> for ImageMutator {
         &mut self,
         chromosome: &mut ImageChromosome,
         _: &mut AlterContext,
-    ) -> AlterResult {
+    ) -> AlterCount {
         let mut count = 0;
         for gene in chromosome.iter_mut() {
             for i in 0..gene.allele().len() {

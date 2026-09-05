@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Expr, Mutate, RateSet, chromosomes::NumericGene,
+    AlterContext, AlterCount, Chromosome, Expr, Mutate, RateSet, chromosomes::NumericGene,
     random_provider,
 };
 
@@ -36,7 +36,7 @@ where
     /// Randomly select a number between 0 and 3, and perform the corresponding
     /// arithmetic operation on the gene.
     #[inline]
-    fn mutate_chromosome(&mut self, chromosome: &mut C, ctx: &mut AlterContext) -> AlterResult {
+    fn mutate_chromosome(&mut self, chromosome: &mut C, ctx: &mut AlterContext) -> AlterCount {
         let mut mutations = 0;
 
         for gene in chromosome.iter_mut() {
@@ -56,6 +56,6 @@ where
             }
         }
 
-        AlterResult::from(mutations)
+        AlterCount::from(mutations)
     }
 }

@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Expr, Gene, RateSet,
+    AlterContext, AlterCount, BoundedGene, Chromosome, Crossover, Expr, Gene, RateSet,
     random_provider,
 };
 use radiate_utils::Float;
@@ -48,7 +48,7 @@ where
         chrom_one: &mut C,
         chrom_two: &mut C,
         ctx: &mut AlterContext,
-    ) -> AlterResult {
+    ) -> AlterCount {
         let mut cross_count = 0;
         let alpha = A::from(self.alpha).unwrap();
 

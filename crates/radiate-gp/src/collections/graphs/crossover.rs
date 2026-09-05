@@ -1,7 +1,7 @@
 use crate::collections::GraphChromosome;
 use crate::node::{Node, NodeExt};
 use radiate_core::genome::*;
-use radiate_core::{AlterContext, AlterResult, Crossover, Expr, RateSet, RdRand, random_provider};
+use radiate_core::{AlterContext, AlterCount, Crossover, Expr, RateSet, RdRand, random_provider};
 use std::cmp::Ordering;
 use std::fmt::Debug;
 
@@ -36,9 +36,9 @@ where
         mut population: &mut [Phenotype<GraphChromosome<T>>],
         indexes: &[usize],
         ctx: &mut AlterContext,
-    ) -> AlterResult {
+    ) -> AlterCount {
         if population.len() <= NUM_PARENTS {
-            return AlterResult::empty();
+            return AlterCount::empty();
         }
 
         let parent_rate = ctx.internal_rate(0);
@@ -63,11 +63,11 @@ where
 
             if num_crosses > 0 {
                 parent_one.invalidate(ctx.generation());
-                return AlterResult::from(num_crosses);
+                return AlterCount::from(num_crosses);
             }
         }
 
-        AlterResult::empty()
+        AlterCount::empty()
     }
 }
 

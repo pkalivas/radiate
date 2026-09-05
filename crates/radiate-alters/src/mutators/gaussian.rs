@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Expr, FloatGene, Gene, Mutate, RateSet,
+    AlterContext, AlterCount, BoundedGene, Chromosome, Expr, FloatGene, Gene, Mutate, RateSet,
     random_provider,
 };
 use radiate_utils::{Float, Primitive};
@@ -30,7 +30,7 @@ where
     }
 
     #[inline]
-    fn mutate_chromosome(&mut self, chromosome: &mut C, ctx: &mut AlterContext) -> AlterResult {
+    fn mutate_chromosome(&mut self, chromosome: &mut C, ctx: &mut AlterContext) -> AlterCount {
         let mut count = 0;
 
         random_provider::with_rng(|rand| {
@@ -55,6 +55,6 @@ where
             }
         });
 
-        AlterResult::from(count)
+        AlterCount::from(count)
     }
 }

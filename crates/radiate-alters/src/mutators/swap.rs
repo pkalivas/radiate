@@ -1,4 +1,4 @@
-use radiate_core::{AlterContext, AlterResult, Chromosome, Expr, Mutate, RateSet, random_provider};
+use radiate_core::{AlterContext, AlterCount, Chromosome, Expr, Mutate, RateSet, random_provider};
 
 /// The [SwapMutator] is a simple mutator that swaps random genes in the [Chromosome].
 #[derive(Debug, Clone)]
@@ -18,7 +18,7 @@ impl<C: Chromosome> Mutate<C> for SwapMutator {
     }
 
     #[inline]
-    fn mutate_chromosome(&mut self, chromosome: &mut C, ctx: &mut AlterContext) -> AlterResult {
+    fn mutate_chromosome(&mut self, chromosome: &mut C, ctx: &mut AlterContext) -> AlterCount {
         let mut mutations = 0;
 
         random_provider::with_rng(|rand| {
@@ -35,6 +35,6 @@ impl<C: Chromosome> Mutate<C> for SwapMutator {
             }
         });
 
-        AlterResult::from(mutations)
+        AlterCount::from(mutations)
     }
 }

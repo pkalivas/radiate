@@ -1,6 +1,6 @@
 use super::TreeChromosome;
 use crate::TreeNode;
-use radiate_core::{AlterContext, AlterResult, Crossover, Expr, RateSet, random_provider};
+use radiate_core::{AlterContext, AlterCount, Crossover, Expr, RateSet, random_provider};
 use radiate_core::{SmallStr, genome::*};
 
 const DEFAULT_MAX_SIZE: usize = 30;
@@ -31,12 +31,12 @@ impl TreeCrossover {
         node_two: &mut TreeNode<T>,
         max_size: usize,
         ctx: &mut AlterContext,
-    ) -> AlterResult {
+    ) -> AlterCount {
         let one_size = node_one.size();
         let two_size = node_two.size();
 
         if one_size == 1 || two_size == 1 {
-            return AlterResult::empty();
+            return AlterCount::empty();
         }
 
         let mut attempts = 0;
@@ -57,14 +57,14 @@ impl TreeCrossover {
                 if one_crossover_size <= max_size && two_crossover_size <= max_size {
                     std::mem::swap(one_sub_node, two_sub_node);
                     ctx.upsert(TN_X_ATTEMPTS, attempts + 1);
-                    return AlterResult::from(2);
+                    return AlterCount::from(2);
                 }
             }
 
             attempts += 1;
         }
 
-        AlterResult::empty()
+        AlterCount::empty()
     }
 }
 
@@ -82,7 +82,7 @@ where
         chrom_one: &mut TreeChromosome<T>,
         chrom_two: &mut TreeChromosome<T>,
         ctx: &mut AlterContext,
-    ) -> AlterResult {
+    ) -> AlterCount {
         let swap_one_index = random_provider::range(0..chrom_one.len());
         let swap_two_index = random_provider::range(0..chrom_two.len());
 
@@ -93,6 +93,6 @@ where
             return Self::cross_nodes(one_node, two_node, self.max_size, ctx);
         }
 
-        AlterResult::empty()
+        AlterCount::empty()
     }
 }

@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Crossover, Expr, PermutationChromosome, RateSet,
+    AlterContext, AlterCount, Chromosome, Crossover, Expr, PermutationChromosome, RateSet,
     random_provider,
 };
 use std::collections::{HashMap, HashSet};
@@ -94,7 +94,7 @@ where
         chrom_one: &mut PermutationChromosome<T>,
         chrom_two: &mut PermutationChromosome<T>,
         _: &mut AlterContext,
-    ) -> AlterResult {
+    ) -> AlterCount {
         let parent1 = chrom_one.iter().map(|g| g.index()).collect::<Vec<usize>>();
         let parent2 = chrom_two.iter().map(|g| g.index()).collect::<Vec<usize>>();
 

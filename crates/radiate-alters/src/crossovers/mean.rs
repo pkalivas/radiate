@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Crossover, Expr, RateSet, chromosomes::NumericGene,
+    AlterContext, AlterCount, Chromosome, Crossover, Expr, RateSet, chromosomes::NumericGene,
     random_provider,
 };
 
@@ -38,7 +38,7 @@ where
         chrom_one: &mut C,
         chrom_two: &mut C,
         ctx: &mut AlterContext,
-    ) -> AlterResult {
+    ) -> AlterCount {
         let mut count = 0;
 
         random_provider::with_rng(|rand| {

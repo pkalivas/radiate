@@ -175,7 +175,7 @@ mod tests {
     use crate::{Node, NodeType};
 
     fn create_test_chromosome() -> TreeChromosome<i32> {
-        let store = NodeStore::new();
+        let mut store = NodeStore::new();
         store.insert(NodeType::Vertex, vec![1, 2, 3]);
         store.insert(NodeType::Leaf, vec![4, 5]);
 
@@ -286,7 +286,7 @@ mod tests {
     #[cfg(feature = "serde")]
     fn test_serialize_deserialize_with_complex_type() {
         use crate::Op;
-        let store = NodeStore::new();
+        let mut store = NodeStore::new();
         store.insert(NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]);
         store.insert(NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]);
 

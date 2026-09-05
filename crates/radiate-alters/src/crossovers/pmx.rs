@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Crossover, Expr, PermutationChromosome, RateSet,
+    AlterContext, AlterCount, Chromosome, Crossover, Expr, PermutationChromosome, RateSet,
     SubsetMode, math::indexes,
 };
 
@@ -24,10 +24,10 @@ impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover 
         chrom_one: &mut PermutationChromosome<A>,
         chrom_two: &mut PermutationChromosome<A>,
         _: &mut AlterContext,
-    ) -> AlterResult {
+    ) -> AlterCount {
         let length = std::cmp::min(chrom_one.as_slice().len(), chrom_two.as_slice().len());
         if length < 2 {
-            return AlterResult::empty();
+            return AlterCount::empty();
         }
 
         let mut subset = vec![0; 2];
@@ -71,6 +71,6 @@ impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover 
         chrom_one.genes = offspring_one;
         chrom_two.genes = offspring_two;
 
-        AlterResult::from(2)
+        AlterCount::from(2)
     }
 }

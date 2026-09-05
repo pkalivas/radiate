@@ -73,7 +73,7 @@ where
         &mut self,
         chromosome: &mut C,
         ctx: &mut radiate_core::prelude::AlterContext,
-    ) -> radiate_core::AlterResult {
+    ) -> radiate_core::AlterCount {
         let mut count = 0;
         for gene in chromosome.iter_mut() {
             if random_provider::bool(ctx.rate()) {

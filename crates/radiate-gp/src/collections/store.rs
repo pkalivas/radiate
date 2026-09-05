@@ -1,14 +1,10 @@
 use super::NodeType;
 use crate::{Arity, Op};
 #[cfg(feature = "serde")]
-use serde::{
-    Deserialize, Serialize,
-    de::Deserializer,
-    ser::{Error as SerError, Serializer},
-};
+use serde::{Deserialize, Serialize, de::Deserializer, ser::Serializer};
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::Debug;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -77,13 +73,13 @@ impl_node_value!(
 
 #[derive(Default)]
 pub struct NodeStore<T> {
-    values: Arc<RwLock<BTreeMap<NodeType, Vec<NodeValue<T>>>>>,
+    values: Arc<BTreeMap<NodeType, Vec<NodeValue<T>>>>,
 }
 
 impl<T> NodeStore<T> {
     pub fn new() -> Self {
         NodeStore {
-            values: Arc::new(RwLock::new(BTreeMap::new())),
+            values: Arc::new(BTreeMap::new()),
         }
     }
 
@@ -92,7 +88,7 @@ impl<T> NodeStore<T> {
     }
 
     pub fn count_type(&self, node_type: NodeType) -> usize {
-        let values = self.values.read().unwrap();
+        let values = &self.values;
         if let Some(values) = values.get(&node_type) {
             return values.len();
         }
@@ -101,43 +97,41 @@ impl<T> NodeStore<T> {
     }
 
     pub fn contains_type(&self, node_type: NodeType) -> bool {
-        let values = self.values.read().unwrap();
+        let values = &self.values;
         values.contains_key(&node_type)
             && values
                 .get(&node_type)
                 .is_some_and(|values| !values.is_empty())
     }
 
-    pub fn add(&self, values: Vec<T>)
+    pub fn add(&mut self, values: Vec<T>)
     where
         T: Into<NodeValue<T>> + Clone,
     {
-        let mut store_values = self.values.write().unwrap();
+        let store = Arc::make_mut(&mut self.values);
 
         for value in values {
             let node_value = value.into();
             for node_type in node_value.allowed_node_types() {
-                store_values
-                    .entry(node_type)
-                    .or_default()
-                    .push(node_value.clone());
+                store.entry(node_type).or_default().push(node_value.clone());
             }
         }
     }
 
-    pub fn insert<K>(&self, node_type: NodeType, values: Vec<K>)
+    pub fn insert<K>(&mut self, node_type: NodeType, values: Vec<K>)
     where
+        T: Clone,
         K: Into<NodeValue<T>>,
     {
-        let mut store_values = self.values.write().unwrap();
-        store_values.insert(node_type, values.into_iter().map(|x| x.into()).collect());
+        let store = Arc::make_mut(&mut self.values);
+        store.insert(node_type, values.into_iter().map(|x| x.into()).collect());
     }
 
     pub fn map<F, K>(&self, mapper: F) -> Option<K>
     where
         F: Fn(Vec<&NodeValue<T>>) -> K,
     {
-        let values = self.values.read().unwrap();
+        let values = &self.values;
         let all_values = values.values().flatten().collect::<Vec<&NodeValue<T>>>();
 
         if all_values.is_empty() {
@@ -151,62 +145,21 @@ impl<T> NodeStore<T> {
     where
         F: Fn(&[NodeValue<T>]) -> K,
     {
-        let values = self.values.read().unwrap();
+        let values = &self.values;
         if let Some(values) = values.get(&node_type) {
             return Some(mapper(values));
         }
 
         None
     }
-
-    pub fn with_inputs<K: Into<NodeValue<T>>>(self, values: Vec<K>) -> Self {
-        self.insert(NodeType::Input, values);
-        self
-    }
-
-    pub fn with_outputs<K: Into<NodeValue<T>>>(self, values: Vec<K>) -> Self {
-        self.insert(NodeType::Output, values);
-        self
-    }
-
-    pub fn with_vertices<K: Into<NodeValue<T>>>(self, values: Vec<K>) -> Self {
-        self.insert(NodeType::Vertex, values);
-        self
-    }
-
-    pub fn with_edges<K: Into<NodeValue<T>>>(self, values: Vec<K>) -> Self {
-        self.insert(NodeType::Edge, values);
-        self
-    }
-
-    pub fn with_leaves<K: Into<NodeValue<T>>>(self, values: Vec<K>) -> Self {
-        self.insert(NodeType::Leaf, values);
-        self
-    }
-
-    pub fn with_roots<K: Into<NodeValue<T>>>(self, values: Vec<K>) -> Self {
-        self.insert(NodeType::Root, values);
-        self
-    }
-
-    /// Auto-classifies each value by its own arity via `allowed_node_types()`,
-    /// same dispatch as `add()` — for values that should land in whichever
-    /// node type(s) they're actually suited for, rather than one fixed slot.
-    pub fn with_auto(self, values: Vec<T>) -> Self
-    where
-        T: Into<NodeValue<T>> + Clone,
-    {
-        self.add(values);
-        self
-    }
 }
 
 impl<T> From<HashMap<NodeType, Vec<T>>> for NodeStore<T>
 where
-    T: Into<NodeValue<T>>,
+    T: Into<NodeValue<T>> + Clone,
 {
     fn from(values: HashMap<NodeType, Vec<T>>) -> Self {
-        let store = NodeStore::new();
+        let mut store = NodeStore::new();
         for (node_type, ops) in values {
             store.insert(node_type, ops);
         }
@@ -220,7 +173,7 @@ where
     T: Into<NodeValue<T>> + Clone,
 {
     fn from(values: Vec<(NodeType, Vec<T>)>) -> Self {
-        let store = NodeStore::new();
+        let mut store = NodeStore::new();
         for (node_type, ops) in values {
             store.insert(node_type, ops);
         }
@@ -264,7 +217,7 @@ where
     T: Into<NodeValue<T>> + Clone,
 {
     fn from(values: Vec<T>) -> Self {
-        let store = NodeStore::new();
+        let mut store = NodeStore::new();
         store.add(values);
         store
     }
@@ -272,7 +225,7 @@ where
 
 impl<T: Clone> From<Op<T>> for NodeStore<Op<T>> {
     fn from(value: Op<T>) -> Self {
-        let store = NodeStore::new();
+        let mut store = NodeStore::new();
 
         let input_values = vec![Op::var(0)];
         let output_values = vec![value.clone()];
@@ -306,17 +259,13 @@ impl<T> Clone for NodeStore<T> {
 
 impl<T: PartialEq> PartialEq for NodeStore<T> {
     fn eq(&self, other: &Self) -> bool {
-        let self_values = self.values.read().unwrap();
-        let other_values = other.values.read().unwrap();
-
-        (*self_values) == (*other_values)
+        self.values == other.values
     }
 }
 
 impl<T: Debug> Debug for NodeStore<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let values = self.values.read().unwrap();
-        for (node_type, values) in values.iter() {
+        for (node_type, values) in self.values.iter() {
             writeln!(f, "{node_type:?}:")?;
             for value in values {
                 writeln!(f, "  {value:?}")?;
@@ -336,12 +285,7 @@ where
     where
         S: Serializer,
     {
-        let values = self
-            .values
-            .read()
-            .map_err(|_| S::Error::custom("Failed to acquire read lock"))?;
-
-        let serializable = values.iter().collect::<Vec<_>>();
+        let serializable = self.values.iter().collect::<Vec<_>>();
 
         serializable.serialize(serializer)
     }
@@ -364,7 +308,7 @@ where
         }
 
         Ok(NodeStore {
-            values: Arc::new(RwLock::new(map)),
+            values: Arc::new(map),
         })
     }
 }
@@ -373,7 +317,7 @@ where
 macro_rules! node_store {
     ($($node_type:ident => $values:expr),+) => {
         {
-            let store = NodeStore::new();
+            let mut store = NodeStore::new();
             $(
                 store.insert(NodeType::$node_type, $values);
             )*
@@ -389,7 +333,7 @@ mod tests {
 
     #[allow(dead_code)]
     fn create_test_store() -> NodeStore<i32> {
-        let store = NodeStore::new();
+        let mut store = NodeStore::new();
 
         store.insert(NodeType::Input, vec![1, 2, 3]);
         store.insert(NodeType::Output, vec![4, 5]);
@@ -413,7 +357,7 @@ mod tests {
 
     #[test]
     fn test_node_store() {
-        let store = NodeStore::<Op<f32>>::from(ops::all_ops());
+        let mut store = NodeStore::<Op<f32>>::from(ops::all_ops());
 
         store.add(Op::vars(0..3));
 
@@ -427,7 +371,7 @@ mod tests {
 
     #[test]
     fn test_node_store_insert() {
-        let store = NodeStore::new();
+        let mut store = NodeStore::new();
         let values = vec![1, 2, 3];
         store.insert(NodeType::Input, values.clone());
 
@@ -472,7 +416,7 @@ mod tests {
 
     #[test]
     fn test_insert_and_contains() {
-        let store = NodeStore::new();
+        let mut store = NodeStore::new();
 
         store.insert(NodeType::Input, vec![1, 2, 3]);
         assert!(store.contains_type(NodeType::Input));
@@ -493,7 +437,7 @@ mod tests {
 
     #[test]
     fn test_map_operation() {
-        let store = NodeStore::new();
+        let mut store = NodeStore::new();
         store.insert(NodeType::Input, vec![1, 2, 3]);
         store.insert(NodeType::Output, vec![4, 5]);
 
@@ -510,7 +454,7 @@ mod tests {
 
     #[test]
     fn test_map_by_type() {
-        let store = NodeStore::new();
+        let mut store = NodeStore::new();
         store.insert(NodeType::Input, vec![1, 2, 3]);
         store.insert(NodeType::Output, vec![4, 5]);
 
@@ -575,7 +519,7 @@ mod tests {
 
     #[test]
     fn test_insert_overwrites_existing() {
-        let store = NodeStore::new();
+        let mut store = NodeStore::new();
 
         // First insert
         store.insert(NodeType::Input, vec![1, 2, 3]);
@@ -622,7 +566,7 @@ mod tests {
     #[test]
     #[cfg(feature = "serde")]
     fn test_serialize_deserialize_with_bounded_values() {
-        let store = NodeStore::new();
+        let mut store = NodeStore::new();
 
         // Create a store with only bounded values
         let bounded_values = vec![
@@ -648,7 +592,7 @@ mod tests {
     #[test]
     #[cfg(feature = "serde")]
     fn test_serialize_deserialize_with_unbound_values() {
-        let store = NodeStore::new();
+        let mut store = NodeStore::new();
 
         // Create a store with only unbound values
         let unbound_values = vec![1, 2, 3, 4, 5];
@@ -663,7 +607,7 @@ mod tests {
     #[test]
     #[cfg(feature = "serde")]
     fn test_serialize_deserialize_mixed_values() {
-        let store = NodeStore::new();
+        let mut store = NodeStore::new();
 
         // Mix of bounded and unbound values
         let mixed_values = vec![
@@ -690,7 +634,7 @@ mod tests {
     #[test]
     #[cfg(feature = "serde")]
     fn test_serialize_deserialize_all_node_types() {
-        let store = NodeStore::new();
+        let mut store = NodeStore::new();
 
         // Add values for all node types
         store.insert(NodeType::Input, vec![1, 2]);
@@ -710,7 +654,7 @@ mod tests {
     #[cfg(feature = "serde")]
     fn test_serialize_deserialize_complex_type() {
         // Test with a more complex type (String)
-        let store = NodeStore::new();
+        let mut store = NodeStore::new();
 
         let values = vec![
             NodeValue::Bounded("hello".to_string(), Arity::Exact(2)),
