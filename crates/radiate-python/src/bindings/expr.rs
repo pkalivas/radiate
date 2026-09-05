@@ -1,6 +1,6 @@
 use crate::{PyMetricSet, Wrap, dtype_from_str};
 use pyo3::prelude::*;
-use radiate::{AnyValue, EvalExpr, Expr, expr};
+use radiate::{AnyValue, Expr, expr};
 use radiate_error::radiate_py_bail;
 
 fn dtype_is_duration(dtype_str: &str) -> bool {

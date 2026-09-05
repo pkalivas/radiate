@@ -18,9 +18,7 @@ use crate::{
     runtime::RuntimeLimit,
 };
 use radiate_core::{
-    AnyValue, Chromosome, Engine, Objective, Optimize, Score,
-    error::RadiateResult,
-    {EvalExpr, Expr},
+    AnyValue, Chromosome, Engine, Expr, Objective, Optimize, Score, error::RadiateResult,
 };
 use radiate_error::radiate_bail;
 use std::{collections::VecDeque, fmt::Debug, time::Duration};
@@ -311,10 +309,10 @@ where
 
     if let AnyValue::Bool(b) = result {
         let proceed = !b;
-        if !proceed {
-            ctx.event_stream()
-                .publish(LimitTriggered(ctx.index, Limit::Expr(expr.clone())));
-        }
+        // if !proceed {
+        //     ctx.event_stream()
+        //         .publish(LimitTriggered(ctx.index, Limit::Expr(expr.clone())));
+        // }
         Ok(if proceed {
             LimitOutcome::Proceed
         } else {

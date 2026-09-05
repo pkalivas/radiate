@@ -1,36 +1,25 @@
-use crate::{Expr, nodes::SelectOp};
+use crate::ops::SelectOp;
 use radiate_error::RadiateError;
 use radiate_utils::AnyValue;
 use std::time::Duration;
 
 pub(crate) type ExprResult<'a, O = AnyValue<'a>> = Result<O, RadiateError>;
 
-struct NoInput;
-impl<'a> ExprSelect<'a> for NoInput {
-    fn select(&'a self, _sel: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
-        Ok(AnyValue::Null)
-    }
-}
-
-pub trait EvalNoInput: Sized {
-    fn compute(&mut self) -> ExprResult<'static>;
-}
-
-impl EvalNoInput for Expr {
-    fn compute(&mut self) -> ExprResult<'static> {
-        EvalExpr::evaluate(self, &NoInput).map(AnyValue::into_static)
-    }
-}
-
-pub trait EvalExpr<'a, I: ExprSelect<'a>, O = AnyValue<'a>> {
-    fn evaluate(&'a mut self, input: &'a I) -> ExprResult<'a, O>;
-}
-
-pub trait ExprSelect<'a> {
+pub trait ProjectExpr<'a> {
     fn select(&'a self, expr: &SelectOp) -> Result<AnyValue<'a>, RadiateError>;
 }
 
-impl<'a, T: ExprSelect<'a>> ExprSelect<'a> for Vec<T> {
+impl<'a, T, F> ProjectExpr<'a> for F
+where
+    T: Into<AnyValue<'a>>,
+    F: Fn(&SelectOp) -> Result<T, RadiateError>,
+{
+    fn select(&'a self, expr: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
+        self(expr).map(|v| v.into())
+    }
+}
+
+impl<'a, T: ProjectExpr<'a>> ProjectExpr<'a> for Vec<T> {
     fn select(&'a self, expr: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
         match expr {
             SelectOp::Identity => Ok(AnyValue::Vector(
@@ -55,13 +44,13 @@ impl<'a, T: ExprSelect<'a>> ExprSelect<'a> for Vec<T> {
     }
 }
 
-impl<'a> ExprSelect<'a> for AnyValue<'a> {
+impl<'a> ProjectExpr<'a> for AnyValue<'a> {
     fn select(&'a self, _: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
         Ok(self.clone())
     }
 }
 
-impl<'a> ExprSelect<'a> for String {
+impl<'a> ProjectExpr<'a> for String {
     fn select(&'a self, _: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
         Ok(AnyValue::Str(self))
     }
@@ -69,7 +58,7 @@ impl<'a> ExprSelect<'a> for String {
 
 macro_rules! impl_select {
     ($t:ty, $dtype:ident) => {
-        impl<'a> ExprSelect<'a> for $t {
+        impl<'a> ProjectExpr<'a> for $t {
             fn select(&'a self, _: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
                 Ok(AnyValue::$dtype(*self))
             }

@@ -1,4 +1,4 @@
-use radiate_core::{EvalNoInput, Expr, RadiateError, error::RadiateResult, radiate_err};
+use radiate_core::{Expr, RadiateError, error::RadiateResult, radiate_err};
 use radiate_error::radiate_bail;
 use radiate_utils::sentry_id;
 use std::sync::atomic::AtomicUsize;
@@ -95,7 +95,7 @@ impl Subscription {
         let mut guard = self.schedule.write().unwrap();
         if let Some(expr) = &mut *guard {
             return expr
-                .compute()?
+                .trigger()?
                 .extract_bool()
                 .ok_or_else(|| radiate_err!(Expr: "Failed to compute schedule as bool"));
         }

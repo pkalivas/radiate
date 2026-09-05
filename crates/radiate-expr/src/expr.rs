@@ -1,10 +1,7 @@
-use crate::nodes::{
-    BinaryExpr, ScheduleExpr, SelectExpr, TrinaryExpr, UnaryExpr, When,
-    aggregate::{ReduceExpr, RollingExpr},
-};
-use crate::{EvalExpr, ExprResult, ExprSelect, nodes::SelectOp};
-use radiate_utils::sentry_id;
+use crate::ops::{BinaryOp, RollupOp, ScheduleOp, SelectOp, TrinaryOp, UnaryOp};
+use crate::{ExprResult, ProjectExpr};
 use radiate_utils::{AnyValue, SmallStr};
+use radiate_utils::{WindowBuffer, sentry_id};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, time::Duration};
@@ -15,13 +12,31 @@ sentry_id!(ExprId);
 #[derive(Clone, Debug, PartialEq)]
 pub enum ExprNode {
     Literal(AnyValue<'static>),
-    Selector(SelectExpr),
-    Rolling(RollingExpr),
-    Reduce(ReduceExpr),
-    Schedule(ScheduleExpr),
-    Binary(BinaryExpr),
-    Unary(UnaryExpr),
-    Trinary(TrinaryExpr),
+    Selector(SelectOp),
+    Schedule(ScheduleOp),
+    Rolling {
+        child: Box<Expr>,
+        buffer: WindowBuffer<AnyValue<'static>>,
+    },
+    Reduce {
+        child: Box<Expr>,
+        rollup: RollupOp,
+    },
+    Unary {
+        child: Box<Expr>,
+        op: UnaryOp,
+    },
+    Binary {
+        lhs: Box<Expr>,
+        rhs: Box<Expr>,
+        op: BinaryOp,
+    },
+    Trinary {
+        first: Box<Expr>,
+        second: Box<Expr>,
+        third: Box<Expr>,
+        op: TrinaryOp,
+    },
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -63,24 +78,8 @@ impl Expr {
         matches!(self.node, ExprNode::Selector(_))
     }
 
-    pub fn is_aggregate(&self) -> bool {
-        matches!(self.node, ExprNode::Reduce(_))
-    }
-
     pub fn is_schedule(&self) -> bool {
         matches!(self.node, ExprNode::Schedule(_))
-    }
-
-    pub fn is_binary(&self) -> bool {
-        matches!(self.node, ExprNode::Binary(_))
-    }
-
-    pub fn is_unary(&self) -> bool {
-        matches!(self.node, ExprNode::Unary(_))
-    }
-
-    pub fn is_trinary(&self) -> bool {
-        matches!(self.node, ExprNode::Trinary(_))
     }
 
     pub fn into_schedule(self) -> Option<Expr> {
@@ -102,36 +101,6 @@ impl Expr {
 
         Some(self)
     }
-}
-
-impl Expr {
-    pub fn identity() -> Expr {
-        Expr::from(SelectExpr::new(SelectOp::Identity))
-    }
-
-    pub fn lit(value: impl Into<AnyValue<'static>>) -> Expr {
-        Expr::from(value.into())
-    }
-
-    pub fn range(sel: impl Into<std::ops::Range<usize>>) -> Expr {
-        Expr::from(SelectExpr::new(sel.into()))
-    }
-
-    pub fn select(name: impl Into<SmallStr>) -> Expr {
-        Expr::from(SelectExpr::new(SelectOp::Field(name.into())))
-    }
-
-    pub fn when(cond: impl Into<Expr>) -> When {
-        When::new(cond.into())
-    }
-
-    pub fn every(interval: usize) -> When {
-        When::new(Expr::from(ScheduleExpr::from(interval)))
-    }
-
-    pub fn throttle(duration: std::time::Duration) -> When {
-        When::new(Expr::from(ScheduleExpr::from(duration)))
-    }
 
     pub fn walk(&self, f: &mut impl FnMut(&Expr)) {
         f(self);
@@ -143,30 +112,44 @@ impl Expr {
     fn children(&self) -> Vec<&Expr> {
         match &self.node {
             ExprNode::Literal(_) | ExprNode::Selector(_) | ExprNode::Schedule(_) => vec![],
-            ExprNode::Binary(b) => vec![&b.lhs, &b.rhs],
-            ExprNode::Unary(u) => vec![&u.child],
-            ExprNode::Trinary(t) => vec![&t.first, &t.second, &t.third],
-            ExprNode::Reduce(r) => vec![&r.child],
-            ExprNode::Rolling(r) => vec![&r.child],
+            ExprNode::Rolling { child: r, .. } => vec![&r],
+            ExprNode::Reduce { child: r, .. } => vec![&r],
+            ExprNode::Unary { child: u, .. } => vec![&u],
+            ExprNode::Binary { lhs, rhs, .. } => vec![&lhs, &rhs],
+            ExprNode::Trinary {
+                first,
+                second,
+                third,
+                ..
+            } => vec![&first, &second, &third],
         }
     }
 }
 
-impl<'a, T> EvalExpr<'a, T> for Expr
-where
-    T: ExprSelect<'a>,
-{
+impl Expr {
     #[inline]
-    fn evaluate(&'a mut self, input: &'a T) -> ExprResult<'a> {
+    pub fn trigger(&mut self) -> ExprResult<'static> {
+        self.evaluate(&AnyValue::Null).map(|val| val.into_static())
+    }
+
+    #[inline]
+    pub fn evaluate<'a>(&'a mut self, input: &'a impl ProjectExpr<'a>) -> ExprResult<'a> {
         match &mut self.node {
             ExprNode::Literal(value) => Ok(value.clone()),
-            ExprNode::Selector(selector) => selector.evaluate(input),
-            ExprNode::Reduce(child) => child.evaluate(input),
-            ExprNode::Trinary(child) => child.evaluate(input),
-            ExprNode::Binary(child) => child.evaluate(input),
-            ExprNode::Unary(child) => child.evaluate(input),
-            ExprNode::Schedule(child) => child.evaluate(input),
-            ExprNode::Rolling(child) => child.evaluate(input),
+            ExprNode::Selector(selector) => input.select(selector),
+            ExprNode::Schedule(op) => super::eval::try_schedule(op),
+
+            ExprNode::Rolling { child, buffer } => super::eval::rolling_eval(child, input, buffer),
+            ExprNode::Reduce { child, rollup } => super::eval::reduce_eval(child, input, rollup),
+
+            ExprNode::Unary { child, op } => super::eval::unary_eval(child, op, input),
+            ExprNode::Binary { lhs, rhs, op } => super::eval::binary_eval(lhs, rhs, op, input),
+            ExprNode::Trinary {
+                first,
+                second,
+                third,
+                op,
+            } => super::eval::trinary_eval(first, second, third, op, input),
         }
     }
 }
@@ -177,45 +160,9 @@ impl<'a> From<AnyValue<'a>> for Expr {
     }
 }
 
-impl From<SelectExpr> for Expr {
-    fn from(selector: SelectExpr) -> Self {
+impl From<SelectOp> for Expr {
+    fn from(selector: SelectOp) -> Self {
         Expr::new(ExprNode::Selector(selector))
-    }
-}
-
-impl From<ReduceExpr> for Expr {
-    fn from(agg: ReduceExpr) -> Self {
-        Expr::new(ExprNode::Reduce(agg))
-    }
-}
-
-impl From<ScheduleExpr> for Expr {
-    fn from(schedule: ScheduleExpr) -> Self {
-        Expr::new(ExprNode::Schedule(schedule))
-    }
-}
-
-impl From<TrinaryExpr> for Expr {
-    fn from(trinary: TrinaryExpr) -> Self {
-        Expr::new(ExprNode::Trinary(trinary))
-    }
-}
-
-impl From<BinaryExpr> for Expr {
-    fn from(binary: BinaryExpr) -> Self {
-        Expr::new(ExprNode::Binary(binary))
-    }
-}
-
-impl From<UnaryExpr> for Expr {
-    fn from(unary: UnaryExpr) -> Self {
-        Expr::new(ExprNode::Unary(unary))
-    }
-}
-
-impl From<RollingExpr> for Expr {
-    fn from(rolling: RollingExpr) -> Self {
-        Expr::new(ExprNode::Rolling(rolling))
     }
 }
 

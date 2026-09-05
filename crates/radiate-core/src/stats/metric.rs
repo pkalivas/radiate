@@ -1,4 +1,4 @@
-use crate::{ExprSelect, stats::{MetricView, Tag, TagType, defaults, metric_fields}};
+use crate::{ProjectExpr, stats::{MetricView, Tag, TagType, defaults, metric_fields}};
 use radiate_error::{RadiateError, radiate_err};
 use radiate_expr::SelectOp;
 use radiate_utils::{
@@ -303,14 +303,14 @@ impl Metric {
     }
 }
 
-impl<'a> ExprSelect<'a> for &Metric {
+impl<'a> ProjectExpr<'a> for &Metric {
     #[inline]
     fn select(&'a self, sel: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
         (*self).select(sel)
     }
 }
 
-impl<'a> ExprSelect<'a> for Metric {
+impl<'a> ProjectExpr<'a> for Metric {
     #[inline]
     fn select(&self, sel: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
         let wrap = |v: f32| match self.dtype {

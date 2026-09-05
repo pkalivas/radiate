@@ -1,4 +1,4 @@
-use super::ops::{TrinaryExpr, TrinaryOp};
+use super::ops::TrinaryOp;
 use crate::{Expr, ExprNode};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -32,11 +32,11 @@ pub struct Then {
 
 impl Then {
     pub fn otherwise(self, else_expr: impl Into<Expr>) -> Expr {
-        Expr::new(ExprNode::Trinary(TrinaryExpr::new(
-            self.cond,
-            self.then_expr,
-            else_expr.into(),
-            TrinaryOp::If,
-        )))
+        Expr::new(ExprNode::Trinary {
+            first: Box::new(self.cond),
+            second: Box::new(self.then_expr),
+            third: Box::new(else_expr.into()),
+            op: TrinaryOp::If,
+        })
     }
 }

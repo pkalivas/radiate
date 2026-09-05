@@ -1,7 +1,7 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, EvalExpr, ExprSet, MetricSet, MetricUpdate, Objective, Score, SmallStr,
-    TagType, math::distribution, metric_names, phenotype::PhenotypeId, radiate_err,
+    Chromosome, Ecosystem, ExprSet, MetricSet, MetricUpdate, Objective, Score, SmallStr, TagType,
+    math::distribution, metric_names, phenotype::PhenotypeId, radiate_err,
 };
 use radiate_error::Result;
 use radiate_utils::Matrix;

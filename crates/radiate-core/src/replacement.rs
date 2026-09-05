@@ -1,7 +1,7 @@
 use super::{Chromosome, Genotype, Population, random_provider};
 use crate::{Ecosystem, MetricSet, Phenotype, error::RadiateResult, metric_names};
 use radiate_error::radiate_bail;
-use radiate_expr::{EvalExpr, Expr};
+use radiate_expr::Expr;
 use radiate_utils::{AnyValue, DataType};
 use std::{collections::HashSet, sync::Arc};
 

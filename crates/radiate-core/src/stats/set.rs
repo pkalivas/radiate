@@ -3,7 +3,7 @@ use crate::{
     stats::{Meta, Tag, TagType, fmt, metric_fields},
 };
 use radiate_error::RadiateError;
-use radiate_expr::{ExprSelect, SelectOp};
+use radiate_expr::{ProjectExpr, SelectOp};
 use radiate_utils::{AnyValue, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -197,14 +197,14 @@ impl MetricSet {
     }
 }
 
-impl<'a> ExprSelect<'a> for &MetricSet {
+impl<'a> ProjectExpr<'a> for &MetricSet {
     #[inline]
     fn select(&'a self, sel: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
         (*self).select(sel)
     }
 }
 
-impl<'a> ExprSelect<'a> for MetricSet {
+impl<'a> ProjectExpr<'a> for MetricSet {
     #[inline]
     fn select(&'a self, sel: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
         match sel {
