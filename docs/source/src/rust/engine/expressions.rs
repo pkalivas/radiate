@@ -26,14 +26,14 @@ fn compute(x: f32) -> f32 {
 fn main() {
     // --8<-- [start:building]
     // Select a metric by name (reads last_value by default)
-    let score = Expr::metric("scores.best");
+    let score = Expr::select("scores.best");
 
     // A literal constant
     let threshold = Expr::lit(0.01_f32);
     // --8<-- [end:building]
 
     // --8<-- [start:aggregations]
-    let score = Expr::metric("scores.best");
+    let score = Expr::select("scores.best");
 
     score.clone().last(); // last recorded value (default)
     score.clone().mean(); // running mean
@@ -53,8 +53,8 @@ fn main() {
     // --8<-- [end:aggregations]
 
     // --8<-- [start:comparisons]
-    let score = Expr::metric("scores.best");
-    let index = Expr::metric("index");
+    let score = Expr::select("scores.best");
+    let index = Expr::select("index");
 
     score.clone().lt(0.01_f32);
     score.clone().lte(0.01_f32);
@@ -73,8 +73,8 @@ fn main() {
     // --8<-- [end:comparisons]
 
     // --8<-- [start:arithmetic]
-    let a = Expr::metric("scores.best");
-    let b = Expr::metric("score.volatility");
+    let a = Expr::select("scores.best");
+    let b = Expr::select("score.volatility");
 
     a.clone().add(b.clone());
     a.clone().sub(b.clone());
@@ -87,23 +87,23 @@ fn main() {
     // --8<-- [end:arithmetic]
 
     // --8<-- [start:conditional]
-    let expr = Expr::when(Expr::metric("scores.best").lt(0.01_f32))
-        .then(Expr::metric("scores.best").mean())
+    let expr = Expr::when(Expr::select("scores.best").lt(0.01_f32))
+        .then(Expr::select("scores.best").mean())
         .otherwise(Expr::lit(1.0_f32));
     // --8<-- [end:conditional]
 
     // --8<-- [start:schedule]
     let expr = Expr::every(10)
-        .then(Expr::metric("scores.best").rolling(10).stddev())
-        .otherwise(Expr::metric("scores.best"));
+        .then(Expr::select("scores.best").rolling(10).stddev())
+        .otherwise(Expr::select("scores.best"));
     // --8<-- [end:schedule]
 
     // --8<-- [start:querying]
     // Interpret the time metric as Duration
-    Expr::metric("time").time().mean();
+    Expr::select("time").time().mean();
 
     // Read count.evaluation as a numeric value
-    Expr::metric("count.evaluation").count();
+    Expr::select("count.evaluation").count();
     // --8<-- [end:querying]
 
     // --8<-- [start:limit_expr]
@@ -114,7 +114,7 @@ fn main() {
         .build();
 
     // Stop when the rolling mean of the best score drops below 0.01
-    let stop_expr = Expr::metric("scores.best").rolling(50).mean().lt(0.01_f32);
+    let stop_expr = Expr::select("scores.best").rolling(50).mean().lt(0.01_f32);
 
     let result = engine
         .iter()
@@ -127,11 +127,11 @@ fn main() {
     // --8<-- [end:limit_expr]
 
     // --8<-- [start:derived_metrics]
-    let score_trend = Expr::metric("scores.best").rolling(20).slope();
-    let score_cv = Expr::metric("scores.best")
+    let score_trend = Expr::select("scores.best").rolling(20).slope();
+    let score_cv = Expr::select("scores.best")
         .rolling(20)
         .stddev()
-        .div(Expr::metric("scores.best").rolling(20).mean());
+        .div(Expr::select("scores.best").rolling(20).mean());
 
     let engine = GeneticEngine::builder()
         .codec(FloatCodec::vector(10, -5.0..5.0))
@@ -155,7 +155,7 @@ fn main() {
         .minimizing()
         .fitness_fn(my_fitness_fn)
         .metrics(
-            Expr::metric("scores.best")
+            Expr::select("scores.best")
                 .rolling(50)
                 .slope()
                 .alias("score_trend"),
@@ -165,7 +165,7 @@ fn main() {
     let result = engine
         .iter()
         .limit((
-            Limit::Expr(Expr::metric("score_trend").abs().lt(0.0001_f32)),
+            Limit::Expr(Expr::select("score_trend").abs().lt(0.0001_f32)),
             Limit::Generation(5000),
         ))
         .last()
@@ -173,7 +173,7 @@ fn main() {
     // --8<-- [end:derived_metrics_limit]
 
     // --8<-- [start:dynamic_rates]
-    let dynamic_rate = Expr::metric("score.volatility")
+    let dynamic_rate = Expr::select("score.volatility")
         .rolling(20)
         .mean()
         .clamp(0.01_f32, 0.5_f32);
@@ -202,19 +202,19 @@ fn main() {
     let target_species = 4.0;
     let rolling = target_species as usize;
 
-    let spec_count_signal = Expr::metric("species.count")
+    let spec_count_signal = Expr::select("species.count")
         .rolling(rolling)
         .mean()
         .div(target_species);
 
-    let spec_dist_signal = Expr::metric("species.distance")
+    let spec_dist_signal = Expr::select("species.distance")
         .mean()
         .rolling(rolling)
         .mean()
         .div(target_species);
 
-    let spec_thresh_signal = Expr::metric("species.threshold").rolling(rolling).mean();
-    let spec_evenness_signal = Expr::metric("species.evenness").rolling(rolling).mean();
+    let spec_thresh_signal = Expr::select("species.threshold").rolling(rolling).mean();
+    let spec_evenness_signal = Expr::select("species.evenness").rolling(rolling).mean();
 
     let distance_signal = spec_count_signal
         .mul(0.9)

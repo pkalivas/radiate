@@ -2,7 +2,7 @@ use crate::nodes::{
     BinaryExpr, ScheduleExpr, SelectExpr, TrinaryExpr, UnaryExpr, When,
     aggregate::{ReduceExpr, RollingExpr},
 };
-use crate::{EvalExpr, ExprResult, ExprSelect, metric_fields, nodes::SelectOp};
+use crate::{EvalExpr, ExprResult, ExprSelect, nodes::SelectOp};
 use radiate_utils::sentry_id;
 use radiate_utils::{AnyValue, SmallStr};
 #[cfg(feature = "serde")]
@@ -117,16 +117,8 @@ impl Expr {
         Expr::from(SelectExpr::new(sel.into()))
     }
 
-    pub fn select(sel: impl Into<SmallStr>) -> Expr {
-        Expr::from(SelectExpr::new(sel.into()))
-    }
-
-    pub fn metric(name: impl Into<SmallStr>) -> Expr {
-        let name = name.into();
-        Expr::from(SelectExpr::new(SelectOp::Nested {
-            parent: Box::new(SelectOp::Field(name)),
-            child: Box::new(SelectOp::Field(metric_fields::LAST_VALUE)),
-        }))
+    pub fn select(name: impl Into<SmallStr>) -> Expr {
+        Expr::from(SelectExpr::new(SelectOp::Field(name.into())))
     }
 
     pub fn when(cond: impl Into<Expr>) -> When {
@@ -239,11 +231,7 @@ mod tests {
 
     #[test]
     fn test_walk_literal() {
-        // let expr = Expr::metric("one")
-        //     .rolling(3)
-        //     .stddev()
-        //     .div(Expr::metric("one").rolling(3).mean());
-        let expr = Expr::metric("one")
+        let expr = Expr::select("one")
             .rolling(10)
             .mean()
             .div(10 as f32)
@@ -257,7 +245,5 @@ mod tests {
         }
 
         print(&expr, 0);
-
-        // expr.walk(&mut |node: &Expr| println!("{:?}", node));
     }
 }

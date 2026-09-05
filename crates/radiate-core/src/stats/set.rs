@@ -1,9 +1,9 @@
 use crate::{
     Metric, MetricUpdate,
-    stats::{Meta, Tag, TagType, fmt},
+    stats::{Meta, Tag, TagType, fmt, metric_fields},
 };
 use radiate_error::RadiateError;
-use radiate_expr::{ExprSelect, SelectOp, metric_fields};
+use radiate_expr::{ExprSelect, SelectOp};
 use radiate_utils::{AnyValue, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};

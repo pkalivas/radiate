@@ -16,7 +16,7 @@ fn main() {
         .codec(GraphCodec::directed(1, 1, store))
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
-        .metrics([Expr::metric("scores.best").rolling(5).mean().alias("idk")])
+        .metrics([Expr::select("scores.best").rolling(5).mean().alias("idk")])
         .offspring_selector(BoltzmannSelector::new(4.0))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),

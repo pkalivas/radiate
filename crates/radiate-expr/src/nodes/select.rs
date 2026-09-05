@@ -1,9 +1,8 @@
-use std::fmt::Debug;
-
 use crate::{EvalExpr, ExprResult, ExprSelect};
 use radiate_utils::SmallStr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 
 #[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]

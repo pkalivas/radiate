@@ -126,7 +126,7 @@ class Expr(RsObject):
         >>> import radiate as rd
         >>> rd.Expr.select("scores.best")
         """
-        return cls.from_rust(PyExpr.select(metric))
+        return Select.from_rust(PyExpr.select(metric))
 
     @classmethod
     def lit(cls, value: float | int | str) -> Expr:
@@ -402,3 +402,67 @@ class Expr(RsObject):
         >>> expr = rd.Expr.select("scores.best").mean().alias("mean_best_score")
         """
         return Expr.from_rust(self.__backend__().alias(name))
+
+
+class Select(Expr):
+    def last(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("last_value"))
+
+    def mean(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("mean"))
+
+    def stddev(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("stddev"))
+
+    def min(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("min"))
+
+    def max(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("max"))
+
+    def sum(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("sum"))
+
+    def var(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("variance"))
+
+    def skew(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("skewness"))
+
+    def kurtosis(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("kurtosis"))
+
+    def count(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("count"))
+
+    def slope(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("slope"))
+
+    def unique(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("unique"))
+
+    # pub const LAST_VALUE: SmallStr = SmallStr::from_static("last_value");
+    # pub const COUNT: SmallStr = SmallStr::from_static("count");
+    # pub const MEAN: SmallStr = SmallStr::from_static("mean");
+    # pub const VARIANCE: SmallStr = SmallStr::from_static("variance");
+    # pub const STDDEV: SmallStr = SmallStr::from_static("stddev");
+    # pub const SKEWNESS: SmallStr = SmallStr::from_static("skewness");
+    # pub const KURTOSIS: SmallStr = SmallStr::from_static("kurtosis");
+    # pub const MIN: SmallStr = SmallStr::from_static("min");
+    # pub const MAX: SmallStr = SmallStr::from_static("max");
+    # pub const SUM: SmallStr = SmallStr::from_static("sum");
+    # pub const GENERATION: SmallStr = SmallStr::from_static("generation");
+    # pub const UPDATE_COUNT: SmallStr = SmallStr::from_static("update_count");
+
+
+# score.last()  # last recorded value (default)
+# score.mean()  # running mean of all values seen
+# score.stddev()  # standard deviation
+# score.min()  # running minimum
+# score.max()  # running maximum
+# score.sum()  # running sum
+# score.var()  # variance
+# score.skew()  # skewness
+# score.count()  # number of values seen
+# score.slope()  # linear slope over accumulated values
+# score.unique()  # deduplicated collection

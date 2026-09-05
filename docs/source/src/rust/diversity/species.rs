@@ -27,7 +27,7 @@ fn main() {
     // 0.3 to 0.9 across the first 100 generations: start fine-grained (many
     // small species), then coarsen to encourage convergence.
     let (start, end, duration) = (0.3_f32, 0.9_f32, 100.0_f32);
-    let progress = Expr::metric(metric_names::INDEX)
+    let progress = Expr::select(metric_names::INDEX)
         .div(duration)
         .clamp(0.0_f32, 1.0_f32);
     let widening_threshold = Expr::lit(start).add(Expr::lit(end).sub(start).mul(progress));
@@ -73,10 +73,10 @@ fn main() {
     let target_f32 = target as f32;
     let base_val = 0.5_f32; // the initial species_threshold
 
-    let raw_error = Expr::metric(metric_names::SPECIES_COUNT).error(target_f32);
+    let raw_error = Expr::select(metric_names::SPECIES_COUNT).error(target_f32);
 
     // Proportional: smoothed count so single-generation bursts don't cause hard jumps
-    let proportional = Expr::metric(metric_names::SPECIES_COUNT)
+    let proportional = Expr::select(metric_names::SPECIES_COUNT)
         .rolling(3)
         .mean()
         .error(target_f32)
@@ -87,10 +87,10 @@ fn main() {
     let integral = raw_error.clone().rolling(20).sum() * 0.005_f32;
     let derivative = raw_error.rolling(5).slope() * 0.02_f32;
 
-    let species_threshold = Expr::when(Expr::metric(metric_names::INDEX).lt(2_i32))
+    let species_threshold = Expr::when(Expr::select(metric_names::INDEX).lt(2_i32))
         .then(base_val)
         .otherwise(
-            Expr::metric(metric_names::SPECIES_THRESHOLD) + proportional + integral + derivative,
+            Expr::select(metric_names::SPECIES_THRESHOLD) + proportional + integral + derivative,
         )
         .clamp(0.0_f32, target_f32 * 2.5_f32);
     // --8<-- [end:target_species_count]

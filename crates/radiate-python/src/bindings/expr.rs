@@ -29,7 +29,7 @@ impl PyExpr {
     #[staticmethod]
     #[pyo3(signature = (name, dtype=None))]
     pub fn select(name: &str, dtype: Option<&str>) -> Self {
-        let mut e = Expr::metric(name);
+        let mut e = Expr::select(name);
         if let Some(d) = dtype
             && dtype_is_duration(d)
         {
@@ -66,13 +66,13 @@ impl PyExpr {
     #[staticmethod]
     #[pyo3(signature = (metric, epsilon=1e-4))]
     pub fn stagnation(metric: &str, epsilon: f32) -> Self {
-        Expr::metric(metric).stagnation(epsilon).into()
+        Expr::select(metric).stagnation(epsilon).into()
     }
 
     #[staticmethod]
     #[pyo3(signature = (metric, patience, epsilon=1e-4))]
     pub fn is_stagnant(metric: &str, patience: u32, epsilon: f32) -> Self {
-        Expr::metric(metric)
+        Expr::select(metric)
             .stagnation(epsilon)
             .gte(patience)
             .into()
@@ -107,6 +107,10 @@ impl PyExpr {
 
     pub fn genome_size_rate(&self, target_size: usize) -> Self {
         expr::genome_size_throttle(self.inner.clone(), target_size).into()
+    }
+
+    pub fn attr_(&self, name: &str) -> Self {
+        self.inner.clone().attr(name).into()
     }
 
     pub fn cast(&self, to: String) -> Self {

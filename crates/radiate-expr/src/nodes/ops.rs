@@ -29,7 +29,7 @@ pub enum UnaryOp {
 }
 
 impl UnaryOp {
-    pub fn eval<'a>(&self, value: AnyValue<'a>) -> ExprResult<'a> {
+    pub fn eval<'a>(&mut self, value: AnyValue<'a>) -> ExprResult<'a> {
         match self {
             UnaryOp::Not => match value {
                 AnyValue::Bool(b) => Ok(AnyValue::Bool(!b)),
@@ -52,11 +52,35 @@ impl UnaryOp {
                 Ok(value)
             }
             UnaryOp::Affine { scale, bias } => match value.extract::<f32>() {
-                Some(x) if x.is_finite() => Ok(AnyValue::Float32(scale * x + bias)),
+                Some(x) if x.is_finite() => Ok(AnyValue::Float32(*scale * x + *bias)),
                 _ => Ok(AnyValue::Null),
             },
-            UnaryOp::Stagnation { .. } => {
-                radiate_bail!(Expr: "Stagnation op requires state and cannot be evaluated standalone")
+            UnaryOp::Stagnation {
+                epsilon,
+                last_value,
+                count,
+            } => {
+                let current = match value.extract::<f32>() {
+                    Some(v) if v.is_finite() => v,
+                    _ => return Ok(AnyValue::Null),
+                };
+
+                match last_value {
+                    None => {
+                        *last_value = Some(current);
+                        *count = 0;
+                    }
+                    Some(last) => {
+                        if (current - *last).abs() > *epsilon {
+                            *last_value = Some(current);
+                            *count = 0;
+                        } else {
+                            *count = count.saturating_add(1);
+                        }
+                    }
+                }
+
+                Ok(AnyValue::UInt32(*count))
             }
         }
     }
@@ -84,60 +108,7 @@ where
 {
     fn evaluate(&'a mut self, metrics: &'a T) -> ExprResult<'a> {
         let value = self.child.evaluate(metrics)?;
-
-        match self.op {
-            UnaryOp::Not => match value {
-                AnyValue::Bool(b) => Ok(AnyValue::Bool(!b)),
-                _ => radiate_bail!(Expr: "Logical NOT is only supported for boolean types"),
-            },
-            UnaryOp::Neg => match value.extract::<f32>() {
-                Some(v) => Ok(AnyValue::Float32(-v)),
-                None => radiate_bail!(Expr: "Negation is only supported for numeric types"),
-            },
-            UnaryOp::Abs => match value.extract::<f32>() {
-                Some(v) => Ok(AnyValue::Float32(v.abs())),
-                None => radiate_bail!(Expr: "Absolute value is only supported for numeric types"),
-            },
-            UnaryOp::Cast(ref to) => match value.clone().cast(to) {
-                Some(v) => Ok(v),
-                None => radiate_bail!(Expr: "Failed to cast value {:?} to type {:?}", value, to),
-            },
-            UnaryOp::Debug => {
-                println!("{:?}", value);
-                Ok(value)
-            }
-            UnaryOp::Affine { scale, bias } => match value.extract::<f32>() {
-                Some(x) if x.is_finite() => Ok(AnyValue::Float32(scale * x + bias)),
-                _ => Ok(AnyValue::Null),
-            },
-            UnaryOp::Stagnation {
-                epsilon,
-                ref mut last_value,
-                ref mut count,
-            } => {
-                let current = match value.extract::<f32>() {
-                    Some(v) if v.is_finite() => v,
-                    _ => return Ok(AnyValue::Null),
-                };
-
-                match last_value {
-                    None => {
-                        *last_value = Some(current);
-                        *count = 0;
-                    }
-                    Some(last) => {
-                        if (current - *last).abs() > epsilon {
-                            *last_value = Some(current);
-                            *count = 0;
-                        } else {
-                            *count = count.saturating_add(1);
-                        }
-                    }
-                }
-
-                Ok(AnyValue::UInt32(*count))
-            }
-        }
+        self.op.eval(value)
     }
 }
 
@@ -172,47 +143,31 @@ pub enum BinaryOp {
     Max,
 }
 
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Clone, PartialEq)]
-pub struct BinaryExpr {
-    pub(crate) lhs: Box<Expr>,
-    pub(crate) rhs: Box<Expr>,
-    pub(crate) op: BinaryOp,
-}
-
-impl BinaryExpr {
-    pub fn new(lhs: Expr, rhs: Expr, op: BinaryOp) -> Self {
-        Self {
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-            op,
-        }
-    }
-}
-
-impl<'a, T> EvalExpr<'a, T> for BinaryExpr
-where
-    T: ExprSelect<'a>,
-{
-    fn evaluate(&'a mut self, metrics: &'a T) -> ExprResult<'a> {
+impl BinaryOp {
+    pub fn eval<'a, T: ExprSelect<'a>>(
+        &'a self,
+        lhs: &'a mut Expr,
+        rhs: &'a mut Expr,
+        inputs: &'a T,
+    ) -> ExprResult<'a> {
         // Coalesce short-circuits: only evaluate rhs when lhs is bad.
-        if let BinaryOp::Coalesce = self.op {
-            let lhs = self.lhs.evaluate(metrics)?;
+        if let BinaryOp::Coalesce = self {
+            let lhs = lhs.evaluate(inputs)?;
             let is_bad = match lhs.extract::<f32>() {
                 Some(v) => !v.is_finite(),
                 None => matches!(lhs, AnyValue::Null),
             };
             return if is_bad {
-                self.rhs.evaluate(metrics)
+                rhs.evaluate(inputs)
             } else {
                 Ok(lhs)
             };
         }
 
-        let lhs = self.lhs.evaluate(metrics)?;
-        let rhs = self.rhs.evaluate(metrics)?;
+        let lhs = lhs.evaluate(inputs)?;
+        let rhs = rhs.evaluate(inputs)?;
 
-        let result = match self.op {
+        let result = match self {
             BinaryOp::Coalesce => unreachable!("handled above"),
             BinaryOp::Add => lhs + rhs,
             BinaryOp::Sub => lhs - rhs,
@@ -242,6 +197,33 @@ where
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, PartialEq)]
+pub struct BinaryExpr {
+    pub(crate) lhs: Box<Expr>,
+    pub(crate) rhs: Box<Expr>,
+    pub(crate) op: BinaryOp,
+}
+
+impl BinaryExpr {
+    pub fn new(lhs: Expr, rhs: Expr, op: BinaryOp) -> Self {
+        Self {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+            op,
+        }
+    }
+}
+
+impl<'a, T> EvalExpr<'a, T> for BinaryExpr
+where
+    T: ExprSelect<'a>,
+{
+    fn evaluate(&'a mut self, metrics: &'a T) -> ExprResult<'a> {
+        self.op.eval(&mut self.lhs, &mut self.rhs, metrics)
+    }
+}
+
 impl Debug for BinaryExpr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.op,)
@@ -253,6 +235,49 @@ impl Debug for BinaryExpr {
 pub enum TrinaryOp {
     If,
     Clamp,
+}
+
+impl TrinaryOp {
+    pub fn eval<'a, T: ExprSelect<'a>>(
+        &self,
+        first: &'a mut Box<Expr>,
+        second: &'a mut Box<Expr>,
+        third: &'a mut Box<Expr>,
+        metrics: &'a T,
+    ) -> ExprResult<'a> {
+        match self {
+            TrinaryOp::If => {
+                let condition = first.evaluate(metrics)?;
+
+                let cond = match condition {
+                    AnyValue::Bool(b) => b,
+                    _ => radiate_bail!(Expr: "Condition must be a boolean"),
+                };
+
+                if cond {
+                    second.evaluate(metrics)
+                } else {
+                    third.evaluate(metrics)
+                }
+            }
+            TrinaryOp::Clamp => {
+                let value = first.evaluate(metrics)?.extract::<f32>();
+                let min = second.evaluate(metrics)?.extract::<f32>();
+                let max = third.evaluate(metrics)?.extract::<f32>();
+
+                let (min_v, max_v) = match (min, max) {
+                    (Some(a), Some(b)) => (a, b),
+                    _ => radiate_bail!(Expr: "Clamp bounds must be numeric"),
+                };
+
+                let result = match value {
+                    Some(v) if v.is_finite() => v.clamp(min_v, max_v),
+                    _ => min_v,
+                };
+                Ok(AnyValue::Float32(result))
+            }
+        }
+    }
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -280,41 +305,8 @@ where
     T: ExprSelect<'a>,
 {
     fn evaluate(&'a mut self, metrics: &'a T) -> ExprResult<'a> {
-        match self.op {
-            TrinaryOp::If => {
-                let condition = self.first.evaluate(metrics)?;
-
-                let cond = match condition {
-                    AnyValue::Bool(b) => b,
-                    _ => radiate_bail!(Expr: "Condition must be a boolean"),
-                };
-
-                if cond {
-                    self.second.evaluate(metrics)
-                } else {
-                    self.third.evaluate(metrics)
-                }
-            }
-            TrinaryOp::Clamp => {
-                let value = self.first.evaluate(metrics)?.extract::<f32>();
-                let min = self.second.evaluate(metrics)?.extract::<f32>();
-                let max = self.third.evaluate(metrics)?.extract::<f32>();
-
-                let (min_v, max_v) = match (min, max) {
-                    (Some(a), Some(b)) => (a, b),
-                    _ => radiate_bail!(Expr: "Clamp bounds must be numeric"),
-                };
-
-                // Null, NaN, ±Inf all fall back to the floor — the safer default
-                // for rate-style controllers where a runaway high value is worse
-                // than a conservative low one.
-                let result = match value {
-                    Some(v) if v.is_finite() => v.clamp(min_v, max_v),
-                    _ => min_v,
-                };
-                Ok(AnyValue::Float32(result))
-            }
-        }
+        self.op
+            .eval(&mut self.first, &mut self.second, &mut self.third, metrics)
     }
 }
 
@@ -360,154 +352,6 @@ pub(crate) fn fuse_affine(child: Expr, scale: f32, bias: f32) -> Expr {
         child,
         UnaryOp::Affine { scale, bias },
     )))
-}
-
-impl BinaryOp {
-    pub fn apply(&self, lhs: &AnyValue<'static>, rhs: &AnyValue<'static>) -> ExprResult<'static> {
-        use BinaryOp::*;
-        match self {
-            Add | Sub | Mul | Div | Pow | Min | Max => {
-                let (Some(a), Some(b)) =
-                    (lhs.clone().extract::<f32>(), rhs.clone().extract::<f32>())
-                else {
-                    return Ok(AnyValue::Null);
-                };
-                Ok(AnyValue::Float32(match self {
-                    Add => a + b,
-                    Sub => a - b,
-                    Mul => a * b,
-                    Div => a / b,
-                    Pow => a.powf(b),
-                    Min => {
-                        if a.is_nan() {
-                            b
-                        } else if b.is_nan() {
-                            a
-                        } else {
-                            a.min(b)
-                        }
-                    }
-                    Max => {
-                        if a.is_nan() {
-                            b
-                        } else if b.is_nan() {
-                            a
-                        } else {
-                            a.max(b)
-                        }
-                    }
-                    _ => unreachable!(),
-                }))
-            }
-            Lt | Lte | Gt | Gte | Eq | Ne => {
-                let (Some(a), Some(b)) = (lhs.extract::<f32>(), rhs.clone().extract::<f32>())
-                else {
-                    return Ok(AnyValue::Null);
-                };
-                Ok(AnyValue::Bool(match self {
-                    Lt => a < b,
-                    Lte => a <= b,
-                    Gt => a > b,
-                    Gte => a >= b,
-                    Eq => a == b,
-                    Ne => a != b,
-                    _ => unreachable!(),
-                }))
-            }
-            And => {
-                let lhs = lhs.extract_bool();
-                let rhs = rhs.extract_bool();
-                Ok(AnyValue::Bool(lhs.unwrap_or(false) && rhs.unwrap_or(false)))
-            }
-            Or => {
-                let lhs = lhs.extract_bool();
-                let rhs = rhs.extract_bool();
-                Ok(AnyValue::Bool(lhs.unwrap_or(false) || rhs.unwrap_or(false)))
-            }
-            Mod => {
-                let Some(a) = lhs.clone().extract::<f32>() else {
-                    return Ok(AnyValue::Null);
-                };
-                let Some(b) = rhs.clone().extract::<f32>() else {
-                    return Ok(AnyValue::Null);
-                };
-                Ok(AnyValue::Float32(a % b))
-            }
-            // And => Ok(AnyValue::Bool(
-            //     lhs.clone().extract::<bool>().unwrap_or(false)
-            //         && rhs.clone().extract::<bool>().unwrap_or(false),
-            // )),
-            // Or => Ok(AnyValue::Bool(
-            //     lhs.clone().extract::<bool>().unwrap_or(false)
-            //         || rhs.clone().extract::<bool>().unwrap_or(false),
-            // )),
-            Coalesce => {
-                let ok = matches!(lhs, AnyValue::Null)
-                    || lhs.clone().extract::<f32>().is_some_and(|v| !v.is_finite());
-                Ok(if ok { rhs.clone() } else { lhs.clone() })
-            }
-        }
-    }
-}
-
-impl UnaryOp {
-    // Note: Stagnation is intentionally NOT handled here — it's stateful,
-    // so it's dispatched separately in eval() via ProgramState. See below.
-    pub fn apply(&self, child: &AnyValue<'static>) -> ExprResult<'static> {
-        use UnaryOp::*;
-        match self {
-            Not => Ok(AnyValue::Bool(!child.extract_bool().unwrap_or(false))),
-            Neg => Ok(AnyValue::Float32(
-                -child.clone().extract::<f32>().unwrap_or(0.0),
-            )),
-            Abs => Ok(AnyValue::Float32(
-                child.clone().extract::<f32>().unwrap_or(0.0).abs(),
-            )),
-            Cast(to) => match child.clone().cast(&to) {
-                Some(v) => Ok(v),
-                None => Ok(AnyValue::Null),
-            },
-            Debug => {
-                eprintln!("{child:?}");
-                Ok(child.clone())
-            }
-            Affine { scale, bias } => {
-                let Some(v) = child.clone().extract::<f32>() else {
-                    return Ok(AnyValue::Null);
-                };
-                Ok(AnyValue::Float32(v * scale + bias))
-            }
-            Stagnation { .. } => unreachable!("dispatched via ProgramState, not apply()"),
-        }
-    }
-}
-
-impl TrinaryOp {
-    pub fn apply(
-        &self,
-        a: &AnyValue<'static>,
-        b: &AnyValue<'static>,
-        c: &AnyValue<'static>,
-    ) -> ExprResult<'static> {
-        match self {
-            TrinaryOp::Clamp => {
-                let (Some(v), Some(lo), Some(hi)) = (
-                    a.clone().extract::<f32>(),
-                    b.clone().extract::<f32>(),
-                    c.clone().extract::<f32>(),
-                ) else {
-                    return Ok(AnyValue::Null);
-                };
-                Ok(AnyValue::Float32(v.clamp(lo, hi)))
-            }
-            TrinaryOp::If => {
-                let Some(cond) = a.extract_bool() else {
-                    return Ok(AnyValue::Null);
-                };
-                Ok(if cond { b.clone() } else { c.clone() })
-            }
-        }
-    }
 }
 
 #[cfg(test)]

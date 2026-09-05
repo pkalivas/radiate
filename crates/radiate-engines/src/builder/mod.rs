@@ -501,6 +501,7 @@ where
     fn build_audit_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
         Some(Box::new(MetricStep::new(
             config.objective().clone(),
+            config.population_size(),
             config.exprs().clone(),
         )))
     }

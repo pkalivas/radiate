@@ -33,6 +33,7 @@ def test_handler_integration_with_multiple_handlers(simple_float_engine, random_
     def test_handler1(event: rd.EngineEvent):
         assert event.event_type == rd.EventType.ENGINE_IMPROVEMENT
         assert event.index >= 0
+        print(f"Improvement event at index {event}")
         nonlocal change1
         change1 = True
 

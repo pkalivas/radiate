@@ -100,6 +100,6 @@ impl Subscription {
                 .ok_or_else(|| radiate_err!(Expr: "Failed to compute schedule as bool"));
         }
 
-        return Ok(false);
+        return Ok(true);
     }
 }

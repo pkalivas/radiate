@@ -78,7 +78,7 @@ pub struct UniqueScoreFilter {
 impl UniqueScoreFilter {
     pub fn new(max_stagnation: usize, threshold: f32) -> Self {
         Self {
-            filter_cond: Expr::metric(metric_names::BEST_SCORES)
+            filter_cond: Expr::select(metric_names::BEST_SCORES)
                 .stagnation(threshold)
                 .cast(DataType::Usize)
                 .gt(max_stagnation),

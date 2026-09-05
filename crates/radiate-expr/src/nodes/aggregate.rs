@@ -129,7 +129,9 @@ impl<'a, I: ExprSelect<'a>> EvalExpr<'a, I> for ReduceExpr {
                 };
                 self.rollup.reduce(&values, elem_dtype)
             }
-            _ => radiate_bail!(Expr: "Unsupported child output for ReduceExpr"),
+            _ => {
+                radiate_bail!(Expr: "ReduceExpr expected a Slice or Vector, got: {:?}", child_output)
+            }
         }
     }
 }

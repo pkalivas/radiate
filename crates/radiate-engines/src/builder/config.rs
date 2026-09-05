@@ -126,6 +126,10 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
     pub fn exprs(&self) -> Option<Arc<Mutex<ExprSet>>> {
         self.exprs.clone()
     }
+
+    pub fn population_size(&self) -> usize {
+        self.ecosystem.population().len()
+    }
 }
 
 impl<C, T> From<&EngineParams<C, T>> for EngineConfig<C, T>

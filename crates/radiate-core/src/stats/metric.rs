@@ -1,4 +1,4 @@
-use crate::{ExprSelect, metric_fields, stats::{MetricView, Tag, TagType, defaults}};
+use crate::{ExprSelect, stats::{MetricView, Tag, TagType, defaults, metric_fields}};
 use radiate_error::{RadiateError, radiate_err};
 use radiate_expr::SelectOp;
 use radiate_utils::{
@@ -351,20 +351,21 @@ impl<'a> ExprSelect<'a> for Metric {
 
 impl From<&Metric> for AnyValue<'_> {
     fn from(metric: &Metric) -> Self {
+        use AnyValue::*;
         let mut fields = Vec::new();
 
-        fields.push(("last_value".into(), DataType::Float32, AnyValue::Float32(metric.last_value())));
-        fields.push(("mean".into(), DataType::Float32, AnyValue::Float32(metric.mean())));
-        fields.push(("stddev".into(), DataType::Float32, AnyValue::Float32(metric.stddev())));
-        fields.push(("min".into(), DataType::Float32, AnyValue::Float32(metric.min())));
-        fields.push(("max".into(), DataType::Float32, AnyValue::Float32(metric.max())));
-        fields.push(("sum".into(), DataType::Float32, AnyValue::Float32(metric.sum())));
-        fields.push(("variance".into(), DataType::Float32, AnyValue::Float32(metric.var())));
-        fields.push(("skewness".into(), DataType::Float32, AnyValue::Float32(metric.skew())));
-        fields.push(("kurtosis".into(), DataType::Float32, AnyValue::Float32(metric.kurt())));
-        fields.push(("count".into(), DataType::UInt64, AnyValue::UInt64(metric.count() as u64)));
-        fields.push(("generation".into(), DataType::UInt64, AnyValue::UInt64(metric.generation() as u64)));
-        fields.push(("update_count".into(), DataType::UInt64, AnyValue::UInt64(metric.update_count() as u64)));
+        fields.push((metric_fields::LAST_VALUE, DataType::Float32, Float32(metric.last_value())));
+        fields.push((metric_fields::MEAN, DataType::Float32, Float32(metric.mean())));
+        fields.push((metric_fields::STDDEV, DataType::Float32, Float32(metric.stddev())));
+        fields.push((metric_fields::MIN, DataType::Float32, Float32(metric.min())));
+        fields.push((metric_fields::MAX, DataType::Float32, Float32(metric.max())));
+        fields.push((metric_fields::SUM, DataType::Float32, Float32(metric.sum())));
+        fields.push((metric_fields::VARIANCE, DataType::Float32, Float32(metric.var())));
+        fields.push((metric_fields::SKEWNESS, DataType::Float32, Float32(metric.skew())));
+        fields.push((metric_fields::KURTOSIS, DataType::Float32, Float32(metric.kurt())));
+        fields.push((metric_fields::COUNT, DataType::UInt64, UInt64(metric.count() as u64)));
+        fields.push((metric_fields::GENERATION, DataType::UInt64, UInt64(metric.generation() as u64)));
+        fields.push((metric_fields::UPDATE_COUNT, DataType::UInt64, UInt64(metric.update_count() as u64)));
 
         AnyValue::Struct(metric.name().clone(), fields)
     }

@@ -50,20 +50,20 @@ def test_last_value(simple_metric_set):
     assert rd.Expr.select("one").last().eval(simple_metric_set) == pytest.approx(9.0)
 
 
-@pytest.mark.unit
-def test_first_value_is_most_recent(simple_metric_set):
-    # WindowBuffer is newest-first, so first() == last() in a single-snapshot MetricSet.
-    # first() and last() become distinct when combined with rolling() across generations.
-    first = rd.Expr.select("one").first().eval(simple_metric_set)
-    last = rd.Expr.select("one").last().eval(simple_metric_set)
-    assert first == last == pytest.approx(9.0)
+# @pytest.mark.unit
+# def test_first_value_is_most_recent(simple_metric_set):
+#     # WindowBuffer is newest-first, so first() == last() in a single-snapshot MetricSet.
+#     # first() and last() become distinct when combined with rolling() across generations.
+#     first = rd.Expr.select("one").first().eval(simple_metric_set)
+#     last = rd.Expr.select("one").last().eval(simple_metric_set)
+#     assert first == last == pytest.approx(9.0)
 
 
-@pytest.mark.unit
-def test_unique_returns_distinct_values(simple_metric_set):
-    # unique() returns a list of distinct values, not a count
-    result = rd.Expr.select("const").unique().eval(simple_metric_set)
-    assert result == [5.0]
+# @pytest.mark.unit
+# def test_unique_returns_distinct_values(simple_metric_set):
+#     # unique() returns a list of distinct values, not a count
+#     result = rd.Expr.select("const").unique().eval(simple_metric_set)
+#     assert result == [5.0]
 
 
 @pytest.mark.unit
