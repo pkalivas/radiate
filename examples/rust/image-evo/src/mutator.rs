@@ -20,7 +20,7 @@ impl Mutate<ImageChromosome> for ImageMutator {
         &mut self,
         chromosome: &mut ImageChromosome,
         _: &mut AlterContext,
-    ) -> AlterCount {
+    ) -> usize {
         let mut count = 0;
         for gene in chromosome.iter_mut() {
             for i in 0..gene.allele().len() {
@@ -32,6 +32,6 @@ impl Mutate<ImageChromosome> for ImageMutator {
             }
         }
 
-        count.into()
+        count
     }
 }

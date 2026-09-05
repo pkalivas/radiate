@@ -29,16 +29,6 @@ pub trait Chromosome: Valid {
         self.as_mut_slice().get_mut(index)
     }
 
-    fn get_unchecked(&self, index: usize) -> &Self::Gene {
-        // SAFETY: just a bounds check
-        unsafe { self.as_slice().get_unchecked(index) }
-    }
-
-    fn get_unchecked_mut(&mut self, index: usize) -> &mut Self::Gene {
-        // SAFETY: just a bounds check
-        unsafe { self.as_mut_slice().get_unchecked_mut(index) }
-    }
-
     fn set(&mut self, index: usize, gene: Self::Gene) {
         self.as_mut_slice()[index] = gene;
     }
