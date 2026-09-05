@@ -3,7 +3,7 @@ use crate::{
     stats::{Meta, Tag, TagType, fmt},
 };
 use radiate_error::RadiateError;
-use radiate_expr::{ExprSelect, SelectOp};
+use radiate_expr::{ExprSelect, SelectOp, metric_fields};
 use radiate_utils::{AnyValue, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -210,8 +210,7 @@ impl<'a> ExprSelect<'a> for MetricSet {
         match sel {
             SelectOp::Field(name) => {
                 if let Some(metric) = self.get(name) {
-                    // return (*metric).select(&SelectOp::Field(SmallStr::from("last_value")));
-                    return (*metric).select(&SelectOp::Identity);
+                    return (*metric).select(&SelectOp::Field(metric_fields::LAST_VALUE));
                 }
 
                 Ok(AnyValue::Null)

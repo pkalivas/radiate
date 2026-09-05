@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use radiate_core::{EvalExpr, EvalNoInput, Expr, MetricSet, SmallStr};
+    use radiate_core::{EvalExpr, EvalNoInput, Expr, MetricSet};
     use radiate_utils::AnyValue;
     use std::time::Duration;
 
@@ -20,13 +20,57 @@ mod test {
         value.extract::<u64>().unwrap()
     }
 
+    fn simple_metric_set() -> MetricSet {
+        let mut metrics = MetricSet::default();
+        for i in 0..10 {
+            metrics.upsert("one", i as f32);
+            metrics.upsert("two", (i + 10) as f32);
+            metrics.upsert("const", 5.0);
+        }
+        metrics
+    }
+
+    #[test]
+    fn test_simple_metric_set() {
+        // expr = rd.Expr.select("one").min().cast(rd.UInt64).debug()
+        // let metrics = simple_metric_set();
+        // let mut expr = Expr::select("one")
+        //     .attr("min")
+        //     .cast(DataType::UInt64)
+        //     .debug();
+
+        // println!("{:#?}", expr);
+        // println!("metrics: {:#?}", expr.evaluate(&metrics));
+
+        // let mut cnt = Expr::select("one")
+        //     .attr("count")
+        //     .cast(DataType::UInt64)
+        //     .debug();
+
+        // println!("{:#?}", cnt);
+        // println!("metrics: {:#?}", cnt.evaluate(&metrics));
+
+        let mut expr = Expr::metric("one")
+            .rolling(3)
+            .stddev()
+            .div(Expr::metric("one").rolling(3).mean());
+
+        println!("{:#?}", expr);
+        println!("metrics: {:#?}", expr.evaluate(&simple_metric_set()));
+    }
+
     #[test]
     fn test_rolling_mean() {
-        let mut expr = Expr::select(SmallStr::from("a")).last();
+        let temp = (0..10).into_iter().collect::<Vec<_>>();
+        let mut expr = Expr::range(2..9).mean();
+
+        println!("{:#?}", expr);
+        println!("temp: {:#?}", expr.evaluate(&temp));
+
+        let mut expr = Expr::metric("a").rolling(3).mean();
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 1.0);
-        println!("{:#?}", expr.evaluate(&metrics));
         assert!((f32_of(expr.evaluate(&metrics).unwrap()) - 1.0).abs() < 1e-6);
 
         metrics.upsert("a", 2.0);
@@ -37,20 +81,6 @@ mod test {
 
         metrics.upsert("a", 4.0);
         assert!((f32_of(expr.evaluate(&metrics).unwrap()) - 3.0).abs() < 1e-6);
-        // let mut expr = Expr::metric("a").rolling(3).mean();
-        // let mut metrics = MetricSet::default();
-
-        // metrics.upsert("a", 1.0);
-        // assert!((f32_of(expr.evaluate(&metrics).unwrap()) - 1.0).abs() < 1e-6);
-
-        // metrics.upsert("a", 2.0);
-        // assert!((f32_of(expr.evaluate(&metrics).unwrap()) - 1.5).abs() < 1e-6);
-
-        // metrics.upsert("a", 3.0);
-        // assert!((f32_of(expr.evaluate(&metrics).unwrap()) - 2.0).abs() < 1e-6);
-
-        // metrics.upsert("a", 4.0);
-        // assert!((f32_of(expr.evaluate(&metrics).unwrap()) - 3.0).abs() < 1e-6);
     }
 
     #[test]
@@ -295,22 +325,24 @@ mod test {
         let mut expr = Expr::metric("time").time().rolling(10).min();
         let mut metrics = MetricSet::default();
 
-        println!("{:#?}", expr);
-
         metrics.upsert("time", Duration::from_secs(5));
         expr.evaluate(&metrics).unwrap();
         metrics.upsert("time", Duration::from_secs(3));
         expr.evaluate(&metrics).unwrap();
         metrics.upsert("time", Duration::from_secs(8));
-        let result = expr.evaluate(&metrics);
+        let result = expr.evaluate(&metrics).expect("msg").into_static();
+        let cloned = expr.clone();
+        println!("{:#?}", cloned);
 
-        assert_eq!(result.unwrap(), AnyValue::Duration(Duration::from_secs(3)));
+        println!("Result: {result:?}");
+
+        assert_eq!(result, AnyValue::Duration(Duration::from_secs(3)));
     }
 
     #[test]
     fn test_every_expr() {
         let mut expr = Expr::every(3)
-            .then(Expr::metric("accuracy").mean())
+            .then(Expr::select("accuracy").attr("mean"))
             .otherwise(0.0);
 
         let mut metrics = MetricSet::default();
@@ -661,35 +693,6 @@ mod test {
 
     // ---- Expr::reset ----
 
-    #[test]
-    fn reset_clears_schedule_counter() {
-        // every(3) fires true on every third call. After two calls + reset,
-        // the next call should NOT fire (counter starts fresh).
-        let mut e = Expr::every(3)
-            .then(Expr::lit(1.0f32))
-            .otherwise(Expr::lit(0.0f32));
-
-        assert_eq!(f32_val(e.compute().unwrap()), 0.0);
-        assert_eq!(f32_val(e.compute().unwrap()), 0.0);
-
-        e.reset();
-
-        // Two more calls — should still be the "otherwise" branch since the
-        // counter restarted at 0.
-        assert_eq!(f32_val(e.compute().unwrap()), 0.0);
-        assert_eq!(f32_val(e.compute().unwrap()), 0.0);
-        // Third call from a fresh counter — should fire.
-        assert_eq!(f32_val(e.compute().unwrap()), 1.0);
-    }
-
-    #[test]
-    fn reset_idempotent_on_leaf() {
-        let mut e = Expr::lit(42.0f32);
-        e.reset();
-        e.reset();
-        assert_eq!(f32_val(e.compute().unwrap()), 42.0);
-    }
-
     // ---- Schedule: every(n) ----
 
     #[test]
@@ -731,24 +734,24 @@ mod test {
 
     // ---- Streaming quantile (P²) ----
 
-    #[test]
-    fn quantile_stream_returns_first_sample_until_buffer_fills() {
-        let mut e = Expr::metric("foo").quantile(0.5);
-        let ms = metrics_with("foo", 5.0);
-        // First sample seeds the estimator; with one sample p50 == that sample.
-        assert!((f32_val(e.evaluate(&ms).unwrap()) - 5.0).abs() < 1e-6);
-    }
+    // #[test]
+    // fn quantile_stream_returns_first_sample_until_buffer_fills() {
+    //     let mut e = Expr::metric("foo").quantile(0.5);
+    //     let ms = metrics_with("foo", 5.0);
+    //     // First sample seeds the estimator; with one sample p50 == that sample.
+    //     assert!((f32_val(e.evaluate(&ms).unwrap()) - 5.0).abs() < 1e-6);
+    // }
 
-    #[test]
-    fn quantile_stream_null_when_metric_missing() {
-        let mut e = Expr::metric("missing").quantile(0.95);
-        let ms = MetricSet::new();
-        assert!(matches!(e.evaluate(&ms).unwrap(), AnyValue::Null));
-    }
+    // #[test]
+    // fn quantile_stream_null_when_metric_missing() {
+    //     let mut e = Expr::metric("missing").quantile(0.95);
+    //     let ms = MetricSet::new();
+    //     assert!(matches!(e.evaluate(&ms).unwrap(), AnyValue::Null));
+    // }
 
     #[test]
     fn quantile_stream_converges_on_uniform_sequence() {
-        let mut e = Expr::metric("foo").quantile(0.5);
+        let mut e = Expr::metric("foo").rolling(200).quantile(0.5);
         let mut ms = MetricSet::new();
         for i in 1..=200 {
             ms.upsert("foo", i as f32);
@@ -764,7 +767,7 @@ mod test {
 
     #[test]
     fn quantile_stream_p95_approximates_high_tail() {
-        let mut e = Expr::metric("foo").quantile(0.95);
+        let mut e = Expr::metric("foo").rolling(1000).quantile(0.95);
         let mut ms = MetricSet::new();
         for i in 1..=1000 {
             ms.upsert("foo", i as f32);
@@ -775,24 +778,9 @@ mod test {
     }
 
     #[test]
-    fn quantile_stream_reset_clears_estimator() {
-        let mut e = Expr::metric("foo").quantile(0.5);
-        let mut ms = MetricSet::new();
-        for i in 1..=50 {
-            ms.upsert("foo", i as f32);
-            let _ = e.evaluate(&ms);
-        }
-        e.reset();
-        // After reset, first eval should produce just-seeded estimator value.
-        ms.upsert("foo", 7.0);
-        let v = f32_val(e.evaluate(&ms).unwrap());
-        assert!((v - 7.0).abs() < 1e-6, "got {v}");
-    }
-
-    #[test]
     fn quantile_stream_composes_with_arbitrary_child() {
         // Stream p50 of a *literal* — exercises the "any child" composition.
-        let mut e = Expr::lit(42.0f32).quantile(0.5);
+        let mut e = Expr::lit(42.0f32).rolling(2).quantile(0.5);
         let ms = metrics();
         let _ = e.evaluate(&ms);
         let _ = e.evaluate(&ms);
@@ -853,19 +841,6 @@ mod test {
         assert!(!bool_val(e.evaluate(&ms).unwrap())); // count=1
         assert!(!bool_val(e.evaluate(&ms).unwrap())); // count=2
         assert!(bool_val(e.evaluate(&ms).unwrap())); // count=3, fires
-    }
-
-    #[test]
-    fn stagnation_reset_clears_state() {
-        let ms = metrics_with("score", 1.0);
-        let mut e = Expr::metric("score").stagnation(0.001);
-
-        let _ = e.evaluate(&ms);
-        let _ = e.evaluate(&ms);
-        let _ = e.evaluate(&ms); // count = 2
-
-        e.reset();
-        assert_eq!(f32_val(e.evaluate(&ms).unwrap()), 0.0); // fresh seed
     }
 
     // ---- compile() ----

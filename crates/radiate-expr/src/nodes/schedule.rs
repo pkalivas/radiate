@@ -1,10 +1,12 @@
+use std::fmt::Debug;
+
 use crate::{EvalExpr, ExprResult, ExprSelect};
 use radiate_utils::AnyValue;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum ScheduleOp {
     Interval {
         count: usize,
@@ -45,13 +47,6 @@ impl ScheduleOp {
             }
         }
     }
-
-    pub(crate) fn reset(&mut self) {
-        match self {
-            ScheduleOp::Interval { count, limit: _ } => *count = 0,
-            ScheduleOp::Duration { last, interval: _ } => *last = None,
-        }
-    }
 }
 
 impl From<usize> for ScheduleOp {
@@ -72,20 +67,27 @@ impl From<std::time::Duration> for ScheduleOp {
     }
 }
 
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Clone, Debug, PartialEq)]
-pub struct ScheduleExpr {
-    pub(crate) op: ScheduleOp,
+impl Debug for ScheduleOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ScheduleOp::Interval { count, limit } => {
+                write!(f, "Interval {{ count: {}, limit: {} }}", count, limit)
+            }
+            ScheduleOp::Duration { last, interval } => {
+                write!(
+                    f,
+                    "Duration {{ last: {:?}, interval: {:?} }}",
+                    last, interval
+                )
+            }
+        }
+    }
 }
 
-impl ScheduleExpr {
-    pub fn into_inner(self) -> ScheduleOp {
-        self.op
-    }
-
-    pub(crate) fn reset(&mut self) {
-        self.op.reset();
-    }
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, PartialEq)]
+pub struct ScheduleExpr {
+    pub(crate) op: ScheduleOp,
 }
 
 impl<'a, T> EvalExpr<'a, T> for ScheduleExpr
@@ -100,5 +102,11 @@ where
 impl<T: Into<ScheduleOp>> From<T> for ScheduleExpr {
     fn from(value: T) -> Self {
         ScheduleExpr { op: value.into() }
+    }
+}
+
+impl Debug for ScheduleExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ScheduleExpr {{ {:?} }}", self.op)
     }
 }

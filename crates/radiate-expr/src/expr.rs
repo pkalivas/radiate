@@ -1,10 +1,13 @@
-use crate::nodes::{AggExpr, BinaryExpr, ScheduleExpr, SelectExpr, TrinaryExpr, UnaryExpr, When};
+use crate::nodes::{
+    BinaryExpr, ScheduleExpr, SelectExpr, TrinaryExpr, UnaryExpr, When,
+    aggregate::{ReduceExpr, RollingExpr},
+};
 use crate::{EvalExpr, ExprResult, ExprSelect, metric_fields, nodes::SelectOp};
 use radiate_utils::sentry_id;
 use radiate_utils::{AnyValue, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
+use std::{fmt::Debug, time::Duration};
 
 sentry_id!(ExprId);
 
@@ -13,7 +16,8 @@ sentry_id!(ExprId);
 pub enum ExprNode {
     Literal(AnyValue<'static>),
     Selector(SelectExpr),
-    Aggregate(AggExpr),
+    Rolling(RollingExpr),
+    Reduce(ReduceExpr),
     Schedule(ScheduleExpr),
     Binary(BinaryExpr),
     Unary(UnaryExpr),
@@ -21,7 +25,7 @@ pub enum ExprNode {
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Expr {
     pub(crate) name: SmallStr,
     pub(crate) id: ExprId,
@@ -32,7 +36,7 @@ impl Expr {
     pub fn new(node: ExprNode) -> Self {
         let id = ExprId::new();
         Self {
-            name: SmallStr::from_string(format!("Expr<{:?}>", id)),
+            name: SmallStr::from_string(format!("Expr<{:?}>", id.get())),
             id,
             node,
         }
@@ -60,7 +64,7 @@ impl Expr {
     }
 
     pub fn is_aggregate(&self) -> bool {
-        matches!(self.node, ExprNode::Aggregate(_))
+        matches!(self.node, ExprNode::Reduce(_))
     }
 
     pub fn is_schedule(&self) -> bool {
@@ -84,7 +88,7 @@ impl Expr {
             return Some(self);
         }
 
-        if let ExprNode::Literal(value) = self.node {
+        if let ExprNode::Literal(value) = &self.node {
             if value.is_numeric() {
                 return value
                     .extract::<usize>()
@@ -96,25 +100,7 @@ impl Expr {
             }
         }
 
-        None
-    }
-
-    pub fn reset(&mut self) {
-        match &mut self.node {
-            ExprNode::Literal(_) | ExprNode::Selector(_) => {}
-            ExprNode::Aggregate(a) => a.reset(),
-            ExprNode::Schedule(s) => s.reset(),
-            ExprNode::Binary(b) => {
-                b.lhs.reset();
-                b.rhs.reset();
-            }
-            ExprNode::Unary(u) => u.reset(),
-            ExprNode::Trinary(t) => {
-                t.first.reset();
-                t.second.reset();
-                t.third.reset();
-            }
-        }
+        Some(self)
     }
 }
 
@@ -131,7 +117,7 @@ impl Expr {
         Expr::from(SelectExpr::new(sel.into()))
     }
 
-    pub fn select(sel: impl Into<SelectOp>) -> Expr {
+    pub fn select(sel: impl Into<SmallStr>) -> Expr {
         Expr::from(SelectExpr::new(sel.into()))
     }
 
@@ -154,6 +140,24 @@ impl Expr {
     pub fn throttle(duration: std::time::Duration) -> When {
         When::new(Expr::from(ScheduleExpr::from(duration)))
     }
+
+    pub fn walk(&self, f: &mut impl FnMut(&Expr)) {
+        f(self);
+        for child in self.children() {
+            child.walk(f);
+        }
+    }
+
+    fn children(&self) -> Vec<&Expr> {
+        match &self.node {
+            ExprNode::Literal(_) | ExprNode::Selector(_) | ExprNode::Schedule(_) => vec![],
+            ExprNode::Binary(b) => vec![&b.lhs, &b.rhs],
+            ExprNode::Unary(u) => vec![&u.child],
+            ExprNode::Trinary(t) => vec![&t.first, &t.second, &t.third],
+            ExprNode::Reduce(r) => vec![&r.child],
+            ExprNode::Rolling(r) => vec![&r.child],
+        }
+    }
 }
 
 impl<'a, T> EvalExpr<'a, T> for Expr
@@ -165,11 +169,12 @@ where
         match &mut self.node {
             ExprNode::Literal(value) => Ok(value.clone()),
             ExprNode::Selector(selector) => selector.evaluate(input),
-            ExprNode::Aggregate(child) => child.evaluate(input),
+            ExprNode::Reduce(child) => child.evaluate(input),
             ExprNode::Trinary(child) => child.evaluate(input),
             ExprNode::Binary(child) => child.evaluate(input),
             ExprNode::Unary(child) => child.evaluate(input),
             ExprNode::Schedule(child) => child.evaluate(input),
+            ExprNode::Rolling(child) => child.evaluate(input),
         }
     }
 }
@@ -186,9 +191,9 @@ impl From<SelectExpr> for Expr {
     }
 }
 
-impl From<AggExpr> for Expr {
-    fn from(agg: AggExpr) -> Self {
-        Expr::new(ExprNode::Aggregate(agg))
+impl From<ReduceExpr> for Expr {
+    fn from(agg: ReduceExpr) -> Self {
+        Expr::new(ExprNode::Reduce(agg))
     }
 }
 
@@ -213,5 +218,46 @@ impl From<BinaryExpr> for Expr {
 impl From<UnaryExpr> for Expr {
     fn from(unary: UnaryExpr) -> Self {
         Expr::new(ExprNode::Unary(unary))
+    }
+}
+
+impl From<RollingExpr> for Expr {
+    fn from(rolling: RollingExpr) -> Self {
+        Expr::new(ExprNode::Rolling(rolling))
+    }
+}
+
+impl Debug for Expr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.node)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_walk_literal() {
+        // let expr = Expr::metric("one")
+        //     .rolling(3)
+        //     .stddev()
+        //     .div(Expr::metric("one").rolling(3).mean());
+        let expr = Expr::metric("one")
+            .rolling(10)
+            .mean()
+            .div(10 as f32)
+            .clamp(1.0_f32, 5.0_f32);
+
+        fn print(expr: &Expr, depth: usize) {
+            println!("{}{} {:?}", "  ".repeat(depth), expr.name(), expr);
+            for child in expr.children() {
+                print(child, depth + 1);
+            }
+        }
+
+        print(&expr, 0);
+
+        // expr.walk(&mut |node: &Expr| println!("{:?}", node));
     }
 }

@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::{EvalExpr, Expr, ExprResult};
 use crate::{ExprNode, ExprSelect};
 use radiate_error::radiate_bail;
@@ -26,8 +28,42 @@ pub enum UnaryOp {
     },
 }
 
+impl UnaryOp {
+    pub fn eval<'a>(&self, value: AnyValue<'a>) -> ExprResult<'a> {
+        match self {
+            UnaryOp::Not => match value {
+                AnyValue::Bool(b) => Ok(AnyValue::Bool(!b)),
+                _ => radiate_bail!(Expr: "Logical NOT is only supported for boolean types"),
+            },
+            UnaryOp::Neg => match value.extract::<f32>() {
+                Some(v) => Ok(AnyValue::Float32(-v)),
+                None => radiate_bail!(Expr: "Negation is only supported for numeric types"),
+            },
+            UnaryOp::Abs => match value.extract::<f32>() {
+                Some(v) => Ok(AnyValue::Float32(v.abs())),
+                None => radiate_bail!(Expr: "Absolute value is only supported for numeric types"),
+            },
+            UnaryOp::Cast(to) => match value.clone().cast(to) {
+                Some(v) => Ok(v),
+                None => radiate_bail!(Expr: "Failed to cast value {:?} to type {:?}", value, to),
+            },
+            UnaryOp::Debug => {
+                println!("{:?}", value);
+                Ok(value)
+            }
+            UnaryOp::Affine { scale, bias } => match value.extract::<f32>() {
+                Some(x) if x.is_finite() => Ok(AnyValue::Float32(scale * x + bias)),
+                _ => Ok(AnyValue::Null),
+            },
+            UnaryOp::Stagnation { .. } => {
+                radiate_bail!(Expr: "Stagnation op requires state and cannot be evaluated standalone")
+            }
+        }
+    }
+}
+
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct UnaryExpr {
     pub(crate) child: Box<Expr>,
     pub(crate) op: UnaryOp,
@@ -38,17 +74,6 @@ impl UnaryExpr {
         Self {
             child: Box::new(child),
             op,
-        }
-    }
-
-    pub fn reset(&mut self) {
-        self.child.reset();
-        if let UnaryOp::Stagnation {
-            last_value, count, ..
-        } = &mut self.op
-        {
-            *last_value = None;
-            *count = 0;
         }
     }
 }
@@ -116,6 +141,12 @@ where
     }
 }
 
+impl Debug for UnaryExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.op,)
+    }
+}
+
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum BinaryOp {
@@ -142,7 +173,7 @@ pub enum BinaryOp {
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct BinaryExpr {
     pub(crate) lhs: Box<Expr>,
     pub(crate) rhs: Box<Expr>,
@@ -211,6 +242,12 @@ where
     }
 }
 
+impl Debug for BinaryExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.op,)
+    }
+}
+
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TrinaryOp {
@@ -219,7 +256,7 @@ pub enum TrinaryOp {
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct TrinaryExpr {
     pub(crate) first: Box<Expr>,
     pub(crate) second: Box<Expr>,
@@ -278,6 +315,12 @@ where
                 Ok(AnyValue::Float32(result))
             }
         }
+    }
+}
+
+impl Debug for TrinaryExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.op)
     }
 }
 

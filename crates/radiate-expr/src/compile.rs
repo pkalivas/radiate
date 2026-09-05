@@ -53,13 +53,21 @@ fn compile_kind(kind: ExprNode) -> ExprNode {
             reduce_binary(lhs, rhs, b.op).node
         }
 
-        ExprNode::Aggregate(mut a) => {
+        ExprNode::Reduce(mut a) => {
             let child = std::mem::replace(
                 a.child.as_mut(),
                 Expr::new(ExprNode::Literal(AnyValue::Null)),
             );
             *a.child = child.compile();
-            ExprNode::Aggregate(a)
+            ExprNode::Reduce(a)
+        }
+        ExprNode::Rolling(mut r) => {
+            let child = std::mem::replace(
+                r.child.as_mut(),
+                Expr::new(ExprNode::Literal(AnyValue::Null)),
+            );
+            *r.child = child.compile();
+            ExprNode::Rolling(r)
         }
     }
 }

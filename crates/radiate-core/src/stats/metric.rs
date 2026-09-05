@@ -342,20 +342,7 @@ impl<'a> ExprSelect<'a> for Metric {
                 Ok(match_field(self, field))
             }
             SelectOp::Identity => {
-                Ok(AnyValue::Struct(self.name().clone(), vec![
-                    ("last_value".into(), DataType::Float32, AnyValue::Float32(self.last_value())),
-                    ("mean".into(), DataType::Float32, AnyValue::Float32(self.mean())),
-                    ("stddev".into(), DataType::Float32, AnyValue::Float32(self.stddev())),
-                    ("min".into(), DataType::Float32, AnyValue::Float32(self.min())),
-                    ("max".into(), DataType::Float32, AnyValue::Float32(self.max())),
-                    ("sum".into(), DataType::Float32, AnyValue::Float32(self.sum())),
-                    ("variance".into(), DataType::Float32, AnyValue::Float32(self.var())),
-                    ("skewness".into(), DataType::Float32, AnyValue::Float32(self.skew())),
-                    ("kurtosis".into(), DataType::Float32, AnyValue::Float32(self.kurt())),
-                    ("count".into(), DataType::UInt64, AnyValue::UInt64(self.count() as u64)),
-                    ("generation".into(), DataType::UInt64, AnyValue::UInt64(self.generation() as u64)),
-                    ("update_count".into(), DataType::UInt64, AnyValue::UInt64(self.update_count() as u64)),
-                ]))
+                Ok(AnyValue::from(self))
             }
             _ => Ok(AnyValue::Null),
         }

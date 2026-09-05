@@ -85,3 +85,68 @@ pub fn stagnation_expr(window: usize, epsilon: f32) -> Expr {
         .abs()
         .lt(epsilon)
 }
+
+// pub trait MetricExprExt {
+//     fn last(self) -> Expr;
+//     fn min(self) -> Expr;
+//     fn max(self) -> Expr;
+//     fn sum(self) -> Expr;
+//     fn mean(self) -> Expr;
+//     fn variance(self) -> Expr;
+//     fn stddev(self) -> Expr;
+//     fn skewness(self) -> Expr;
+//     fn kurtosis(self) -> Expr;
+//     fn count(self) -> Expr;
+//     fn generation(self) -> Expr;
+//     fn update_count(self) -> Expr;
+// }
+
+// impl MetricExprExt for SelectExpr {
+//     fn last(self) -> Expr {
+//         self.clone().add_attr(metric_fields::LAST_VALUE).into()
+//     }
+
+//     fn min(self) -> Expr {
+//         self.clone().add_attr(metric_fields::MIN).into()
+//     }
+
+//     fn max(self) -> Expr {
+//         self.clone().add_attr(metric_fields::MAX).into()
+//     }
+
+//     fn sum(self) -> Expr {
+//         self.clone().add_attr(metric_fields::SUM).into()
+//     }
+
+//     fn mean(self) -> Expr {
+//         self.clone().add_attr(metric_fields::MEAN).into()
+//     }
+
+//     fn variance(self) -> Expr {
+//         self.clone().add_attr(metric_fields::VARIANCE).into()
+//     }
+
+//     fn stddev(self) -> Expr {
+//         self.clone().add_attr(metric_fields::STDDEV).into()
+//     }
+
+//     fn skewness(self) -> Expr {
+//         self.clone().add_attr(metric_fields::SKEWNESS).into()
+//     }
+
+//     fn kurtosis(self) -> Expr {
+//         self.clone().add_attr(metric_fields::KURTOSIS).into()
+//     }
+
+//     fn count(self) -> Expr {
+//         self.clone().add_attr(metric_fields::COUNT).into()
+//     }
+
+//     fn generation(self) -> Expr {
+//         self.clone().add_attr(metric_fields::GENERATION).into()
+//     }
+
+//     fn update_count(self) -> Expr {
+//         self.clone().add_attr(metric_fields::UPDATE_COUNT).into()
+//     }
+// }

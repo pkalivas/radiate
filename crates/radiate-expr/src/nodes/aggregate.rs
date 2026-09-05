@@ -20,11 +20,11 @@ pub enum Rollup {
     Count,
     Unique,
     Slope,
-    Quantile(Quantile<f32>),
+    Quantile(f32),
 }
 
 impl Rollup {
-    pub fn reduce(&self, values: &[AnyValue<'static>]) -> ExprResult<'static> {
+    pub fn reduce<'a>(&self, values: &[AnyValue<'a>], dtype: DataType) -> ExprResult<'a> {
         if values.is_empty() {
             return match self {
                 Rollup::Count => Ok(AnyValue::UInt64(0)),
@@ -59,6 +59,17 @@ impl Rollup {
                 .collect::<Slope<f32>>();
 
             return Ok(AnyValue::Float32(slope.value().unwrap_or(0.0)));
+        } else if let Rollup::Quantile(quantile) = self {
+            if values.len() < 2 {
+                return Ok(AnyValue::Float32(0.0));
+            }
+
+            let mut quantile = Quantile::<f32>::new(*quantile);
+            for v in values.iter().filter_map(|v| v.extract::<f32>()) {
+                quantile.add(v);
+            }
+            let result = quantile.value().unwrap_or(0.0);
+            return Ok(AnyValue::Float32(result));
         }
 
         let stats = values
@@ -76,135 +87,30 @@ impl Rollup {
             _ => AnyValue::Null,
         };
 
-        Ok(result)
-    }
-}
-
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Clone, Debug, PartialEq)]
-pub struct AggExpr {
-    pub(crate) child: Box<Expr>,
-    pub(crate) rollup: Rollup,
-    pub(crate) buffer: Option<WindowBuffer<AnyValue<'static>>>,
-}
-
-impl AggExpr {
-    pub fn new(child: Expr, rollup: Rollup) -> Self {
-        Self {
-            child: Box::new(child),
-            rollup,
-            buffer: None,
-        }
-    }
-
-    pub fn rolling(mut self, window_size: usize) -> Self {
-        self.buffer = Some(WindowBuffer::with_capacity(window_size));
-        self
-    }
-
-    pub fn swap_rollup(&mut self, rollup: Rollup) {
-        self.rollup = rollup;
-    }
-
-    pub fn reset(&mut self) {
-        if let Some(buf) = &mut self.buffer {
-            buf.clear();
-        }
-        self.child.reset();
-
-        if let Rollup::Quantile(q) = &mut self.rollup {
-            q.clear();
-        }
-    }
-
-    fn compute_rollup<'a>(
-        values: &[AnyValue<'a>],
-        rollup: &mut Rollup,
-        dtype: DataType,
-    ) -> ExprResult<'a> {
-        if values.is_empty() {
-            return match rollup {
-                Rollup::Count => Ok(AnyValue::UInt64(0)),
-                _ => Ok(AnyValue::Float32(0.0)),
-            };
-        }
-
-        if values.len() == 1 {
-            return match rollup {
-                Rollup::Count => Ok(AnyValue::UInt64(1)),
-                Rollup::Unique => Ok(AnyValue::Vector(values.to_vec())),
-                _ => Ok(values[0].clone()),
-            };
-        }
-
-        if let Rollup::Unique = rollup {
-            return Ok(dedup_slice(values));
-        } else if let Rollup::Count = rollup {
-            return Ok(AnyValue::UInt64(values.len() as u64));
-        } else if let Rollup::First = rollup {
-            return Ok(values[0].clone());
-        } else if let Rollup::Last = rollup {
-            return Ok(values[values.len() - 1].clone());
-        } else if let Rollup::Slope = rollup {
-            if values.len() < 2 {
-                return Ok(AnyValue::Float32(0.0));
-            }
-
-            let slope = values
-                .iter()
-                .filter_map(|v| v.extract::<f32>())
-                .collect::<Slope<f32>>();
-
-            return Ok(AnyValue::Float32(slope.value().unwrap_or(0.0)));
-        } else if let Rollup::Quantile(quantile) = rollup {
-            quantile.clear();
-            for v in values.iter().filter_map(|v| v.extract::<f32>()) {
-                if v.is_finite() {
-                    quantile.add(v);
-                }
-            }
-
-            return Ok(quantile
-                .value()
-                .map(AnyValue::Float32)
-                .unwrap_or(AnyValue::Null));
-        }
-
-        let stats = values
-            .iter()
-            .filter_map(|val| val.extract::<f32>())
-            .collect::<Statistic>();
-
-        let result = match rollup {
-            Rollup::Mean => AnyValue::Float32(stats.mean()),
-            Rollup::StdDev => AnyValue::Float32(stats.std_dev().unwrap()),
-            Rollup::Min => AnyValue::Float32(stats.min()),
-            Rollup::Max => AnyValue::Float32(stats.max()),
-            Rollup::Sum => AnyValue::Float32(stats.sum()),
-            Rollup::Count => AnyValue::UInt64(stats.count() as u64),
-            _ => AnyValue::Null,
-        };
-
         Ok(result.cast(&dtype).unwrap_or(AnyValue::Null))
     }
 }
 
-impl<'a, T> EvalExpr<'a, T> for AggExpr
-where
-    T: ExprSelect<'a>,
-{
-    fn evaluate(&'a mut self, metrics: &'a T) -> ExprResult<'a> {
-        let child_output = self.child.evaluate(metrics)?;
-        let dtype = child_output.dtype();
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, PartialEq)]
+pub struct ReduceExpr {
+    pub(crate) child: Box<Expr>,
+    pub(crate) rollup: Rollup,
+}
 
-        if let Some(buffer) = &mut self.buffer {
-            if child_output.is_nested() {
-                radiate_bail!(Expr: "AggExpr with rolling window does not support nested values");
-            }
-
-            buffer.push(child_output.into_static());
-            return Self::compute_rollup(buffer.values(), &mut self.rollup, dtype);
+impl ReduceExpr {
+    pub fn new(child: Expr, rollup: Rollup) -> Self {
+        Self {
+            child: Box::new(child),
+            rollup,
         }
+    }
+}
+
+impl<'a, I: ExprSelect<'a>> EvalExpr<'a, I> for ReduceExpr {
+    fn evaluate(&'a mut self, input: &'a I) -> ExprResult<'a, AnyValue<'a>> {
+        let child_output = self.child.evaluate(input)?;
+        let dtype = child_output.dtype();
 
         match child_output {
             AnyValue::Slice(values) => {
@@ -213,7 +119,7 @@ where
                 } else {
                     dtype
                 };
-                Self::compute_rollup(values, &mut self.rollup, elem_dtype)
+                self.rollup.reduce(&values, elem_dtype)
             }
             AnyValue::Vector(values) => {
                 let elem_dtype = if let DataType::List(inner) = dtype {
@@ -221,149 +127,45 @@ where
                 } else {
                     dtype
                 };
-                Self::compute_rollup(&values, &mut self.rollup, elem_dtype)
+                self.rollup.reduce(&values, elem_dtype)
             }
-            _ => match self.rollup {
-                Rollup::Count => Ok(AnyValue::UInt64(1)),
-                Rollup::Unique => Ok(AnyValue::Vector(vec![child_output])),
-                Rollup::Quantile(ref mut q) => {
-                    if let Some(v) = child_output.extract::<f32>() {
-                        if v.is_finite() {
-                            q.add(v);
-                        }
-                    } else {
-                        return Ok(AnyValue::Null);
-                    }
-
-                    Ok(q.value().map(AnyValue::Float32).unwrap_or(AnyValue::Null))
-                }
-                _ => Ok(child_output),
-            },
+            _ => radiate_bail!(Expr: "Unsupported child output for ReduceExpr"),
         }
     }
 }
 
-// #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-// #[derive(Clone, Debug, PartialEq)]
-// pub struct ReduceExpr {
-//     child: Box<Expr>,
-//     rollup: Rollup,
-// }
+impl Debug for ReduceExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.rollup)
+    }
+}
 
-// impl ReduceExpr {
-//     pub fn new(child: Expr, rollup: Rollup) -> Self {
-//         Self {
-//             child: Box::new(child),
-//             rollup,
-//         }
-//     }
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, PartialEq)]
+pub struct RollingExpr {
+    pub(crate) child: Box<Expr>,
+    pub(crate) buffer: WindowBuffer<AnyValue<'static>>,
+}
 
-//     pub(crate) fn reset(&mut self) {
-//         self.child.reset();
+impl RollingExpr {
+    pub fn new(child: Expr, window_size: usize) -> Self {
+        Self {
+            child: Box::new(child),
+            buffer: WindowBuffer::with_capacity(window_size),
+        }
+    }
+}
 
-//         if let Rollup::Quantile(q) = &mut self.rollup {
-//             q.clear();
-//         }
-//     }
+impl<'a, I: ExprSelect<'a>> EvalExpr<'a, I> for RollingExpr {
+    fn evaluate(&'a mut self, input: &'a I) -> ExprResult<'a, AnyValue<'a>> {
+        let child_output = self.child.evaluate(input)?;
+        self.buffer.push(child_output.into_static());
+        Ok(AnyValue::Slice(self.buffer.as_slice()))
+    }
+}
 
-//     fn compute_rollup<'a>(
-//         values: &[AnyValue<'a>],
-//         rollup: &mut Rollup,
-//         dtype: DataType,
-//     ) -> ExprResult<'a> {
-//         if values.is_empty() {
-//             return match rollup {
-//                 Rollup::Count => Ok(AnyValue::UInt64(0)),
-//                 _ => Ok(AnyValue::Float32(0.0)),
-//             };
-//         }
-
-//         if values.len() == 1 {
-//             return match rollup {
-//                 Rollup::Count => Ok(AnyValue::UInt64(1)),
-//                 Rollup::Unique => Ok(values[0].clone()),
-//                 _ => Ok(values[0].clone()),
-//             };
-//         }
-
-//         if let Rollup::Unique = rollup {
-//             return Ok(dedup_slice(values));
-//         } else if let Rollup::Count = rollup {
-//             return Ok(AnyValue::UInt64(values.len() as u64));
-//         } else if let Rollup::First = rollup {
-//             return Ok(values[0].clone());
-//         } else if let Rollup::Last = rollup {
-//             return Ok(values[values.len() - 1].clone());
-//         } else if let Rollup::Slope = rollup {
-//             if values.len() < 2 {
-//                 return Ok(AnyValue::Float32(0.0));
-//             }
-
-//             let slope = values
-//                 .iter()
-//                 .filter_map(|v| v.extract::<f32>())
-//                 .collect::<Slope<f32>>();
-
-//             return Ok(AnyValue::Float32(slope.value().unwrap_or(0.0)));
-//         } else if let Rollup::Quantile(quantile) = rollup {
-//             quantile.clear();
-//             for v in values.iter().filter_map(|v| v.extract::<f32>()) {
-//                 if v.is_finite() {
-//                     quantile.add(v);
-//                 }
-//             }
-
-//             return Ok(quantile
-//                 .value()
-//                 .map(AnyValue::Float32)
-//                 .unwrap_or(AnyValue::Null));
-//         }
-
-//         let stats = values
-//             .iter()
-//             .filter_map(|val| val.extract::<f32>())
-//             .collect::<Statistic>();
-
-//         let result = match rollup {
-//             Rollup::Mean => AnyValue::Float32(stats.mean()),
-//             Rollup::StdDev => AnyValue::Float32(stats.std_dev().unwrap()),
-//             Rollup::Min => AnyValue::Float32(stats.min()),
-//             Rollup::Max => AnyValue::Float32(stats.max()),
-//             Rollup::Sum => AnyValue::Float32(stats.sum()),
-//             Rollup::Count => AnyValue::UInt64(stats.count() as u64),
-//             _ => AnyValue::Null,
-//         };
-
-//         Ok(result.cast(&dtype).unwrap_or(AnyValue::Null))
-//     }
-// }
-
-// impl<'a, T> EvalExpr<'a, T> for ReduceExpr
-// where
-//     T: ExprSelect<'a>,
-// {
-//     fn evaluate(&'a mut self, metrics: &'a T) -> ExprResult<'a> {
-//         let child_output = self.child.evaluate(metrics)?;
-//         let dtype = child_output.dtype();
-
-//         match child_output {
-//             AnyValue::Slice(values) => {
-//                 let elem_dtype = if let DataType::List(inner) = dtype {
-//                     *inner
-//                 } else {
-//                     dtype
-//                 };
-//                 Self::compute_rollup(values, &mut self.rollup, elem_dtype)
-//             }
-//             AnyValue::Vector(values) => {
-//                 let elem_dtype = if let DataType::List(inner) = dtype {
-//                     *inner
-//                 } else {
-//                     dtype
-//                 };
-//                 Self::compute_rollup(&values, &mut self.rollup, elem_dtype)
-//             }
-//             _ => radiate_bail!(Expr: "Unsupported rollup operation"),
-//         }
-//     }
-// }
+impl Debug for RollingExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "window_size: {}", self.buffer.len())
+    }
+}
