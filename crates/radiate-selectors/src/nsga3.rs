@@ -53,10 +53,6 @@ impl NSGA3Selector {
 }
 
 impl<C: Chromosome> Select<C> for NSGA3Selector {
-    fn name(&self) -> &'static str {
-        "selector.nsga3"
-    }
-
     fn select(
         &self,
         population: &[Phenotype<C>],

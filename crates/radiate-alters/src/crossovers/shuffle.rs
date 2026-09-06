@@ -1,4 +1,6 @@
-use radiate_core::{AlterContext, Chromosome, Crossover, Expr, RateSet, random_provider};
+use radiate_core::{
+    AlterContext, Crossover, Expr, RateSet, chromosomes::ContiguousChromosome, random_provider,
+};
 
 pub struct ShuffleCrossover {
     rate: Expr,
@@ -10,7 +12,7 @@ impl ShuffleCrossover {
     }
 }
 
-impl<C: Chromosome + Clone> Crossover<C> for ShuffleCrossover {
+impl<C: ContiguousChromosome + Clone> Crossover<C> for ShuffleCrossover {
     fn rates(&self) -> RateSet {
         RateSet::new(self.rate.clone())
     }
@@ -33,16 +35,14 @@ impl<C: Chromosome + Clone> Crossover<C> for ShuffleCrossover {
             let mut indices = (0..length).collect::<Vec<usize>>();
             rand.shuffle(&mut indices);
 
-            let temp_chrom_one = chrom_one.as_mut_slice();
-            let temp_chrom_two = chrom_two.as_mut_slice();
-
+            let mut zipped = chrom_one.zip(chrom_two);
             for (i, &index) in indices.iter().enumerate() {
                 if i % 2 == 0 {
                     if !rand.bool(ctx.rate()) {
                         continue;
                     }
 
-                    std::mem::swap(&mut temp_chrom_one[index], &mut temp_chrom_two[index]);
+                    zipped.swap(index);
                     cross_count += 1;
                 }
             }

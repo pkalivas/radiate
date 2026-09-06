@@ -9,8 +9,7 @@ We have a simple polynomial function and we want to evolve a graph that approxim
 import numpy as np
 import radiate as rd
 
-# rd.random.seed(67123)
-rd.random.seed(67)
+rd.random.seed(67123)
 
 
 def compute(x: float) -> float:

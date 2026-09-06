@@ -52,7 +52,7 @@ where
         let alpha = A::from(self.alpha).unwrap();
 
         random_provider::with_rng(|rand| {
-            chrom_one.zip_mut(chrom_two).for_each(|one, two| {
+            chrom_one.zip(chrom_two).for_each(|one, two| {
                 if rand.bool(ctx.rate()) {
                     let allele_one = *one.allele();
                     let allele_two = *two.allele();
@@ -60,11 +60,14 @@ where
                     let new_allele_one = allele_one - (alpha * (allele_two - allele_one));
                     let new_allele_two = allele_two - (alpha * (allele_one - allele_two));
 
-                    let (one_min, one_max) = one.bound_range();
-                    let (two_min, two_max) = two.bound_range();
+                    one.set_allele(new_allele_one);
+                    two.set_allele(new_allele_two);
 
-                    *one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
-                    *two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
+                    // let (one_min, one_max) = one.bound_range();
+                    // let (two_min, two_max) = two.bound_range();
+
+                    // *one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
+                    // *two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
 
                     cross_count += 1;
                 }

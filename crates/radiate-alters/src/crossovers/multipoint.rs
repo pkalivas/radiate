@@ -1,4 +1,6 @@
-use radiate_core::{AlterContext, Chromosome, Crossover, Expr, RateSet, random_provider};
+use radiate_core::{
+    AlterContext, Crossover, Expr, RateSet, chromosomes::ContiguousChromosome, random_provider,
+};
 
 /// The [MultiPointCrossover] is a crossover method that takes two chromosomes and crosses them
 /// by selecting multiple points in the chromosome and swapping the genes between the two chromosomes.
@@ -25,7 +27,7 @@ impl MultiPointCrossover {
     }
 }
 
-impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
+impl<C: ContiguousChromosome> Crossover<C> for MultiPointCrossover {
     fn rates(&self) -> RateSet {
         RateSet::new(self.rate.clone())
     }

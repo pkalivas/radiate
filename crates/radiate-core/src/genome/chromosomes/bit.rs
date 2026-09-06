@@ -1,4 +1,4 @@
-use crate::{Chromosome, Gene, Valid, random_provider};
+use crate::{Chromosome, Gene, Valid, chromosomes::ContiguousChromosome, random_provider};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
@@ -61,6 +61,10 @@ impl Gene for BitGene {
     fn with_allele(&self, allele: &bool) -> BitGene {
         BitGene { allele: *allele }
     }
+
+    fn set_allele(&mut self, allele: bool) {
+        self.allele = allele;
+    }
 }
 
 /// Because a [`BitGene`] is either `true` or `false` it is always valid.
@@ -105,6 +109,34 @@ impl BitChromosome {
 impl Chromosome for BitChromosome {
     type Gene = BitGene;
 
+    fn iter(&self) -> impl Iterator<Item = &Self::Gene> {
+        self.genes.iter()
+    }
+
+    fn iter_mut(&mut self) -> impl Iterator<Item = &mut Self::Gene> {
+        self.genes.iter_mut()
+    }
+
+    fn get(&self, index: usize) -> Option<&Self::Gene> {
+        self.genes.get(index)
+    }
+
+    fn get_mut(&mut self, index: usize) -> Option<&mut Self::Gene> {
+        self.genes.get_mut(index)
+    }
+
+    fn set(&mut self, index: usize, gene: Self::Gene) {
+        if let Some(slot) = self.genes.get_mut(index) {
+            *slot = gene;
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.genes.len()
+    }
+}
+
+impl ContiguousChromosome for BitChromosome {
     fn as_slice(&self) -> &[Self::Gene] {
         &self.genes
     }

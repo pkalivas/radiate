@@ -1,4 +1,4 @@
-use radiate::prelude::*;
+use radiate::{chromosomes::ContiguousChromosome, prelude::*};
 
 const MIN_SCORE: f32 = 0.0001;
 const MAX_INDEX: usize = 500;

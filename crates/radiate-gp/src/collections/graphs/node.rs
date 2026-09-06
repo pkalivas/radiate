@@ -346,6 +346,10 @@ where
             outgoing: self.outgoing.clone(),
         }
     }
+
+    fn set_allele(&mut self, allele: Self::Allele) {
+        self.value = allele;
+    }
 }
 
 /// Implementing the [Valid] trait for [GraphNode]

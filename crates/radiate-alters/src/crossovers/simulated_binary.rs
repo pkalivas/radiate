@@ -46,7 +46,7 @@ where
 
         let mut count = 0;
         random_provider::with_rng(|rand| {
-            chrom_one.zip_mut(chrom_two).for_each(|gene_one, gene_two| {
+            chrom_one.zip(chrom_two).for_each(|gene_one, gene_two| {
                 if rand.bool(0.5) {
                     let u = rand.random::<f32>();
                     let beta = A::from(if u <= 0.5 {
@@ -65,12 +65,9 @@ where
                         ((v1 - v2) * A::HALF) + (beta * A::HALF * (v1 - v2).abs())
                     };
 
-                    let (one_min, one_max) = gene_one.bound_range();
-                    let new_gene = v.clamp(*one_min, *one_max);
+                    gene_one.set_allele(v);
 
                     count += 1;
-
-                    *gene_one.allele_mut() = new_gene;
                 }
             });
         });

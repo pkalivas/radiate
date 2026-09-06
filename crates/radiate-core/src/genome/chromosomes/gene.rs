@@ -73,6 +73,9 @@ pub trait Gene: Clone + Valid {
 
     /// Create a new [Gene] with the given `allele`.
     fn with_allele(&self, allele: &Self::Allele) -> Self;
+
+    /// Set the `allele` of the [Gene] to the given value.
+    fn set_allele(&mut self, allele: Self::Allele);
 }
 
 pub trait BoundedGene: Gene {

@@ -1,7 +1,7 @@
 use radiate_core::{
     AlterContext, BoundedGene, Chromosome, Expr, FloatGene, Gene, Mutate, RateSet, random_provider,
 };
-use radiate_utils::{Float, Primitive};
+use radiate_utils::Float;
 
 /// The `GaussianMutator` is a simple mutator that adds a small amount of Gaussian noise to the gene.
 ///
@@ -33,21 +33,18 @@ where
         let mut count = 0;
 
         random_provider::with_rng(|rand| {
-            for gene in chromosome.as_mut_slice() {
+            for gene in chromosome.iter_mut() {
                 if rand.bool(ctx.rate()) {
                     // The reason we use the sampling min/max from the gene here instead of it's
                     // 'bounds' is because this operation is essentially a form of 'local search'
                     // and we want to ensure that the mutated value is not too far from the original value.
-                    let min = gene.init_min().extract::<f64>().unwrap();
-                    let max = gene.init_max().extract::<f64>().unwrap();
+                    let min = gene.init_min();
+                    let max = gene.init_max();
 
-                    let std_dev = (max - min) * 0.25;
-                    let value = gene.allele().extract::<f64>().unwrap();
+                    let std_dev = (*max - *min) * F::from(0.25).unwrap();
+                    let gaussian = rand.gaussian(*gene.allele(), std_dev);
 
-                    let gaussian = rand.gaussian(value, std_dev);
-                    let allele = gaussian.clamp(min, max);
-
-                    *gene.allele_mut() = allele.extract::<F>().unwrap();
+                    gene.set_allele(gaussian.clamp(*min, *max));
 
                     count += 1;
                 }

@@ -85,8 +85,7 @@ where
 
                 let new_value = self.polynomial_mutation(value, min, max, eta);
 
-                let clamped_value = new_value.clamp(min, max);
-                *gene.allele_mut() = clamped_value.extract::<F>().unwrap();
+                gene.set_allele(F::from(new_value).unwrap());
 
                 count += 1;
             }

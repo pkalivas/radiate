@@ -215,7 +215,7 @@ pub fn float_population(num: usize) -> Population<FloatChromosome<f32>> {
 pub fn random_float_population(num: usize) -> Population<FloatChromosome<f32>> {
     MockEcosystem::builder(FloatCodec::vector(1, 0.0..100.0))
         .pop_size(num)
-        .scores(|_, g| Score::from(*g[0].as_slice()[0].allele()))
+        .scores(|_, g| Score::from(*g[0].get(0).unwrap().allele()))
         .build_population()
 }
 

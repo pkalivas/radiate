@@ -3,7 +3,7 @@ use super::{
     gene::{Gene, Valid},
 };
 use crate::{
-    chromosomes::{BoundedGene, NumericGene},
+    chromosomes::{BoundedGene, ContiguousChromosome, NumericGene},
     random_provider,
 };
 use radiate_utils::Integer;
@@ -92,6 +92,11 @@ impl<T: Integer> Gene for IntGene<T> {
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
+    }
+
+    fn set_allele(&mut self, allele: T) {
+        let (bound_min, bound_max) = self.bound_range();
+        self.allele = allele.clamp(*bound_min, *bound_max);
     }
 }
 
@@ -305,6 +310,34 @@ impl<I: Integer> IntChromosome<I> {
 impl<I: Integer> Chromosome for IntChromosome<I> {
     type Gene = IntGene<I>;
 
+    fn iter(&self) -> impl Iterator<Item = &Self::Gene> {
+        self.genes.iter()
+    }
+
+    fn iter_mut(&mut self) -> impl Iterator<Item = &mut Self::Gene> {
+        self.genes.iter_mut()
+    }
+
+    fn get(&self, index: usize) -> Option<&Self::Gene> {
+        self.genes.get(index)
+    }
+
+    fn get_mut(&mut self, index: usize) -> Option<&mut Self::Gene> {
+        self.genes.get_mut(index)
+    }
+
+    fn set(&mut self, index: usize, gene: Self::Gene) {
+        if let Some(slot) = self.genes.get_mut(index) {
+            *slot = gene;
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.genes.len()
+    }
+}
+
+impl<I: Integer> ContiguousChromosome for IntChromosome<I> {
     fn as_slice(&self) -> &[Self::Gene] {
         &self.genes
     }

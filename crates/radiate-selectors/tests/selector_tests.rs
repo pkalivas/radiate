@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod selector_tests {
-    use radiate_test::*;
     use radiate_core::*;
     use radiate_selectors::*;
+    use radiate_test::*;
     use rstest::*;
 
     fn fitness_improvement_metric(
@@ -12,13 +12,13 @@ mod selector_tests {
     ) -> f32 {
         let population_avg: f32 = population
             .iter()
-            .map(|ind| ind.genotype()[0].as_slice()[0].allele())
+            .map(|ind| ind.genotype()[0].get(0).unwrap().allele())
             .sum::<f32>()
             / population.len() as f32;
 
         let selected_avg: f32 = selected
             .iter()
-            .map(|ind| ind.genotype()[0].as_slice()[0].allele())
+            .map(|ind| ind.genotype()[0].get(0).unwrap().allele())
             .sum::<f32>()
             / selected.len() as f32;
 

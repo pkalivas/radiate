@@ -41,7 +41,7 @@ where
         let mut count = 0;
 
         random_provider::with_rng(|rand| {
-            chrom_one.zip_mut(chrom_two).for_each(|gene_one, gene_two| {
+            chrom_one.zip(chrom_two).for_each(|gene_one, gene_two| {
                 if rand.bool(ctx.rate()) {
                     *gene_one = gene_one.mean(gene_two);
                     count += 1;

@@ -151,3 +151,193 @@ where
 
     RangeLookup::new(bounds, index_to_bounds_map)
 }
+
+// /// A read handle to a single gene's data, possibly synthesized rather than
+// /// borrowed directly — lets a Chromosome expose gene-shaped access regardless
+// /// of whether it stores real Gene values or decomposed (SoA) fields.
+// pub trait GeneView<'a, G: Gene> {
+//     fn allele(&self) -> &G::Allele;
+// }
+
+// pub trait GeneViewMut<'a, G: Gene>: GeneView<'a, G> {
+//     fn allele_mut(&mut self) -> &mut G::Allele;
+//     fn set_allele(&mut self, allele: G::Allele);
+// }
+
+// pub trait BoundedGeneView<'a, G: BoundedGene>: GeneView<'a, G> {
+//     fn bound_min(&self) -> &G::Allele;
+//     fn bound_max(&self) -> &G::Allele;
+// }
+
+// impl<'a, G: Gene> GeneView<'a, G> for &'a G {
+//     fn allele(&self) -> &G::Allele {
+//         Gene::allele(*self)
+//     }
+// }
+
+// impl<'a, G: Gene> GeneView<'a, G> for &'a mut G {
+//     fn allele(&self) -> &G::Allele {
+//         Gene::allele(*self)
+//     }
+// }
+// impl<'a, G: Gene> GeneViewMut<'a, G> for &'a mut G {
+//     fn allele_mut(&mut self) -> &mut G::Allele {
+//         Gene::allele_mut(*self)
+//     }
+//     fn set_allele(&mut self, allele: G::Allele) {
+//         Gene::set_allele(*self, allele)
+//     }
+// }
+// impl<'a, G: BoundedGene> BoundedGeneView<'a, G> for &'a G {
+//     fn bound_min(&self) -> &G::Allele {
+//         BoundedGene::bound_min(*self)
+//     }
+//     fn bound_max(&self) -> &G::Allele {
+//         BoundedGene::bound_max(*self)
+//     }
+// }
+
+// pub trait ChromosomeView: Chromosome {
+//     type View<'b>: GeneView<'b, Self::Gene>
+//     where
+//         Self: 'b,
+//         Self::Gene: Gene;
+
+//     fn view(&self, index: usize) -> Option<Self::View<'_>>;
+// }
+
+// pub trait ChromosomeViewMut: ChromosomeView {
+//     type ViewMut<'b>: GeneViewMut<'b, Self::Gene>
+//     where
+//         Self: 'b,
+//         Self::Gene: Gene;
+
+//     fn view_mut(&mut self, index: usize) -> Option<Self::ViewMut<'_>>;
+// }
+
+// pub struct FloatGeneView<'a, F> {
+//     allele: &'a F,
+//     bounds: &'a Range<F>,
+// }
+
+// impl<'a, F: Float> GeneView<'a, FloatGene<F>> for FloatGeneView<'a, F> {
+//     fn allele(&self) -> &F {
+//         self.allele
+//     }
+// }
+// impl<'a, F: Float> BoundedGeneView<'a, FloatGene<F>> for FloatGeneView<'a, F> {
+//     fn bound_min(&self) -> &F {
+//         &self.bounds.start
+//     }
+//     fn bound_max(&self) -> &F {
+//         &self.bounds.end
+//     }
+// }
+
+// impl<F: Float> ChromosomeView for FloatChromosome<F> {
+//     type View<'b>
+//         = FloatGeneView<'b, F>
+//     where
+//         Self: 'b;
+
+//     fn view(&self, index: usize) -> Option<Self::View<'_>> {
+//         self.get(index).map(|gene| FloatGeneView {
+//             allele: &gene.allele,
+//             bounds: &(gene.bounds),
+//         })
+//     }
+// }
+
+// impl<F: Float> ChromosomeViewMut for FloatChromosome<F> {
+//     type ViewMut<'b>
+//         = FloatGeneViewMut<'b, F>
+//     where
+//         Self: 'b;
+
+//     fn view_mut(&mut self, index: usize) -> Option<Self::ViewMut<'_>> {
+//         self.get_mut(index).map(|gene| FloatGeneViewMut {
+//             allele: &mut gene.allele,
+//             bounds: &mut gene.bounds,
+//         })
+//     }
+// }
+
+// #[derive(Clone, PartialEq, Default)]
+// #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+// pub struct DenseGeneStore<G: Gene> {
+//     genes: Vec<G>,
+// }
+
+// #[derive(Clone, PartialEq, Default)]
+// #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+// pub struct SharedBoundedGeneStore<A> {
+//     alleles: Vec<A>,
+//     bounds: (A, A),
+// }
+
+// pub trait GeneStore<G: Gene> {
+//     type View<'a>: GeneView<'a, G>
+//     where
+//         Self: 'a,
+//         G: Gene;
+//     type ViewMut<'a>: GeneViewMut<'a, G>
+//     where
+//         Self: 'a,
+//         G: Gene;
+//     fn get(&self, index: usize) -> Option<Self::View<'_>>;
+//     fn get_mut(&mut self, index: usize) -> Option<Self::ViewMut<'_>>;
+//     fn len(&self) -> usize;
+//     fn is_empty(&self) -> bool {
+//         self.len() == 0
+//     }
+//     fn iter(&self) -> impl Iterator<Item = Self::View<'_>> {
+//         (0..self.len()).filter_map(|i| self.get(i))
+//     }
+//     fn iter_mut(&mut self) -> impl Iterator<Item = Self::ViewMut<'_>>;
+// }
+
+// impl<F: Float> GeneStore<FloatGene<F>> for DenseGeneStore<FloatGene<F>> {
+//     type View<'a>
+//         = FloatGeneView<'a, F>
+//     where
+//         Self: 'a,
+//         F: Float;
+
+//     type ViewMut<'a>
+//         = FloatGeneViewMut<'a, F>
+//     where
+//         Self: 'a,
+//         F: Float;
+
+//     fn get(&self, index: usize) -> Option<Self::View<'_>> {
+//         self.genes.get(index).map(|gene| FloatGeneView {
+//             allele: &gene.allele,
+//             bounds: &gene.bounds,
+//         })
+//     }
+
+//     fn get_mut(&mut self, index: usize) -> Option<Self::ViewMut<'_>> {
+//         self.genes.get_mut(index).map(|gene| FloatGeneViewMut {
+//             allele: &mut gene.allele,
+//             bounds: &mut gene.bounds,
+//         })
+//     }
+
+//     fn len(&self) -> usize {
+//         self.genes.len()
+//     }
+
+//     fn iter(&self) -> impl Iterator<Item = Self::View<'_>> {
+//         self.genes.iter().map(|gene| FloatGeneView {
+//             allele: &gene.allele,
+//             bounds: &gene.bounds,
+//         })
+//     }
+
+//     fn iter_mut(&mut self) -> impl Iterator<Item = Self::ViewMut<'_>> {
+//         self.genes.iter_mut().map(|gene| FloatGeneViewMut {
+//             allele: &mut gene.allele,
+//             bounds: &mut gene.bounds,
+//         })
+//     }
+// }

@@ -1,5 +1,6 @@
 use crate::{
-    Chromosome, Codec, Gene, Genotype, PermutationChromosome, PermutationGene, random_provider,
+    Codec, Gene, Genotype, PermutationChromosome, PermutationGene,
+    chromosomes::ContiguousChromosome, random_provider,
 };
 use std::sync::Arc;
 
