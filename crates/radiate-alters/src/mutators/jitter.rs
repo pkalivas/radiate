@@ -49,7 +49,6 @@ where
                     let new_allele = *gene.allele() + change;
 
                     gene.set_allele(new_allele);
-
                     count += 1;
                 }
             }

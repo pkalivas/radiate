@@ -2,11 +2,7 @@ use crate::events::{EventStream, Subscription, SubscriptionId};
 use radiate_core::{Executor, error::RadiateResult};
 use std::sync::{Arc, Mutex};
 
-pub trait Event: Send + Sync + 'static {
-    fn event_label() -> &'static str {
-        std::any::type_name::<Self>()
-    }
-}
+pub trait Event: Send + Sync + 'static {}
 impl<T: Send + Sync + 'static> Event for T {}
 
 pub trait Handler<E: Event>: Send + 'static {

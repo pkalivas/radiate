@@ -15,11 +15,12 @@ fn main() {
         (NodeType::Output, vec![Op::linear()]),
     ];
 
+    // .metrics(Expr::select("scores.best").rolling(5).mean().alias("idk"))
+
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, store))
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
-        .metrics([Expr::select("scores.best").rolling(5).mean().alias("idk")])
         .offspring_selector(BoltzmannSelector::new(4.0))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
@@ -31,12 +32,6 @@ fn main() {
     engine
         .iter()
         .logging()
-        // .every(5, move |generation| {
-        //     println!("Generation: {}", generation.index());
-        // })
-        // .throttle(Duration::from_millis(5), move |generation| {
-        //     println!("Generation: {}", generation.index());
-        // })
         .until_score(MIN_SCORE)
         .last()
         .inspect(display)

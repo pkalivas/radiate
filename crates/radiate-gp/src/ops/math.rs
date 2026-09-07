@@ -161,7 +161,7 @@ fn softplus_stable<F: OpFloat>(x: F) -> F {
     if x > threshold {
         x
     } else if x < -threshold {
-        x.exp() // ~0
+        x.exp()
     } else {
         (F::ONE + x.exp()).ln()
     }

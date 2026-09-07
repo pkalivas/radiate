@@ -208,13 +208,10 @@ impl<'a> ProjectExpr<'a> for MetricSet {
     #[inline]
     fn select(&'a self, sel: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
         match sel {
-            SelectOp::Field(name) => {
-                if let Some(metric) = self.get(name) {
-                    return (*metric).select(&SelectOp::Field(metric_fields::LAST_VALUE));
-                }
-
-                Ok(AnyValue::Null)
-            }
+            SelectOp::Field(name) => self
+                .get(name)
+                .map(|metric| (*metric).select(&SelectOp::Field(metric_fields::LAST_VALUE)))
+                .unwrap_or(Ok(AnyValue::Null)),
             SelectOp::Nested { parent, child } => {
                 if let SelectOp::Field(name) = parent.as_ref()
                     && let Some(metric) = self.get(name)
