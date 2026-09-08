@@ -1,51 +1,35 @@
-use crate::{Engine, EvolutionContext, Generation, Limit};
-#[cfg(feature = "serde")]
-use crate::{FileWriter, JsonWriter};
+use crate::{
+    Engine, EvolutionContext, Generation, Handler, Limit,
+    events::{EngineLogger, Event, GenerationSnapshot, HealthMonitor, LoggingHandler},
+};
 use crate::{generation::GenerationView, init_logging};
+use radiate_core::Expr;
 use radiate_core::error::{RadiateResult, Result};
-use radiate_core::rate::Expr;
-use radiate_core::{Chromosome, EngineState, Score, radiate_err};
-#[cfg(feature = "serde")]
-use serde::Serialize;
+use radiate_core::{Chromosome, EngineState, Score};
 use std::collections::VecDeque;
-#[cfg(feature = "serde")]
-use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 pub trait RuntimeLimit<E: Engine> {
     fn proceed(&mut self, context: &E::Ctx) -> RadiateResult<bool>;
 }
 
-pub trait RuntimeAction<E: Engine> {
-    fn execute(&mut self, context: &E::Ctx) -> RadiateResult<()>;
-}
-
 pub struct EngineRuntime<E: Engine> {
     engine: E,
-    actions: Option<Vec<Box<dyn RuntimeAction<E>>>>,
-    limits: Option<Vec<Box<dyn RuntimeLimit<E>>>>,
-    state: EngineState,
+    limits: Vec<Box<dyn RuntimeLimit<E>>>,
 }
 
 impl<E: Engine> EngineRuntime<E> {
     pub fn new(engine: E) -> Self {
         Self {
             engine,
-            actions: None,
-            limits: None,
-            state: EngineState::PreStart,
+            limits: Vec::new(),
         }
     }
 
     #[inline]
     pub fn run(mut self) -> Result<E::Epoch> {
-        if matches!(self.state, EngineState::PreStart) {
-            self.engine.start();
-            self.state = EngineState::Running;
-        }
-
         loop {
-            if matches!(self.state, EngineState::Stopped) {
+            if matches!(self.engine.state(), EngineState::Stopped) {
                 return Ok(self.engine.epoch());
             }
 
@@ -55,39 +39,20 @@ impl<E: Engine> EngineRuntime<E> {
 
     #[inline]
     fn step(&mut self) -> Result<()> {
-        if matches!(self.state, EngineState::Stopped) {
-            return Err(radiate_err!(Engine: "Engine has already completed"));
+        if matches!(self.engine.state(), EngineState::Stopped) {
+            return Ok(());
         }
 
-        // TODO: idk, I don't love this. Lets refactor. There is
-        // too much state being mutated in the scope then being set at on close of the scope. Messy, man.
-        self.state = match self.engine.step()? {
-            EngineState::Stopped => {
+        self.engine.step()?;
+
+        let ctx = self.engine.context();
+
+        for limit in self.limits.iter_mut() {
+            if !limit.proceed(ctx)? {
                 self.engine.stop();
-                EngineState::Stopped
+                return Ok(());
             }
-            state => {
-                if let Some(actions) = &mut self.actions {
-                    let ctx = self.engine.context();
-                    for action in actions.iter_mut() {
-                        action.execute(ctx)?;
-                    }
-                }
-
-                if let Some(limits) = &mut self.limits {
-                    let ctx = self.engine.context();
-                    for limit in limits.iter_mut() {
-                        if !limit.proceed(ctx)? {
-                            self.engine.stop();
-                            self.state = EngineState::Stopped;
-                            return Ok(());
-                        }
-                    }
-                }
-
-                state
-            }
-        };
+        }
 
         Ok(())
     }
@@ -97,23 +62,7 @@ impl<E: Engine> EngineRuntime<E> {
         L: RuntimeLimit<E> + 'static,
     {
         let boxed: Box<dyn RuntimeLimit<E>> = Box::new(limit);
-        if let Some(limits) = &mut self.limits {
-            limits.push(boxed);
-        } else {
-            self.limits = Some(vec![boxed]);
-        }
-    }
-
-    fn add_action<A>(&mut self, action: A)
-    where
-        A: RuntimeAction<E> + 'static,
-    {
-        let boxed: Box<dyn RuntimeAction<E>> = Box::new(action);
-        if let Some(actions) = &mut self.actions {
-            actions.push(boxed);
-        } else {
-            self.actions = Some(vec![boxed]);
-        }
+        self.limits.push(boxed);
     }
 }
 
@@ -131,6 +80,46 @@ where
 
     pub fn last(self) -> Result<E::Epoch> {
         self.run()
+    }
+
+    pub fn every<F>(self, interval: usize, mut action_fn: F) -> Self
+    where
+        F: FnMut(GenerationView<C, T>) + Send + Sync + 'static,
+    {
+        assert!(interval > 0, "every interval must be greater than zero");
+        let guarded_interval = interval.max(1);
+
+        self.engine
+            .context()
+            .event_stream()
+            .subscribe(move |ctx: &GenerationSnapshot<C, T>| {
+                let inner = &ctx.generation;
+                action_fn(GenerationView::from(inner.as_ref()));
+            })
+            .schedule(Expr::every(guarded_interval))
+            .unwrap();
+        self
+    }
+
+    pub fn throttle<F>(self, duration: Duration, mut action_fn: F) -> Self
+    where
+        F: FnMut(GenerationView<C, T>) + Send + Sync + 'static,
+    {
+        self.engine
+            .context()
+            .event_stream()
+            .subscribe(move |ctx: &GenerationSnapshot<C, T>| {
+                let inner = &ctx.generation;
+                action_fn(GenerationView::from(inner.as_ref()));
+            })
+            .schedule(Expr::throttle(duration))
+            .unwrap();
+        self
+    }
+
+    pub fn subscribe<EV: Event>(self, handler: impl Handler<EV>) -> Self {
+        self.engine.context().event_stream().subscribe(handler);
+        self
     }
 }
 
@@ -223,60 +212,11 @@ where
 {
     pub fn logging(self) -> EngineRuntime<E> {
         init_logging();
-        self
-    }
+        let stream = self.engine.context().event_stream();
 
-    #[cfg(feature = "serde")]
-    pub fn checkpoint(mut self, interval: usize, folder_path: impl AsRef<Path>) -> EngineRuntime<E>
-    where
-        E: Engine + 'static,
-        E::Epoch: Serialize,
-    {
-        use crate::actions::CheckpointAction;
-
-        let path_without_extension = folder_path
-            .as_ref()
-            .to_str()
-            .and_then(|s| s.rsplit('.').nth(1))
-            .unwrap_or(folder_path.as_ref().to_str().unwrap_or("checkpoints"));
-
-        let action = CheckpointAction {
-            interval,
-            path: PathBuf::from(path_without_extension),
-            writer: Box::new(JsonWriter),
-        };
-
-        self.add_action(action);
-
-        self
-    }
-
-    #[cfg(feature = "serde")]
-    pub fn checkpoint_with(
-        mut self,
-        interval: usize,
-        folder_path: impl AsRef<Path>,
-        writer: Box<dyn FileWriter<E::Epoch>>,
-    ) -> EngineRuntime<E>
-    where
-        E: Engine + 'static,
-        E::Epoch: Serialize,
-    {
-        use crate::actions::CheckpointAction;
-
-        let path_without_extension = folder_path
-            .as_ref()
-            .to_str()
-            .and_then(|s| s.rsplit('.').nth(1))
-            .unwrap_or(folder_path.as_ref().to_str().unwrap_or("checkpoints"));
-
-        let action = CheckpointAction {
-            interval,
-            path: PathBuf::from(path_without_extension),
-            writer,
-        };
-
-        self.add_action(action);
+        stream.attatch(EngineLogger::<T>::new()).unwrap();
+        stream.attatch(HealthMonitor::<T>::default()).unwrap();
+        stream.subscribe(LoggingHandler);
 
         self
     }
@@ -289,7 +229,7 @@ where
     type Item = E::Epoch;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if matches!(self.state, EngineState::Stopped) {
+        if matches!(self.engine.state(), EngineState::Stopped) {
             return None;
         }
 

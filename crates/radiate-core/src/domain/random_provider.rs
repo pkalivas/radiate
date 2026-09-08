@@ -1,4 +1,5 @@
 use crate::domain::env_vars;
+use radiate_utils::Float;
 use rand::distr::{Distribution, StandardUniform, uniform::SampleUniform};
 use rand::rngs::SmallRng;
 use rand::rngs::SysRng;
@@ -93,7 +94,10 @@ pub fn choose_mut<T>(items: &mut [T]) -> &mut T {
 
 /// Generates a random number from a Gaussian distribution with the given mean and standard deviation.
 /// The Box-Muller transform is used to generate the random number.
-pub fn gaussian(mean: f64, std_dev: f64) -> f64 {
+pub fn gaussian<T>(mean: T, std_dev: T) -> T
+where
+    T: SampleUniform + Float,
+{
     with_rng(|rng| rng.gaussian(mean, std_dev))
 }
 
@@ -163,11 +167,14 @@ impl<'a> RdRand<'a> {
     }
 
     #[inline]
-    pub fn gaussian(&mut self, mean: f64, std_dev: f64) -> f64 {
+    pub fn gaussian<T>(&mut self, mean: T, std_dev: T) -> T
+    where
+        T: Float,
+    {
         let u1: f64 = self.0.random();
         let u2: f64 = self.0.random();
         let z0 = (-2.0 * u1.ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos();
-        mean + std_dev * z0
+        mean + std_dev * T::from(z0).unwrap()
     }
 
     #[inline]

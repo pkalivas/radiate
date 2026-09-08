@@ -1,15 +1,15 @@
 use crate::{
     Metric, MetricUpdate,
-    stats::{Meta, Tag, TagType, fmt},
+    stats::{Meta, Tag, TagType, fmt, metric_fields},
 };
-pub use radiate_expr::*;
+use radiate_error::RadiateError;
+use radiate_expr::{ProjectExpr, SelectOp};
 use radiate_utils::{AnyValue, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fmt::{Debug, Display},
-    time::Duration,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -51,28 +51,12 @@ impl MetricSet {
         }
     }
 
-    pub fn bump(&mut self, generation: u64) {
+    pub fn bump(&mut self, generation: usize) {
         self.meta.generation = generation;
     }
 
-    pub fn generation(&self) -> u64 {
+    pub fn generation(&self) -> usize {
         self.meta.generation
-    }
-
-    /// Resolve a name to a stable [`MetricIdx`], registering an empty metric if
-    /// the name has not been seen before. The returned handle is valid for the
-    /// lifetime of this `MetricSet`.
-    #[inline]
-    pub(crate) fn resolve(&mut self, name: impl AsRef<str>) -> MetricIdx {
-        if let Some(&idx) = self.name_lookup.get(name.as_ref()) {
-            return idx;
-        }
-
-        let idx = MetricIdx::new(self.metrics.len() as u32);
-        let name = SmallStr::from(name.as_ref());
-        self.name_lookup.insert(name.clone(), idx);
-        self.metrics.push(Metric::new(name));
-        idx
     }
 
     #[inline]
@@ -195,35 +179,87 @@ impl MetricSet {
     pub fn dashboard(&self) -> String {
         fmt::render_full(self).unwrap_or_default()
     }
+
+    /// Resolve a name to a stable [`MetricIdx`], registering an empty metric if
+    /// the name has not been seen before. The returned handle is valid for the
+    /// lifetime of this `MetricSet`.
+    #[inline]
+    fn resolve(&mut self, name: impl AsRef<str>) -> MetricIdx {
+        if let Some(&idx) = self.name_lookup.get(name.as_ref()) {
+            return idx;
+        }
+
+        let idx = MetricIdx::new(self.metrics.len() as u32);
+        let name = SmallStr::from(name.as_ref());
+        self.name_lookup.insert(name.clone(), idx);
+        self.metrics.push(Metric::new(name));
+        idx
+    }
 }
 
-impl ExprSelector for MetricSet {
-    fn select(&self, sel: &SelectExpr) -> AnyValue<'static> {
-        // Missing metrics return Null so downstream math can propagate it; the
-        // outer Clamp (or any consumer using non-finite fallback) then takes the
-        // floor instead of the engine seeing an unrelated error.
-        let Some(metric) = sel.metric.as_ref().and_then(|name| self.get(name.as_str())) else {
-            return AnyValue::Null;
-        };
+impl<'a> ProjectExpr<'a> for &MetricSet {
+    #[inline]
+    fn select(&'a self, sel: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
+        (*self).select(sel)
+    }
+}
 
-        let wrap = |v: f32| match sel.kind {
-            MetricKind::Value => AnyValue::Float32(v),
-            MetricKind::Duration => AnyValue::Duration(Duration::from_secs_f32(v)),
-        };
+impl<'a> ProjectExpr<'a> for MetricSet {
+    #[inline]
+    fn select(&'a self, sel: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
+        match sel {
+            SelectOp::Field(name) => self
+                .get(name)
+                .map(|metric| (*metric).select(&SelectOp::Field(metric_fields::LAST_VALUE)))
+                .unwrap_or(Ok(AnyValue::Null)),
+            SelectOp::Nested { parent, child } => {
+                if let SelectOp::Field(name) = parent.as_ref()
+                    && let Some(metric) = self.get(name)
+                {
+                    return (*metric).select(child);
+                }
 
-        match sel.field {
-            MetricField::LastValue => wrap(metric.last_value()),
-            MetricField::Mean => wrap(metric.mean()),
-            MetricField::StdDev => wrap(metric.stddev()),
-            MetricField::Min => wrap(metric.min()),
-            MetricField::Max => wrap(metric.max()),
-            MetricField::Sum => wrap(metric.sum()),
-            MetricField::Var => wrap(metric.var()),
-            MetricField::Skew => AnyValue::Float32(metric.skew()),
-            MetricField::Count => AnyValue::UInt64(metric.count() as u64),
-            MetricField::Generation => AnyValue::UInt64(metric.generation()),
-            MetricField::UpdateCount => AnyValue::UInt64(metric.update_count() as u64),
+                Ok(AnyValue::Null)
+            }
+            _ => Ok(AnyValue::Null),
         }
+    }
+}
+
+impl From<Vec<Metric>> for MetricSet {
+    fn from(metrics: Vec<Metric>) -> Self {
+        let mut by_name = HashMap::with_capacity(metrics.len());
+        for (i, m) in metrics.iter().enumerate() {
+            by_name.insert(m.name().clone(), MetricIdx::new(i as u32));
+        }
+
+        MetricSet {
+            metrics,
+            name_lookup: by_name,
+            meta: Meta::default(),
+        }
+    }
+}
+
+impl From<&[Metric]> for MetricSet {
+    fn from(metrics: &[Metric]) -> Self {
+        Self::from(metrics.to_vec())
+    }
+}
+
+impl<'a, S, T> From<(S, Vec<T>)> for MetricSet
+where
+    S: AsRef<str>,
+    T: Into<MetricUpdate<'a>>,
+{
+    fn from(tuple: (S, Vec<T>)) -> Self {
+        let (name, updates) = tuple;
+        let mut set = MetricSet::new();
+        for update in updates {
+            set.upsert(name.as_ref(), update.into());
+        }
+
+        set
     }
 }
 

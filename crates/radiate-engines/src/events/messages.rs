@@ -1,6 +1,13 @@
-use crate::{Limit, context::EvolutionContext};
-use radiate_core::{Chromosome, Ecosystem, MetricSet, Objective, Score};
+use crate::{Generation, Limit, context::EvolutionContext};
+use radiate_core::{Chromosome, EngineState, MetricSet, Objective, Score};
 use std::{fmt::Debug, sync::Arc};
+
+#[derive(Clone, Debug)]
+pub struct EngineStateChange {
+    pub index: usize,
+    pub from: EngineState,
+    pub to: EngineState,
+}
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CheckpointSaved {
@@ -89,6 +96,9 @@ impl<T> Debug for EpochComplete<T> {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct EngineStart;
+
 #[derive(Clone)]
 pub struct EngineStop<T> {
     pub index: usize,
@@ -122,23 +132,24 @@ impl<T> Debug for EngineStop<T> {
     }
 }
 
-#[derive(Clone)]
-pub struct EcosystemSnapshot<C: Chromosome + 'static> {
-    pub index: usize,
-    pub ecosystem: Arc<Ecosystem<C>>,
+#[derive(Clone, Debug)]
+pub struct GenerationSnapshot<C, T>
+where
+    C: Chromosome + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    pub generation: Arc<Generation<C, T>>,
 }
 
-impl<C: Chromosome + Clone, T> From<&EvolutionContext<C, T>> for EcosystemSnapshot<C> {
+impl<C, T> From<&EvolutionContext<C, T>> for GenerationSnapshot<C, T>
+where
+    C: Chromosome + 'static,
+    T: Clone + Send + Sync + 'static,
+    Generation<C, T>: for<'a> From<&'a EvolutionContext<C, T>>,
+{
     fn from(ctx: &EvolutionContext<C, T>) -> Self {
-        EcosystemSnapshot {
-            index: ctx.index,
-            ecosystem: Arc::new(ctx.ecosystem.clone()),
+        GenerationSnapshot {
+            generation: Arc::new(Generation::from(ctx)),
         }
-    }
-}
-
-impl<C: Chromosome> Debug for EcosystemSnapshot<C> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "EcosystemSnapshot(index={})", self.index)
     }
 }

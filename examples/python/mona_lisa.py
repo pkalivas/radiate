@@ -92,12 +92,12 @@ class ImageWriter(rd.EventHandler):
         self.out_dir = out_dir
 
     def on_event(self, event: rd.EngineEvent):
-        if event.index() % self.save_every == 0:
+        if event.index % self.save_every == 0:
             print(event)
             best = np.asarray(event.value(), dtype=np.float32)
             frame = render(best, W, H)
-            frame.save(self.out_dir / f"gen_{event.index():05d}.png")
-            print(f"gen {event.index():5d}  rms={event.score()}")
+            frame.save(self.out_dir / f"gen_{event.index:05d}.png")
+            print(f"gen {event.index:5d}  rms={event.score()}")
 
 
 engine = (
@@ -112,7 +112,7 @@ engine = (
     .minimizing()
     .subscribe(ImageWriter(SAVE_EVERY, OUT))
     .select(rd.Select.tournament(3), rd.Select.roulette())
-    .alters(
+    .alter(
         rd.Cross.mean(0.3),
         rd.Mutate.jitter(0.01, 0.15),
         rd.Cross.uniform(0.4),

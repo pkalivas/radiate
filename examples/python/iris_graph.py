@@ -62,7 +62,7 @@ engine = (
         output=rd.Op.sigmoid(),
     )
     .regression(features=train_features, targets=train_targets, loss=rd.MSE)
-    .alters(
+    .alter(
         rd.Cross.graph(0.5, 0.5),
         rd.Mutate.op(0.02, 0.05),
         rd.Mutate.graph(0.008, 0.002, False),

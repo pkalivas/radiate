@@ -1,5 +1,4 @@
 use radiate::prelude::*;
-use radiate::stats::TagType;
 
 fn main() {
     // Engine for the basic_metrics example (built outside the shown slice).

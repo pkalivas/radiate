@@ -45,12 +45,30 @@ where
 {
     type Gene = TreeNode<T>;
 
-    fn as_slice(&self) -> &[Self::Gene] {
-        &self.nodes
+    fn get(&self, index: usize) -> Option<&Self::Gene> {
+        self.nodes.get(index)
     }
 
-    fn as_mut_slice(&mut self) -> &mut [Self::Gene] {
-        &mut self.nodes
+    fn get_mut(&mut self, index: usize) -> Option<&mut Self::Gene> {
+        self.nodes.get_mut(index)
+    }
+
+    fn set(&mut self, index: usize, gene: Self::Gene) {
+        if let Some(slot) = self.nodes.get_mut(index) {
+            *slot = gene;
+        }
+    }
+
+    fn iter(&self) -> impl Iterator<Item = &Self::Gene> {
+        self.nodes.iter()
+    }
+
+    fn iter_mut(&mut self) -> impl Iterator<Item = &mut Self::Gene> {
+        self.nodes.iter_mut()
+    }
+
+    fn len(&self) -> usize {
+        self.nodes.len()
     }
 }
 
@@ -175,7 +193,7 @@ mod tests {
     use crate::{Node, NodeType};
 
     fn create_test_chromosome() -> TreeChromosome<i32> {
-        let store = NodeStore::new();
+        let mut store = NodeStore::new();
         store.insert(NodeType::Vertex, vec![1, 2, 3]);
         store.insert(NodeType::Leaf, vec![4, 5]);
 
@@ -286,7 +304,7 @@ mod tests {
     #[cfg(feature = "serde")]
     fn test_serialize_deserialize_with_complex_type() {
         use crate::Op;
-        let store = NodeStore::new();
+        let mut store = NodeStore::new();
         store.insert(NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]);
         store.insert(NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]);
 

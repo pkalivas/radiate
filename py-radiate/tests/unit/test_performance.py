@@ -58,7 +58,7 @@ class TestEnginePerformance:
             .minimizing()
             .size(100)
             .select(rd.Select.tournament(k=3), rd.Select.elite())
-            .alters(rd.Cross.uniform(rate=0.7), rd.Mutate.arithmetic(rate=0.1))
+            .alter(rd.Cross.uniform(rate=0.7), rd.Mutate.arithmetic(rate=0.1))
             .limit(rd.Limit.generations(50))
         )
 
@@ -83,7 +83,7 @@ class TestEnginePerformance:
             .minimizing()
             .size(1000)
             .select(rd.Select.tournament(k=3), rd.Select.elite())
-            .alters(rd.Cross.uniform(rate=0.7), rd.Mutate.arithmetic(rate=0.1))
+            .alter(rd.Cross.uniform(rate=0.7), rd.Mutate.arithmetic(rate=0.1))
             .limit(rd.Limit.generations(10))
         )
 
@@ -114,7 +114,7 @@ class TestMemoryPerformance:
             .minimizing()
             .size(100)
             .select(rd.Select.tournament(k=3), rd.Select.elite())
-            .alters(rd.Cross.uniform(rate=0.7), rd.Mutate.arithmetic(rate=0.1))
+            .alter(rd.Cross.uniform(rate=0.7), rd.Mutate.arithmetic(rate=0.1))
             .limit(rd.Limit.generations(50))
         )
 
@@ -143,7 +143,7 @@ class TestMemoryPerformance:
                 .minimizing()
                 .size(200)
                 .select(rd.Select.tournament(k=3), rd.Select.elite())
-                .alters(rd.Cross.uniform(rate=0.7), rd.Mutate.arithmetic(rate=0.1))
+                .alter(rd.Cross.uniform(rate=0.7), rd.Mutate.arithmetic(rate=0.1))
                 .limit(rd.Limit.generations(10))
             )
 
@@ -180,7 +180,7 @@ class TestScalabilityPerformance:
                 .minimizing()
                 .size(100)
                 .select(rd.Select.tournament(k=3), rd.Select.elite())
-                .alters(rd.Cross.uniform(rate=0.7), rd.Mutate.arithmetic(rate=0.1))
+                .alter(rd.Cross.uniform(rate=0.7), rd.Mutate.arithmetic(rate=0.1))
                 .limit(rd.Limit.generations(20))
             )
 

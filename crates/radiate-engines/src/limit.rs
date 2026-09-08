@@ -14,13 +14,11 @@
 //! - **Combined Limits**: Apply multiple limits simultaneously
 
 use crate::{
-    EvolutionContext, Generation, generation::GenerationView, message::LimitTriggered,
+    EvolutionContext, Generation, events::LimitTriggered, generation::GenerationView,
     runtime::RuntimeLimit,
 };
 use radiate_core::{
-    AnyValue, Chromosome, Engine, Objective, Optimize, Score,
-    error::RadiateResult,
-    rate::{Evaluate, Expr},
+    AnyValue, Chromosome, Engine, Expr, Objective, Optimize, Score, error::RadiateResult,
 };
 use radiate_error::radiate_bail;
 use std::{collections::VecDeque, fmt::Debug, time::Duration};
@@ -153,7 +151,7 @@ where
         match outcome {
             LimitOutcome::Proceed => Ok(true),
             LimitOutcome::Stop => {
-                ctx.events()
+                ctx.event_stream()
                     .publish(LimitTriggered(ctx.index, self.clone()));
                 Ok(false)
             }
@@ -161,6 +159,7 @@ where
     }
 }
 
+#[inline]
 fn check_generation_limit<C, T>(
     ctx: &EvolutionContext<C, T>,
     limit: usize,
@@ -177,6 +176,7 @@ where
     })
 }
 
+#[inline]
 fn check_time_limit<C, T>(
     ctx: &EvolutionContext<C, T>,
     limit: Duration,
@@ -199,6 +199,7 @@ where
     })
 }
 
+#[inline]
 fn check_score_limit<C, T>(
     ctx: &EvolutionContext<C, T>,
     limit: &Score,
@@ -242,6 +243,7 @@ where
     Ok(outcome)
 }
 
+#[inline]
 fn check_convergence_limit<C, T>(
     ctx: &EvolutionContext<C, T>,
     window: usize,
@@ -294,6 +296,7 @@ where
     })
 }
 
+#[inline]
 fn check_expr_limit<C, T>(
     ctx: &EvolutionContext<C, T>,
     expr: &mut Expr,
@@ -302,14 +305,14 @@ where
     C: Chromosome,
 {
     let metrics = &ctx.metrics;
-    let result = expr.eval(metrics).unwrap_or(AnyValue::Null);
+    let result = expr.evaluate(metrics)?;
 
     if let AnyValue::Bool(b) = result {
         let proceed = !b;
-        if !proceed {
-            ctx.events()
-                .publish(LimitTriggered(ctx.index, Limit::Expr(expr.clone())));
-        }
+        // if !proceed {
+        //     ctx.event_stream()
+        //         .publish(LimitTriggered(ctx.index, Limit::Expr(expr.clone())));
+        // }
         Ok(if proceed {
             LimitOutcome::Proceed
         } else {
@@ -383,6 +386,12 @@ impl From<(Limit, Limit, Limit, Limit)> for Limit {
     }
 }
 
+impl<const N: usize> From<[Limit; N]> for Limit {
+    fn from(value: [Limit; N]) -> Self {
+        Limit::Combined(value.into_iter().collect::<Vec<Limit>>())
+    }
+}
+
 impl Debug for Limit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -409,7 +418,8 @@ where
         let view = GenerationView::new(ctx);
         let proceed = !(self)(view);
         if !proceed {
-            ctx.events().publish(LimitTriggered(ctx.index, Limit::Fn));
+            ctx.event_stream()
+                .publish(LimitTriggered(ctx.index, Limit::Fn));
         }
         Ok(proceed)
     }

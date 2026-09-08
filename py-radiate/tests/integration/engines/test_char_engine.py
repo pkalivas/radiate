@@ -14,7 +14,7 @@ def test_engine_char_vector():
         rd.Engine.char(len(target))
         .fitness(fitness_func)
         .select(rd.Select.boltzmann(4))
-        .alters(rd.Cross.uniform(0.5), rd.Mutate.uniform(0.1))
+        .alter(rd.Cross.uniform(0.5), rd.Mutate.uniform(0.1))
         .limit(rd.Limit.score(len(target)), rd.Limit.generations(1000))
     )
 
@@ -42,7 +42,7 @@ def test_engine_char_matrix(random_seed):
         rd.Engine.char(shape)
         .fitness(fit)
         .select(survivor=rd.Select.elite())
-        .alters(rd.Cross.uniform(0.7), rd.Mutate.uniform(0.1))
+        .alter(rd.Cross.uniform(0.7), rd.Mutate.uniform(0.1))
         .limit(rd.Limit.score(sum(len(t) for t in target)), rd.Limit.generations(2000))
     )
 

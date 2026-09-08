@@ -118,11 +118,13 @@ pub trait Engine {
     /// that is left up to the `epoch()` method or the `next()` method. It's done this way so we
     /// can advance the engine without having to clone or create any new data, and possibly perform operations
     /// outside of the engine which don't require a snapshot of the engine state.
-    fn step(&mut self) -> Result<EngineState>;
+    fn step(&mut self) -> Result<()>;
 
     fn start(&mut self) {}
 
     fn stop(&mut self) {}
+
+    fn state(&self) -> EngineState;
 }
 
 pub trait EngineStream: Engine {
@@ -132,7 +134,7 @@ pub trait EngineStream: Engine {
 
     fn run<F>(self, limit: F) -> Result<Self::Epoch>
     where
-        F: Fn(&Self::View<'_>) -> bool;
+        F: Fn(Self::View<'_>) -> bool + 'static;
 }
 
 /// Extension trait providing convenient methods for running engines with custom logic.
@@ -261,21 +263,25 @@ mod tests {
             }
         }
 
-        fn step(&mut self) -> Result<EngineState> {
+        fn step(&mut self) -> Result<()> {
             self.generation += 1;
-            Ok(EngineState::Running)
+            Ok(())
+        }
+
+        fn state(&self) -> EngineState {
+            EngineState::Running
         }
     }
 
     impl EngineStream for MockEngine {
         type View<'a>
-            = MockEpoch
+            = &'a MockEpoch
         where
             Self: 'a;
 
         fn run<F>(mut self, limit: F) -> Result<Self::Epoch>
         where
-            F: Fn(&Self::View<'_>) -> bool,
+            F: Fn(Self::View<'_>) -> bool + 'static,
         {
             loop {
                 match self.step().map(|_| self.epoch()) {

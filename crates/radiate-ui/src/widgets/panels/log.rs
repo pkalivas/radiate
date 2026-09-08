@@ -4,7 +4,7 @@ use crate::{
     state::{AppState, Pane},
     styles::delta_bar,
 };
-use radiate_engines::{Chromosome, Objective, Optimize, message::LogLevel};
+use radiate_engines::{Chromosome, Objective, Optimize, events::LogLevel};
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Color, Style};

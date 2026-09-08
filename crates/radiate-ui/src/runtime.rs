@@ -1,12 +1,13 @@
 use crate::app::{App, GenerationEvent, InputEvent};
 use color_eyre::{Result, eyre::Context};
+use crossbeam::channel;
 use radiate_engines::{
     Chromosome, Engine, EngineState, EngineStream, Generation, GenerationView, GeneticEngine,
-    error::RadiateResult, message::LogEvent, sync::IntoPair,
+    error::RadiateResult, events::LogEvent, sync::IntoPair,
 };
 use radiate_engines::{EngineRuntime, EvolutionContext, ThreadSync};
 use std::{
-    sync::{Arc, atomic::Ordering, mpsc},
+    sync::{Arc, atomic::Ordering},
     time::Duration,
 };
 
@@ -19,7 +20,7 @@ where
 {
     inner: GeneticEngine<C, T>,
     control: ThreadSync,
-    dispatcher: mpsc::Sender<InputEvent<C>>,
+    dispatcher: channel::Sender<InputEvent<C>>,
     app_thread: Option<std::thread::JoinHandle<Result<()>>>,
     key_thread: Option<std::thread::JoinHandle<Result<()>>>,
 }
@@ -35,8 +36,6 @@ where
 
         let (dispatch_one, dispatch_two) = app.dispatcher().into_pair();
         let stop_flag = control.stop_flag();
-
-        Self::setup_subscriptions(&mut inner, &dispatch_one);
 
         let app_thread = std::thread::spawn(move || {
             let terminal = ratatui::init();
@@ -58,8 +57,6 @@ where
             Ok(())
         });
 
-        control.set_paused(true);
-
         Self {
             inner,
             control,
@@ -70,30 +67,13 @@ where
     }
 
     pub fn iter(self) -> EngineRuntime<Self> {
-        EngineRuntime::new(self)
-    }
-
-    fn setup_subscriptions(
-        engine: &mut GeneticEngine<C, T>,
-        dispatcher: &mpsc::Sender<InputEvent<C>>,
-    ) {
-        let dispatch = dispatcher.clone();
-        engine.subscribe::<LogEvent>(move |msg: &LogEvent| {
-            dispatch
-                .send(InputEvent::Log(msg.0, msg.1.clone()))
-                .map_err(|_| eprintln!("Failed to send log event: {:?}", msg))
+        let dispatcher = self.dispatcher.clone();
+        EngineRuntime::new(self).subscribe::<LogEvent>(move |event: &LogEvent| {
+            dispatcher
+                .send(InputEvent::Log(event.0, event.1.clone()))
+                .map_err(|_| eprintln!("Failed to send log event: {:?}", event))
                 .unwrap();
-        });
-
-        // let dispatch = dispatcher.clone();
-        // engine.subscribe::<EngineState>(move |state: &EngineState| {
-        //     dispatch
-        //         .send(InputEvent::Log(
-        //             radiate_engines::LogLevel::Info,
-        //             format!("{:?}", state),
-        //         ))
-        //         .unwrap();
-        // });
+        })
     }
 }
 
@@ -113,13 +93,26 @@ where
         self.inner.epoch()
     }
 
+    fn state(&self) -> EngineState {
+        self.inner.state()
+    }
+
+    fn start(&mut self) {
+        self.inner.start();
+    }
+
+    fn stop(&mut self) {
+        self.inner.stop();
+    }
+
     #[inline]
-    fn step(&mut self) -> RadiateResult<EngineState> {
-        let state = self.inner.step()?;
+    fn step(&mut self) -> RadiateResult<()> {
+        self.inner.step()?;
+        let state = self.inner.state();
         let current = self.inner.context();
 
         if matches!(state, EngineState::Stopped) {
-            return Ok(state);
+            return Ok(());
         }
 
         if current.index() == 1 {
@@ -133,7 +126,7 @@ where
             .send(InputEvent::EpochComplete(event))
             .unwrap();
 
-        Ok(EngineState::Running)
+        Ok(())
     }
 }
 
@@ -149,17 +142,17 @@ where
 
     fn run<F>(mut self, limit: F) -> RadiateResult<Self::Epoch>
     where
-        F: Fn(&Self::View<'_>) -> bool,
+        F: Fn(Self::View<'_>) -> bool + 'static,
     {
         loop {
-            let epoch = self.step()?;
-            if matches!(epoch, EngineState::Stopped) {
+            self.step()?;
+            if matches!(self.state(), EngineState::Stopped) {
                 break Ok(self.epoch());
             }
 
             let current = self.inner.context();
 
-            if limit(&GenerationView::new(current)) {
+            if limit(GenerationView::new(current)) {
                 break Ok(self.epoch());
             }
         }

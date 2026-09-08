@@ -187,13 +187,14 @@ impl<T: Clone + Default> Graph<T> {
         let input = builder.input(input_size);
         let output = builder.output(output_size);
 
-        let cell_state = builder.vertices_with_arity(1, Arity::Any);
-        let hidden_state = builder.vertices_with_arity(1, Arity::Any);
-
-        let forget_gate = builder.vertices_with_arity(1, Arity::Any);
-        let input_gate = builder.vertices_with_arity(1, Arity::Any);
-        let output_gate = builder.vertices_with_arity(1, Arity::Any);
-        let candidate = builder.vertices_with_arity(1, Arity::Any);
+        let [
+            cell_state,
+            hidden_state,
+            forget_gate,
+            input_gate,
+            output_gate,
+            candidate,
+        ] = builder.gates::<6>();
 
         GraphAggregate::new()
             .all_to_all(&input, &forget_gate)
@@ -237,14 +238,7 @@ impl<T: Clone + Default> Graph<T> {
         let input = builder.input(input_size);
         let output = builder.output(output_size);
 
-        let hidden = builder.vertices_with_arity(1, Arity::Any);
-
-        let update = builder.vertices_with_arity(1, Arity::Any);
-        let reset = builder.vertices_with_arity(1, Arity::Any);
-        let candidate = builder.vertices_with_arity(1, Arity::Any);
-
-        let blend = builder.vertices_with_arity(1, Arity::Any);
-        let gate_flip = builder.vertices_with_arity(1, Arity::Any);
+        let [hidden, update, reset, candidate, blend, gate_flip] = builder.gates::<6>();
 
         GraphAggregate::new()
             .many_to_one(&input, &reset)
@@ -289,7 +283,7 @@ impl<T: Clone + Default> Graph<T> {
         let inputs = builder.input(input_size);
         let outputs = builder.output(output_size);
         let nodes = (0..width * height)
-            .map(|_| builder.vertices(1))
+            .map(|_| builder.vertex())
             .collect::<Vec<Vec<GraphNode<T>>>>();
 
         let mut aggregate = GraphAggregate::new();
@@ -343,6 +337,10 @@ impl<T: Clone + Default> NodeBuilder<T> {
         self.new_nodes(NodeType::Edge, size, Arity::Exact(1))
     }
 
+    pub fn vertex(&self) -> Vec<GraphNode<T>> {
+        self.vertices(1)
+    }
+
     pub fn vertices(&self, size: usize) -> Vec<GraphNode<T>> {
         self.new_nodes(NodeType::Vertex, size, Arity::Any)
     }
@@ -354,6 +352,14 @@ impl<T: Clone + Default> NodeBuilder<T> {
                     .new_instance((idx, NodeType::Vertex, |a| a == arity))
             })
             .collect()
+    }
+
+    pub fn gate(&self) -> Vec<GraphNode<T>> {
+        self.vertices_with_arity(1, Arity::Any)
+    }
+
+    pub fn gates<const N: usize>(&self) -> [Vec<GraphNode<T>>; N] {
+        std::array::from_fn(|_| self.gate())
     }
 
     fn new_nodes(

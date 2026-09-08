@@ -1,6 +1,5 @@
 use crate::{
-    EngineHandle, EpochHandle, PyCheckpointWriter, PyGeneration,
-    bindings::handles::EngineIterHandle, match_variant,
+    EngineHandle, EpochHandle, PyGeneration, bindings::handles::EngineIterHandle, match_variant,
 };
 use pyo3::{PyRefMut, PyResult, Python, pyclass, pymethods};
 use radiate::{
@@ -9,6 +8,9 @@ use radiate::{
 use radiate_error::{radiate_py_bail, radiate_py_err};
 use serde::Serialize;
 use std::time::Duration;
+
+const ENGINE_ALREADY_RUN_ERROR_STRING: &str =
+    "Engine has already been run. Create a new engine instance to run again.";
 
 const BUILD_ENGINE_WITH_LIMIT_ERROR_STRING: &str = "Engine must be built with at least one limit:
     engine = (
@@ -21,7 +23,6 @@ const BUILD_ENGINE_WITH_LIMIT_ERROR_STRING: &str = "Engine must be built with at
 #[derive(Clone)]
 pub enum PyEngineRunOption {
     Log(bool),
-    Checkpoint(usize, String, String),
     Ui(Duration),
 }
 
@@ -30,11 +31,6 @@ impl PyEngineRunOption {
     #[staticmethod]
     pub fn log(value: bool) -> Self {
         PyEngineRunOption::Log(value)
-    }
-
-    #[staticmethod]
-    pub fn checkpoint(interval: usize, path: String, file_type: String) -> Self {
-        PyEngineRunOption::Checkpoint(interval, path, file_type)
     }
 
     #[staticmethod]
@@ -72,7 +68,7 @@ impl PyEngine {
                 let engine = self
                     .engine
                     .take()
-                    .ok_or_else(|| radiate_py_err!("Engine has already been run"))?;
+                    .ok_or_else(|| radiate_py_err!(ENGINE_ALREADY_RUN_ERROR_STRING))?;
 
                 if self.limits.is_empty() {
                     radiate_py_bail!(BUILD_ENGINE_WITH_LIMIT_ERROR_STRING);
@@ -94,7 +90,7 @@ impl PyEngine {
         let handle = self
             .engine
             .take()
-            .ok_or_else(|| radiate_py_err!("Engine has already been run"))?;
+            .ok_or_else(|| radiate_py_err!(ENGINE_ALREADY_RUN_ERROR_STRING))?;
 
         if self.limits.is_empty() {
             radiate_py_bail!(BUILD_ENGINE_WITH_LIMIT_ERROR_STRING);
@@ -138,14 +134,9 @@ where
     T: Clone + Send + Sync + Serialize + 'static,
 {
     let log = get_log_option(&options);
-    let checkpoint = get_checkpoint_option(&options);
 
     engine
         .chain_if(log.unwrap_or(false), |eng| eng.logging())
-        .chain_if(checkpoint.is_some(), |eng| {
-            let (interval, path, file_type) = checkpoint.unwrap();
-            eng.checkpoint_with(interval, path, Box::new(PyCheckpointWriter(file_type)))
-        })
         .limit(limits)
         .last()
         .map_err(|err| radiate_py_err!(format!("Engine failed during execution: {err}")))
@@ -165,19 +156,6 @@ fn get_log_option(options: &[PyEngineRunOption]) -> Option<bool> {
         });
 
     if ui.is_some() { Some(false) } else { log }
-}
-
-fn get_checkpoint_option(options: &[PyEngineRunOption]) -> Option<(usize, String, String)> {
-    options
-        .iter()
-        .find(|opt| matches!(opt, PyEngineRunOption::Checkpoint(_, _, _)))
-        .and_then(|opt| {
-            if let PyEngineRunOption::Checkpoint(interval, path, file_type) = opt {
-                Some((*interval, path.clone(), file_type.clone()))
-            } else {
-                None
-            }
-        })
 }
 
 fn get_ui_option(options: &[PyEngineRunOption]) -> Option<Duration> {

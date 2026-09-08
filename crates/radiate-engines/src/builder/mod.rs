@@ -1,7 +1,6 @@
 mod alters;
 pub(crate) mod config;
 mod evaluators;
-mod events;
 mod filters;
 mod objectives;
 mod population;
@@ -9,40 +8,37 @@ mod problem;
 mod selectors;
 mod species;
 
-use crate::builder::evaluators::EvaluationParams;
 use crate::builder::filters::FilterParams;
 use crate::builder::objectives::OptimizeParams;
 use crate::builder::population::PopulationParams;
 use crate::builder::problem::ProblemParams;
+use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
-use crate::message::{CheckpointSaved, EngineLogger, EventStream, LoggingHandler, Warning};
+use crate::events::{Event, EventStream};
+use crate::genome::phenotype::Phenotype;
+use crate::objectives::{Objective, Optimize};
+use crate::pipeline::Pipeline;
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
     TournamentSelector, context::EvolutionContext,
 };
-use crate::{EngineStop, pipeline::Pipeline};
-use crate::{EpochComplete, genome::phenotype::Phenotype};
+#[cfg(feature = "serde")]
+use crate::{FileWriter, io::FileReader};
 use crate::{Generation, Result};
-use crate::{LimitTriggered, builder::selectors::SelectionParams};
+use crate::{Handler, builder::evaluators::EvaluationParams};
 use crate::{
     builder::evaluators::ExecutorParams,
     steps::{
         EngineStep, FilterStep, FrontStep, MetricStep, RecombineStep, SelectConfig, SpeciateStep,
     },
 };
-#[cfg(feature = "serde")]
-use crate::{builder::events::CheckpointParams, io::FileReader};
-use crate::{
-    message::HealthMonitor,
-    objectives::{Objective, Optimize},
-};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
-use radiate_core::{Alterer, Ecosystem, EngineState, Expr, FitnessEvaluator, Valid, metric_names};
+use radiate_core::{Alterer, Ecosystem, Expr, FitnessEvaluator, Valid, metric_names};
+use radiate_core::{ExprSet, ThreadSync};
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
-use radiate_core::{ThreadSync, rate::ExprSet};
 use radiate_core::{
     expr,
     problem::{BatchEngineProblem, EngineProblem},
@@ -50,6 +46,8 @@ use radiate_core::{
 use radiate_utils::VersionedCounts;
 #[cfg(feature = "serde")]
 use serde::Deserialize;
+#[cfg(feature = "serde")]
+use serde::Serialize;
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
@@ -65,8 +63,6 @@ where
     pub optimization_params: OptimizeParams<C>,
     pub problem_params: ProblemParams<C, T>,
     pub filter_params: FilterParams<C>,
-    #[cfg(feature = "serde")]
-    pub checkpoint_params: CheckpointParams<C, T>,
 
     pub alterers: Vec<Alterer<C>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
@@ -134,6 +130,12 @@ where
         self
     }
 
+    /// Subscribe to an event of type `E` with the given event handler.
+    pub fn subscribe<E: Event>(self, handler: impl Handler<E>) -> Self {
+        self.params.event_stream.subscribe(handler);
+        self
+    }
+
     /// Load a checkpoint from the given file path. This will
     /// load the generation from the file and set it as the current generation
     /// for the engine.
@@ -153,6 +155,54 @@ where
         }
         let generation = read_generation.expect("Failed to read checkpoint file");
         self.generation(generation)
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn checkpoint(self, interval: usize, path: impl AsRef<std::path::Path>) -> Self
+    where
+        C: Serialize + 'static,
+        T: Clone + Send + Sync + Serialize + 'static,
+    {
+        use crate::JsonWriter;
+
+        self.checkpoint_with(interval, path, JsonWriter)
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn checkpoint_with<F>(
+        mut self,
+        interval: usize,
+        path: impl AsRef<std::path::Path>,
+        writer: F,
+    ) -> Self
+    where
+        C: Serialize + 'static,
+        T: Clone + Send + Sync + Serialize + 'static,
+        F: FileWriter<Generation<C, T>> + Send + Sync + 'static,
+    {
+        use crate::events::CheckpointWriterHandler;
+
+        let path_without_extension = path
+            .as_ref()
+            .to_str()
+            .and_then(|s| s.rsplit('.').nth(1))
+            .unwrap_or(path.as_ref().to_str().unwrap_or("checkpoints"));
+
+        let handler =
+            CheckpointWriterHandler::<C, T>::new(interval, path_without_extension.into(), writer);
+        let attached = self.params.event_stream.attatch(handler);
+
+        if attached.is_err() {
+            self.add_error_if(
+                || true,
+                &format!(
+                    "Failed to attach checkpoint handler: {}",
+                    attached.err().unwrap()
+                ),
+            );
+        }
+
+        self
     }
 }
 
@@ -204,21 +254,15 @@ where
         Ok(GeneticEngine::<C, T>::new(context, pipeline, event_system))
     }
 
+    /// Build the event stream for the genetic engine. This will configure the event stream,
+    /// set its executor, and spawn the necessary event handlers such as the engine logger
+    /// and health monitor. The configured event stream is then stored back in the builder's
+    /// parameters.
     fn build_event_stream(&mut self) -> Result<()> {
-        let stream = self.params.event_stream.clone();
+        let mut stream = self.params.event_stream.clone();
+        let stream_executor = self.params.evaluation_params.event_stream_executor.clone();
 
-        let logger = stream.spawn(EngineLogger::<T>::new());
-        logger.subscribe::<LimitTriggered>();
-        logger.subscribe::<Warning>();
-        logger.subscribe::<CheckpointSaved>();
-        logger.subscribe::<EpochComplete<T>>();
-        logger.subscribe::<EngineState>();
-        logger.subscribe::<EngineStop<T>>();
-
-        let health = stream.spawn(HealthMonitor::<T>::default());
-        health.subscribe::<EpochComplete<T>>();
-
-        stream.subscribe(LoggingHandler);
+        stream.set_executor(stream_executor.executor);
 
         self.params.event_stream = stream;
 
@@ -324,8 +368,8 @@ where
             return Ok(());
         }
 
-        let crossover = UniformCrossover::new(0.5).alterer();
-        let mutator = UniformMutator::new(0.1).alterer();
+        let crossover = UniformCrossover::new(0.5).into_alterer();
+        let mutator = UniformMutator::new(0.1).into_alterer();
 
         self.params.alterers.push(crossover);
         self.params.alterers.push(mutator);
@@ -457,6 +501,7 @@ where
     fn build_audit_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
         Some(Box::new(MetricStep::new(
             config.objective().clone(),
+            config.population_size(),
             config.exprs().clone(),
         )))
     }
@@ -542,12 +587,6 @@ where
                 },
                 filter_params: FilterParams {
                     filters: Vec::new(),
-                },
-                #[cfg(feature = "serde")]
-                checkpoint_params: CheckpointParams {
-                    interval: None,
-                    path: None,
-                    writer: None,
                 },
 
                 replacement_strategy: Arc::new(EncodeReplace),

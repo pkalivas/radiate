@@ -17,7 +17,7 @@ def test_engine_graph_xor(xor_dataset, random_seed):
         )
         .regression(inputs, outputs)
         .select(offspring=rd.Select.boltzmann(4.0))
-        .alters(
+        .alter(
             rd.Cross.graph(0.5, 0.5),
             rd.Mutate.op(0.07, 0.05),
             rd.Mutate.graph(0.1, 0.1, False),
@@ -50,7 +50,7 @@ def test_engine_graph_regression_with_speciation(
         rd.Engine(codec)
         .regression(inputs, outputs)
         .diversity(rd.Dist.neat(1.0, 1.0, 3.0), 0.1)
-        .alters(
+        .alter(
             rd.Cross.graph(0.5, 0.5),
             rd.Mutate.op(0.07, 0.05),
             rd.Mutate.graph(0.1, 0.1),
@@ -99,7 +99,7 @@ def test_engine_graph_with_recurrent_connections(memory_dataset, random_seed):
         .size(250)
         .regression(inputs, outputs)
         .limit(rd.Limit.score(0.01), rd.Limit.generations(2000))
-        .alters(
+        .alter(
             rd.Cross.graph(0.5, 0.5),
             rd.Mutate.op(0.1, 0.05),
             rd.Mutate.graph(0.05, 0.05),
@@ -147,7 +147,7 @@ def test_engine_graph_recurrent_class_acc(memory_dataset, random_seed):
     engine = (
         rd.Engine(codec)
         .regression(inputs, outputs, loss=rd.XEnt)
-        .alters(
+        .alter(
             rd.Cross.graph(0.5, 0.5),
             rd.Mutate.op(0.1, 0.05),
             rd.Mutate.graph(0.05, 0.05),

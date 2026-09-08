@@ -1,6 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Expr, Gene, RateSet,
-    random_provider,
+    AlterContext, BoundedGene, Chromosome, Crossover, Expr, Gene, RateSet, random_provider,
 };
 use radiate_utils::Float;
 
@@ -48,12 +47,12 @@ where
         chrom_one: &mut C,
         chrom_two: &mut C,
         ctx: &mut AlterContext,
-    ) -> AlterResult {
+    ) -> usize {
         let mut cross_count = 0;
         let alpha = A::from(self.alpha).unwrap();
 
         random_provider::with_rng(|rand| {
-            chrom_one.apply_paired(chrom_two, |one, two| {
+            chrom_one.zip(chrom_two).for_each(|one, two| {
                 if rand.bool(ctx.rate()) {
                     let allele_one = *one.allele();
                     let allele_two = *two.allele();
@@ -61,18 +60,21 @@ where
                     let new_allele_one = allele_one - (alpha * (allele_two - allele_one));
                     let new_allele_two = allele_two - (alpha * (allele_one - allele_two));
 
-                    let (one_min, one_max) = one.bound_range();
-                    let (two_min, two_max) = two.bound_range();
+                    one.set_allele(new_allele_one);
+                    two.set_allele(new_allele_two);
 
-                    *one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
-                    *two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
+                    // let (one_min, one_max) = one.bound_range();
+                    // let (two_min, two_max) = two.bound_range();
+
+                    // *one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
+                    // *two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
 
                     cross_count += 1;
                 }
             });
         });
 
-        cross_count.into()
+        cross_count
     }
 }
 
@@ -107,7 +109,7 @@ mod tests {
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
-        assert_eq!(result.count(), 3);
+        assert_eq!(result, 3);
 
         // Check that values have been blended according to the formula
         // new_allele_one = allele_one - (alpha * (allele_two - allele_one))
@@ -147,7 +149,7 @@ mod tests {
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
-        assert_eq!(result.count(), 0);
+        assert_eq!(result, 0);
 
         // Values should remain unchanged
         for i in 0..chrom_one.len() {
@@ -178,7 +180,7 @@ mod tests {
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
-        assert_eq!(result.count(), 2);
+        assert_eq!(result, 2);
 
         let alpha = 0.3_f32;
         let expected_one_0 = 1.0_f32 - (alpha * (4.0_f32 - 1.0_f32));
@@ -218,7 +220,7 @@ mod tests {
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
-        assert_eq!(result.count(), 2);
+        assert_eq!(result, 2);
 
         // With alpha = 0, values should remain unchanged
         for i in 0..chrom_one.len() {
@@ -248,7 +250,7 @@ mod tests {
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
-        assert_eq!(result.count(), 2);
+        assert_eq!(result, 2);
 
         // With alpha = 1, values should be swapped
         assert_eq!(*chrom_one.get(0).unwrap().allele(), -2.0);
@@ -274,7 +276,7 @@ mod tests {
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
-        assert_eq!(result.count(), 2);
+        assert_eq!(result, 2);
 
         // With identical parents, values should remain the same
         for i in 0..chrom_one.len() {
@@ -320,7 +322,7 @@ mod tests {
 
             let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
-            assert_eq!(result.count(), 5);
+            assert_eq!(result, 5);
 
             let alpha = 0.5;
             for i in 0..chrom_one.len() {
@@ -367,14 +369,14 @@ mod tests {
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
-        assert_eq!(result.count(), 1);
+        assert_eq!(result, 1);
 
         // Test with empty chromosomes (should not panic)
         let mut empty_one = FloatChromosome::<f32>::new(vec![]);
         let mut empty_two = FloatChromosome::<f32>::new(vec![]);
 
         let result = crossover.cross_chromosomes(&mut empty_one, &mut empty_two, &mut ctx);
-        assert_eq!(result.count(), 0);
+        assert_eq!(result, 0);
     }
 
     #[test]

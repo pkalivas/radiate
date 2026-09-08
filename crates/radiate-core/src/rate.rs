@@ -1,6 +1,6 @@
 use crate::{MetricSet, error::RadiateResult};
 use radiate_error::radiate_bail;
-pub use radiate_expr::*;
+use radiate_expr::Expr;
 use radiate_utils::SmallStr;
 use smallvec::SmallVec;
 
@@ -78,7 +78,7 @@ impl RateSet {
             return Ok(metric.last_value());
         }
 
-        let output = expr.eval(metrics)?;
+        let output = expr.evaluate(metrics)?;
         match output.extract::<f32>() {
             Some(rate) => Ok(rate),
             None => {

@@ -1,5 +1,6 @@
-use crate::stats::{MetricView, Tag, TagType, defaults};
+use crate::{ProjectExpr, stats::{MetricView, Tag, TagType, defaults, metric_fields}};
 use radiate_error::{RadiateError, radiate_err};
+use radiate_expr::SelectOp;
 use radiate_utils::{
     AnyValue, DataType, SmallStr, Statistic
 };
@@ -27,7 +28,7 @@ macro_rules! metric {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub(super) struct Meta {
     pub(super) update_count: usize,
-    pub(super) generation: u64,
+    pub(super) generation: usize,
 }
 
 #[derive(Clone, PartialEq, Default)]
@@ -66,12 +67,12 @@ impl Metric {
     }
 
     #[inline(always)]
-    pub fn generation(&self) -> u64 {
+    pub fn generation(&self) -> usize {
         self.meta.generation
     }
 
     #[inline(always)]
-    pub fn set_generation(&mut self, generation: u64) {
+    pub fn set_generation(&mut self, generation: usize) {
         if generation != self.meta.generation {
             self.meta.update_count = 0;
         }
@@ -299,6 +300,73 @@ impl Metric {
 
     pub fn quantile(&self, q: f32) -> Option<f32> {
         self.distributions().and_then(|view| view.quantile(q))
+    }
+}
+
+impl<'a> ProjectExpr<'a> for &Metric {
+    #[inline]
+    fn select(&'a self, sel: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
+        (*self).select(sel)
+    }
+}
+
+impl<'a> ProjectExpr<'a> for Metric {
+    #[inline]
+    fn select(&self, sel: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
+        let wrap = |v: f32| match self.dtype {
+            DTYPE_FLOAT32 | DTYPE_LIST => AnyValue::Float32(v),
+            DTYPE_DURATION => AnyValue::Duration(Duration::from_secs_f32(v)),
+            _ => AnyValue::Null,
+        };
+
+        let match_field = |metric: &Metric, field: &SmallStr| {
+            match field.as_str() {
+                f if f == metric_fields::LAST_VALUE => wrap(metric.last_value()),
+                f if f == metric_fields::MEAN => wrap(metric.mean()),
+                f if f == metric_fields::STDDEV => wrap(metric.stddev()),
+                f if f == metric_fields::MIN => wrap(metric.min()),
+                f if f == metric_fields::MAX => wrap(metric.max()),
+                f if f == metric_fields::SUM => wrap(metric.sum()),
+                f if f == metric_fields::VARIANCE => wrap(metric.var()),
+                f if f == metric_fields::SKEWNESS => wrap(metric.skew()),
+                f if f == metric_fields::KURTOSIS => wrap(metric.kurt()),
+                f if f == metric_fields::COUNT => AnyValue::UInt64(metric.count() as u64),
+                f if f == metric_fields::GENERATION => AnyValue::UInt64(metric.generation() as u64),
+                f if f == metric_fields::UPDATE_COUNT => AnyValue::UInt64(metric.update_count() as u64),
+                _ => AnyValue::Null,
+            }
+        };
+
+        match sel {
+            SelectOp::Field(field) => {
+                Ok(match_field(self, field))
+            }
+            SelectOp::Identity => {
+                Ok(AnyValue::from(self))
+            }
+            _ => Ok(AnyValue::Null),
+        }
+    }
+}
+
+impl From<&Metric> for AnyValue<'_> {
+    fn from(metric: &Metric) -> Self {
+        use AnyValue::*;
+
+        AnyValue::Struct(metric.name().clone(), Vec::from([
+            (metric_fields::LAST_VALUE, DataType::Float32, Float32(metric.last_value())),
+            (metric_fields::MEAN, DataType::Float32, Float32(metric.mean())),
+            (metric_fields::STDDEV, DataType::Float32, Float32(metric.stddev())),
+            (metric_fields::MIN, DataType::Float32, Float32(metric.min())),
+            (metric_fields::MAX, DataType::Float32, Float32(metric.max())),
+            (metric_fields::SUM, DataType::Float32, Float32(metric.sum())),
+            (metric_fields::VARIANCE, DataType::Float32, Float32(metric.var())),
+            (metric_fields::SKEWNESS, DataType::Float32, Float32(metric.skew())),
+            (metric_fields::KURTOSIS, DataType::Float32, Float32(metric.kurt())),
+            (metric_fields::COUNT, DataType::UInt64, UInt64(metric.count() as u64)),
+            (metric_fields::GENERATION, DataType::UInt64, UInt64(metric.generation() as u64)),
+            (metric_fields::UPDATE_COUNT, DataType::UInt64, UInt64(metric.update_count() as u64)),
+        ]))
     }
 }
 

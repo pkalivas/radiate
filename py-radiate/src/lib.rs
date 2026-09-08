@@ -1,11 +1,11 @@
 use pyo3::{prelude::*, wrap_pymodule};
 use radiate_python::{
     _activation_ops, _all_ops, _create_op, _edge_ops, _get_dtype_max, _get_dtype_min, PyAccuracy,
-    PyBitCodec, PyCharCodec, PyChromosome, PyEcosystem, PyEngine, PyEngineBuilder, PyEngineEvent,
-    PyEngineInput, PyEngineInputType, PyEngineRunOption, PyExpr, PyFitnessFn, PyFloatCodec,
-    PyFront, PyFrontValue, PyGene, PyGeneType, PyGeneration, PyGenotype, PyGraph, PyGraphCodec,
-    PyIntCodec, PyMetric, PyMetricSet, PyOp, PyPermutationCodec, PyPhenotype, PyPopulation,
-    PyRandomProvider, PySpecies, PySubscriber, PyTree, PyTreeCodec, components, loss_functions,
+    PyBitCodec, PyCharCodec, PyChromosome, PyEcosystem, PyEngine, PyEngineBuilder, PyEngineInput,
+    PyEngineInputType, PyEngineRunOption, PyExpr, PyFitnessFn, PyFloatCodec, PyFront, PyFrontValue,
+    PyGene, PyGeneType, PyGeneration, PyGenotype, PyGraph, PyGraphCodec, PyIntCodec, PyMetric,
+    PyMetricSet, PyOp, PyPermutationCodec, PyPhenotype, PyPopulation, PyRandomProvider, PySpecies,
+    PySubscriber, PyTree, PyTreeCodec, components, constants::event_types, loss_functions,
     py_accuracy, py_alter, py_select,
 };
 
@@ -53,7 +53,6 @@ fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyPermutationCodec>()?;
 
     m.add_class::<PySubscriber>()?;
-    m.add_class::<PyEngineEvent>()?;
 
     m.add_class::<PyGraph>()?;
     m.add_class::<PyTree>()?;
@@ -85,5 +84,10 @@ fn _constants(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let loss_functions_mod = PyModule::new(m.py(), "loss_functions")?;
     loss_functions::register(&loss_functions_mod)?;
     m.add_submodule(&loss_functions_mod)?;
+
+    let event_types_mod = PyModule::new(m.py(), "event_types")?;
+    event_types::register(&event_types_mod)?;
+    m.add_submodule(&event_types_mod)?;
+
     Ok(())
 }

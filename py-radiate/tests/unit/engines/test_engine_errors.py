@@ -50,7 +50,7 @@ def test_engine_invalid_numeric_alters():
     engine = (
         rd.Engine.bit(shape=[20, 20])
         # Bit Engine's can't use numeric alters, so this should cause an error
-        .alters(rd.Cross.blend(), rd.Mutate.gaussian())
+        .alter(rd.Cross.blend(), rd.Mutate.gaussian())
         .fitness(fitness_func)
         .limit(rd.Limit.generations(10))
     )
@@ -69,7 +69,7 @@ def test_engine_invalid_alters(graph_1x1_engine):
     engine = (
         graph_1x1_engine.fitness(fit)
         .limit(rd.Limit.generations(10))
-        .alters(rd.Cross.uniform(0.5), rd.Mutate.gaussian())
+        .alter(rd.Cross.uniform(0.5), rd.Mutate.gaussian())
     )  # Both these alters are invalid for a graph codec, so this should cause an error
 
     with pytest.raises(ValueError):

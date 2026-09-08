@@ -26,7 +26,8 @@ class EngineInputType(StrEnum):
     Population = "Population"
     Subscriber = "Subscriber"
     Generation = "Generation"
-    Checkpoint = "Checkpoint"
+    CheckpointLoad = "CheckpointLoad"
+    CheckpointWrite = "CheckpointWrite"
     Codec = "Codec"
     FitnessFunction = "FitnessFunction"
     Metric = "Metric"
@@ -52,7 +53,8 @@ input_type_mapping = {
     EngineInputType.Population: PyEngineInputType.Population,
     EngineInputType.Subscriber: PyEngineInputType.Subscriber,
     EngineInputType.Generation: PyEngineInputType.Generation,
-    EngineInputType.Checkpoint: PyEngineInputType.Checkpoint,
+    EngineInputType.CheckpointLoad: PyEngineInputType.CheckpointLoad,
+    EngineInputType.CheckpointWrite: PyEngineInputType.CheckpointWrite,
     EngineInputType.Codec: PyEngineInputType.Codec,
     EngineInputType.FitnessFunction: PyEngineInputType.FitnessFunction,
     EngineInputType.Metric: PyEngineInputType.Metric,

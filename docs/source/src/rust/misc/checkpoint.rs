@@ -20,11 +20,11 @@ fn main() {
         .codec(CharCodec::vector(TARGET.len()))
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .fitness_fn(fitness_fn)
+        .checkpoint(10, "checks")
         .build();
 
     let result = engine
         .iter()
-        .checkpoint(10, "checks")
         .until_score(target_len)
         .last()
         .expect("No result from engine run");

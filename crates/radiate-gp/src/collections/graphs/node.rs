@@ -7,7 +7,6 @@ use radiate_utils::sentry_id;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::sync::atomic::AtomicU64;
 
 sentry_id!(GraphNodeId);
 sentry_id!(InnovationId);
@@ -346,6 +345,10 @@ where
             incoming: self.incoming.clone(),
             outgoing: self.outgoing.clone(),
         }
+    }
+
+    fn set_allele(&mut self, allele: Self::Allele) {
+        self.value = allele;
     }
 }
 

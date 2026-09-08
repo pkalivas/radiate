@@ -20,6 +20,7 @@ use radiate_error::radiate_py_bail;
 use radiate_utils::Float;
 pub use tree::PyTree;
 
+#[inline]
 pub fn generic_eval_runner<'py, F, E>(
     py: Python<'py>,
     output_length: usize,
@@ -46,6 +47,7 @@ where
     ));
 }
 
+#[inline]
 fn run_gp_eval_array<'py, F, E>(
     py: Python<'py>,
     output_length: usize,
@@ -96,6 +98,7 @@ where
     };
 }
 
+#[inline]
 fn run_gp_eval_list<'py, F, E>(
     py: Python<'py>,
     output_length: usize,

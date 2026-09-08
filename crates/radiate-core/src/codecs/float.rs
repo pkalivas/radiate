@@ -1,7 +1,7 @@
 use super::Codec;
-use crate::genome::Gene;
 use crate::genome::genotype::Genotype;
 use crate::{Chromosome, FloatChromosome};
+use crate::{chromosomes::ContiguousChromosome, genome::Gene};
 use radiate_utils::Float;
 use std::ops::Range;
 

@@ -1,6 +1,4 @@
 pub mod bool;
-pub mod expr;
-// pub mod math;
 pub mod math;
 pub mod mutator;
 pub mod operation;
@@ -12,7 +10,6 @@ mod serde;
 use radiate_utils::Float;
 use std::cell::RefCell;
 
-pub use expr::Expression;
 pub use math::{activation_ops, all_ops, math_ops};
 pub use mutator::OperationMutator;
 pub use operation::*;
@@ -76,8 +73,13 @@ pub(crate) mod op_names {
     pub const SIGMOID: &str = "sigmoid";
     pub const TANH: &str = "tanh";
     pub const IDENTITY: &str = "identity";
-    pub const WEIGHT: &str = "w";
     pub const LOGSUMEXP: &str = "logsumexp";
+    pub const TOOTH: &str = "tooth";
+    pub const SIGN: &str = "sign";
+    pub const RECIPROCAL: &str = "reciprocal";
+    pub const GAUSSIAN: &str = "gaussian";
+    pub const WEIGHT: &str = "w";
+    pub const WEIGHT2: &str = "w2";
 
     /// Boolean operation names
     pub const AND: &str = "and";

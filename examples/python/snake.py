@@ -366,7 +366,7 @@ class SnakeEvolver:
                 .fitness(SnakeEvolver.fitness_function)
                 .select(offspring=rd.Select.tournament(4))
                 .limit(rd.Limit.generations(generations), rd.Limit.seconds(60 * 2))
-                .alters(
+                .alter(
                     rd.Cross.graph(0.5, 0.5),
                     rd.Mutate.op(0.04, 0.05),
                     rd.Mutate.graph(0.08, 0.04, True),
@@ -380,7 +380,7 @@ class SnakeEvolver:
                 .fitness(SnakeEvolver.fitness_function)
                 .select(rd.Select.tournament(4))
                 .parallel()  # <- Use parallel execution if GIL is not enabled
-                .alters(
+                .alter(
                     rd.Cross.graph(0.5, 0.5),
                     rd.Mutate.op(0.04, 0.05),
                     rd.Mutate.graph(0.08, 0.04, True),

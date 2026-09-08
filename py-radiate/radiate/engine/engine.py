@@ -7,7 +7,13 @@ from typing import TYPE_CHECKING, Any, Sequence
 from radiate.codec.graph import GraphType
 from radiate.radiate import PyEngine
 
-from .._typing import AtLeastOne, Checkpoint, RdDataType, RdLossType, Subscriber
+from .._typing import (
+    AtLeastOne,
+    FileType,
+    RdDataType,
+    RdLossType,
+    Subscriber,
+)
 from ..codec import (
     BitCodec,
     CharCodec,
@@ -34,7 +40,7 @@ from ..operators.limit import Limit
 from ..operators.selector import Select
 from .builder import EngineBuilder
 from .generation import Generation
-from .option import LogParam, UiParam, normalize_checkpoint_params
+from .option import LogParam, UiParam
 
 if TYPE_CHECKING:
     from radiate._rd import PyEngine
@@ -60,20 +66,20 @@ class EngineRuntime[G, T]:
         self,
         log: bool = False,
         ui: bool = False,
-        checkpoint: Checkpoint | None = None,
     ) -> Generation[G, T]:
         """Run the engine and return the resulting generation."""
         log_option = LogParam(enable=log)
-        checkpoint_option = normalize_checkpoint_params(checkpoint)
         ui_option = UiParam() if ui else None
 
-        options = [
-            opt.__backend__()
-            for opt in [log_option, checkpoint_option, ui_option]
-            if opt is not None
-        ]
-
-        return Generation.from_rust(self._engine.run(options))
+        return Generation.from_rust(
+            self._engine.run(
+                [
+                    opt.__backend__()
+                    for opt in [log_option, ui_option]
+                    if opt is not None
+                ]
+            )
+        )
 
 
 class Engine[G, T]:
@@ -294,7 +300,6 @@ class Engine[G, T]:
         self,
         log: bool = False,
         ui: bool = False,
-        checkpoint: Checkpoint | None = None,
     ) -> Generation[G, T]:
         """Run the engine with the given limits.
         Args:
@@ -314,15 +319,9 @@ class Engine[G, T]:
         >>> engine.run(log=True)
         >>> engine.run(ui=True)
         >>> engine.run()
-        >>> engine.run(checkpoint=True)
-        >>> engine.run(checkpoint="checkpoints")
-        >>> engine.run(checkpoint=(50, "checkpoints"))
-        >>> engine.run(
-        ...     checkpoint=rd.EngineCheckpoint(50, "checkpoints", file_type="json"),
-        ... )
         """
         engine = self._builder.build()
-        return EngineRuntime(engine).run(log=log, ui=ui, checkpoint=checkpoint)
+        return EngineRuntime(engine).run(log=log, ui=ui)
 
     def fitness(self, fitness_func: Callable[[T], Any] | Fitness[T]) -> Engine[G, T]:
         """
@@ -433,7 +432,7 @@ class Engine[G, T]:
         ...     .regression(
         ...         features, targets, loss=rd.MSE
         ...     )  # <- we directly pass our features/targets to the regression method. The engine is now also configured to minimize the mean squared error between the graph's output and our targets.
-        ...     .alters(
+        ...     .alter(
         ...         rd.Cross.graph(0.05, 0.5),
         ...         rd.Mutate.op(0.07, 0.05),
         ...         rd.Mutate.graph(0.1, 0.1, False),
@@ -536,7 +535,7 @@ class Engine[G, T]:
 
         return self
 
-    def alters(self, *alters: AlterBase) -> Engine[G, T]:
+    def alter(self, *alters: AlterBase) -> Engine[G, T]:
         """
         Set the alteration operators for the engine.
 
@@ -565,7 +564,7 @@ class Engine[G, T]:
         ...     .fitness(my_fitness_fn)
         ...     .minimizing()
         ...     .select(offspring=rd.Select.tournament(k=3))
-        ...     .alters(
+        ...     .alter(
         ...         rd.Cross.multipoint(
         ...             0.75, 2
         ...         ),  # <- multi-point crossover with 75% rate and 2 crossover points
@@ -806,7 +805,7 @@ class Engine[G, T]:
         ...     .fitness(fitness_fn)
         ...     .minimizing()
         ...     .population(population)
-        ...     .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.01))
+        ...     .alter(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.01))
         ... )
         """
         self._builder.set_population(population)
@@ -1145,7 +1144,7 @@ class Engine[G, T]:
         ...         output=rd.Op.linear(),
         ...     )
         ...     .regression(..., ...)
-        ...     .alters(
+        ...     .alter(
         ...         rd.Cross.graph(0.05, 0.5),
         ...         rd.Mutate.op(0.07, 0.05),
         ...         rd.Mutate.graph(0.1, 0.1, False),
@@ -1175,6 +1174,33 @@ class Engine[G, T]:
             )
 
         self._builder.set_checkpoint_path(str(path), ignore_not_found=ignore_not_found)
+        return self
+
+    def write_checkpoint(
+        self, path: str | Path, interval: int, file_type: FileType = "pkl"
+    ) -> Engine[G, T]:
+        """
+        Set the checkpoint write configuration for the engine.
+
+        This method allows you to specify the path and interval for writing checkpoints during the engine's execution.
+
+        Parameters:
+        -----------
+        path : str | Path
+            The path to the checkpoint file.
+        interval : int
+            The interval (in generations) at which checkpoints should be written.
+
+        Returns:
+        --------
+        Engine[G, T]
+            The engine instance with the checkpoint write configuration set.
+        """
+        if not isinstance(path, (str, Path)):
+            raise ValueError("Checkpoint path must be a string or Path object.")
+        if isinstance(path, str):
+            path = Path(path)
+        self._builder.set_checkpoint_write(str(path), interval, file_type)
         return self
 
     def metrics(

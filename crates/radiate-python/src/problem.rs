@@ -22,7 +22,7 @@ impl<C: Chromosome, T> PyProblem<C, T> {
 
     fn call_fitness<'py>(&self, py: Python<'py>, phenotype: PyAnyObject) -> RadiateResult<Score> {
         let any_value = self.fitness_func.inner.call1(py, (phenotype.inner,)).map_err(|e| {
-            error::radiate_err!(Evaluation:
+            error::radiate_err!(Fitness:
                 "Ensure the function is callable, accepts one argument (Genotype), and returns a valid score: {}",
                 e
             )
@@ -40,7 +40,7 @@ impl<C: Chromosome, T> PyProblem<C, T> {
             return score;
         }
 
-        error::radiate_bail!(Evaluation:
+        error::radiate_bail!(Fitness:
             "Failed to extract fitness score from Python function call. Ensure the function returns a valid score type."
         );
     }
@@ -55,7 +55,7 @@ impl<C: Chromosome, T> PyProblem<C, T> {
             .inner
             .call1(py, (phenotypes,))
             .map_err(|e| {
-                error::radiate_err!(Evaluation:
+                error::radiate_err!(Fitness:
                     "Ensure the function is callable, accepts one argument (list of Genotypes), and returns a valid list of scores. Details: {}",
                     e
                 )
@@ -86,7 +86,7 @@ impl<C: Chromosome, T> PyProblem<C, T> {
             return Ok(Self::scores_from_vec(vals));
         }
 
-        error::radiate_bail!(Evaluation:
+        error::radiate_bail!(Fitness:
             "Fitness function did not return a valid list of scores."
         );
     }
@@ -104,12 +104,12 @@ impl<C: Chromosome, T> PyProblem<C, T> {
     fn numpy_f32_score(array: &Bound<PyArrayDyn<f32>>) -> RadiateResult<Score> {
         let readonly_view = array.readonly();
         let slice = readonly_view.as_slice().map_err(|e| {
-            error::radiate_err!(Evaluation:
+            error::radiate_err!(Fitness:
                 "Fitness function returned a non-contiguous numpy array: {}", e
             )
         })?;
         if slice.is_empty() {
-            error::radiate_bail!(Evaluation:
+            error::radiate_bail!(Fitness:
                 "Fitness function returned an empty score array."
             );
         }
@@ -119,12 +119,12 @@ impl<C: Chromosome, T> PyProblem<C, T> {
     fn numpy_f64_score(array: &Bound<PyArrayDyn<f64>>) -> RadiateResult<Score> {
         let readonly_view = array.readonly();
         let slice = readonly_view.as_slice().map_err(|e| {
-            error::radiate_err!(Evaluation:
+            error::radiate_err!(Fitness:
                 "Fitness function returned a non-contiguous numpy array: {}", e
             )
         })?;
         if slice.is_empty() {
-            error::radiate_bail!(Evaluation:
+            error::radiate_bail!(Fitness:
                 "Fitness function returned an empty score array."
             );
         }
@@ -170,7 +170,7 @@ impl<C: Chromosome, T> PyProblem<C, T> {
         Score: From<Vec<V>>,
     {
         if values.is_empty() {
-            error::radiate_bail!(Evaluation:
+            error::radiate_bail!(Fitness:
                 "Fitness function returned an empty score vector."
             );
         }

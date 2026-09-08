@@ -1,9 +1,10 @@
-use crate::{Chromosome, ThreadSync};
-use crate::{builder::config::EngineConfig, message::EventStream};
+use crate::{Chromosome, ThreadSync, events::EngineStateChange};
+use crate::{builder::config::EngineConfig, events::EventStream};
+use radiate_core::ExprSet;
 use radiate_core::error::RadiateResult;
-use radiate_core::rate::ExprSet;
 use radiate_core::{
-    Ecosystem, Front, MetricSet, Objective, Phenotype, Problem, Score, metric, metric_names,
+    Ecosystem, EngineState, Front, MetricSet, Objective, Phenotype, Problem, Score, metric,
+    metric_names,
 };
 use std::sync::{Arc, Mutex, RwLock};
 
@@ -19,6 +20,7 @@ pub struct EvolutionContext<C: Chromosome, T> {
     pub(crate) problem: Arc<dyn Problem<C, T>>,
     pub(crate) exprs: Option<Arc<Mutex<ExprSet>>>,
     pub(crate) events: EventStream,
+    pub(crate) state: EngineState,
 }
 
 impl<C: Chromosome, T> EvolutionContext<C, T> {
@@ -39,31 +41,47 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
     }
 
     pub fn front(&self) -> Arc<RwLock<Front<Phenotype<C>>>> {
-        self.front.clone()
+        Arc::clone(&self.front)
     }
 
-    pub fn events(&self) -> &EventStream {
+    pub fn event_stream(&self) -> &EventStream {
         &self.events
-    }
-
-    pub fn is_stopped(&self) -> bool {
-        self.sync.is_stopped()
-    }
-
-    pub fn stop(&mut self) {
-        self.sync.stop();
-    }
-
-    pub fn is_paused(&self) -> bool {
-        self.sync.is_paused()
     }
 
     pub fn wait(&self) {
         self.sync.wait()
     }
 
-    pub fn get_or_create_control(&mut self) -> ThreadSync {
+    pub fn get_or_create_sync(&mut self) -> ThreadSync {
         self.sync.clone()
+    }
+
+    pub fn request_stop(&self) {
+        self.sync.stop();
+    }
+
+    pub fn stop_requested(&self) -> bool {
+        self.sync.is_stopped()
+    }
+
+    pub fn pause_requested(&self) -> bool {
+        self.sync.is_paused()
+    }
+
+    pub fn state(&self) -> EngineState {
+        self.state
+    }
+
+    pub(crate) fn set_running(&mut self) {
+        self.change_state(EngineState::Running);
+    }
+
+    pub(crate) fn set_paused(&mut self) {
+        self.change_state(EngineState::Paused);
+    }
+
+    pub(crate) fn set_stopped(&mut self) {
+        self.change_state(EngineState::Stopped);
     }
 
     pub(crate) fn try_advance_one(&mut self) -> RadiateResult<bool> {
@@ -83,9 +101,23 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
 
         self.metrics
             .replace(metric!(metric_names::INDEX, self.index));
-        self.metrics.bump(self.index as u64);
+        self.metrics.bump(self.index);
 
         Ok(best_improved)
+    }
+
+    fn change_state(&mut self, state: EngineState) {
+        if self.state == state {
+            return;
+        }
+
+        self.events.publish(EngineStateChange {
+            from: self.state,
+            to: state,
+            index: self.index,
+        });
+
+        self.state = state;
     }
 }
 
@@ -108,6 +140,7 @@ where
                 sync: config.sync(),
                 exprs: generation.exprs(),
                 events: config.event_stream(),
+                state: EngineState::PreStart,
             };
         }
 
@@ -128,6 +161,7 @@ where
             sync: config.sync(),
             exprs: config.exprs(),
             events: config.event_stream(),
+            state: EngineState::PreStart,
         }
     }
 }

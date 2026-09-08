@@ -1,14 +1,13 @@
-use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
+use crate::{GenerationView, builder::GeneticEngineBuilder};
 use crate::{
-    EventHandler,
-    message::{
-        EcosystemSnapshot, EngineStop, EpochComplete, EpochStart, EventStream, Improvement,
-        Subscription,
+    Handler,
+    events::{
+        EngineStart, EngineStop, EpochComplete, EpochStart, EventStream, Improvement, Subscription,
     },
 };
-use crate::{GenerationView, builder::GeneticEngineBuilder};
-use crate::{context::EvolutionContext, message::Event};
+use crate::{context::EvolutionContext, events::Event};
+use crate::{events::GenerationSnapshot, pipeline::Pipeline};
 use radiate_core::{Engine, EngineState};
 use radiate_core::{EngineStream, error::Result};
 
@@ -104,7 +103,7 @@ where
     /// from external contexts. If the control interface has not been initialized yet, this method
     /// will create a new instance.
     pub fn control(&mut self) -> ThreadSync {
-        self.context.get_or_create_control()
+        self.context.get_or_create_sync()
     }
 
     /// Converts the engine into an iterator that yields generations.
@@ -139,7 +138,7 @@ where
     /// This method returns a [Subscription] that allows you to define
     /// how to handle events of type `E`. You can use this to listen for events
     /// such as epoch completions, improvements, or custom messages emitted during the evolutionary process.
-    pub fn subscribe<E: Event>(&self, handler: impl EventHandler<E>) -> Subscription {
+    pub fn subscribe<E: Event>(&self, handler: impl Handler<E>) -> Subscription {
         self.stream.subscribe(handler)
     }
 }
@@ -182,42 +181,56 @@ where
         Generation::from(&self.context)
     }
 
+    fn state(&self) -> EngineState {
+        self.context.state
+    }
+
     fn start(&mut self) {
-        self.stream.publish(EngineState::Running);
+        self.context.set_running();
+        self.stream.publish(EngineStart);
     }
 
     fn stop(&mut self) {
+        self.context.set_stopped();
         self.stream.publish(EngineStop::from(&self.context));
     }
 
     #[inline]
-    fn step(&mut self) -> Result<EngineState> {
-        if self.context.is_stopped() {
-            // We publish a stop event when the `stop` fn is called (above), so
-            // no need to publish anything here.
-            return Ok(EngineState::Stopped);
-        } else if self.context.is_paused() {
-            self.stream.publish(EngineState::Paused);
-            self.context.wait();
-            self.stream.publish(EngineState::Running);
+    fn step(&mut self) -> Result<()> {
+        match self.state() {
+            EngineState::PreStart => self.start(),
+            EngineState::Stopped => return Ok(()),
+            _ => {
+                if self.context.stop_requested() {
+                    self.stop();
+                    return Ok(());
+                }
+
+                if self.context.pause_requested() {
+                    self.context.set_paused();
+                    self.context.wait();
+
+                    if self.context.stop_requested() {
+                        self.stop();
+                        return Ok(());
+                    }
+
+                    self.context.set_running();
+                }
+            }
         }
 
         self.stream.publish(EpochStart::from(&self.context));
         self.pipeline.run(&mut self.context)?;
         if self.context.try_advance_one()? {
             self.stream
-                .lazy_publish(|| Improvement::from(&self.context));
+                .lazy_publish(|| Improvement::from(&self.context))?;
         }
-
         self.stream.publish(EpochComplete::from(&self.context));
-
-        // `Ecosystem` is a heavy clone, but this only clones if we have a subscriber
-        // and once it is cloned, the snapshot is backed by an `Arc<Ecosystem>` so
-        // we don't pay the clone cost twice.
         self.stream
-            .lazy_publish(|| EcosystemSnapshot::from(&self.context));
+            .lazy_publish(|| GenerationSnapshot::from(&self.context))?;
 
-        Ok(EngineState::Running)
+        Ok(())
     }
 }
 
@@ -232,44 +245,10 @@ where
     where
         Self: 'a;
 
-    fn run<F>(mut self, limit: F) -> Result<Self::Epoch>
+    fn run<F>(self, limit: F) -> Result<Self::Epoch>
     where
-        F: Fn(&Self::View<'_>) -> bool,
+        F: Fn(Self::View<'_>) -> bool + 'static,
     {
-        loop {
-            let view = self.step().map(|_| GenerationView::new(&self.context))?;
-            if limit(&view) {
-                break Ok(self.epoch());
-            }
-        }
+        self.iter().until(limit).last()
     }
 }
-
-// /// Custom drop implementation for proper cleanup and event emission.
-// ///
-// /// When the engine is dropped, it emits a stop event to notify any listeners
-// /// that the evolutionary process has ended. This allows external systems to
-// /// perform cleanup operations or finalize results.
-// ///
-// /// # Event Emission
-// ///
-// /// The stop event includes the final context state, allowing listeners to:
-// /// - Record final metrics and statistics
-// /// - Save final population state
-// /// - Perform cleanup operations
-// /// - Generate final reports
-// /// - Integrate with external systems
-// impl<C, T> Drop for GeneticEngine<C, T>
-// where
-//     C: Chromosome,
-//     T: Clone + Send + Sync + 'static,
-// {
-//     fn drop(&mut self) {
-//         let is_stopped = self.context.is_stopped();
-//         if !is_stopped {
-//             self.stream.publish(EngineStop::from(&self.context));
-//             self.stream.wait_for_all();
-//             self.context.stop();
-//         }
-//     }
-// }

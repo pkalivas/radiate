@@ -3,21 +3,25 @@ use radiate::prelude::*;
 const MIN_SCORE: f32 = 0.001;
 
 fn main() {
-    random_provider::seed(33);
+    random_provider::seed(87654);
 
     let store = vec![
         (NodeType::Input, vec![Op::var(0)]),
         (NodeType::Edge, vec![Op::weight()]),
-        (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::linear()]),
+        (
+            NodeType::Vertex,
+            vec![Op::sub(), Op::mul(), Op::linear(), Op::weight2()],
+        ),
         (NodeType::Output, vec![Op::linear()]),
     ];
+
+    // .metrics(Expr::select("scores.best").rolling(5).mean().alias("idk"))
 
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, store))
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4.0))
-        // .parallel()
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
@@ -25,7 +29,6 @@ fn main() {
         ))
         .build();
 
-    // radiate::ui(engine)
     engine
         .iter()
         .logging()
@@ -63,16 +66,3 @@ fn dataset() -> impl Into<DataSet<f32>> {
 fn compute(x: f32) -> f32 {
     4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x
 }
-
-// engine.on::<EngineStop<Graph<Op<f32>>>>().handle(
-//         |event: &EngineStop<Graph<Op<f32>>>, _: &EventContext| {
-//             Accuracy::default()
-//                 .named("Regression Graph")
-//                 .on(&dataset().into())
-//                 .loss(Loss::MSE)
-//                 .eval(&event.best)
-//                 .inspect(|acc| {
-//                     println!("{:?}\n{acc:?}\n{}", event.best, event.metrics.dashboard());
-//                 });
-//         },
-//     );

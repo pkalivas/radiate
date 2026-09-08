@@ -30,7 +30,7 @@ engine = (
     .fitness(fitness_fn)
     .minimizing()
     .limit(rd.Limit.score(0))
-    .alters(
+    .alter(
         rd.Cross.multipoint(0.75, 2),
         rd.Mutate.uniform(0.05),
     )

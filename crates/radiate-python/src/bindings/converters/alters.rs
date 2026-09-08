@@ -52,7 +52,7 @@ macro_rules! alter_table {
                 AlterEntry {
                     name: $name,
                     convert: |input| {
-                        $fn(input).map(|value| value.alterer())
+                        $fn(input).map(|value| value.into_alterer())
                     },
                 },
             )*

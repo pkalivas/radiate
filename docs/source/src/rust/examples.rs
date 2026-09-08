@@ -203,12 +203,10 @@ fn graph_xor() {
     fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
         let mut reducer = GraphEvaluator::new(result.value());
         for sample in get_dataset().iter() {
-            let output = &reducer.eval_mut(sample.input())[0];
+            let output = &reducer.eval_mut(&sample.0)[0];
             println!(
-                "{:?} -> epected: {:?}, actual: {:.3?}",
-                sample.input(),
-                sample.output(),
-                output
+                "{:?} -> expected: {:?}, actual: {:.3?}",
+                sample.0, sample.1, output
             );
         }
 

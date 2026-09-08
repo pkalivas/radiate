@@ -1,6 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Crossover, Expr, RateSet, chromosomes::NumericGene,
-    random_provider,
+    AlterContext, Chromosome, Crossover, Expr, RateSet, chromosomes::NumericGene, random_provider,
 };
 
 /// The [MeanCrossover] is a simple crossover method that replaces the genes of the first chromosome
@@ -38,18 +37,18 @@ where
         chrom_one: &mut C,
         chrom_two: &mut C,
         ctx: &mut AlterContext,
-    ) -> AlterResult {
+    ) -> usize {
         let mut count = 0;
 
         random_provider::with_rng(|rand| {
-            for (gene_one, gene_two) in chrom_one.iter_mut().zip(chrom_two.iter()) {
+            chrom_one.zip(chrom_two).for_each(|gene_one, gene_two| {
                 if rand.bool(ctx.rate()) {
                     *gene_one = gene_one.mean(gene_two);
                     count += 1;
                 }
-            }
+            });
         });
 
-        count.into()
+        count
     }
 }
