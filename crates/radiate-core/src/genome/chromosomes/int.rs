@@ -96,7 +96,7 @@ impl<T: Integer> Gene for IntGene<T> {
 
     fn set_allele(&mut self, allele: T) {
         let (bound_min, bound_max) = self.bound_range();
-        self.allele = allele.clamp(*bound_min, *bound_max);
+        self.allele = allele.safe_clamp(*bound_min, *bound_max);
     }
 }
 

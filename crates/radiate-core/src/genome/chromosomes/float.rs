@@ -81,7 +81,7 @@ impl<F: Float> Gene for FloatGene<F> {
 
     fn set_allele(&mut self, allele: F) {
         let (bound_min, bound_max) = self.bound_range();
-        self.allele = allele.clamp(*bound_min, *bound_max);
+        self.allele = allele.safe_clamp(*bound_min, *bound_max);
     }
 }
 

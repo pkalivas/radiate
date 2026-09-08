@@ -5,10 +5,6 @@ thread_local! {
 
 }
 
-pub fn is_str_interned(s: &str) -> bool {
-    STR_INTERN_CACHE.with(|interned| interned.borrow().contains(s))
-}
-
 #[macro_export]
 macro_rules! intern {
     ($name:expr) => {{
@@ -24,4 +20,8 @@ macro_rules! intern {
             }
         })
     }};
+}
+
+pub fn is_str_interned(s: &str) -> bool {
+    STR_INTERN_CACHE.with(|interned| interned.borrow().contains(s))
 }

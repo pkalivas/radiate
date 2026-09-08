@@ -46,6 +46,7 @@ where
     G: Gene,
     G::Allele: PartialEq,
 {
+    #[inline]
     fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
         let geno_one = geno_one.genotype();
         let geno_two = geno_two.genotype();
@@ -92,6 +93,7 @@ where
     G: NumericGene,
     G::Allele: NumericAllele,
 {
+    #[inline]
     fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
         let geno_one = geno_one.genotype();
         let geno_two = geno_two.genotype();
@@ -147,6 +149,7 @@ where
     G: NumericGene,
     G::Allele: NumericAllele,
 {
+    #[inline]
     fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
         let geno_one = geno_one.genotype();
         let geno_two = geno_two.genotype();

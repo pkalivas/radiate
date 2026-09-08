@@ -101,7 +101,7 @@ where
         self
     }
 
-    pub fn throttle<F>(self, duration: std::time::Duration, mut action_fn: F) -> Self
+    pub fn throttle<F>(self, duration: Duration, mut action_fn: F) -> Self
     where
         F: FnMut(GenerationView<C, T>) + Send + Sync + 'static,
     {

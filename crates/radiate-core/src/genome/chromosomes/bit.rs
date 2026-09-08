@@ -3,6 +3,8 @@ use crate::{Chromosome, Gene, Valid, chromosomes::ContiguousChromosome, random_p
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 
+const WORD_SIZE: u64 = 64;
+
 /// A gene that represents a single bit. The `allele` is a `bool` that is randomly assigned.
 /// The `allele` is either `true` or `false`. This is the simplest form of a gene and
 /// in traditional genetic algorithms is the gene that is used to represent the individuals.
@@ -99,13 +101,56 @@ pub struct BitChromosome {
 
 impl BitChromosome {
     /// Create a new [`BitChromosome`] with the given length.
-    /// The length is the number of genes in the chromosome.
     pub fn new(length: usize) -> Self {
-        let genes = (0..length).map(|_| BitGene::new()).collect();
+        BitChromosome {
+            genes: (0..length).map(|_| BitGene::new()).collect(),
+        }
+    }
+
+    pub fn pack(&self) -> Vec<u64> {
+        let num_words = (self.genes.len() + (WORD_SIZE - 1) as usize) / WORD_SIZE as usize;
+        let mut packed = Vec::with_capacity(num_words);
+        let mut current = 0_u64;
+        let mut count = 0;
+
+        for gene in &self.genes {
+            current = (current << 1) | (gene.allele as u64);
+            count += 1;
+            if count == WORD_SIZE {
+                packed.push(current);
+                current = 0;
+                count = 0;
+            }
+        }
+
+        if count > 0 {
+            current <<= WORD_SIZE - count;
+            packed.push(current);
+        }
+
+        packed
+    }
+
+    pub fn unpack(chunks: &[u64], length: usize) -> Self {
+        let mut genes = Vec::with_capacity(length);
+
+        for (i, &word) in chunks.iter().enumerate() {
+            let remaining = (length - genes.len()) as u64;
+            let bits_in_word = remaining.min(WORD_SIZE);
+
+            for shift in (WORD_SIZE - bits_in_word..WORD_SIZE).rev() {
+                genes.push(BitGene::from(((word >> shift) & 1) == 1));
+            }
+
+            debug_assert!(
+                bits_in_word == WORD_SIZE || i == chunks.len() - 1,
+                "partial chunk should only occur as the last chunk"
+            );
+        }
+
         BitChromosome { genes }
     }
 }
-
 impl Chromosome for BitChromosome {
     type Gene = BitGene;
 
@@ -217,6 +262,64 @@ mod test {
         let allele = gene.allele();
         let new_gene = gene.with_allele(allele);
         assert_eq!(new_gene, copy);
+    }
+
+    #[test]
+    fn test_pack_round_trip() {
+        let chromosome = BitChromosome::from(vec![true, false, true, true, false]);
+        let packed = chromosome.pack();
+        let unpacked = BitChromosome::unpack(&packed, 5);
+
+        assert_eq!(chromosome, unpacked);
+    }
+
+    #[test]
+    fn test_pack_known_value() {
+        let chromosome = BitChromosome::from(vec![true, false, true, true]);
+        assert_eq!(chromosome.pack(), vec![0b1011u64 << 60]);
+    }
+
+    #[test]
+    fn test_pack_empty() {
+        let chromosome = BitChromosome::from(Vec::<bool>::new());
+        assert_eq!(chromosome.pack(), Vec::<u64>::new());
+    }
+
+    #[test]
+    fn test_unpack_length_shorter_than_64() {
+        let chromosome = BitChromosome::from(vec![true, false, true]);
+        let packed = chromosome.pack();
+        let unpacked = BitChromosome::unpack(&packed, 3);
+        assert_eq!(unpacked, chromosome);
+    }
+
+    #[test]
+    fn test_chromosome_new_len() {
+        let chromosome = BitChromosome::new(10);
+        assert_eq!(chromosome.len(), 10);
+    }
+
+    #[test]
+    fn test_chromosome_from_vec_bool() {
+        let chromosome = BitChromosome::from(vec![true, false, true]);
+        assert_eq!(chromosome.get(0).unwrap().allele(), &true);
+        assert_eq!(chromosome.get(1).unwrap().allele(), &false);
+        assert_eq!(chromosome.get(2).unwrap().allele(), &true);
+    }
+
+    #[test]
+    fn test_chromosome_get_set() {
+        let mut chromosome = BitChromosome::new(3);
+        chromosome.set(1, BitGene::from(true));
+        assert_eq!(chromosome.get(1).unwrap().allele(), &true);
+    }
+
+    #[test]
+    fn test_pack_chunk_count() {
+        assert_eq!(BitChromosome::new(64).pack().len(), 1);
+        assert_eq!(BitChromosome::new(65).pack().len(), 2);
+        assert_eq!(BitChromosome::new(128).pack().len(), 2);
+        assert_eq!(BitChromosome::new(129).pack().len(), 3);
     }
 
     #[test]
