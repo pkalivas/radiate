@@ -319,6 +319,19 @@ class Mutate(AlterBase):
         )
 
     @staticmethod
+    def bit_flip(rate: OperatorRate = 0.1) -> Mutate:
+        """
+        The `BitFlipMutator` randomly flips the value of `BitGene`s within a `chromosome`.
+
+        :param rate: The probability of mutating each gene in an individual.
+        """
+        return Mutate(
+            components.BIT_FLIP_MUTATOR,
+            rate=_get_rate(rate),
+            allowed_genes=GeneType.BIT,
+        )
+
+    @staticmethod
     def op(rate: OperatorRate = 0.1, replace_rate: OperatorRate = 0.1) -> Mutate:
         """
         This mutator randomly changes or alters the `op` of a node within a `TreeChromosome` or `GraphChromosome`.

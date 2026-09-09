@@ -63,12 +63,6 @@ where
                     one.set_allele(new_allele_one);
                     two.set_allele(new_allele_two);
 
-                    // let (one_min, one_max) = one.bound_range();
-                    // let (two_min, two_max) = two.bound_range();
-
-                    // *one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
-                    // *two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
-
                     cross_count += 1;
                 }
             });

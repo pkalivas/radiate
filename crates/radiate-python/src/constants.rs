@@ -58,6 +58,7 @@ pub mod components {
         INVERSION_MUTATOR = "InversionMutator";
         POLYNOMIAL_MUTATOR = "PolynomialMutator";
         JITTER_MUTATOR = "JitterMutator";
+        BIT_FLIP_MUTATOR = "BitFlipMutator";
 
         UNIQUE_SCORE_FILTER = "UniqueScoreFilter";
 

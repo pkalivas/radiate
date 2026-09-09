@@ -52,6 +52,7 @@ class _Components:
     INVERSION_MUTATOR: Final[str]
     POLYNOMIAL_MUTATOR: Final[str]
     JITTER_MUTATOR: Final[str]
+    BIT_FLIP_MUTATOR: Final[str]
 
     UNIQUE_SCORE_FILTER: Final[str]
 

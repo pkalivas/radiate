@@ -40,6 +40,10 @@ impl BitGene {
             allele: random_provider::bool(0.5),
         }
     }
+
+    pub fn flip(&mut self) {
+        self.allele = !self.allele;
+    }
 }
 
 /// Implement the [`Gene`] trait for the [`BitGene`].
