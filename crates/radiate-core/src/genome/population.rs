@@ -13,7 +13,7 @@ use std::ops::{Index, IndexMut, Range};
 /// is essentially a light wrapper around such a Vec. The [Population] struct, however, has some
 /// additional functionality that allows for sorting and iteration over the individuals in the population.
 ///
-/// Note: Although the [Population] offers mut methods to mut the individuals in the population, the [Population]
+/// Note: Although the [Population] offers mut methods to mutate the individuals in the population, the [Population]
 /// itself offers no way to increase or decrease the number of individuals in the population. As such, the [Population]
 /// should be thought of as an 'immutable' data structure. If you need to add or remove individuals from the population,
 /// you should create a new [Population] instance with the new individuals. To further facilitate this way of
@@ -21,6 +21,7 @@ use std::ops::{Index, IndexMut, Range};
 ///
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Default, PartialEq)]
 pub struct Population<C: Chromosome> {
     individuals: Vec<Phenotype<C>>,
@@ -180,12 +181,9 @@ where
     F: Fn() -> Phenotype<C>,
 {
     fn from((size, f): (usize, F)) -> Self {
-        let mut individuals = Vec::with_capacity(size);
-        for _ in 0..size {
-            individuals.push(f());
+        Population {
+            individuals: (0..size).map(|_| f()).collect::<Vec<_>>(),
         }
-
-        Population { individuals }
     }
 }
 
@@ -204,31 +202,6 @@ impl<C: Chromosome + Debug> Debug for Population<C> {
             writeln!(f, "{:?}, ", individual)?;
         }
         write!(f, "]")
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<C: Chromosome + Serialize> Serialize for Population<C> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let phenotypes: Vec<&Phenotype<C>> = self.individuals.iter().collect();
-        phenotypes.serialize(serializer)
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<'de, C: Chromosome + Deserialize<'de>> Deserialize<'de> for Population<C> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let phenotypes = Vec::<Phenotype<C>>::deserialize(deserializer)?;
-
-        Ok(Population {
-            individuals: phenotypes.into_iter().collect(),
-        })
     }
 }
 

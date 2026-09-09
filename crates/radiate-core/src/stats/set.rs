@@ -210,13 +210,13 @@ impl<'a> ProjectExpr<'a> for MetricSet {
         match sel {
             SelectOp::Field(name) => self
                 .get(name)
-                .map(|metric| (*metric).select(&SelectOp::Field(metric_fields::LAST_VALUE)))
+                .map(|metric| metric.select(&SelectOp::Field(metric_fields::LAST_VALUE)))
                 .unwrap_or(Ok(AnyValue::Null)),
             SelectOp::Nested { parent, child } => {
                 if let SelectOp::Field(name) = parent.as_ref()
                     && let Some(metric) = self.get(name)
                 {
-                    return (*metric).select(child);
+                    return metric.select(child);
                 }
 
                 Ok(AnyValue::Null)

@@ -57,7 +57,7 @@ impl<T> Matrix<T> {
         let mut row_count = 1;
 
         for row in iter {
-            assert_eq!(row.len(), cols);
+            debug_assert!(row.len() == cols);
             data.extend(row);
             row_count += 1;
         }
@@ -117,7 +117,7 @@ impl<T> Matrix<T> {
         if self.is_empty() {
             self.cols = row_data.len();
         } else {
-            assert!(
+            debug_assert!(
                 row_data.len() == self.cols,
                 "Row length must match the number of columns"
             );
