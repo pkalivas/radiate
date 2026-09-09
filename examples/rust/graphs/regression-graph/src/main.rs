@@ -3,19 +3,14 @@ use radiate::prelude::*;
 const MIN_SCORE: f32 = 0.001;
 
 fn main() {
-    random_provider::seed(87654);
+    random_provider::seed(518);
 
     let store = vec![
         (NodeType::Input, vec![Op::var(0)]),
         (NodeType::Edge, vec![Op::weight()]),
-        (
-            NodeType::Vertex,
-            vec![Op::sub(), Op::mul(), Op::linear(), Op::weight2()],
-        ),
+        (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::linear()]),
         (NodeType::Output, vec![Op::linear()]),
     ];
-
-    // .metrics(Expr::select("scores.best").rolling(5).mean().alias("idk"))
 
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, store))

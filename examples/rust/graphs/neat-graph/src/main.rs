@@ -1,4 +1,4 @@
-use radiate::{graphs::NeatDistance, prelude::*};
+use radiate::prelude::*;
 
 const MIN_SCORE: f32 = 0.001;
 
@@ -39,8 +39,8 @@ fn main() {
         ))
         .build();
 
-    // radiate::ui(engine)
-    engine
+    radiate::ui(engine)
+        // engine
         .iter()
         .logging()
         .until_score(MIN_SCORE)
