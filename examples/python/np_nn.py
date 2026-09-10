@@ -53,7 +53,7 @@ def fit(weights: list[np.ndarray]) -> float:
 
     yhat = h2 @ W3.T  # (N,8) @ (8,1) => (N,1)
 
-    # MSE
+    # MSE using np.float32 - note we are using dtype=rd.Float32 in the engine.
     return float(np.mean((yhat - Y) ** 2, dtype=np.float32))
 
 

@@ -43,10 +43,7 @@ use std::time::Duration;
 /// assert!(index == 10);
 /// ```
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct Generation<C, T>
-where
-    C: Chromosome,
-{
+pub struct Generation<C: Chromosome, T> {
     ecosystem: Arc<Ecosystem<C>>,
     value: T,
     index: usize,
@@ -57,10 +54,7 @@ where
     exprs: Option<Arc<Mutex<ExprSet>>>,
 }
 
-impl<C, T> Generation<C, T>
-where
-    C: Chromosome,
-{
+impl<C: Chromosome, T> Generation<C, T> {
     pub fn score(&self) -> &Score {
         &self.score
     }

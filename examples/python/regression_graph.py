@@ -48,6 +48,9 @@ engine = (
     )
     # .fitness(fit)
     # .minimizing()
+    # calling regression below is _roughly_ equivalent to setting the fitness function
+    # and the objective above. However, the below runs in *pure rust* and as such is
+    # going to be much faster - no need to cross the rust/python bridge.
     .regression(x, y, loss=rd.MSE)
     .select(rd.Select.boltzmann(temp=4.0))
     .alter(
