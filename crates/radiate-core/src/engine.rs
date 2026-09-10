@@ -67,11 +67,16 @@ pub enum EngineState {
 ///         }
 ///     }
 ///
-///     fn step(&mut self) -> Result<EngineState, RadiateError> {
+///     fn state(&self) -> EngineState {
+///         // Return the current state of the engine
+///         EngineState::Running
+///     }
+///
+///     fn step(&mut self) -> Result<(), RadiateError> {
 ///         // Perform one generation of evolution
 ///         // ... evolve population ...
 ///         self.generation += 1;
-///         Ok(EngineState::Running)
+///         Ok(())
 ///     }
 /// }
 ///
