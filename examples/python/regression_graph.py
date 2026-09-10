@@ -36,9 +36,14 @@ def fit(graph: rd.Graph) -> np.float32:
 
 engine = (
     rd.Engine.graph(
+        # specify the shape of the graph: (num_inputs, num_outputs)
         shape=(1, 1),
+        # all vertex nodes will pick a random Op<T> from the below list.
         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+        # all edge nodes will use this operation - can be a list too
         edge=rd.Op.weight(),
+        # specify the dtype of the underlying graph node's Op's dtype T (Op<T>) -
+        # input data (x, y) must match this dtype
         dtype=rd.Float32,
     )
     # .fitness(fit)

@@ -37,7 +37,6 @@ impl<T, V> StatefulGraph<T, V> {
     pub fn eval_scoped<F, O>(&mut self, eval_fn: F) -> O
     where
         F: FnOnce(&mut Self) -> O,
-        V: Copy + Default,
     {
         let current_state = self.state.take();
         let output = eval_fn(self);

@@ -112,11 +112,13 @@ pub trait Engine {
     /// provide a read-only view of the engine's internal state, to allow external systems
     /// close to the engine level, to inspect the engine without cloning anything.
     fn context(&self) -> &Self::Ctx;
+
     /// Returns an epoch of the engine, which is intended to be a snapshot of the current state, or
     /// the current context. The `Epoch` here can be given to iterators, callers, or anyone else who needs it.
     /// Essentially to say, this shouldn't borrow anything from the engine, but instead be an owned snapshot
     /// of the engine
     fn epoch(&self) -> Self::Epoch;
+
     /// Advances the engine by one step, performing the necessary computations to progress
     /// the evolutionary algorithm. This may include evaluating fitness, selecting individuals,
     /// applying genetic operators, and updating the population. This intentionally does not return anything,
@@ -125,10 +127,18 @@ pub trait Engine {
     /// outside of the engine which don't require a snapshot of the engine state.
     fn step(&mut self) -> Result<()>;
 
+    /// Starts the engine, initializing any necessary state or resources.
+    /// This is typically called before entering the main execution loop.
     fn start(&mut self) {}
 
+    /// Stops the engine, performing any necessary cleanup or finalization.
+    /// This is typically called after exiting the main execution loop.
     fn stop(&mut self) {}
 
+    /// Returns the current state of the engine.
+    /// This allows external systems to query the engine's status without modifying it.
+    /// This lets the [Engine] act as a state machine, while external systems can query
+    /// the current state of the engine.
     fn state(&self) -> EngineState;
 }
 

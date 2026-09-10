@@ -95,13 +95,13 @@ impl<T: Clone + Default> Graph<T> {
         let builder = NodeBuilder::new(values);
 
         let input = builder.input(input_size);
-        let aggregate = builder.vertices(input_size);
+        let vertices = builder.vertices(input_size);
         let output = builder.output(output_size);
 
         GraphAggregate::new()
-            .one_to_one(&input, &aggregate)
-            .cycle(&aggregate)
-            .all_to_all(&aggregate, &output)
+            .one_to_one(&input, &vertices)
+            .cycle(&vertices)
+            .all_to_all(&vertices, &output)
             .build()
     }
 
