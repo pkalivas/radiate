@@ -24,4 +24,4 @@ engine = (
 
 result = engine.run()
 
-print(result)
+print(result.metrics().dashboard())

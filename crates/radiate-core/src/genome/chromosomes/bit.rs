@@ -25,7 +25,6 @@ const WORD_SIZE: u64 = 64;
 /// // Create a new BitGene from the allele.
 /// let gene = gene.with_allele(allele);
 /// ```
-///
 #[derive(Clone, PartialEq, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(transparent)]
