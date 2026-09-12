@@ -7,8 +7,9 @@ use pyo3::{
     Bound, IntoPyObject, Py, PyAny, PyResult, Python, intern, pyclass, pyfunction, pymethods,
     types::PyAnyMethods,
 };
-use radiate::{Accuracy, AccuracyResult, DataSet, EvalMut, GraphEvaluator, Loss, ops::OpFloat};
+use radiate::{Accuracy, AccuracyResult, DataSet, EvalMut, Loss, ops::OpFloat};
 use radiate_error::radiate_py_bail;
+use radiate_utils::Matrix;
 
 #[pyclass]
 pub struct PyAccuracy {
@@ -80,17 +81,15 @@ pub fn py_accuracy<'py>(
 
     if let Ok(mut graph) = predictor.extract::<PyGraph>(py) {
         return match &mut graph.inner {
-            PyGraphInner::Float32(graph, _) => {
+            PyGraphInner::Float32(graph) => {
                 let features = py_object_into_2d_vec::<f32>(features)?;
                 let targets = py_object_into_2d_vec::<f32>(targets)?;
-                let mut evaluator = GraphEvaluator::new(graph);
-                run_accuracy(&mut evaluator, features, targets, loss, name)
+                graph.eval_scoped(|gr| run_accuracy(gr, features, targets, loss, name))
             }
-            PyGraphInner::Float64(graph, _) => {
+            PyGraphInner::Float64(graph) => {
                 let features = py_object_into_2d_vec::<f64>(features)?;
                 let targets = py_object_into_2d_vec::<f64>(targets)?;
-                let mut evaluator = GraphEvaluator::new(graph);
-                run_accuracy(&mut evaluator, features, targets, loss, name)
+                graph.eval_scoped(|gr| run_accuracy(gr, features, targets, loss, name))
             }
         };
     }
@@ -115,8 +114,8 @@ pub fn py_accuracy<'py>(
 
 fn run_accuracy<F, E>(
     evaluator: &mut E,
-    features: Vec<Vec<F>>,
-    targets: Vec<Vec<F>>,
+    features: Matrix<F>,
+    targets: Matrix<F>,
     loss: Loss,
     name: Option<String>,
 ) -> PyResult<PyAccuracy>
@@ -124,11 +123,11 @@ where
     F: OpFloat,
     E: EvalMut<[F], Vec<F>>,
 {
-    if features.len() != targets.len() {
+    if features.rows() != targets.rows() {
         radiate_py_bail!("Accuracy: Features and targets must have the same number of samples");
     }
 
-    let dataset = DataSet::new(features, targets);
+    let dataset = DataSet::from((features, targets));
     let mut accuracy = Accuracy::<F>::default().loss(loss);
 
     if let Some(name) = name {

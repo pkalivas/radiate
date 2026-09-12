@@ -8,31 +8,35 @@ mod problem;
 mod selectors;
 mod species;
 
-use crate::builder::evaluators::EvaluationParams;
 use crate::builder::filters::FilterParams;
 use crate::builder::objectives::OptimizeParams;
 use crate::builder::population::PopulationParams;
 use crate::builder::problem::ProblemParams;
 use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
+use crate::events::{Event, EventStream};
 use crate::genome::phenotype::Phenotype;
-#[cfg(feature = "serde")]
-use crate::io::FileReader;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
-use crate::steps::{
-    EngineStep, FilterStep, FrontStep, MetricStep, RecombineStep, SelectConfig, SpeciateStep,
-};
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
-    Crossover, EncodeReplace, EventBus, EventHandler, Front, Mutate, ReplacementStrategy,
-    RouletteSelector, TournamentSelector, context::EvolutionContext,
+    Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
+    TournamentSelector, context::EvolutionContext,
 };
+#[cfg(feature = "serde")]
+use crate::{FileWriter, io::FileReader};
 use crate::{Generation, Result};
+use crate::{Handler, builder::evaluators::EvaluationParams};
+use crate::{
+    builder::evaluators::ExecutorParams,
+    steps::{
+        EngineStep, FilterStep, FrontStep, MetricStep, RecombineStep, SelectConfig, SpeciateStep,
+    },
+};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
-use radiate_core::rate::ExprSet;
-use radiate_core::{Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Valid, metric_names};
+use radiate_core::{Alterer, Ecosystem, Expr, FitnessEvaluator, Valid, metric_names};
+use radiate_core::{ExprSet, ThreadSync};
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
 use radiate_core::{
@@ -42,6 +46,8 @@ use radiate_core::{
 use radiate_utils::VersionedCounts;
 #[cfg(feature = "serde")]
 use serde::Deserialize;
+#[cfg(feature = "serde")]
+use serde::Serialize;
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
@@ -60,7 +66,7 @@ where
 
     pub alterers: Vec<Alterer<C>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-    pub handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
+    pub event_stream: EventStream,
     pub generation: Option<Generation<C, T>>,
     pub exprs: Option<Arc<Mutex<ExprSet>>>,
 }
@@ -110,18 +116,6 @@ where
         self
     }
 
-    /// Subscribe to engine events with the given event handler.
-    /// The event handler will be called whenever an event is emitted by the engine.
-    /// You can use this to log events, or to perform custom actions
-    /// based on the events emitted by the engine.
-    pub fn subscribe<H>(mut self, handler: H) -> Self
-    where
-        H: EventHandler<T> + 'static,
-    {
-        self.params.handlers.push(Arc::new(Mutex::new(handler)));
-        self
-    }
-
     /// Set the generation for the engine. This is typically used
     /// when resuming a previously paused or stopped engine.
     pub fn generation(mut self, generation: Generation<C, T>) -> Self {
@@ -133,6 +127,12 @@ where
     /// that will be calculated during the evolution process.
     pub fn metrics(mut self, exprs: impl Into<ExprSet>) -> Self {
         self.params.exprs = Some(Arc::new(Mutex::new(exprs.into())));
+        self
+    }
+
+    /// Subscribe to an event of type `E` with the given event handler.
+    pub fn subscribe<E: Event>(self, handler: impl Handler<E>) -> Self {
+        self.params.event_stream.subscribe(handler);
         self
     }
 
@@ -155,6 +155,54 @@ where
         }
         let generation = read_generation.expect("Failed to read checkpoint file");
         self.generation(generation)
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn checkpoint(self, interval: usize, path: impl AsRef<std::path::Path>) -> Self
+    where
+        C: Serialize + 'static,
+        T: Clone + Send + Sync + Serialize + 'static,
+    {
+        use crate::JsonWriter;
+
+        self.checkpoint_with(interval, path, JsonWriter)
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn checkpoint_with<F>(
+        mut self,
+        interval: usize,
+        path: impl AsRef<std::path::Path>,
+        writer: F,
+    ) -> Self
+    where
+        C: Serialize + 'static,
+        T: Clone + Send + Sync + Serialize + 'static,
+        F: FileWriter<Generation<C, T>> + Send + Sync + 'static,
+    {
+        use crate::events::CheckpointWriterHandler;
+
+        let path_without_extension = path
+            .as_ref()
+            .to_str()
+            .and_then(|s| s.rsplit('.').nth(1))
+            .unwrap_or(path.as_ref().to_str().unwrap_or("checkpoints"));
+
+        let handler =
+            CheckpointWriterHandler::<C, T>::new(interval, path_without_extension.into(), writer);
+        let attached = self.params.event_stream.attatch(handler);
+
+        if attached.is_err() {
+            self.add_error_if(
+                || true,
+                &format!(
+                    "Failed to attach checkpoint handler: {}",
+                    attached.err().unwrap()
+                ),
+            );
+        }
+
+        self
     }
 }
 
@@ -181,6 +229,7 @@ where
             ));
         }
 
+        self.build_event_stream()?;
         self.build_problem()?;
         self.build_population()?;
         self.build_alterer()?;
@@ -199,10 +248,25 @@ where
         pipeline.add_step(Self::build_species_step(&config));
         pipeline.add_step(Self::build_audit_step(&config));
 
-        let event_bus = EventBus::new(config.bus_executor(), config.handlers());
+        let event_system = config.event_stream();
         let context = EvolutionContext::from(config);
 
-        Ok(GeneticEngine::<C, T>::new(context, pipeline, event_bus))
+        Ok(GeneticEngine::<C, T>::new(context, pipeline, event_system))
+    }
+
+    /// Build the event stream for the genetic engine. This will configure the event stream,
+    /// set its executor, and spawn the necessary event handlers such as the engine logger
+    /// and health monitor. The configured event stream is then stored back in the builder's
+    /// parameters.
+    fn build_event_stream(&mut self) -> Result<()> {
+        let mut stream = self.params.event_stream.clone();
+        let stream_executor = self.params.evaluation_params.event_stream_executor.clone();
+
+        stream.set_executor(stream_executor.executor);
+
+        self.params.event_stream = stream;
+
+        Ok(())
     }
 
     /// Build the problem of the genetic engine. This will create a new problem
@@ -235,7 +299,11 @@ where
 
             // Replace the evaluator with BatchFitnessEvaluator
             self.params.evaluation_params.evaluator = Arc::new(BatchFitnessEvaluator::new(
-                self.params.evaluation_params.fitness_executor.clone(),
+                self.params
+                    .evaluation_params
+                    .fitness_executor
+                    .executor
+                    .clone(),
             ));
 
             Ok(())
@@ -300,8 +368,8 @@ where
             return Ok(());
         }
 
-        let crossover = UniformCrossover::new(0.5).alterer();
-        let mutator = UniformMutator::new(0.1).alterer();
+        let crossover = UniformCrossover::new(0.5).into_alterer();
+        let mutator = UniformMutator::new(0.1).into_alterer();
 
         self.params.alterers.push(crossover);
         self.params.alterers.push(mutator);
@@ -433,6 +501,7 @@ where
     fn build_audit_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
         Some(Box::new(MetricStep::new(
             config.objective().clone(),
+            config.population_size(),
             config.exprs().clone(),
         )))
     }
@@ -493,9 +562,10 @@ where
                 },
                 evaluation_params: EvaluationParams {
                     evaluator: Arc::new(FitnessEvaluator::default()),
-                    fitness_executor: Arc::new(Executor::default()),
-                    species_executor: Arc::new(Executor::default()),
-                    bus_executor: Arc::new(Executor::default()),
+                    fitness_executor: ExecutorParams::default(),
+                    species_executor: ExecutorParams::default(),
+                    event_stream_executor: ExecutorParams::default(),
+                    sync: ThreadSync::new(),
                 },
                 selection_params: SelectionParams {
                     offspring_fraction: 0.8,
@@ -521,7 +591,7 @@ where
 
                 replacement_strategy: Arc::new(EncodeReplace),
                 alterers: Vec::new(),
-                handlers: Vec::new(),
+                event_stream: EventStream::default(),
                 exprs: None,
                 generation: None,
             },

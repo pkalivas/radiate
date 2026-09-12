@@ -1,8 +1,7 @@
-use pyo3::prelude::*;
-use radiate::{AnyValue, Evaluate, Expr, expr};
-use radiate_error::radiate_py_bail;
-
 use crate::{PyMetricSet, Wrap, dtype_from_str};
+use pyo3::prelude::*;
+use radiate::{AnyValue, Expr, expr};
+use radiate_error::radiate_py_bail;
 
 fn dtype_is_duration(dtype_str: &str) -> bool {
     matches!(dtype_from_str(dtype_str), radiate::DataType::Duration)
@@ -86,8 +85,8 @@ impl PyExpr {
     }
 
     pub fn evaluate(&mut self, metrics: &PyMetricSet) -> PyResult<Wrap<AnyValue<'_>>> {
-        match self.inner.eval(metrics.inner()) {
-            Ok(value) => Ok(Wrap(value)),
+        match self.inner.evaluate(metrics.inner()) {
+            Ok(value) => Ok(Wrap(value.into_static())),
             Err(e) => {
                 radiate_py_bail!(format!("Error evaluating expression: {}", e))
             }
@@ -102,8 +101,16 @@ impl PyExpr {
         format!("{:?}", self.inner)
     }
 
+    pub fn alias(&self, name: &str) -> Self {
+        self.inner.clone().alias(name).into()
+    }
+
     pub fn genome_size_rate(&self, target_size: usize) -> Self {
         expr::genome_size_throttle(self.inner.clone(), target_size).into()
+    }
+
+    pub fn attr_(&self, name: &str) -> Self {
+        self.inner.clone().attr(name).into()
     }
 
     pub fn cast(&self, to: String) -> Self {

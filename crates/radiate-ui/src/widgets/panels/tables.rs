@@ -1,6 +1,6 @@
 use crate::state::{AppState, AppTableState, Pane};
 use crate::widgets::AppWidget;
-use radiate_engines::stats::TagType;
+use radiate_engines::TagType;
 use radiate_engines::{Chromosome, MetricSet, Objective, Optimize, Species, metric_names};
 use radiate_engines::{Metric, stats::fmt_duration};
 use ratatui::buffer::Buffer;

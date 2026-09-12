@@ -43,7 +43,7 @@ engine = (
     .limit(
         rd.Limit.score(0.001), rd.Limit.generations(100)
     )  # Stop when we reach a loss of 0.001 or after 100 generations
-    .alters(
+    .alter(
         rd.Cross.graph(0.5, 0.5),
         rd.Mutate.op(0.07, 0.05),
         rd.Mutate.graph(
@@ -91,7 +91,7 @@ engine = (
         loss=rd.MAE,
     )
     .limit(rd.Limit.score(0.001), rd.Limit.generations(100))
-    .alters(
+    .alter(
         rd.Cross.graph(0.5, 0.5),
         rd.Mutate.op(0.07, 0.05),
         rd.Mutate.graph(0.1, 0.1),

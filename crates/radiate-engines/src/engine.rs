@@ -1,11 +1,15 @@
-use crate::builder::GeneticEngineBuilder;
-use crate::context::EvolutionContext;
-use crate::events::EngineMessage;
-use crate::pipeline::Pipeline;
-use crate::{Chromosome, EngineControl, EngineRuntime};
-use crate::{EventBus, Generation};
-use radiate_core::Engine;
-use radiate_core::error::Result;
+use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
+use crate::{GenerationView, builder::GeneticEngineBuilder};
+use crate::{
+    Handler,
+    events::{
+        EngineStart, EngineStop, EpochComplete, EpochStart, EventStream, Improvement, Subscription,
+    },
+};
+use crate::{context::EvolutionContext, events::Event};
+use crate::{events::GenerationSnapshot, pipeline::Pipeline};
+use radiate_core::{Engine, EngineState};
+use radiate_core::{EngineStream, error::Result};
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -60,7 +64,7 @@ where
 {
     context: EvolutionContext<C, T>,
     pipeline: Pipeline<C>,
-    bus: EventBus<T>,
+    stream: EventStream,
 }
 
 impl<C, T> GeneticEngine<C, T>
@@ -75,12 +79,12 @@ where
     pub(crate) fn new(
         context: EvolutionContext<C, T>,
         pipeline: Pipeline<C>,
-        bus: EventBus<T>,
+        stream: EventStream,
     ) -> Self {
         GeneticEngine {
             context,
             pipeline,
-            bus,
+            stream,
         }
     }
 
@@ -98,8 +102,8 @@ where
     /// The control interface allows for pausing, resuming, and stopping the engine's execution
     /// from external contexts. If the control interface has not been initialized yet, this method
     /// will create a new instance.
-    pub fn control(&mut self) -> EngineControl {
-        self.context.get_or_create_control()
+    pub fn control(&mut self) -> ThreadSync {
+        self.context.get_or_create_sync()
     }
 
     /// Converts the engine into an iterator that yields generations.
@@ -122,9 +126,20 @@ where
     ///
     /// The iterator consumes the engine, so you can only iterate once. If you need
     /// to run the engine multiple times, create a new instance using the builder.
-    pub fn iter(self) -> EngineRuntime<Self> {
-        let control = self.context.control.clone();
-        EngineRuntime::new(self, control)
+    pub fn iter(self) -> EngineRuntime<Self>
+    where
+        C: 'static,
+    {
+        EngineRuntime::new(self)
+    }
+
+    /// Subscribes to events of type `E` emitted by the engine.
+    ///
+    /// This method returns a [Subscription] that allows you to define
+    /// how to handle events of type `E`. You can use this to listen for events
+    /// such as epoch completions, improvements, or custom messages emitted during the evolutionary process.
+    pub fn subscribe<E: Event>(&self, handler: impl Handler<E>) -> Subscription {
+        self.stream.subscribe(handler)
     }
 }
 
@@ -152,7 +167,7 @@ where
 /// - **Pipeline Optimization**: Evolutionary operators are executed in optimized sequences
 impl<C, T> Engine for GeneticEngine<C, T>
 where
-    C: Chromosome + Clone,
+    C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
     type Epoch = Generation<C, T>;
@@ -166,50 +181,74 @@ where
         Generation::from(&self.context)
     }
 
+    fn state(&self) -> EngineState {
+        self.context.state
+    }
+
+    fn start(&mut self) {
+        self.context.set_running();
+        self.stream.publish(EngineStart);
+    }
+
+    fn stop(&mut self) {
+        self.context.set_stopped();
+        self.stream.publish(EngineStop::from(&self.context));
+    }
+
     #[inline]
     fn step(&mut self) -> Result<()> {
-        if let Some(control) = &self.context.control
-            && control.is_paused()
-        {
-            control.wait();
+        match self.state() {
+            EngineState::PreStart => self.start(),
+            EngineState::Stopped => return Ok(()),
+            _ => {
+                if self.context.stop_requested() {
+                    self.stop();
+                    return Ok(());
+                }
+
+                if self.context.pause_requested() {
+                    self.context.set_paused();
+                    self.context.wait();
+
+                    if self.context.stop_requested() {
+                        self.stop();
+                        return Ok(());
+                    }
+
+                    self.context.set_running();
+                }
+            }
         }
 
-        if matches!(self.context.index, 0) {
-            self.bus.publish(EngineMessage::<C, T>::Start);
-        }
-
-        self.bus.publish(EngineMessage::EpochStart(&self.context));
+        self.stream.publish(EpochStart::from(&self.context));
         self.pipeline.run(&mut self.context)?;
         if self.context.try_advance_one()? {
-            self.bus.publish(EngineMessage::Improvement(&self.context));
+            self.stream
+                .lazy_publish(|| Improvement::from(&self.context))?;
         }
-
-        self.bus.publish(EngineMessage::EpochEnd(&self.context));
+        self.stream.publish(EpochComplete::from(&self.context));
+        self.stream
+            .lazy_publish(|| GenerationSnapshot::from(&self.context))?;
 
         Ok(())
     }
 }
 
-/// Custom drop implementation for proper cleanup and event emission.
-///
-/// When the engine is dropped, it emits a stop event to notify any listeners
-/// that the evolutionary process has ended. This allows external systems to
-/// perform cleanup operations or finalize results.
-///
-/// # Event Emission
-///
-/// The stop event includes the final context state, allowing listeners to:
-/// - Record final metrics and statistics
-/// - Save final population state
-/// - Perform cleanup operations
-/// - Generate final reports
-/// - Integrate with external systems
-impl<C, T> Drop for GeneticEngine<C, T>
+/// Implementation of the [EngineStream] trait for [GeneticEngine].
+impl<C, T> EngineStream for GeneticEngine<C, T>
 where
-    C: Chromosome,
-    T: Clone + Send + Sync + 'static,
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync,
 {
-    fn drop(&mut self) {
-        self.bus.publish(EngineMessage::Stop(&self.context));
+    type View<'a>
+        = GenerationView<'a, C, T>
+    where
+        Self: 'a;
+
+    fn run<F>(self, limit: F) -> Result<Self::Epoch>
+    where
+        F: Fn(Self::View<'_>) -> bool + 'static,
+    {
+        self.iter().until(limit).last()
     }
 }

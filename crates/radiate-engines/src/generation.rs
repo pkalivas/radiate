@@ -1,12 +1,12 @@
 use crate::Chromosome;
 use crate::context::EvolutionContext;
+use radiate_core::ExprSet;
 use radiate_core::objectives::Scored;
-use radiate_core::rate::ExprSet;
 use radiate_core::{Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Score, Species};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 /// A [Generation] represents a single generation in the evolutionary process.
@@ -43,10 +43,7 @@ use std::time::Duration;
 /// assert!(index == 10);
 /// ```
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct Generation<C, T>
-where
-    C: Chromosome,
-{
+pub struct Generation<C: Chromosome, T> {
     ecosystem: Arc<Ecosystem<C>>,
     value: T,
     index: usize,
@@ -57,10 +54,7 @@ where
     exprs: Option<Arc<Mutex<ExprSet>>>,
 }
 
-impl<C, T> Generation<C, T>
-where
-    C: Chromosome,
-{
+impl<C: Chromosome, T> Generation<C, T> {
     pub fn score(&self) -> &Score {
         &self.score
     }
@@ -232,11 +226,19 @@ where
     }
 }
 
+enum ViewInner<'a, C, T>
+where
+    C: Chromosome,
+{
+    Context(&'a EvolutionContext<C, T>),
+    Generation(&'a Generation<C, T>),
+}
+
 pub struct GenerationView<'a, C, T>
 where
     C: Chromosome,
 {
-    context: &'a EvolutionContext<C, T>,
+    inner: ViewInner<'a, C, T>,
 }
 
 impl<'a, C, T> GenerationView<'a, C, T>
@@ -244,39 +246,74 @@ where
     C: Chromosome,
 {
     pub fn new(context: &'a EvolutionContext<C, T>) -> Self {
-        Self { context }
+        Self {
+            inner: ViewInner::Context(context),
+        }
     }
 
     pub fn score(&self) -> &Score {
-        self.context.score.as_ref().unwrap()
+        match &self.inner {
+            ViewInner::Context(ctx) => ctx.score.as_ref().unwrap(),
+            ViewInner::Generation(epoch) => &epoch.score,
+        }
     }
 
-    pub fn front(&self) -> Arc<RwLock<Front<Phenotype<C>>>> {
-        Arc::clone(&self.context.front)
+    pub fn front(&self) -> Arc<Front<Phenotype<C>>>
+    where
+        C: Clone,
+    {
+        match &self.inner {
+            ViewInner::Context(ctx) => match ctx.objective {
+                Objective::Multi(_) => Arc::new(ctx.front.read().unwrap().clone()),
+                _ => Arc::default(),
+            },
+            ViewInner::Generation(epoch) => match &epoch.front {
+                Some(front) => Arc::clone(front),
+                None => Arc::default(),
+            },
+        }
     }
 
     pub fn value(&self) -> &T {
-        &self.context.best
+        match &self.inner {
+            ViewInner::Context(ctx) => &ctx.best,
+            ViewInner::Generation(epoch) => &epoch.value,
+        }
     }
 
     pub fn phenotype(&self) -> &Phenotype<C> {
-        &self.context.ecosystem().population()[0]
+        match &self.inner {
+            ViewInner::Context(ctx) => ctx.ecosystem().get_phenotype(0).as_ref().unwrap(),
+            ViewInner::Generation(epoch) => epoch.ecosystem().get_phenotype(0).as_ref().unwrap(),
+        }
     }
 
     pub fn index(&self) -> usize {
-        self.context.index
+        match &self.inner {
+            ViewInner::Context(ctx) => ctx.index,
+            ViewInner::Generation(epoch) => epoch.index,
+        }
     }
 
     pub fn metrics(&self) -> &MetricSet {
-        &self.context.metrics
+        match &self.inner {
+            ViewInner::Context(ctx) => &ctx.metrics,
+            ViewInner::Generation(epoch) => &epoch.metrics,
+        }
     }
 
     pub fn objective(&self) -> &Objective {
-        &self.context.objective
+        match &self.inner {
+            ViewInner::Context(ctx) => &ctx.objective,
+            ViewInner::Generation(epoch) => &epoch.objective,
+        }
     }
 
     pub fn ecosystem(&self) -> &Ecosystem<C> {
-        &self.context.ecosystem
+        match &self.inner {
+            ViewInner::Context(ctx) => &ctx.ecosystem,
+            ViewInner::Generation(epoch) => &epoch.ecosystem,
+        }
     }
 
     pub fn population(&self) -> &Population<C> {
@@ -299,12 +336,37 @@ where
     }
 }
 
-impl<'a, C, T> Into<Generation<C, T>> for GenerationView<'a, C, T>
+impl<'a, C, T> From<GenerationView<'a, C, T>> for Generation<C, T>
 where
     C: Chromosome + Clone,
     T: Clone,
 {
-    fn into(self) -> Generation<C, T> {
-        Generation::from(self.context)
+    fn from(val: GenerationView<'a, C, T>) -> Self {
+        match val.inner {
+            ViewInner::Context(ctx) => Generation::from(ctx),
+            ViewInner::Generation(epoch) => epoch.clone(),
+        }
+    }
+}
+
+impl<'a, C, T> From<&'a Generation<C, T>> for GenerationView<'a, C, T>
+where
+    C: Chromosome,
+{
+    fn from(epoch: &'a Generation<C, T>) -> Self {
+        Self {
+            inner: ViewInner::Generation(epoch),
+        }
+    }
+}
+
+impl<'a, C, T> From<&'a EvolutionContext<C, T>> for GenerationView<'a, C, T>
+where
+    C: Chromosome,
+{
+    fn from(ctx: &'a EvolutionContext<C, T>) -> Self {
+        Self {
+            inner: ViewInner::Context(ctx),
+        }
     }
 }

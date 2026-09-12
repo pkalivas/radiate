@@ -30,20 +30,25 @@ answers = np.array(answers, dtype=np.float32)  # (N, 1)
 
 engine = (
     rd.Engine.graph(
+        # specify the shape of the graph: (num_inputs, num_outputs)
         shape=(1, 1),
+        # each vertex node will pick a random Op<T> from the below list.
         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+        ## all edge nodes will use this operation - can be a list too
         edge=rd.Op.weight(),
+        # all output nodes will use this operation - can be a list too
         output=rd.Op.linear(),
-        dtype=rd.Float32,  # specify the dtype of the underlying graph node's Op's dtype T (Op<T>) - input data (X, Y) must match this dtype
+        # specify the dtype of the underlying graph node's Op's dtype T (Op<T>) -
+        # input data (inputs, outputs) must match this dtype
+        dtype=rd.Float32,
     )
     .select(rd.Select.boltzmann(temp=4.0))
-    # .filter(rd.Filter.unique_score()). # uncomment to filter out phenotypes with duplicate scores each generation
     .regression(inputs, answers, loss=rd.MSE)
     .diversity(
         rd.Dist.neat(excess=1.0, disjoint=1.0, weight_diff=3.0),
         target=5,
     )
-    .alters(
+    .alter(
         rd.Cross.graph(0.4, 0.5),
         rd.Mutate.op(0.07, 0.05),
         rd.Mutate.graph(0.1, 0.1, False),

@@ -58,6 +58,7 @@ pub mod components {
         INVERSION_MUTATOR = "InversionMutator";
         POLYNOMIAL_MUTATOR = "PolynomialMutator";
         JITTER_MUTATOR = "JitterMutator";
+        BIT_FLIP_MUTATOR = "BitFlipMutator";
 
         UNIQUE_SCORE_FILTER = "UniqueScoreFilter";
 
@@ -65,15 +66,9 @@ pub mod components {
         GENERATIONS_LIMIT = "GenerationsLimit";
         SECONDS_LIMIT = "SecondsLimit";
         CONVERGENCE_LIMIT = "ConvergenceLimit";
-        METRIC_LIMIT = "MetricLimit";
         EXPR_LIMIT = "ExprLimit";
 
-        ALL_EVENTS = "all";
-        START_EVENT = "start_event";
-        STOP_EVENT = "stop_event";
-        EPOCH_START_EVENT = "epoch_start_event";
-        EPOCH_COMPLETE_EVENT = "epoch_complete_event";
-        ENGINE_IMPROVEMENT_EVENT = "engine_improvement_event";
+
     }
 }
 
@@ -85,5 +80,21 @@ pub mod loss_functions {
         MAE_LOSS = "mae";
         CROSS_ENTROPY_LOSS = "xent";
         DIFF_LOSS = "diff";
+    }
+}
+
+pub mod event_types {
+    use pyo3::prelude::*;
+
+    define_consts! {
+        ALL_EVENTS = "all";
+        START_EVENT = "start_event";
+        STOP_EVENT = "stop_event";
+        EPOCH_START_EVENT = "epoch_start_event";
+        EPOCH_COMPLETE_EVENT = "epoch_complete_event";
+        ENGINE_IMPROVEMENT_EVENT = "engine_improvement_event";
+        LIMIT_TRIGGERED_EVENT = "limit_triggered_event";
+        LOG_EVENT = "log_event";
+        CHECKPOINT_SAVED_EVENT = "checkpoint_saved_event";
     }
 }

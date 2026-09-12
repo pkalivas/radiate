@@ -1,6 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Expr, FloatGene, Gene, RateSet,
-    random_provider,
+    AlterContext, Chromosome, Crossover, Expr, FloatGene, Gene, RateSet, random_provider,
 };
 use radiate_utils::Float;
 
@@ -48,36 +47,28 @@ where
         chrom_one: &mut C,
         chrom_two: &mut C,
         ctx: &mut AlterContext,
-    ) -> AlterResult {
+    ) -> usize {
         let mut cross_count = 0;
         let alpha = F::from(self.alpha).unwrap();
 
         random_provider::with_rng(|rand| {
-            for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
+            chrom_one.zip(chrom_two).for_each(|gene_one, gene_two| {
                 if rand.bool(ctx.rate()) {
-                    let gene_one = chrom_one.get_mut(i);
-                    let gene_two = chrom_two.get_mut(i);
+                    let allele_one = *gene_one.allele();
+                    let allele_two = *gene_two.allele();
 
-                    if let Some((gene_one, gene_two)) = gene_one.zip(gene_two) {
-                        let allele_one = *gene_one.allele();
-                        let allele_two = *gene_two.allele();
+                    let alpha = rand.range(F::ZERO..alpha);
+                    let new_allele_one = allele_one * alpha + allele_two * (F::ONE - alpha);
+                    let new_allele_two = allele_two * alpha + allele_one * (F::ONE - alpha);
 
-                        let alpha = rand.range(F::ZERO..alpha);
-                        let new_allele_one = allele_one * alpha + allele_two * (F::ONE - alpha);
-                        let new_allele_two = allele_two * alpha + allele_one * (F::ONE - alpha);
+                    gene_one.set_allele(new_allele_one);
+                    gene_two.set_allele(new_allele_two);
 
-                        let (one_min, one_max) = gene_one.bound_range();
-                        let (two_min, two_max) = gene_two.bound_range();
-
-                        *gene_one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
-                        *gene_two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
-
-                        cross_count += 1;
-                    }
+                    cross_count += 1;
                 }
-            }
+            });
         });
 
-        cross_count.into()
+        cross_count
     }
 }

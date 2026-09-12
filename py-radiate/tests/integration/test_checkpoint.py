@@ -42,9 +42,41 @@ def test_load_checkpoint(example_1x1_regression_dataset, random_seed):
         .fitness(fit)
         .minimizing()
         .select(rd.Select.boltzmann(temp=4.0))
-        .alters(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
+        .alter(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
         .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
     )
 
     for epoch in engine:
         assert epoch.index() > 50
+
+
+# @pytest.mark.integration
+# def test_from_generations(random_seed):
+#     def fitness(individual: list[list[bool]]) -> float:
+#         return float(np.sum(individual))
+
+#     engine_one = (
+#         rd.Engine.bit([20, 20])
+#         .fitness(fitness)
+#         .minimizing()
+#         .limit(rd.Limit.generations(100))
+#     )
+
+#     result = engine_one.run()
+
+#     print(result)
+
+# assert result.score() == [40]
+# assert result.index() == 100
+
+# engine_two = (
+#     rd.Engine.bit([100, 100])
+#     .fitness(fitness)
+#     .minimizing()
+#     .generation(result)
+#     .limit(rd.Limit.score(0))
+# )
+
+# final_result = engine_two.run()
+
+# print(final_result)

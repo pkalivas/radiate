@@ -30,10 +30,30 @@ impl<F: OpFloat> Regression<F> {
                 buf.resize(out_len, F::ZERO);
             }
 
-            self.loss
-                .calculate(&self.data_set, &mut buf[..out_len], |x, y| {
-                    eval.eval_into_mut(x, y)
-                })
+            self.calc_with_buf(eval, &mut buf[..out_len])
+        })
+    }
+
+    #[inline]
+    fn calc_with_buf<EV>(&self, eval: &mut EV, buf: &mut [F]) -> F
+    where
+        EV: EvalIntoMut<[F], [F]>,
+    {
+        self.loss
+            .calculate(&self.data_set, buf, |x, y| eval.eval_into_mut(x, y))
+    }
+
+    fn with_buff<E, O>(&self, eval_fn: E) -> O
+    where
+        E: FnOnce(&mut [F]) -> O,
+    {
+        let out_len = self.data_set.shape().2;
+        F::with_loss_buffer(|buf| {
+            if buf.len() < out_len {
+                buf.resize(out_len, F::ZERO);
+            }
+
+            eval_fn(&mut buf[..out_len])
         })
     }
 }
@@ -66,13 +86,15 @@ where
 {
     #[inline]
     fn evaluate(&self, inputs: Vec<Graph<Op<F>>>) -> Vec<F> {
-        let mut results = Vec::with_capacity(inputs.len());
-        for input in inputs {
-            let mut evaluator = GraphEvaluator::new(&input);
-            results.push(self.calc_into_buff_mut(&mut evaluator));
-        }
+        self.with_buff(move |buf| {
+            let mut results = Vec::with_capacity(inputs.len());
+            for input in inputs.iter() {
+                let mut evaluator = GraphEvaluator::new(&input);
+                results.push(self.calc_with_buf(&mut evaluator, buf));
+            }
 
-        results
+            results
+        })
     }
 }
 
@@ -82,13 +104,15 @@ where
 {
     #[inline]
     fn evaluate(&self, inputs: Vec<&'a Genotype<GraphChromosome<Op<F>>>>) -> Vec<F> {
-        let mut results = Vec::with_capacity(inputs.len());
-        for input in inputs {
-            let mut evaluator = GraphEvaluator::new(&input[0]);
-            results.push(self.calc_into_buff_mut(&mut evaluator));
-        }
+        self.with_buff(move |buf| {
+            let mut results = Vec::with_capacity(inputs.len());
+            for input in inputs.iter() {
+                let mut evaluator = GraphEvaluator::new(&input[0]);
+                results.push(self.calc_with_buf(&mut evaluator, buf));
+            }
 
-        results
+            results
+        })
     }
 }
 
@@ -119,12 +143,14 @@ where
 {
     #[inline]
     fn evaluate(&self, mut inputs: Vec<Tree<Op<F>>>) -> Vec<F> {
-        let mut results = Vec::with_capacity(inputs.len());
-        for input in inputs.iter_mut() {
-            results.push(self.calc_into_buff_mut(input));
-        }
+        self.with_buff(move |buf| {
+            let mut results = Vec::with_capacity(inputs.len());
+            for input in inputs.iter_mut() {
+                results.push(self.calc_with_buf(input, buf));
+            }
 
-        results
+            results
+        })
     }
 }
 
@@ -134,12 +160,14 @@ where
 {
     #[inline]
     fn evaluate(&self, mut inputs: Vec<Vec<Tree<Op<F>>>>) -> Vec<F> {
-        let mut results = Vec::with_capacity(inputs.len());
-        for input in inputs.iter_mut() {
-            results.push(self.calc_into_buff_mut(input));
-        }
+        self.with_buff(move |buf| {
+            let mut results = Vec::with_capacity(inputs.len());
+            for input in inputs.iter_mut() {
+                results.push(self.calc_with_buf(input, buf));
+            }
 
-        results
+            results
+        })
     }
 }
 
@@ -160,12 +188,14 @@ where
 {
     #[inline]
     fn evaluate(&self, inputs: Vec<&'a Genotype<TreeChromosome<Op<F>>>>) -> Vec<F> {
-        let mut results = Vec::with_capacity(inputs.len());
-        for input in inputs {
-            let roots = input.iter().map(|c| c.root()).collect::<Vec<_>>();
-            results.push(self.calc_into_buff_mut(&mut roots.as_slice()));
-        }
+        self.with_buff(move |buf| {
+            let mut results = Vec::with_capacity(inputs.len());
+            for input in inputs.iter() {
+                let roots = input.iter().map(|c| c.root()).collect::<Vec<_>>();
+                results.push(self.calc_with_buf(&mut roots.as_slice(), buf));
+            }
 
-        results
+            results
+        })
     }
 }

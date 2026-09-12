@@ -18,11 +18,7 @@ fn main() {
         })
         .build();
 
-    radiate::ui(engine)
-        // engine
-        .iter()
-        // .logging()
-        .until_score(target.len())
-        .last()
-        .unwrap();
+    let generation = engine.iter().until_score(target.len()).last().unwrap();
+
+    println!("{:?}", generation);
 }

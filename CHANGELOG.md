@@ -4,53 +4,60 @@ All notable changes to Radiate are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to semantic versioning.
 
+For all code examples and further explanations, refer to the [documentation](https://pkalivas.github.io/radiate/).
+
 ## [Unreleased]
 
-This release finishes the `Rate` → expression-DSL migration started in `1.3.0` — the `Rate` type is now gone entirely, in both Rust and Python, replaced by `Expr`/`RateSet` everywhere a schedule is accepted. It also splits the expression DSL back out into its own `radiate-expr` crate, adds a population-filter pipeline stage (with an initial `UniqueScoreFilter` for stagnation recovery), adds adaptive species-count targeting, generalizes GP ops/regression over `f32`/`f64`, and restructures a large chunk of the Python operator API around static-method namespaces (`Select.*`, `Cross.*`, `Mutate.*`, `Dist.*`, `Limit.*`, `Filter.*`, `Fitness.*`). The TUI also picked up two new dashboard tabs.
+`Rate` is fully replaced by the expression DSL, events/checkpointing/stopping move onto the engine builder, and the Python operator API is reorganized into namespaces (`Select.*`/`Cross.*`/`Mutate.*`/`Dist.*`/`Limit.*`/`Filter.*`/`Fitness.*`). Also new: a population-filter stage for stagnation recovery, adaptive species-count targeting, a `BitFlipMutator`, f64 support for GP graphs/trees, and three new TUI dashboard tabs.
 
 ### Breaking
 
-- **`Rate` is gone.** The `Rate` enum (`Fixed`/`Linear`/`Exponential`/`Cyclical`/`Stepwise`/`Expr`) has been removed from `radiate-core` entirely; every crossover and mutator now builds its schedule from `Expr`/`RateSet` instead (`Crossover::rate()`/`Mutate::rate()` → `rates() -> RateSet`, constructors take `impl Into<Expr>`). `AlterContext::new()` gained an `internal_rates: &[f32]` parameter for multi-parameter alterers. `Alterer::apply` now returns `RadiateResult<()>`. On the Python side, `rd.Rate` and `PyRate` are deleted outright — every alterer parameter that used to take a `Rate` now takes a plain `float` or `Expr`.
-- **Expression DSL extracted into its own crate, `radiate-expr`.** It had been folded into `radiate-core/src/stats/expression/` as of `1.3.0`; that's been reversed — the DSL now lives in `crates/radiate-expr`, with `radiate-core` depending on it and re-exporting via `pub use radiate_expr::*`, so `radiate::prelude` imports are unaffected. The one real API break: `GeneticEngineBuilder::register_metrics(Vec<impl Into<MetricQuery>>)` is renamed to `metrics(impl Into<ExprSet>)`.
-- **`Gene`/`Chromosome` trait surface changed.** `BoundedGene::{min,max,bounds}` → `{init_min,init_max,init_range,bound_min,bound_max,bound_range}`, splitting initialization range from hard bounds. `ArithmeticGene` is gone, merged into a real `NumericGene` trait (`Add`/`Sub`/`Mul`/`Div` + `safe_add`/`sub`/`mul`/`div`). `Chromosome::get`/`get_mut` now return `Option<&Gene>` instead of panicking; new `apply_paired()` replaces ad-hoc `zip_mut` loops.
-- **GP ops and regression are now generic over float precision.** `Op<f32>` → `Op<F: OpFloat>` (`f32` or `f64`), propagated through `math_ops()`/`activation_ops()`/`all_ops()`, `Regression<F>`, `Accuracy<F>`, `DataSet<F>`, `Loss::calc<F>`, and `NeatDistance`. Calls like `Op::sigmoid()` that previously inferred `f32` may now need `Op::<f32>::sigmoid()` in ambiguous contexts. On the Python side, `_all_ops`/`_activation_ops`/`_edge_ops` now require a `dtype` argument, and `GraphCodec`/`TreeCodec` take a `dtype: "float32" | "float64"` param.
-- **Python: operator classes collapsed into namespace statics.** `TournamentSelector(k=3)` → `Select.tournament(k=3)`, `BlendCrossover(...)` → `Cross.blend(...)`, `UniformMutator(...)` → `Mutate.uniform(...)`, `HammingDistance()` → `Dist.hamming()`, `ScoreLimit(...)`/`GenerationsLimit(...)` → `Limit.score(...)`/`Limit.generations(...)`. None of the old class names are exported from `radiate/__init__.py` anymore. The `rd.dsl` shim that used to wrap these is gone; the logic moved directly into `radiate/operators/*.py`.
-- **Python: fitness classes consolidated onto `rd.Fitness`.** `radiate/fitness/` is deleted; `Regression(features, targets, ...)` → `Fitness.regression(dtype, features, targets, ...)` (note: `dtype` is now a required first positional arg), `NoveltySearch(...)` → `Fitness.novelty(...)`, and `BatchFitness` is gone in favor of an `is_batch`/`batch` flag on `Fitness.custom(...)`.
-- **Python: DSL modules moved under `radiate.dsl`.** `radiate.expr` → `radiate.dsl.expr`, `radiate.dtype` → `radiate.dsl.dtype`, `radiate.fitness.loss` → `radiate.dsl.loss`. Top-level `rd.Expr`/`rd.Float32`/`rd.MSE` re-exports are unchanged; direct submodule imports break.
-- **Python: engine run/iteration API reshaped.** `PyEngine.run()` no longer accepts a `limits` argument (set limits on the builder instead); `step_next()` is gone, replaced by the native iterator protocol (`for epoch in engine: ...`). Both now release the GIL during execution, so an engine run no longer blocks other Python threads.
-- **Python: `Graph.eval`/`Tree.eval`** now accept numpy arrays or lists directly instead of `Vec[float] | Vec[Vec[float]]`.
-- **Python: `EngineBuilder.inputs`** changed from a method to a property (`builder.inputs()` → `builder.inputs`).
-- **Python: `OpsConfig` removed** from the public API.
-- **Python: package extras renamed.** `pip install radiate[polars]`/`[pandas]`/`[numpy]`/`[matplotlib]` are gone — regrouped into `radiate[data]` (numpy + pandas + polars), `radiate[plot]` (matplotlib), and `radiate[torch]`; `radiate[all]` still pulls everything.
-- **Checkpoint pickle I/O reworked** to route through `PyGeneration::to_pickle`/`from_pickle` instead of the crate's own writer — pickle checkpoints written by `1.3.0` may not load cleanly; worth a compatibility check before release.
+- **`Rate` is replaced by `float` or [Expr](https://pkalivas.github.io/radiate/source/engine/expressions/).** Every crossover/mutator now takes a plain `float` or `Expr` instead of a `Rate`. Python: `rd.Rate` is deleted.
+- **Events rewritten as typed pub/sub.** Implement `Handler<E>` for one event type (`EpochComplete`, `Improvement`, `EngineStart`/`Stop`, `LimitTriggered`, `Warning`, `CheckpointSaved`, ...) and register with `GeneticEngine::subscribe::<E>(handler)`. Python: new `rd.on_limit_triggered`/`on_log`/`on_checkpoint_saved` decorators; `event.index`/`event.event_type` are now attributes, not methods.
+- **Checkpointing moved onto the builder.** Use `GeneticEngineBuilder::checkpoint(interval, path)` instead of `run()`-time checkpointing. Python: `Engine.write_checkpoint(path, interval, file_type="pkl")` replaces `run(checkpoint=...)`. Checkpoint pickle format also changed — **checkpoints written by 1.3.0 may not load**.
+- **Metric-predicate stopping removed** — no more `Limit::Metric`/`Limit.metric(...)`. Use `Limit::Expr`/`Limit.expr(...)` instead.
+- **Custom `Chromosome`/`Gene` implementors need updates.** Trait methods were re-split (bounds vs. init range, contiguous-storage methods moved to a new `ContiguousChromosome` sub-trait). No impact if you only use the built-in gene types.
+- **GP ops/regression are generic over `f32`/`f64` now.** Calls like `Op::sigmoid()` may need `Op::<f32>::sigmoid()` if the type can't be inferred. Python `GraphCodec`/`TreeCodec` now take a `dtype` param.
+- **`radiate-utils` tensor module replaced by a 2-D `Matrix<T>`.** Only matters if you called into `radiate-gp`'s regression `DataSet` or `radiate-selectors`' NSGA-III selector directly — `DataSet::row(...)` → `DataSet::append(features, labels)`, NSGA-III selector now takes `&Matrix<f32>`.
+- **Python: operators collapsed into namespaces.** `TournamentSelector(k=3)` → `Select.tournament(k=3)`, `BlendCrossover(...)` → `Cross.blend(...)`, `UniformMutator(...)` → `Mutate.uniform(...)`, `HammingDistance()` → `Dist.hamming()`, `ScoreLimit(...)` → `Limit.score(...)`. Old class names are no longer exported.
+- **Python: `Engine.alters(...)` renamed `Engine.alter(...)`.**
+- **Python: fitness classes moved onto `rd.Fitness`.** `Regression(...)` → `Fitness.regression(dtype, features, targets, ...)` (`dtype` now required first arg), `NoveltySearch(...)` → `Fitness.novelty(...)`.
+- **Python: DSL imports moved under `radiate.dsl`.** `radiate.expr`/`radiate.dtype`/`radiate.fitness.loss` → `radiate.dsl.expr`/`.dtype`/`.loss`. Top-level `rd.Expr` etc. re-exports are unaffected.
+- **Python: `Engine.run()` no longer takes `limits=`** (set limits on the builder) and `step_next()` is gone — iterate the engine directly (`for epoch in engine:`). Runs now release the GIL.
+- **Python: `EngineBuilder.inputs` is now a property**, not a method.
+- **Python: `EngineConfig.max_species_age` default changed 20 → 25** to match Rust.
+- **Python: install extras regrouped.** `[polars]`/`[pandas]`/`[numpy]`/`[matplotlib]` → `[data]` (numpy+pandas+polars) and `[plot]` (matplotlib); `[all]` unchanged.
 
 ### Added
 
-- **Population filter pipeline stage.** New `EcosystemFilter` trait runs after the existing invalid/age replacement (`radiate-engines/src/steps/filter.rs`), wired in via `GeneticEngineBuilder::filter()`/`filters()`. Ships with `UniqueScoreFilter`, which detects population score-diversity collapse (via `Expr::select(...).stagnation(...)`) and replaces duplicates. Exposed to Python as `rd.Filter.unique_score(threshold, max_stagnation)` + `Engine.filter(...)`.
-- **Adaptive species-count targeting.** Setting `target_species_count` now drives the speciation threshold as an `Expr`/`RateSet` toward a target count instead of a fixed threshold. Python: `Engine.diversity(dist, threshold, target=...)`.
-- **Expression DSL: `.stagnation(epsilon)`** — detects a fitness plateau (consecutive generations under an epsilon delta).
-- **f64 support end-to-end for GP graphs/trees**, via the `Op<F: OpFloat>` generalization above.
-- **NumPy-native fitness & regression I/O** — custom Python fitness functions can return numpy score arrays directly; regression fitness/accuracy accept numpy arrays or plain lists for features/targets.
-- **`GraphMutator::target_size(size)`** — anti-bloat throttling that reduces vertex/edge mutation rates once a graph reaches a target size.
-- **`radiate-ui`: two new dashboard tabs.** "Improvements" (single-objective) shows a scrollable improvement-event log plus a delta bar chart; "Front" (multi-objective) shows Pareto-front additions/removals/comparisons alongside front-size/entropy line charts. Also: a paused-start mode (`radiate::ui((engine, true))`), richer status bar (best-vs-current score, stagnation count, trend arrows on diversity/entropy), and new table navigation keybindings (PageUp/PageDown, Home/End).
-- **Python: `Generation.gene_type()`.**
+- **Population filter pipeline stage** — new `UniqueScoreFilter` detects score-diversity collapse and replaces duplicates. `GeneticEngineBuilder::filter(...)` / Python `rd.Filter.unique_score(...)` + `Engine.filter(...)`.
+- **Adaptive species-count targeting** — set `target_species_count` to drive the speciation threshold toward a target instead of a fixed value. Python: `Engine.diversity(dist, threshold, target=...)`.
+- **`BitFlipMutator`** for bit-string genomes. Python: `Mutate.bit_flip(rate=0.1)`.
+- **`HealthMonitor` event handler** — auto-emits `Warning` events for stagnation, diversity collapse, and species collapse.
+- **Explicit engine lifecycle** — `Engine::start()`/`stop()` and `EngineStateChange` events.
+- **f64 support end-to-end for GP graphs/trees**, plus new ops: `Op.weight2`/`sign`/`reciprocal`/`gaussian`/`tooth`.
+- **NumPy-native fitness & regression I/O** — custom Python fitness functions can return numpy arrays directly; regression accepts numpy arrays or lists.
+- **`GraphMutator::target_size(size)`** — anti-bloat throttling once a graph reaches a target size.
+- **Python: `Graph`/`Tree` pickle support** (`to_pickle`/`from_pickle`) and an `unchecked=True` fast path on `.eval()` that skips shape validation. `Graph.eval`/`Tree.eval` now also accept numpy arrays directly.
+- **Python: `Expr.select(...)` methods** — `.mean()`/`.stddev()`/`.min()`/`.max()`/`.sum()`/`.slope()`/etc., plus `Expr.alias(name)`.
+- **TUI: three new dashboard tabs** — "Improvements", "Front" (Pareto-front tracking), and "Events", plus a richer status bar and better table navigation keys.
+- **New examples** — Bevy-based `flappy-bird` (Rust), CPPN image evolution `graph_art.py` (Python).
 
 ### Changed
 
-- **Metric names renamed** for consistency, in both `radiate-gp` (`mutate.graph.invalid.*` → `mutator.graph.*`, `mutate.operation.*` → `mutator.op.*`) and the engine (`age.replace` → `replace.age`, `size.genome` → `genome.size`, `new.front` → `front.additions`, `invalid.front` → `front.removals`, `count.species` → `species.count`, and others). See `docs/source/engine/metrics.md` for the full list.
-- **Python: free-threaded builds now target 3.14t.** CI was still building free-threaded wheels against `python3.13t` despite `1.3.0`'s changelog claiming 3.14/t support — the publish workflow now actually targets 3.14t (the abi3 free-threaded stable ABI only exists from CPython 3.14).
+- **Metric names renamed** for consistency across the engine and `radiate-gp` (e.g. `age.replace` → `replace.age`, `count.species` → `species.count`). See `docs/source/engine/metrics.md` for the full mapping.
+- **Python: free-threaded wheels now actually target 3.14t** — CI had been building against 3.13t despite `1.3.0` claiming 3.14t support.
 
 ### Docs
 
-- **`docs/source/alters/rate.md` rewritten** for the `Expr`-based rate model — this finishes the doc that was flagged as stale after the `1.3.0` Rate→Expr migration. Schedule names updated (`Fixed`/`Linear`/`Stepwise`/`Sine`/`Triangular`/`Exponential` → `Constant`/`Linear ramp`/`Stepped`/`Periodic`/`Exponential decay`/`Metric-driven`).
-- **`docs/source/diversity/species.md`** — new "Target Species Count" section.
-- **`docs/source/engine/metrics.md`** — updated for the renamed metrics above, plus new metrics (`scores.best`, `scores.evenness`, `scores.gini`, `genome.size.score.corr`).
-- Added the missing `1.3.0` entry to `docs/source/releases.md`.
+- `docs/source/engine/` split into `runtime.md`, `generations.md`, `limits.md`, `example.md` for readability.
+- New "Decorator Shortcuts" section in `docs/source/events.md` and "Target Species Count" section in `docs/source/diversity/species.md`.
 
 ### Fixed
 
-- **`GraphMutator` could select duplicate source-node indices** when inserting a multi-arity op (`Arity::Exact(n>1)`); node selection is now deduplicated.
-- Defensive `Option`-based node lookups in graph/tree crossover, removing a few panic-on-misaligned-index paths.
+- **`GraphMutator` could pick duplicate source-node indices** for multi-arity ops — now deduplicated.
+- Fixed a few panics from misaligned indices in graph/tree crossover.
+- **`AnyValue`'s numeric → `Duration` cast now treats the source `f32` as seconds, not milliseconds** — durations reported via metrics were previously 1000x off.
 
 **For example and details please refer to the user guide and API docs.**
 

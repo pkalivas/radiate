@@ -13,14 +13,15 @@
 //! - **Convergence Detection**: Stop when improvement rate falls below threshold
 //! - **Combined Limits**: Apply multiple limits simultaneously
 
-use crate::{EvolutionContext, Generation, generation::GenerationView, runtime::RuntimeLimit};
+use crate::{
+    EvolutionContext, Generation, events::LimitTriggered, generation::GenerationView,
+    runtime::RuntimeLimit,
+};
 use radiate_core::{
-    AnyValue, Chromosome, Engine, Metric, Objective, Optimize, Score,
-    error::RadiateResult,
-    rate::{Evaluate, Expr},
+    AnyValue, Chromosome, Engine, Expr, Objective, Optimize, Score, error::RadiateResult,
 };
 use radiate_error::radiate_bail;
-use std::{collections::VecDeque, fmt::Debug, sync::Arc, time::Duration};
+use std::{collections::VecDeque, fmt::Debug, time::Duration};
 
 /// Defines various types of limits for controlling genetic algorithm execution.
 ///
@@ -107,8 +108,13 @@ pub enum Limit {
     Score(Score),
     Convergence(usize, f32, VecDeque<f32>),
     Combined(Vec<Limit>),
-    Metric(String, Arc<dyn Fn(&Metric) -> bool + Send + Sync>),
     Expr(Expr),
+    Fn,
+}
+
+pub(crate) enum LimitOutcome {
+    Proceed,
+    Stop,
 }
 
 impl<C, T, E> RuntimeLimit<E> for Limit
@@ -118,105 +124,205 @@ where
     T: Clone + Send + Sync,
 {
     fn proceed(&mut self, ctx: &E::Ctx) -> RadiateResult<bool> {
-        match self {
-            Limit::Generation(gens) => Ok(ctx.index < *gens),
-            Limit::Seconds(secs) => {
-                let total_time = ctx
-                    .metrics
-                    .time()
-                    .and_then(|m| m.times().map(|t| t.sum()))
-                    .unwrap_or_default();
-                Ok(total_time < *secs)
-            }
-            Limit::Score(limit) => {
-                let Some(score) = &ctx.score else {
-                    return Ok(true);
-                };
-
-                Ok(match &ctx.objective {
-                    Objective::Single(obj) => match obj {
-                        Optimize::Minimize => score > limit,
-                        Optimize::Maximize => score < limit,
-                    },
-                    Objective::Multi(objs) => {
-                        let mut all_pass = true;
-                        for (i, score) in score.iter().enumerate() {
-                            let passed = match objs[i] {
-                                Optimize::Minimize => score > &limit[i],
-                                Optimize::Maximize => score < &limit[i],
-                            };
-
-                            if !passed {
-                                all_pass = false;
-                                break;
-                            }
-                        }
-
-                        all_pass
-                    }
-                })
-            }
+        let outcome = match self {
+            Limit::Generation(gens) => check_generation_limit(ctx, *gens),
+            Limit::Seconds(secs) => check_time_limit(ctx, *secs),
+            Limit::Score(limit) => check_score_limit(ctx, limit),
             Limit::Convergence(window, epsilon, history) => {
-                let Some(current_score) = &ctx.score else {
-                    return Ok(true);
-                };
-
-                history.push_back(current_score.as_f32());
-                if history.len() > *window {
-                    history.pop_front();
-                }
-
-                if history.len() < *window {
-                    return Ok(true);
-                }
-
-                let first = history.front().unwrap();
-                let last = history.back().unwrap();
-
-                let improved = match &ctx.objective {
-                    Objective::Single(_) => last - first,
-                    Objective::Multi(_) => {
-                        let mut total_improvement = 0.0;
-                        for (i, score) in history.iter().enumerate() {
-                            let improvement = match &ctx.objective {
-                                Objective::Multi(objs) => match objs[i] {
-                                    Optimize::Minimize => score - first,
-                                    Optimize::Maximize => first - score,
-                                },
-                                _ => 0.0,
-                            };
-                            total_improvement += improvement;
-                        }
-                        total_improvement / history.len() as f32
-                    }
-                };
-
-                Ok(improved.abs() > *epsilon)
+                check_convergence_limit(ctx, *window, *epsilon, history)
             }
-            Limit::Combined(limits) => limits
-                .iter_mut()
-                .map(|limit| <Limit as RuntimeLimit<E>>::proceed(limit, ctx))
-                .collect::<RadiateResult<Vec<bool>>>()
-                .map(|proceed| proceed.iter().all(|&p| p)),
-            Limit::Metric(name, predicate) => Ok(if let Some(metric) = ctx.metrics.get(name) {
-                predicate(metric)
-            } else {
-                true
-            }),
-            Limit::Expr(expr) => {
-                let metrics = &ctx.metrics;
-                let result = expr.eval(metrics).unwrap_or(AnyValue::Null);
+            Limit::Combined(limits) => {
+                let proceed = limits
+                    .iter_mut()
+                    .map(|limit| <Limit as RuntimeLimit<E>>::proceed(limit, ctx))
+                    .collect::<RadiateResult<Vec<bool>>>()
+                    .map(|proceed| proceed.iter().all(|&p| p));
 
-                if let AnyValue::Bool(b) = result {
-                    Ok(!b)
-                } else {
-                    radiate_bail!(Engine: format!(
-                        "Expression did not evaluate to a boolean value: {:?}",
-                        result
-                    ))
+                match proceed {
+                    Ok(true) => Ok(LimitOutcome::Proceed),
+                    Ok(false) => Ok(LimitOutcome::Stop),
+                    Err(e) => Err(e),
                 }
+            }
+            Limit::Expr(expr) => check_expr_limit(ctx, expr),
+            Limit::Fn => return Ok(true), // Custom function limits are handled externally
+        }?;
+
+        match outcome {
+            LimitOutcome::Proceed => Ok(true),
+            LimitOutcome::Stop => {
+                ctx.event_stream()
+                    .publish(LimitTriggered(ctx.index, self.clone()));
+                Ok(false)
             }
         }
+    }
+}
+
+#[inline]
+fn check_generation_limit<C, T>(
+    ctx: &EvolutionContext<C, T>,
+    limit: usize,
+) -> RadiateResult<LimitOutcome>
+where
+    C: Chromosome,
+{
+    let proceed = ctx.index < limit;
+
+    Ok(if proceed {
+        LimitOutcome::Proceed
+    } else {
+        LimitOutcome::Stop
+    })
+}
+
+#[inline]
+fn check_time_limit<C, T>(
+    ctx: &EvolutionContext<C, T>,
+    limit: Duration,
+) -> RadiateResult<LimitOutcome>
+where
+    C: Chromosome,
+{
+    let total_time = ctx
+        .metrics
+        .time()
+        .and_then(|m| m.times().map(|t| t.sum()))
+        .unwrap_or_default();
+
+    let proceed = total_time < limit;
+
+    Ok(if proceed {
+        LimitOutcome::Proceed
+    } else {
+        LimitOutcome::Stop
+    })
+}
+
+#[inline]
+fn check_score_limit<C, T>(
+    ctx: &EvolutionContext<C, T>,
+    limit: &Score,
+) -> RadiateResult<LimitOutcome>
+where
+    C: Chromosome,
+{
+    let Some(score) = &ctx.score else {
+        return Ok(LimitOutcome::Proceed);
+    };
+
+    let proceed = match &ctx.objective {
+        Objective::Single(obj) => match obj {
+            Optimize::Minimize => score > limit,
+            Optimize::Maximize => score < limit,
+        },
+        Objective::Multi(objs) => {
+            let mut all_pass = true;
+            for (i, score) in score.iter().enumerate() {
+                let passed = match objs[i] {
+                    Optimize::Minimize => score > &limit[i],
+                    Optimize::Maximize => score < &limit[i],
+                };
+
+                if !passed {
+                    all_pass = false;
+                    break;
+                }
+            }
+
+            all_pass
+        }
+    };
+
+    let outcome = if proceed {
+        LimitOutcome::Proceed
+    } else {
+        LimitOutcome::Stop
+    };
+
+    Ok(outcome)
+}
+
+#[inline]
+fn check_convergence_limit<C, T>(
+    ctx: &EvolutionContext<C, T>,
+    window: usize,
+    epsilon: f32,
+    history: &mut VecDeque<f32>,
+) -> RadiateResult<LimitOutcome>
+where
+    C: Chromosome,
+{
+    let Some(current_score) = &ctx.score else {
+        return Ok(LimitOutcome::Proceed);
+    };
+
+    history.push_back(current_score.as_f32());
+    if history.len() > window {
+        history.pop_front();
+    }
+
+    if history.len() < window {
+        return Ok(LimitOutcome::Proceed);
+    }
+
+    let first = history.front().unwrap();
+    let last = history.back().unwrap();
+
+    let improved = match &ctx.objective {
+        Objective::Single(_) => last - first,
+        Objective::Multi(_) => {
+            let mut total_improvement = 0.0;
+            for (i, score) in history.iter().enumerate() {
+                let improvement = match &ctx.objective {
+                    Objective::Multi(objs) => match objs[i] {
+                        Optimize::Minimize => score - first,
+                        Optimize::Maximize => first - score,
+                    },
+                    _ => 0.0,
+                };
+                total_improvement += improvement;
+            }
+            total_improvement / history.len() as f32
+        }
+    };
+
+    let proceed = improved.abs() > epsilon;
+
+    Ok(if proceed {
+        LimitOutcome::Proceed
+    } else {
+        LimitOutcome::Stop
+    })
+}
+
+#[inline]
+fn check_expr_limit<C, T>(
+    ctx: &EvolutionContext<C, T>,
+    expr: &mut Expr,
+) -> RadiateResult<LimitOutcome>
+where
+    C: Chromosome,
+{
+    let metrics = &ctx.metrics;
+    let result = expr.evaluate(metrics)?;
+
+    if let AnyValue::Bool(b) = result {
+        let proceed = !b;
+        // if !proceed {
+        //     ctx.event_stream()
+        //         .publish(LimitTriggered(ctx.index, Limit::Expr(expr.clone())));
+        // }
+        Ok(if proceed {
+            LimitOutcome::Proceed
+        } else {
+            LimitOutcome::Stop
+        })
+    } else {
+        radiate_bail!(Engine: format!(
+            "Expression did not evaluate to a boolean value: {:?}",
+            result
+        ))
     }
 }
 
@@ -256,15 +362,6 @@ impl From<Expr> for Limit {
     }
 }
 
-impl<F> From<(&str, F)> for Limit
-where
-    F: Fn(&Metric) -> bool + Send + Sync + 'static,
-{
-    fn from(value: (&str, F)) -> Self {
-        Limit::Metric(value.0.to_string(), Arc::new(value.1))
-    }
-}
-
 impl From<Vec<Limit>> for Limit {
     fn from(value: Vec<Limit>) -> Self {
         Limit::Combined(value)
@@ -289,18 +386,24 @@ impl From<(Limit, Limit, Limit, Limit)> for Limit {
     }
 }
 
+impl<const N: usize> From<[Limit; N]> for Limit {
+    fn from(value: [Limit; N]) -> Self {
+        Limit::Combined(value.into_iter().collect::<Vec<Limit>>())
+    }
+}
+
 impl Debug for Limit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Limit::Generation(gens) => write!(f, "Generation({gens})"),
             Limit::Seconds(secs) => write!(f, "Seconds({secs:?})"),
-            Limit::Score(score) => write!(f, "Score({:?})", score.as_f32()),
+            Limit::Score(score) => write!(f, "Score({:?})", score),
             Limit::Convergence(window, epsilon, _) => {
                 write!(f, "Convergence(window: {window}, epsilon: {epsilon})")
             }
             Limit::Combined(limits) => write!(f, "Combined({limits:?})"),
-            Limit::Metric(name, _) => write!(f, "MetricLimit({name})"),
             Limit::Expr(expr) => write!(f, "ExprLimit({expr:?})"),
+            Limit::Fn => write!(f, "CustomFnLimit"),
         }
     }
 }
@@ -313,7 +416,12 @@ where
 {
     fn proceed(&mut self, ctx: &E::Ctx) -> RadiateResult<bool> {
         let view = GenerationView::new(ctx);
-        Ok(!(self)(view))
+        let proceed = !(self)(view);
+        if !proceed {
+            ctx.event_stream()
+                .publish(LimitTriggered(ctx.index, Limit::Fn));
+        }
+        Ok(proceed)
     }
 }
 

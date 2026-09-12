@@ -17,7 +17,7 @@ def test_engine_graph_xor(xor_dataset, random_seed):
         )
         .regression(inputs, outputs)
         .select(offspring=rd.Select.boltzmann(4.0))
-        .alters(
+        .alter(
             rd.Cross.graph(0.5, 0.5),
             rd.Mutate.op(0.07, 0.05),
             rd.Mutate.graph(0.1, 0.1, False),
@@ -50,7 +50,7 @@ def test_engine_graph_regression_with_speciation(
         rd.Engine(codec)
         .regression(inputs, outputs)
         .diversity(rd.Dist.neat(1.0, 1.0, 3.0), 0.1)
-        .alters(
+        .alter(
             rd.Cross.graph(0.5, 0.5),
             rd.Mutate.op(0.07, 0.05),
             rd.Mutate.graph(0.1, 0.1),
@@ -99,7 +99,7 @@ def test_engine_graph_with_recurrent_connections(memory_dataset, random_seed):
         .size(250)
         .regression(inputs, outputs)
         .limit(rd.Limit.score(0.01), rd.Limit.generations(2000))
-        .alters(
+        .alter(
             rd.Cross.graph(0.5, 0.5),
             rd.Mutate.op(0.1, 0.05),
             rd.Mutate.graph(0.05, 0.05),
@@ -147,7 +147,7 @@ def test_engine_graph_recurrent_class_acc(memory_dataset, random_seed):
     engine = (
         rd.Engine(codec)
         .regression(inputs, outputs, loss=rd.XEnt)
-        .alters(
+        .alter(
             rd.Cross.graph(0.5, 0.5),
             rd.Mutate.op(0.1, 0.05),
             rd.Mutate.graph(0.05, 0.05),
@@ -167,3 +167,47 @@ def test_engine_graph_recurrent_class_acc(memory_dataset, random_seed):
     assert acc.recall() is not None and acc.recall() > 0.99  # type: ignore
     assert acc.loss() is not None and acc.loss() < 0.01  # type: ignore
     assert acc.loss_fn() == rd.XEnt
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(not rd._NUMPY_AVAILABLE, reason="numpy not installed")
+def test_graph_eval_with_py_func(example_1x1_regression_dataset, random_seed):
+    import numpy as np
+
+    inputs, outputs = example_1x1_regression_dataset
+
+    x = np.array(inputs, dtype=np.float32)
+    y = np.array(outputs, dtype=np.float32)
+
+    def fit(graph: rd.Graph) -> np.float32:
+        assert graph.dtype() == rd.Float32
+        assert x.dtype == np.float32
+        assert y.dtype == np.float32
+        assert isinstance(graph, rd.Graph)
+
+        predictions = graph.eval(x, unchecked=True)
+        return np.mean((predictions - y) ** 2, dtype=np.float32)
+
+    engine = (
+        rd.Engine.graph(
+            shape=(1, 1),
+            vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+            edge=rd.Op.weight(),
+            dtype=rd.Float32,
+        )
+        .fitness(fit)
+        .minimizing()
+        .select(rd.Select.boltzmann(temp=4.0))
+        .alter(
+            rd.Cross.graph(0.4, 0.5),
+            rd.Mutate.op(0.07, 0.05),
+            rd.Mutate.graph(0.1, 0.1, False),
+        )
+        .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))
+    )
+
+    result = engine.run()
+    assert result is not None
+    # TODO: add some more asserts here. Tbh, we really just want to make sure this
+    # runs. The test is really just to ensure the fitness fn operates on a python graph directly.
+    # so if it runs without throwing, we're good.

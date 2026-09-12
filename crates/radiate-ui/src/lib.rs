@@ -6,7 +6,7 @@ mod styles;
 mod widgets;
 
 use crate::runtime::TuiEngine;
-use radiate_engines::{Chromosome, GeneticEngine};
+use radiate_engines::{Chromosome, GeneticEngine, disable_logging};
 use std::time::Duration;
 
 pub const DEFAULT_RENDER_INTERVAL: Duration = Duration::from_millis(100);
@@ -16,13 +16,13 @@ where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync,
 {
-    let (engine, render_interval, manual) = match engine.into() {
-        UiInput::Engine(e) => (e, DEFAULT_RENDER_INTERVAL, false),
-        UiInput::EngineRenderInterval(e, d) => (e, d, false),
-        UiInput::EngineManual(e, d) => (e, d, true),
+    disable_logging();
+    let (engine, render_interval) = match engine.into() {
+        UiInput::Engine(e) => (e, DEFAULT_RENDER_INTERVAL),
+        UiInput::EngineRenderInterval(e, d) => (e, d),
     };
 
-    TuiEngine::new(engine, render_interval, manual)
+    TuiEngine::new(engine, render_interval)
 }
 
 pub enum UiInput<C, T>
@@ -32,7 +32,6 @@ where
 {
     Engine(GeneticEngine<C, T>),
     EngineRenderInterval(GeneticEngine<C, T>, Duration),
-    EngineManual(GeneticEngine<C, T>, Duration),
 }
 
 impl<C, T> From<GeneticEngine<C, T>> for UiInput<C, T>
@@ -52,19 +51,5 @@ where
 {
     fn from(input: (GeneticEngine<C, T>, Duration)) -> Self {
         UiInput::EngineRenderInterval(input.0, input.1)
-    }
-}
-
-impl<C, T> From<(GeneticEngine<C, T>, bool)> for UiInput<C, T>
-where
-    C: Chromosome,
-    T: Clone + Send + Sync,
-{
-    fn from(input: (GeneticEngine<C, T>, bool)) -> Self {
-        if input.1 {
-            UiInput::EngineManual(input.0, DEFAULT_RENDER_INTERVAL)
-        } else {
-            UiInput::EngineRenderInterval(input.0, DEFAULT_RENDER_INTERVAL)
-        }
     }
 }

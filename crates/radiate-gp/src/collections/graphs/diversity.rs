@@ -151,7 +151,7 @@ impl<F: Float> Diversity<GraphChromosome<Op<F>>> for NeatDistance {
 }
 
 impl<G: AsRef<[GraphNode<Op<f32>>]>> Distance<G> for NeatDistance {
-    fn distance(&self, one: &G, two: &G) -> f32 {
+    fn calculate(&self, one: &G, two: &G) -> f32 {
         self.graph_distance(one, two)
     }
 }

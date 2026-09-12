@@ -1,13 +1,16 @@
 mod builder;
 mod compile;
+mod eval;
 mod expr;
-pub mod nodes;
-mod select;
+mod from;
+mod logical;
+mod ops;
 mod set;
 mod traits;
 
-pub use expr::{Expr, ExprKind};
-pub use select::{MetricField, MetricKind, SelectExpr};
+pub use expr::{Expr, ExprNode};
+pub use logical::When;
+pub use ops::SelectOp;
 pub use set::ExprSet;
 pub(crate) use traits::ExprResult;
-pub use traits::{Evaluate, ExprSelector};
+pub use traits::ProjectExpr;

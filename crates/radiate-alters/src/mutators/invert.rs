@@ -1,4 +1,6 @@
-use radiate_core::{AlterContext, AlterResult, Chromosome, Expr, Mutate, RateSet, random_provider};
+use radiate_core::{
+    AlterContext, Expr, Mutate, RateSet, chromosomes::ContiguousChromosome, random_provider,
+};
 
 /// The [InversionMutator] is a simple mutator that inverts a random section of the chromosome.
 ///
@@ -18,13 +20,13 @@ impl InversionMutator {
     }
 }
 
-impl<C: Chromosome> Mutate<C> for InversionMutator {
+impl<C: ContiguousChromosome> Mutate<C> for InversionMutator {
     fn rates(&self) -> RateSet {
         RateSet::new(self.rate.clone())
     }
 
     #[inline]
-    fn mutate_chromosome(&mut self, chromosome: &mut C, ctx: &mut AlterContext) -> AlterResult {
+    fn mutate_chromosome(&mut self, chromosome: &mut C, ctx: &mut AlterContext) -> usize {
         let mut mutations = 0;
 
         random_provider::with_rng(|rand| {
@@ -32,11 +34,11 @@ impl<C: Chromosome> Mutate<C> for InversionMutator {
                 let start = rand.range(0..chromosome.len());
                 let end = rand.range(start..chromosome.len());
 
-                chromosome.as_mut_slice()[start..end].reverse();
+                chromosome.slice_mut(start..end).reverse();
                 mutations += 1;
             }
         });
 
-        AlterResult::from(mutations)
+        mutations
     }
 }

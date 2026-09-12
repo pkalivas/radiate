@@ -110,7 +110,7 @@ where
 
     if genotype.len() == 1 {
         let chrom = &genotype[0];
-        let allele_iter = chrom.as_slice().iter().map(|gene| *gene.allele());
+        let allele_iter = chrom.iter().map(|gene| *gene.allele());
 
         if use_numpy {
             return Ok(PyArray1::from_iter(py, allele_iter).into_any());
@@ -121,14 +121,14 @@ where
 
     if use_numpy {
         let outer_iter = genotype.iter().map(|chrom| {
-            let allele_iter = chrom.as_slice().iter().map(|gene| *gene.allele());
+            let allele_iter = chrom.iter().map(|gene| *gene.allele());
             PyArray1::from_iter(py, allele_iter)
         });
         return Ok(PyList::new(py, outer_iter)?.into_any());
     }
 
     let outer_iter = genotype.iter().map(|chrom| {
-        let allele_iter = chrom.as_slice().iter().map(|gene| *gene.allele());
+        let allele_iter = chrom.iter().map(|gene| *gene.allele());
         PyList::new(py, allele_iter).expect("Failed to create inner PyList")
     });
 

@@ -70,7 +70,7 @@ fn main() {
             .sum::<f32>()
     }
 
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .codec(FloatCodec::vector(10, 0.0..1.0))
         .raw_fitness_fn(my_fitness_fn)
         // or .raw_batch_fitness_fn(...) for batch raw fitness functions

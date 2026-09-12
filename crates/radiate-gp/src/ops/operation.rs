@@ -49,6 +49,8 @@ pub enum Op<T> {
     /// - `Param<T>` the actual data/value associated with this operation
     /// - An `fn(&[T], &T) -> T` for the function logic that uses the inputs and the value to produce an output.
     Value(&'static str, Arity, Param<T>, fn(&[T], &T) -> T),
+
+    Pair(&'static str, Arity, Param<(T, T)>, fn(&[T], &(T, T)) -> T),
 }
 
 impl<T> Op<T> {
@@ -58,6 +60,7 @@ impl<T> Op<T> {
             Op::Var(name, _, _) => name,
             Op::Const(name, _) => name,
             Op::Value(name, _, _, _) => name,
+            Op::Pair(name, _, _, _) => name,
         }
     }
 
@@ -67,13 +70,7 @@ impl<T> Op<T> {
             Op::Var(_, _, _) => Arity::Zero,
             Op::Const(_, _) => Arity::Zero,
             Op::Value(_, arity, _, _) => *arity,
-        }
-    }
-
-    pub fn value(&self) -> Option<&T> {
-        match self {
-            Op::Value(_, _, value, _) => Some(value.data()),
-            _ => None,
+            Op::Pair(_, arity, _, _) => *arity,
         }
     }
 
@@ -104,6 +101,7 @@ where
             Op::Var(_, index, _) => inputs[*index].clone(),
             Op::Const(_, value) => value.clone(),
             Op::Value(_, _, value, operation) => operation(inputs, value.data()),
+            Op::Pair(_, _, value, operation) => operation(inputs, value.data()),
         }
     }
 }
@@ -120,6 +118,9 @@ where
             Op::Value(name, arity, value, operation) => {
                 Op::Value(name, *arity, value.new_instance(()), *operation)
             }
+            Op::Pair(name, arity, value, operation) => {
+                Op::Pair(name, *arity, value.new_instance(()), *operation)
+            }
         }
     }
 }
@@ -135,6 +136,9 @@ where
             Op::Const(name, value) => Op::Const(name, value.clone()),
             Op::Value(name, arity, value, operation) => {
                 Op::Value(name, *arity, value.clone(), *operation)
+            }
+            Op::Pair(name, arity, value, operation) => {
+                Op::Pair(name, *arity, value.clone(), *operation)
             }
         }
     }
@@ -154,6 +158,7 @@ where
                 }
                 (Op::Const(_, val_a), Op::Const(_, val_b)) => val_a == val_b,
                 (Op::Value(_, _, val_a, _), Op::Value(_, _, val_b, _)) => val_a == val_b,
+                (Op::Pair(_, _, val_a, _), Op::Pair(_, _, val_b, _)) => val_a == val_b,
                 _ => false,
             }
     }
@@ -177,6 +182,15 @@ impl Hash for Op<f32> {
             }
             Op::Value(_, _, value, operation) => {
                 (*value).data().to_bits().hash(state);
+                let op_ptr = *operation as usize;
+                op_ptr.hash(state);
+            }
+            Op::Pair(_, _, value, operation) => {
+                let data = (*value).data();
+                let b_one = data.0.to_bits();
+                let b_two = data.1.to_bits();
+                b_one.hash(state);
+                b_two.hash(state);
                 let op_ptr = *operation as usize;
                 op_ptr.hash(state);
             }
@@ -217,6 +231,10 @@ where
             Op::Value(name, _, value, _) => match f.precision() {
                 Some(p) => write!(f, "Val: {}({:.*?})", name, p, value),
                 None => write!(f, "Val: {}({:?})", name, value),
+            },
+            Op::Pair(name, _, value, _) => match f.precision() {
+                Some(p) => write!(f, "Pair: {}{:.*?}", name, p, value),
+                None => write!(f, "Pair: {}{:?}", name, value),
             },
         }
     }

@@ -1,7 +1,7 @@
 use super::{Chromosome, Genotype, Population, random_provider};
 use crate::{Ecosystem, MetricSet, Phenotype, error::RadiateResult, metric_names};
 use radiate_error::radiate_bail;
-pub use radiate_expr::*;
+use radiate_expr::Expr;
 use radiate_utils::{AnyValue, DataType};
 use std::{collections::HashSet, sync::Arc};
 
@@ -95,7 +95,7 @@ impl<C: Chromosome> EcosystemFilter<C> for UniqueScoreFilter {
         replacer: Arc<dyn ReplacementStrategy<C>>,
         encoder: Arc<dyn Fn() -> Genotype<C> + Send + Sync>,
     ) -> RadiateResult<()> {
-        let should_filter = self.filter_cond.eval(metrics)?;
+        let should_filter = self.filter_cond.evaluate(metrics)?;
 
         let AnyValue::Bool(bool) = should_filter else {
             radiate_bail!(Engine: "Filter condition must evaluate to a boolean value, but got: {:?}", should_filter);

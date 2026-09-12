@@ -2,8 +2,10 @@
 This module provides common fixtures and utilities used across all test modules.
 """
 
-import pytest
 import random
+
+import pytest
+
 import radiate as rd
 
 try:
@@ -179,7 +181,7 @@ def graph_1x1_engine():
         vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
         edge=rd.Op.weight(),
         output=rd.Op.linear(),
-    ).alters(
+    ).alter(
         rd.Cross.graph(0.05),
         rd.Mutate.op(0.07, 0.05),
         rd.Mutate.graph(0.1, 0.1, False),
@@ -194,7 +196,7 @@ def tree_2x1_engine():
         vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sub()],
         leaf=[rd.Op.var(0), rd.Op.var(1)],
         root=rd.Op.linear(),
-    ).alters(
+    ).alter(
         rd.Cross.tree(0.05),
         rd.Mutate.op(0.07, 0.05),
         rd.Mutate.hoist(0.1),
@@ -209,7 +211,7 @@ def simple_float_engine():
         .fitness(lambda x: sum(xi**2 for xi in x))
         .minimizing()
         .size(100)
-        .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.1))
+        .alter(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.1))
     )
 
 
@@ -227,7 +229,7 @@ def simple_multi_objective_engine():
         .objective(rd.MIN, rd.MIN)
         .size(100)
         .select(rd.Select.tournament(3), rd.Select.nsga2())
-        .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.1))
+        .alter(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.1))
     )
 
 
@@ -235,9 +237,7 @@ def simple_multi_objective_engine():
 def simple_bit_20_bit_engine():
     """Create a simple bit codec engine for testing."""
     return (
-        rd.Engine.bit(20)
-        .size(150)
-        .alters(rd.Cross.uniform(0.5), rd.Mutate.uniform(0.1))
+        rd.Engine.bit(20).size(150).alter(rd.Cross.uniform(0.5), rd.Mutate.uniform(0.1))
     )
 
 

@@ -237,7 +237,12 @@ where
         )
     }
 
-    fn calc_species_metrics(generation: usize, ecosystem: &Ecosystem<C>, metrics: &mut MetricSet) {
+    fn calc_species_metrics(
+        &mut self,
+        generation: usize,
+        ecosystem: &Ecosystem<C>,
+        metrics: &mut MetricSet,
+    ) {
         let Some(species) = ecosystem.species() else {
             return;
         };
@@ -323,7 +328,7 @@ where
         metrics.upsert(metric_names::SPECIES_DISTANCE_DIST, &self.distances);
         metrics.upsert(metric_names::SPECIES_DIED, rm_species_count);
 
-        Self::calc_species_metrics(generation, ecosystem, metrics);
+        self.calc_species_metrics(generation, ecosystem, metrics);
 
         ecosystem.fitness_share(&self.objective);
 

@@ -2,8 +2,6 @@ use radiate_core::{
     Chromosome, Objective, Phenotype, Select, math::indexes, pareto, random_provider,
 };
 
-const NSGA2_SELECTOR_NAME: &str = "nsga2_selector";
-
 /// NSGA2 Selector. Selects individuals based on the NSGA2 algorithm.
 /// This algorithm ranks individuals based on their dominance relationships
 /// with other individuals in the population. The result is a vector of ranks,
@@ -23,10 +21,6 @@ impl NSGA2Selector {
 }
 
 impl<C: Chromosome> Select<C> for NSGA2Selector {
-    fn name(&self) -> &'static str {
-        NSGA2_SELECTOR_NAME
-    }
-
     fn select(
         &self,
         population: &[Phenotype<C>],
@@ -90,12 +84,7 @@ impl<C: Chromosome> Select<C> for TournamentNSGA2Selector {
         while result.len() < count {
             let k = std::cmp::min(2 * count - result.len(), population.len());
             let mut g = vec![0; k];
-            indexes::subset(
-                population.len(),
-                k,
-                &mut g,
-                indexes::SubsetMode::StratifiedCorrect,
-            );
+            indexes::fill_subset(population.len(), &mut g);
 
             for i in (0..g.len()).step_by(2) {
                 if result.len() >= count || i + 1 >= g.len() {

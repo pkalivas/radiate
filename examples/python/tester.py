@@ -1,40 +1,26 @@
 import radiate as rd
 
-# metrics = rd.MetricSet(one=list(range(10)), two=list(range(10, 20)), three=4)
-# metrics.upsert("four", 2)
-# metrics.upsert("four", 3)
-# metrics.upsert("four", 4)
-# metrics.upsert("four", 5)
+TARGET_NUM = 60
+
+engine = rd.Engine.bit(TARGET_NUM).fitness(sum).limit(rd.Limit.score(TARGET_NUM))
+
+print(engine.run())
 
 
-# print(metrics.dashboard())
-def my_fitness_fn(x):
-    return 0.001
+# def fit(x: list[list[bool]]) -> int:
+#     sum_one = sum(1 for bit in x[0] if bit)
+#     sum_two = sum(1 for bit in x[1] if not bit)
+#     return sum_one + sum_two
 
 
-score_trend = rd.Expr.select("scores.best").rolling(20).slope().debug()
-score_cv = (
-    rd.Expr.select("scores.best").rolling(20).stddev()
-    / rd.Expr.select("scores.best").rolling(20).mean()
-)
+# engine = (
+#     rd.Engine.bit([20, 20])
+#     .fitness(fit)
+#     .minimizing()
+#     # .alter(rd.Mutate.bit_flip(0.01), rd.Cross.uniform())
+#     .limit(rd.Limit.score(0), rd.Limit.generations(200))
+# )
 
-engine = (
-    rd.Engine.float(10, init_range=(-5.0, 5.0))
-    .fitness(my_fitness_fn)
-    .minimizing()
-    .metrics(
-        score_trend=score_trend,
-        score_cv=score_cv,
-    )
-    .limit(rd.Limit.generations(1000))
-)
+# result = engine.run()
 
-
-result = engine.run()
-metrics = result.metrics()
-print(metrics["score_trend"].value_last())
-print(metrics["score_cv"].value_last())
-
-
-for op in rd.Op.all_ops():
-    print(op.name())
+# print(result.metrics().dashboard())

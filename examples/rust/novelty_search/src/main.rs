@@ -29,7 +29,7 @@ fn main() {
 
     engine
         .iter()
-        .log_every(100)
+        .logging()
         .take(2000)
         .last()
         .inspect(|result| println!("{}", result.metrics().dashboard()))

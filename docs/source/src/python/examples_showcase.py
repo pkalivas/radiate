@@ -12,10 +12,11 @@ engine = (
     .fitness(lambda x: sum(x))
     .minimizing()
     .select(offspring=rd.Select.elite())
-    .alters(rd.Mutate.swap(0.05), rd.Cross.uniform(0.5))
+    .alter(rd.Mutate.swap(0.05), rd.Cross.uniform(0.5))
+    .limit(rd.Limit.score(0), rd.Limit.generations(1000))
 )
 
-result = engine.run(rd.Limit.score(0))
+result = engine.run()
 
 print(result)
 # --8<-- [end:minsum]
@@ -49,13 +50,14 @@ engine = (
     rd.Engine.int(N_QUEENS, init_range=(0, N_QUEENS), use_numpy=True, dtype=rd.UInt8)
     .fitness(nqueens_fitness_fn)
     .minimizing()
-    .alters(
+    .alter(
         rd.Cross.multipoint(0.75, 2),
         rd.Mutate.uniform(0.05),
     )
+    .limit(rd.Limit.score(0), rd.Limit.generations(1000))
 )
 
-result = engine.run(rd.Limit.score(0), log=False)
+result = engine.run(log=False)
 print(result)
 
 board = result.value()
@@ -70,6 +72,7 @@ for i in range(N_QUEENS):
 
 # --8<-- [start:rastrigin]
 import math
+
 import radiate as rd
 
 A = 10.0
@@ -88,17 +91,18 @@ engine = (
     rd.Engine.float(2, init_range=(-RANGE, RANGE), bounds=(-10.0, 10.0))
     .fitness(rastrigin_fitness_fn)
     .minimizing()
-    .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.01))
+    .alter(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.01))
+    .limit(rd.Limit.score(0.0001))
 )
 
-print(engine.run(rd.ScoreLimit(0.0001)))
+print(engine.run())
 # --8<-- [end:rastrigin]
 
 # --8<-- [start:dtlz1]
 import matplotlib.pyplot as plt
-import radiate as rd
 import numpy as np
-from numba import jit, float32
+import radiate as rd
+from numba import float32, jit
 
 rd.random.seed(501)
 
@@ -135,12 +139,13 @@ engine = (
     .objective(rd.MIN, rd.MIN, rd.MIN)
     .front_range(100, 150)
     .select(rd.Select.tournament(k=5), rd.Select.nsga3(points=12))
-    .alters(
+    .alter(
         rd.Cross.sbx(1.0, 2.0),  # <- Simulated Binary Crossover
         rd.Mutate.uniform(0.1),
     )
+    .limit(rd.Limit.generations(2000))
 )
-result = engine.run(rd.GenerationsLimit(2000), ui=True)
+result = engine.run(ui=True)
 
 # When running an MO problem, we can get the resulting pareto from from the
 # engine's epoch result. This is stored in the 'front()' field of the result here:
@@ -176,14 +181,15 @@ codec = rd.GraphCodec.directed(
 engine = (
     rd.Engine(codec)
     .regression(inputs, answers, loss=rd.MSE)
-    .alters(
+    .alter(
         rd.Cross.graph(0.5, 0.5),
         rd.Mutate.op(0.07, 0.05),
         rd.Mutate.graph(0.1, 0.1),
     )
+    .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))
 )
 
-result = engine.run(rd.Limit.score(0.001), rd.Limit.generations(1000), log=True)
+result = engine.run(log=True)
 
 for input, target in zip(inputs, answers):
     print(f"Input: {input}, Target: {target}, Output: {result.value().eval([input])}")
@@ -204,11 +210,12 @@ codec = rd.TreeCodec(
 engine = (
     rd.Engine(codec)
     .regression(inputs, answers, loss=rd.MSE)
-    .alters(rd.Cross.tree(0.7), rd.Mutate.hoist(0.01))
+    .alter(rd.Cross.tree(0.7), rd.Mutate.hoist(0.01))
+    .limit(rd.Limit.score(0.01), rd.Limit.seconds(1))
 )
 
 
-result = engine.run(rd.Limit.score(0.01), rd.Limit.seconds(1), log=True)
+result = engine.run(log=True)
 print(result)
 
 for input, target in zip(inputs, answers):

@@ -1,8 +1,9 @@
+use crossbeam::channel;
+use std::thread;
 use std::{
     fmt::Debug,
-    sync::{Arc, Mutex, OnceLock},
+    sync::{Arc, OnceLock},
 };
-use std::{sync::mpsc, thread};
 
 /// A fixed-size thread pool implementation. This thread pool will create a fixed number of worker threads
 /// that will be reused for executing jobs. This is useful for limiting the number of concurrent threads
@@ -38,11 +39,11 @@ pub fn get_thread_pool(num_workers: usize) -> Arc<ThreadPool> {
 /// the result of a job that was executed in the thread pool. It kinda acts like
 /// a `Future` in a synchronous way.
 pub struct WorkResult<T> {
-    receiver: mpsc::Receiver<T>,
+    receiver: channel::Receiver<T>,
 }
 
 impl<T> WorkResult<T> {
-    pub fn new(rx: mpsc::Receiver<T>) -> Self {
+    pub fn new(rx: channel::Receiver<T>) -> Self {
         WorkResult { receiver: rx }
     }
     /// Get the result of the job.
@@ -53,7 +54,7 @@ impl<T> WorkResult<T> {
 }
 
 pub struct ThreadPool {
-    sender: mpsc::Sender<Message>,
+    sender: channel::Sender<Message>,
     workers: Vec<Worker>,
 }
 
@@ -62,13 +63,12 @@ impl ThreadPool {
     ///
     /// Create a new ThreadPool with the given size.
     pub fn new(size: usize) -> Self {
-        let (sender, receiver) = mpsc::channel();
-        let receiver = Arc::new(Mutex::new(receiver));
+        let (sender, receiver) = channel::unbounded();
 
         ThreadPool {
             sender,
             workers: (0..size)
-                .map(|id| Worker::new(id, Arc::clone(&receiver)))
+                .map(|id| Worker::new(id, receiver.clone()))
                 .collect(),
         }
     }
@@ -137,7 +137,7 @@ impl ThreadPool {
         F: FnOnce() -> T + Send + 'static,
         T: Send + 'static,
     {
-        let (tx, rx) = mpsc::sync_channel(1);
+        let (tx, rx) = channel::bounded(1);
         let job = Box::new(move || tx.send(f()).unwrap());
 
         self.sender.send(Message::Work(job)).unwrap();
@@ -183,16 +183,16 @@ impl Worker {
     /// Create a new Worker.
     ///
     /// Runs jobs on a long-lived worker thread that pulls tasks from the queue.
-    fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Self {
+    fn new(id: usize, receiver: channel::Receiver<Message>) -> Self {
         Worker {
             id,
             thread: Some(thread::spawn(move || {
                 loop {
-                    let message = receiver.lock().unwrap().recv().unwrap();
-
-                    match message {
-                        Message::Work(job) => job(),
-                        Message::Terminate => break,
+                    while let Ok(message) = receiver.recv() {
+                        match message {
+                            Message::Work(job) => job(),
+                            Message::Terminate => return,
+                        }
                     }
                 }
             })),
@@ -219,7 +219,10 @@ impl Debug for Worker {
 mod tests {
     use super::*;
     use crate::WaitGroup;
-    use std::time::{Duration, Instant};
+    use std::{
+        sync::{Mutex, mpsc},
+        time::{Duration, Instant},
+    };
 
     #[test]
     fn test_thread_pool_creation() {

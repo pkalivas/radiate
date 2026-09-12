@@ -71,6 +71,16 @@ impl<F: Float> Extend<F> for Slope<F> {
     }
 }
 
+impl<'a, F: Float> FromIterator<&'a F> for Slope<F> {
+    fn from_iter<T: IntoIterator<Item = &'a F>>(iter: T) -> Self {
+        let mut slope = Slope::new();
+        for &value in iter {
+            slope.add(value);
+        }
+        slope
+    }
+}
+
 impl<F: Float> FromIterator<F> for Slope<F> {
     fn from_iter<T: IntoIterator<Item = F>>(iter: T) -> Self {
         let mut slope = Slope::new();

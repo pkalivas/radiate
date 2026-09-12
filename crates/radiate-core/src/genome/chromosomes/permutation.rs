@@ -1,3 +1,5 @@
+use crate::chromosomes::ContiguousChromosome;
+
 use super::{Chromosome, Gene, Valid};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -50,6 +52,11 @@ impl<A: PartialEq + Clone> Gene for PermutationGene<A> {
             index: self.index,
             alleles: Arc::clone(&self.alleles),
         }
+    }
+
+    fn set_allele(&mut self, allele: Self::Allele) {
+        let index = self.alleles.iter().position(|x| x == &allele).unwrap();
+        self.index = index;
     }
 
     fn with_allele(&self, allele: &Self::Allele) -> Self {
@@ -113,6 +120,34 @@ impl<A: PartialEq + Clone> PermutationChromosome<A> {
 impl<A: PartialEq + Clone> Chromosome for PermutationChromosome<A> {
     type Gene = PermutationGene<A>;
 
+    fn iter(&self) -> impl Iterator<Item = &Self::Gene> {
+        self.genes.iter()
+    }
+
+    fn iter_mut(&mut self) -> impl Iterator<Item = &mut Self::Gene> {
+        self.genes.iter_mut()
+    }
+
+    fn get(&self, index: usize) -> Option<&Self::Gene> {
+        self.genes.get(index)
+    }
+
+    fn get_mut(&mut self, index: usize) -> Option<&mut Self::Gene> {
+        self.genes.get_mut(index)
+    }
+
+    fn set(&mut self, index: usize, gene: Self::Gene) {
+        if let Some(slot) = self.genes.get_mut(index) {
+            *slot = gene;
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.genes.len()
+    }
+}
+
+impl<A: PartialEq + Clone> ContiguousChromosome for PermutationChromosome<A> {
     fn as_slice(&self) -> &[Self::Gene] {
         &self.genes
     }

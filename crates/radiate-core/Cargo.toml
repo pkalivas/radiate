@@ -13,15 +13,16 @@ homepage = { workspace = true }
 
 [dependencies]
 radiate-error = { workspace = true }
-radiate-expr = { workspace = true }
 radiate-utils = { workspace = true, default-features = false }
+radiate-expr = { workspace = true, default-features = false }
 num-traits = { workspace = true }
 rand = { workspace = true }
-itertools = { workspace = true }
 smallvec = { workspace = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 rayon = { workspace = true, optional = true }
+dotenvy = { workspace = true }
+crossbeam = { workspace = true }
 
 [dev-dependencies]
 serde = { workspace = true }

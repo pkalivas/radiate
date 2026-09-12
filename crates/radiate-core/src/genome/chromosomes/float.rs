@@ -2,7 +2,10 @@ use super::{
     Chromosome,
     gene::{BoundedGene, Gene, Valid},
 };
-use crate::{chromosomes::NumericGene, random_provider};
+use crate::{
+    chromosomes::{ContiguousChromosome, NumericGene},
+    random_provider,
+};
 use radiate_utils::Float;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -74,6 +77,11 @@ impl<F: Float> Gene for FloatGene<F> {
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
+    }
+
+    fn set_allele(&mut self, allele: F) {
+        let (bound_min, bound_max) = self.bound_range();
+        self.allele = allele.safe_clamp(*bound_min, *bound_max);
     }
 }
 
@@ -312,6 +320,34 @@ impl<F: Float> FloatChromosome<F> {
 impl<F: Float> Chromosome for FloatChromosome<F> {
     type Gene = FloatGene<F>;
 
+    fn iter(&self) -> impl Iterator<Item = &Self::Gene> {
+        self.genes.iter()
+    }
+
+    fn iter_mut(&mut self) -> impl Iterator<Item = &mut Self::Gene> {
+        self.genes.iter_mut()
+    }
+
+    fn get(&self, index: usize) -> Option<&Self::Gene> {
+        self.genes.get(index)
+    }
+
+    fn get_mut(&mut self, index: usize) -> Option<&mut Self::Gene> {
+        self.genes.get_mut(index)
+    }
+
+    fn set(&mut self, index: usize, gene: Self::Gene) {
+        if let Some(slot) = self.genes.get_mut(index) {
+            *slot = gene;
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.genes.len()
+    }
+}
+
+impl<F: Float> ContiguousChromosome for FloatChromosome<F> {
     fn as_slice(&self) -> &[Self::Gene] {
         &self.genes
     }

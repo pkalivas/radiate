@@ -67,7 +67,7 @@ fn main() {
         Box::new(UniformCrossover::new(0.75)),
     ];
 
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .codec(codec)
         .offspring_selector(BoltzmannSelector::new(4.0))
         .survivor_selector(TournamentSelector::new(3))

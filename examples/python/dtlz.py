@@ -45,8 +45,7 @@ engine = (
     .objective(rd.MIN, rd.MIN, rd.MIN)
     .front_range(100, 150)
     .select(rd.Select.tournament(k=5), rd.Select.nsga3(points=12))
-    # .diversity(rd.Dist.cosine(), species_threshold=0.5)
-    .alters(
+    .alter(
         rd.Cross.sbx(1.0, 2.0),
         rd.Mutate.uniform(0.1),
     )

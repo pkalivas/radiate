@@ -31,7 +31,7 @@ impl PyMetricSet {
             let mut metric_set = MetricSet::new();
             if let AnyValue::Dict(pairs) = metrics.0.into_static() {
                 for (fld, _, val) in pairs.into_iter() {
-                    let name = fld.as_str().to_string();
+                    let name = fld.to_string();
                     let metric_update = MetricUpdate::try_from(val)?;
                     metric_set.upsert(&name, metric_update);
                 }
@@ -235,7 +235,7 @@ impl PyMetric {
 
     #[getter]
     pub fn generation(&self) -> u64 {
-        self.inner.generation()
+        self.inner.generation() as u64
     }
 
     #[getter]

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from .._rd import PyEngine, PyEngineBuilder
-from .._typing import Subscriber
+from .._typing import FileType, Subscriber
 from ..codec import CodecBase
 from ..dsl.expr import Expr
 from ..genome import GeneType, Population
@@ -183,9 +183,30 @@ class EngineBuilder[G, T]:
 
         self._inputs.append(
             EngineInput(
-                input_type=EngineInputType.Checkpoint,
+                input_type=EngineInputType.CheckpointLoad,
                 path=checkpoint_path,
                 ignore_not_found=ignore_not_found,
+                file_type=file_type,
+            )
+        )
+
+    def set_checkpoint_write(
+        self, path: str | None, interval: int, file_type: FileType = "pkl"
+    ):
+        if path is None:
+            return
+
+        if file_type not in {"pkl", "json"}:
+            raise ValueError(
+                "Checkpoint file type must be 'pkl' or 'json'. "
+                f"Got '{file_type}' from path '{path}'."
+            )
+
+        self._inputs.append(
+            EngineInput(
+                input_type=EngineInputType.CheckpointWrite,
+                path=path,
+                interval=interval,
                 file_type=file_type,
             )
         )

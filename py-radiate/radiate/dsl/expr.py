@@ -126,7 +126,7 @@ class Expr(RsObject):
         >>> import radiate as rd
         >>> rd.Expr.select("scores.best")
         """
-        return cls.from_rust(PyExpr.select(metric))
+        return Select.from_rust(PyExpr.select(metric))
 
     @classmethod
     def lit(cls, value: float | int | str) -> Expr:
@@ -393,3 +393,50 @@ class Expr(RsObject):
         This expression computes a rate that is adjusted based on the genome size relative to the target size.
         """
         return Expr.from_rust(self.__backend__().genome_size_rate(target_size))
+
+    def alias(self, name: str) -> Expr:
+        """
+        Assign a name to this expression. Useful for debugging and logging.
+
+        >>> import radiate as rd
+        >>> expr = rd.Expr.select("scores.best").mean().alias("mean_best_score")
+        """
+        return Expr.from_rust(self.__backend__().alias(name))
+
+
+class Select(Expr):
+    def last(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("last_value"))
+
+    def mean(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("mean"))
+
+    def stddev(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("stddev"))
+
+    def min(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("min"))
+
+    def max(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("max"))
+
+    def sum(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("sum"))
+
+    def var(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("variance"))
+
+    def skew(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("skewness"))
+
+    def kurtosis(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("kurtosis"))
+
+    def count(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("count"))
+
+    def slope(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("slope"))
+
+    def unique(self) -> Expr:
+        return Expr.from_rust(self.__backend__().attr_("unique"))

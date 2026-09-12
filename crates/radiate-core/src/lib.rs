@@ -18,13 +18,14 @@ use radiate_error::Result;
 pub use radiate_error::{RadiateError, ensure, radiate_err};
 pub use radiate_expr::*;
 
-pub use alter::{AlterContext, AlterResult, Alterer, Crossover, Mutate};
+pub use alter::{AlterContext, Alterer, Crossover, Mutate};
 pub use codecs::{
     BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,
 };
 pub use diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
+pub use domain::env_vars;
 pub use domain::*;
-pub use engine::{Engine, EngineExt};
+pub use engine::{Engine, EngineExt, EngineState, EngineStream};
 pub use evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
 pub use executor::Executor;
 pub use fitness::{
@@ -38,21 +39,24 @@ pub use rate::RateSet;
 pub use replacement::{
     EcosystemFilter, EncodeReplace, PopulationSampleReplace, ReplacementStrategy, UniqueScoreFilter,
 };
+
 pub use selector::Select;
 pub use stats::{
-    Metric, MetricSet, MetricUpdate, expr, metric_names, render_dashboard, render_full,
+    Metric, MetricSet, MetricUpdate, TagType, expr, metric_names, render_dashboard, render_full,
 };
 
 pub mod prelude {
     pub use radiate_error::*;
+    pub use radiate_expr::*;
 
     pub use super::alter::{AlterContext, Alterer, Crossover, Mutate};
     pub use super::codecs::{
         BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,
     };
     pub use super::diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
+    pub use super::domain::env_vars;
     pub use super::domain::random_provider;
-    pub use super::engine::{Engine, EngineExt};
+    pub use super::engine::{Engine, EngineExt, EngineState, EngineStream};
     pub use super::evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
     pub use super::executor::Executor;
     pub use super::fitness::{
@@ -69,5 +73,8 @@ pub mod prelude {
         UniqueScoreFilter,
     };
     pub use super::selector::Select;
-    pub use super::stats::{Metric, MetricSet, expr, metric_names};
+
+    pub use super::stats::{
+        Metric, MetricSet, MetricUpdate, expr, metric_names, render_dashboard, render_full,
+    };
 }

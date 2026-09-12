@@ -58,7 +58,7 @@ engine = (
     .fitness(fit)
     .minimizing()
     .select(offspring=rd.Select.boltzmann(temp=3))
-    .alters(
+    .alter(
         rd.Cross.blend(0.7, 0.5),
         rd.Mutate.gaussian(0.05),
     )

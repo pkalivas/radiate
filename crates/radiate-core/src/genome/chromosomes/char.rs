@@ -2,7 +2,7 @@ use super::{
     Chromosome,
     gene::{Gene, Valid},
 };
-use crate::random_provider;
+use crate::{chromosomes::ContiguousChromosome, random_provider};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{char, sync::Arc};
@@ -81,6 +81,10 @@ impl Gene for CharGene {
             allele: *allele,
             char_set: Arc::clone(&self.char_set),
         }
+    }
+
+    fn set_allele(&mut self, allele: char) {
+        self.allele = allele;
     }
 }
 
@@ -202,6 +206,34 @@ impl CharChromosome {
 impl Chromosome for CharChromosome {
     type Gene = CharGene;
 
+    fn iter(&self) -> impl Iterator<Item = &Self::Gene> {
+        self.genes.iter()
+    }
+
+    fn iter_mut(&mut self) -> impl Iterator<Item = &mut Self::Gene> {
+        self.genes.iter_mut()
+    }
+
+    fn get(&self, index: usize) -> Option<&Self::Gene> {
+        self.genes.get(index)
+    }
+
+    fn get_mut(&mut self, index: usize) -> Option<&mut Self::Gene> {
+        self.genes.get_mut(index)
+    }
+
+    fn set(&mut self, index: usize, gene: Self::Gene) {
+        if let Some(slot) = self.genes.get_mut(index) {
+            *slot = gene;
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.genes.len()
+    }
+}
+
+impl ContiguousChromosome for CharChromosome {
     fn as_slice(&self) -> &[Self::Gene] {
         &self.genes
     }
