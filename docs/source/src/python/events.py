@@ -58,31 +58,60 @@ import radiate as rd
 
 # Each decorator pins the handler to a single EventType, so you skip the
 # subclass-and-override boilerplate for single-purpose handlers.
-@rd.on_start
+@rd.on_start  # EventType.START
 def log_start(event: rd.EngineEvent) -> None:
     print("Evolution has started!")
 
 
-@rd.on_epoch  # NOTE: maps to EPOCH_COMPLETE, not EPOCH_START
+@rd.on_epoch  # EventType.EPOCH_COMPLETE
 def log_epoch(event: rd.EngineEvent) -> None:
-    print(f"Epoch {event.index()}: best score = {event.score()}")
+    print(f"Epoch {event.index}: best score = {event.score()}")
 
 
-@rd.on_improvement
-def log_improvement(event: rd.EngineEvent) -> None:
-    print(f"New best found at epoch {event.index()}: {event.score()}")
-
-
-@rd.on_stop
+@rd.on_stop  # EventType.STOP
 def log_stop(event: rd.EngineEvent) -> None:
     print(event.metrics().dashboard())
+
+
+@rd.on_improvement  # EventType.IMPROVEMENT
+def log_improvement(event: rd.EngineEvent) -> None:
+    print(f"New best found at epoch {event.index}: {event.score()}")
+
+
+@rd.on_limit_triggered  # EventType.LIMIT_TRIGGERED
+def log_limit_triggered(event: rd.EngineEvent) -> None:
+    print(f"Limit triggered at epoch {event.index}")
+
+
+@rd.on_log  # EventType.LOG
+def log_log(event: rd.EngineEvent) -> None:
+    print(f"Log event: {event}")
+
+
+@rd.on_checkpoint_saved  # EventType.CHECKPOINT_SAVED
+def log_checkpoint_saved(event: rd.EngineEvent) -> None:
+    print(f"Checkpoint saved at epoch {event.index}")
+
+
+@rd.on_event  # subscribe to all events
+def log_event(event: rd.EngineEvent) -> None:
+    print(f"Event received: {event}")
 
 
 # Each decorated function is already a full handler, so subscribe them directly
 engine = (
     rd.Engine.int(10, init_range=(0, 100))
     .fitness(your_fitness_func)
-    .subscribe(log_start, log_epoch, log_improvement, log_stop)
+    .subscribe(
+        log_start,
+        log_epoch,
+        log_improvement,
+        log_stop,
+        log_limit_triggered,
+        log_log,
+        log_checkpoint_saved,
+        log_event,
+    )
     # ... other parameters ...
 )
 # --8<-- [end:decorator_handlers]
@@ -101,10 +130,10 @@ class ScorePlotterHandler(rd.EventHandler):
         self.scores = []
 
     def on_event(self, event: rd.EngineEvent) -> None:
-        if event.event_type() == rd.EventType.EPOCH_COMPLETE:
+        if event.event_type == rd.EventType.EPOCH_COMPLETE:
             best_score = event.score()
             self.scores.append(best_score)
-        elif event.event_type() == rd.EventType.STOP:
+        elif event.event_type == rd.EventType.STOP:
             df = pl.DataFrame(
                 {"Generation": list(range(len(self.scores))), "Score": self.scores}
             )

@@ -4,7 +4,8 @@ use pyo3::{
     types::{PyAnyMethods, PyDict},
 };
 use radiate::{
-    Chromosome, EpochComplete, EventContext, GeneticEngineBuilder, Handler, LimitTriggered,
+    Chromosome, EngineStart, EpochComplete, EventContext, GeneticEngineBuilder, Handler,
+    LimitTriggered,
     events::{CheckpointSaved, EngineStop, EpochStart, Improvement, LogEvent, LogLevel},
 };
 use std::fmt::Debug;
@@ -52,6 +53,28 @@ impl Debug for PySubscriber {
         f.debug_struct("PySubscriber")
             .field("event_name", &self.event_name)
             .finish()
+    }
+}
+
+impl Handler<EngineStart> for PySubscriber {
+    fn handle(&mut self, _: &EngineStart, _: &EventContext<'_, Self>) {
+        Python::attach(|py| {
+            let rd = radiate(py).bind(py);
+            let py_event = rd
+                .getattr(intern!(py, "EngineEvent"))
+                .expect("Failed to get EngineEvent class")
+                .call1((
+                    crate::constants::event_types::START_EVENT,
+                    Some(0),
+                    py.None(),
+                ))
+                .expect("Failed to create EngineEvent instance");
+
+            self.function
+                .inner
+                .call1(py, (py_event,))
+                .expect("Failed to call subscriber function");
+        })
     }
 }
 
@@ -318,6 +341,9 @@ where
         for &event_name in EVENT_TYPES {
             builder = if equals_or_all(&event_type, event_name) {
                 match event_name {
+                    event_types::START_EVENT => {
+                        builder.subscribe::<EngineStart>(subscriber.clone())
+                    }
                     event_types::STOP_EVENT => {
                         builder.subscribe::<EngineStop<T>>(subscriber.clone())
                     }

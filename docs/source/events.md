@@ -17,27 +17,6 @@ The `GeneticEngine` offloads nearly all of a subscriber's compute cost onto the 
     
     Currently, the rust implementation is multi-threaded (if multi-threaded [executors](executors.md) are used), meaning if you have multiple subscribers, there is no guarantee of the order in which they will be called. For python, regardless of if you are using a free-threaded interpreter (3.13t/3.14t, etc) or not, the events will be dispatched on a single thread in the order they were added.
 
---- 
-## Event Types
-
-Radiate provides several key events that you can subscribe to. The variants live on the `EngineEventInner<T>` enum; in a handler you receive an `EngineEvent<T>` — a cheap, clonable `Arc` wrapper around it — and pattern-match against the inner enum via `event.inner()`:
-
-```rust
-pub enum EngineEventInner<T> {
-    /// Triggered when the evolution process starts.
-    /// Has no associated data, is simply a signal that evolution has begun.
-    Start,
-    /// Triggered when the evolution process stops. Provides the best individual, metrics, and score.
-    Stop(usize, T, MetricSet, Score),
-    /// Triggered at the start of each epoch with the epoch index.
-    EpochStart(usize),
-    /// Triggered at the end of each epoch with the epoch index, best individual, metrics, and score.
-    EpochComplete(usize, T, MetricSet, Score, Objective),
-    /// Triggered when an improvement is found with the epoch index, best individual, and score.
-    Improvement(usize, T, Score),
-}
-```
-
 Below there is a brief description of each event type with its representative data structures expressed in json.
 
 ??? note "Start Event"
@@ -124,6 +103,34 @@ Below there is a brief description of each event type with its representative da
     }
     ```
 
+??? note "Checkpoint Saved Event"
+
+    This event is triggered when a checkpoint is saved during the evolution process. It provides:
+
+    - The index of the generation at which the checkpoint was saved
+
+    ```json
+    {
+        "event_type": "checkpoint_saved",
+        "index": 42,
+        "path": "/path/to/checkpoint"
+    }
+    ```
+
+??? note "Limit Triggered Event"
+
+    This event is triggered when a limit set on the engine is reached during the evolution process. It provides:
+
+    - The index of the generation at which the limit was triggered
+
+    ```json
+    {
+        "event_type": "limit_triggered",
+        "index": 100,
+        "limit": "..." // this will be the actual limit that was triggered
+    }
+    ```
+
 ---
 
 ## Subscribing to Events
@@ -178,6 +185,9 @@ For single-purpose handlers, four decorators skip the subclass-and-override boil
 | `on_epoch` | `EventType.EPOCH_COMPLETE` |
 | `on_improvement` | `EventType.ENGINE_IMPROVEMENT` |
 | `on_stop` | `EventType.STOP` |
+| `on_limit_triggered` | `EventType.LIMIT_TRIGGERED` |
+| `on_checkpoint_saved` | `EventType.CHECKPOINT_SAVED` |
+| `on_event` | All event types |
 
 !!! note "No shortcut for `EPOCH_START`"
 

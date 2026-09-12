@@ -5,6 +5,18 @@ fn your_fitness_fn(genotype: Vec<f32>) -> f32 {
 }
 
 fn main() {
+    // let my_engine = GeneticEngine::builder()
+    //     .codec(FloatCodec::vector(6, -5.0..5.0))
+    //     .fitness_fn(your_fitness_fn)
+    //     .build();
+
+    // // --8<-- [start:engine_start]
+    // // subscribe to the engine start event
+    // my_engine.subscribe::<EngineStart>(|event: &EngineStart| {
+    //     println!("Engine started!");
+    // });
+    // // --8<-- [end:engine_start]
+
     // --8<-- [start:callback]
     let engine = GeneticEngine::builder()
         .codec(FloatCodec::vector(6, -5.0..5.0))
