@@ -30,10 +30,7 @@ impl Objective {
 
     #[inline]
     pub fn validate<T: AsRef<[K]>, K>(&self, values: &T) -> bool {
-        match self {
-            Objective::Single(_) => values.as_ref().len() == 1,
-            Objective::Multi(opts) => values.as_ref().len() == opts.len(),
-        }
+        values.as_ref().len() == self.dims()
     }
 
     pub fn cmp<T>(&self, a: &T, b: &T) -> std::cmp::Ordering
@@ -63,10 +60,14 @@ impl Objective {
         }
     }
 
-    pub fn sort<T: AsMut<[K]>, K: Scored + PartialOrd>(&self, population: &mut T) {
+    pub fn sort<T, K>(&self, values: &mut T)
+    where
+        T: AsMut<[K]>,
+        K: Scored + PartialOrd,
+    {
         match self {
-            Objective::Single(opt) => opt.sort(population),
-            Objective::Multi(_) => population.as_mut().sort_unstable_by(|one, two| {
+            Objective::Single(opt) => opt.sort(values),
+            Objective::Multi(_) => values.as_mut().sort_unstable_by(|one, two| {
                 if let (Some(score_one), Some(score_two)) = (one.score(), two.score()) {
                     self.dominance_cmp(score_one.as_ref(), score_two.as_ref())
                 } else {
@@ -178,12 +179,16 @@ pub enum Optimize {
 }
 
 impl Optimize {
-    pub fn sort<T: AsMut<[K]>, K: PartialOrd>(&self, population: &mut T) {
+    pub fn sort<T, K>(&self, values: &mut T)
+    where
+        T: AsMut<[K]>,
+        K: PartialOrd,
+    {
         match self {
-            Optimize::Minimize => population
+            Optimize::Minimize => values
                 .as_mut()
                 .sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)),
-            Optimize::Maximize => population
+            Optimize::Maximize => values
                 .as_mut()
                 .sort_unstable_by(|a, b| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal)),
         }
