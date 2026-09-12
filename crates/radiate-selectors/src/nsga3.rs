@@ -26,9 +26,6 @@ impl ReferenceDirs {
 
 #[derive(Debug, Clone)]
 pub struct NSGA3Selector {
-    // Computed once per (dims, partitions) and shared cheaply thereafter --
-    // `get_or_init` costs one atomic check on the fast path, and cloning the
-    // Arc is a refcount bump rather than a deep copy of every direction.
     ref_dirs: Arc<OnceLock<Arc<ReferenceDirs>>>,
     partitions: usize,
 }
