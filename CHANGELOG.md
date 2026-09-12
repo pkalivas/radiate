@@ -12,7 +12,7 @@ For all code examples and further explanations, refer to the [documentation](htt
 
 ### Breaking
 
-- **`Rate` is gone.** Every crossover/mutator now takes a plain `float` or `Expr` instead of a `Rate`. Python: `rd.Rate` is deleted.
+- **`Rate` is replaced by `float` or [Expr](https://pkalivas.github.io/radiate/source/engine/expressions/).** Every crossover/mutator now takes a plain `float` or `Expr` instead of a `Rate`. Python: `rd.Rate` is deleted.
 - **Events rewritten as typed pub/sub.** Implement `Handler<E>` for one event type (`EpochComplete`, `Improvement`, `EngineStart`/`Stop`, `LimitTriggered`, `Warning`, `CheckpointSaved`, ...) and register with `GeneticEngine::subscribe::<E>(handler)`. Python: new `rd.on_limit_triggered`/`on_log`/`on_checkpoint_saved` decorators; `event.index`/`event.event_type` are now attributes, not methods.
 - **Checkpointing moved onto the builder.** Use `GeneticEngineBuilder::checkpoint(interval, path)` instead of `run()`-time checkpointing. Python: `Engine.write_checkpoint(path, interval, file_type="pkl")` replaces `run(checkpoint=...)`. Checkpoint pickle format also changed — **checkpoints written by 1.3.0 may not load**.
 - **Metric-predicate stopping removed** — no more `Limit::Metric`/`Limit.metric(...)`. Use `Limit::Expr`/`Limit.expr(...)` instead.
