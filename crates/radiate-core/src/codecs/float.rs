@@ -1,7 +1,7 @@
 use super::Codec;
-use crate::genome::Gene;
 use crate::genome::genotype::Genotype;
 use crate::{Chromosome, FloatChromosome};
+use crate::{chromosomes::ContiguousChromosome, genome::Gene};
 use radiate_utils::Float;
 use std::ops::Range;
 
@@ -105,6 +105,30 @@ impl FloatCodec<f32> {
     pub fn scalar(range: Range<f32>) -> Self {
         FloatCodec {
             chrome_sizes: vec![1],
+            value_range: range.clone(),
+            bounds: range,
+            shapes: None,
+            _marker: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<F: Float, const N: usize> From<[usize; N]> for FloatCodec<F, Vec<Vec<F>>> {
+    fn from(chrome_sizes: [usize; N]) -> Self {
+        FloatCodec {
+            chrome_sizes: chrome_sizes.to_vec(),
+            value_range: F::default()..F::default(),
+            bounds: F::default()..F::default(),
+            shapes: None,
+            _marker: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<F: Float, const N: usize> From<([usize; N], Range<F>)> for FloatCodec<F, Vec<Vec<F>>> {
+    fn from((chrome_sizes, range): ([usize; N], Range<F>)) -> Self {
+        FloatCodec {
+            chrome_sizes: chrome_sizes.to_vec(),
             value_range: range.clone(),
             bounds: range,
             shapes: None,

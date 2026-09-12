@@ -7,6 +7,6 @@ pub use crossovers::{
     UniformCrossover,
 };
 pub use mutators::{
-    ArithmeticMutator, GaussianMutator, InversionMutator, JitterMutator, PolynomialMutator,
-    ScrambleMutator, SwapMutator, UniformMutator,
+    ArithmeticMutator, BitFlipMutator, GaussianMutator, InversionMutator, JitterMutator,
+    PolynomialMutator, ScrambleMutator, SwapMutator, UniformMutator,
 };

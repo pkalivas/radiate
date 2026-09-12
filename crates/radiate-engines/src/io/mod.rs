@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::io;
 use std::path::PathBuf;
 
+const JSON: &str = "json";
+
 pub trait FileWriter<T> {
     fn extension(&self) -> &str;
     fn write(&mut self, path: PathBuf, generation: &T) -> io::Result<()>;
@@ -20,7 +22,7 @@ where
     T: Serialize,
 {
     fn extension(&self) -> &str {
-        "json"
+        JSON
     }
 
     fn write(&mut self, path: PathBuf, generation: &T) -> io::Result<()> {

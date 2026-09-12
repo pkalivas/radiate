@@ -19,7 +19,8 @@ fn main() {
         .iter()
         .logging()
         .until(|view| view.score().as_i32() == MIN_SCORE || view.seconds() >= 3.0)
-        .run();
+        .last()
+        .unwrap();
 
     println!("{:?}", result);
 }

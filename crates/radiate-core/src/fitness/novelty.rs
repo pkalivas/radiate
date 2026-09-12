@@ -71,8 +71,6 @@ impl<T> NoveltySearch<T> {
         }
     }
 
-    /// Construct from a batch-shaped descriptor closure.
-    /// Equivalent to `NoveltySearch::new(BatchedFn(f))`.
     pub fn from_batch_fn<F>(f: F) -> Self
     where
         F: Fn(&[T]) -> Vec<Vec<f32>> + Send + Sync + 'static,

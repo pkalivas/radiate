@@ -146,12 +146,30 @@ where
 {
     type Gene = GraphNode<T>;
 
-    fn as_slice(&self) -> &[GraphNode<T>] {
-        &self.nodes
+    fn get(&self, index: usize) -> Option<&Self::Gene> {
+        self.nodes.get(index)
     }
 
-    fn as_mut_slice(&mut self) -> &mut [GraphNode<T>] {
-        &mut self.nodes
+    fn get_mut(&mut self, index: usize) -> Option<&mut Self::Gene> {
+        self.nodes.get_mut(index)
+    }
+
+    fn set(&mut self, index: usize, gene: Self::Gene) {
+        if let Some(slot) = self.nodes.get_mut(index) {
+            *slot = gene;
+        }
+    }
+
+    fn iter(&self) -> impl Iterator<Item = &Self::Gene> {
+        self.nodes.iter()
+    }
+
+    fn iter_mut(&mut self) -> impl Iterator<Item = &mut Self::Gene> {
+        self.nodes.iter_mut()
+    }
+
+    fn len(&self) -> usize {
+        self.nodes.len()
     }
 }
 

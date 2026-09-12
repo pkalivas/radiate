@@ -95,6 +95,11 @@ class Op(LazyRsObject):
     mish = _op_factory("mish")
     swish = _op_factory("swish")
     softplus = _op_factory("softplus")
+    gaussian = _op_factory("gaussian")
+    weight2 = _op_factory("weight2")
+    tooth = _op_factory("tooth")
+    sign = _op_factory("sign")
+    reciprocal = _op_factory("reciprocal")
 
     @staticmethod
     def default_vertex_ops(dtype: RdDataType | None = None) -> list[Op]:

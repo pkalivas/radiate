@@ -41,11 +41,15 @@ pub trait Valid {
 ///     }
 ///
 ///     fn new_instance(&self) -> Self {
-///        PointGene { allele: (0.0, 0.0) }
+///         PointGene { allele: (0.0, 0.0) }
 ///     }
 ///
 ///     fn with_allele(&self, allele: &Self::Allele) -> Self {
-///       PointGene { allele: *allele }
+///         PointGene { allele: *allele }
+///     }
+///
+///     fn set_allele(&mut self, allele: Self::Allele) {
+///         self.allele = allele;
 ///     }
 /// }
 ///
@@ -73,6 +77,9 @@ pub trait Gene: Clone + Valid {
 
     /// Create a new [Gene] with the given `allele`.
     fn with_allele(&self, allele: &Self::Allele) -> Self;
+
+    /// Set the `allele` of the [Gene] to the given value.
+    fn set_allele(&mut self, allele: Self::Allele);
 }
 
 pub trait BoundedGene: Gene {

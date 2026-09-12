@@ -173,9 +173,9 @@ where
         let o_selector = &self.offspring.select;
 
         let (species, population) = ecosystem.species_population_mut();
-        let species = species
-            .as_ref()
-            .ok_or(radiate_err!(Engine: "Species population is None during recombination"))?;
+        let species = species.as_ref().ok_or(
+            radiate_err!(Step: self.name(), "Species population is None during recombination"),
+        )?;
 
         population.sort_by(|a, b| a.species().cmp(&b.species()));
 
@@ -204,7 +204,7 @@ where
                 .binary_search_by(|group| group.0.cmp(&species.id()))
                 .ok()
                 .map(|i| species_groups[i].1.clone())
-                .ok_or(radiate_err!(Engine: "Failed to find species {:?} in population during recombination", species.id()))?;
+                .ok_or(radiate_err!(Step: self.name(), "Failed to find species {:?} in population", species.id()))?;
 
             let mut sub_pop = &mut population[range.clone()];
             self.objective.sort(&mut sub_pop);

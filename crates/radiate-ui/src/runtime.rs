@@ -1,11 +1,13 @@
 use crate::app::{App, GenerationEvent, InputEvent};
 use color_eyre::{Result, eyre::Context};
+use crossbeam::channel;
 use radiate_engines::{
-    Chromosome, Engine, Generation, GeneticEngine, error::RadiateResult, sync::ArcExt,
+    Chromosome, Engine, EngineState, EngineStream, Generation, GenerationView, GeneticEngine,
+    error::RadiateResult, events::LogEvent, sync::IntoPair,
 };
-use radiate_engines::{EngineControl, EngineRuntime, EvolutionContext};
+use radiate_engines::{EngineRuntime, EvolutionContext, ThreadSync};
 use std::{
-    sync::{Arc, atomic::Ordering, mpsc},
+    sync::{Arc, atomic::Ordering},
     time::Duration,
 };
 
@@ -17,8 +19,8 @@ where
     T: Clone + Send + Sync + 'static,
 {
     inner: GeneticEngine<C, T>,
-    control: EngineControl,
-    dispatcher: Arc<mpsc::Sender<InputEvent<C>>>,
+    control: ThreadSync,
+    dispatcher: channel::Sender<InputEvent<C>>,
     app_thread: Option<std::thread::JoinHandle<Result<()>>>,
     key_thread: Option<std::thread::JoinHandle<Result<()>>>,
 }
@@ -28,7 +30,7 @@ where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
-    pub fn new(mut inner: GeneticEngine<C, T>, render_interval: Duration, manual: bool) -> Self {
+    pub fn new(mut inner: GeneticEngine<C, T>, render_interval: Duration) -> Self {
         let control = inner.control();
         let app = App::new(render_interval, control.clone());
 
@@ -55,10 +57,6 @@ where
             Ok(())
         });
 
-        if manual {
-            control.set_paused(true);
-        }
-
         Self {
             inner,
             control,
@@ -69,14 +67,19 @@ where
     }
 
     pub fn iter(self) -> EngineRuntime<Self> {
-        let control = self.control.clone();
-        EngineRuntime::new(self, Some(control))
+        let dispatcher = self.dispatcher.clone();
+        EngineRuntime::new(self).subscribe::<LogEvent>(move |event: &LogEvent| {
+            dispatcher
+                .send(InputEvent::Log(event.0, event.1.clone()))
+                .map_err(|_| eprintln!("Failed to send log event: {:?}", event))
+                .unwrap();
+        })
     }
 }
 
 impl<C, T> Engine for TuiEngine<C, T>
 where
-    C: Chromosome + Clone,
+    C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
     type Ctx = EvolutionContext<C, T>;
@@ -90,12 +93,25 @@ where
         self.inner.epoch()
     }
 
+    fn state(&self) -> EngineState {
+        self.inner.state()
+    }
+
+    fn start(&mut self) {
+        self.inner.start();
+    }
+
+    fn stop(&mut self) {
+        self.inner.stop();
+    }
+
     #[inline]
     fn step(&mut self) -> RadiateResult<()> {
         self.inner.step()?;
+        let state = self.inner.state();
         let current = self.inner.context();
 
-        if self.control.is_stopped() {
+        if matches!(state, EngineState::Stopped) {
             return Ok(());
         }
 
@@ -111,6 +127,35 @@ where
             .unwrap();
 
         Ok(())
+    }
+}
+
+impl<C, T> EngineStream for TuiEngine<C, T>
+where
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    type View<'a>
+        = GenerationView<'a, C, T>
+    where
+        Self: 'a;
+
+    fn run<F>(mut self, limit: F) -> RadiateResult<Self::Epoch>
+    where
+        F: Fn(Self::View<'_>) -> bool + 'static,
+    {
+        loop {
+            self.step()?;
+            if matches!(self.state(), EngineState::Stopped) {
+                break Ok(self.epoch());
+            }
+
+            let current = self.inner.context();
+
+            if limit(GenerationView::new(current)) {
+                break Ok(self.epoch());
+            }
+        }
     }
 }
 

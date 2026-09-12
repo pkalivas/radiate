@@ -53,13 +53,8 @@ def fit(weights: list[np.ndarray]) -> float:
 
     yhat = h2 @ W3.T  # (N,8) @ (8,1) => (N,1)
 
-    # MSE
+    # MSE using np.float32 - note we are using dtype=rd.Float32 in the engine.
     return float(np.mean((yhat - Y) ** 2, dtype=np.float32))
-
-
-@rd.on_stop
-def metrics_dashboard(event: rd.EngineEvent):
-    print(event.metrics().dashboard())
 
 
 engine = (
@@ -79,15 +74,29 @@ engine = (
     )
     .fitness(fit)
     .minimizing()
-    .subscribe(metrics_dashboard)
     .select(rd.Select.boltzmann(temp=4.0))
-    .alters(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
-    .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
+    .alter(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
+    .limit(
+        rd.Limit.score(0.01),
+        rd.Limit.generations(500),
+        rd.Limit.seconds(30),
+    )
 )
 
+engine.run(log=True)
 
-for epoch in engine:
-    print(f"Epoch {epoch.index()}: Best score = {epoch.score()}")
+# .subscribe(checkpoint_saved, metrics_dashboard)
+# .load_checkpoint(
+#     READ_DIR, ignore_not_found=True
+# )  # Load from a previous checkpoint if it exists
+# .write_checkpoint(
+#     path=WRITE_DIR,
+#     interval=50,
+#     file_type="json",
+# )  # Write checkpoint every 50 generations
+
+# for epoch in engine:
+#     print(f"Epoch {epoch.index()}: Best score = {epoch.score()}")
 
 
 # # .load_checkpoint(

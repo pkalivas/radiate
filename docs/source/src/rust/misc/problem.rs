@@ -44,7 +44,7 @@ fn main() {
     // You'd only write a manual `unsafe impl` if it held non-thread-safe state.
 
     // Create an engine with the problem
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .problem(MyFloatProblem {
             num_genes: 10,
             value_range: 0.0..1.0,

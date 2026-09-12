@@ -37,32 +37,57 @@ class Tree(RsObject):
 
     @overload
     def eval(
-        self, inputs: list[list[float]], *, columns: list[str] | None = None
+        self,
+        inputs: list[list[float]],
+        *,
+        columns: list[str] | None = None,
+        unchecked: bool = False,
     ) -> list[list[float]]: ...
 
     @overload
     def eval(
-        self, inputs: list[float], *, columns: list[str] | None = None
+        self,
+        inputs: list[float],
+        *,
+        columns: list[str] | None = None,
+        unchecked: bool = False,
     ) -> list[float]: ...
 
     @overload
     def eval(
-        self, inputs: "np.ndarray", *, columns: list[str] | None = None
-    ) -> list[float]: ...
+        self, inputs: "np.typing.NDArray[np.float32]", *, unchecked: bool = False
+    ) -> (
+        "np.typing.NDArray[np.float32]"
+    ): ...  # Performance upgrade: return array to array users
 
     @overload
     def eval(
-        self, inputs: "pl.DataFrame | pl.Series", *, columns: list[str] | None = None
-    ) -> list[list[float]]: ...
+        self, inputs: "np.typing.NDArray[np.float64]", *, unchecked: bool = False
+    ) -> (
+        "np.typing.NDArray[np.float64]"
+    ): ...  # Performance upgrade: return array to array users
 
     @overload
     def eval(
-        self, inputs: "pd.DataFrame | pd.Series", *, columns: list[str] | None = None
-    ) -> list[list[float]]: ...
+        self,
+        inputs: "pl.DataFrame | pl.Series",
+        *,
+        columns: list[str] | None = None,
+        unchecked: bool = False,
+    ) -> "np.ndarray": ...
+
+    @overload
+    def eval(
+        self,
+        inputs: "pd.DataFrame | pd.Series",
+        *,
+        columns: list[str] | None = None,
+        unchecked: bool = False,
+    ) -> "np.ndarray": ...
 
     def eval(
-        self, inputs: Any, *, columns: list[str] | None = None
-    ) -> list[list[float]] | list[float]:
+        self, inputs: Any, *, columns: list[str] | None = None, unchecked: bool = False
+    ) -> list[list[float]] | list[float] | "np.ndarray":
         """
         Evaluate the graph with the given inputs. The inputs needs to be a list of
         lists (for multiple samples).
@@ -72,9 +97,14 @@ class Tree(RsObject):
         Returns:
             list[list[float]] | list[float]: The output of the graph after evaluation.
         """
-        eval_data = _to_float_array(inputs, columns=columns)
+        is_list = isinstance(inputs, list)
+        if unchecked:
+            result = self.__backend__().eval(inputs)
+            return result if not is_list else result.tolist()
 
-        return self.__backend__().eval(eval_data)
+        eval_data = _to_float_array(inputs, columns=columns)
+        result = self.__backend__().eval(eval_data)
+        return result if not is_list else result.tolist()
 
     def to_dot(self) -> str:
         """

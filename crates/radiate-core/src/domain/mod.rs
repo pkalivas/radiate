@@ -1,3 +1,4 @@
+pub mod env_vars;
 pub mod executor;
 pub mod math;
 pub mod random_provider;
@@ -5,7 +6,6 @@ pub mod sync;
 pub mod tracker;
 
 pub use executor::Executor;
-pub use math::SubsetMode;
-pub use math::subset;
+pub use math::fill_subset;
 pub use random_provider::RdRand;
-pub use sync::{CommandChannel, WaitGroup, WaitGuard, get_thread_pool};
+pub use sync::{CommandChannel, ThreadSync, WaitGroup, WaitGuard, get_thread_pool};

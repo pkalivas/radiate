@@ -87,6 +87,7 @@ engine = (
 )
 # --8<-- [end:decorator_handlers]
 
+
 # --8<-- [start:score_plotter]
 class ScorePlotterHandler(rd.EventHandler):
     """

@@ -1,5 +1,5 @@
 use crate::chromosome::ImageChromosome;
-use radiate::{Chromosome, Gene, Mutate, random_provider};
+use radiate::prelude::*;
 
 /// This is a simple mutator for the [ImageChromosome] that mutates the vertices of the polygons.
 /// This is the same logic used by the [JitterMutator](radiate::JitterMutator) but adapted/applied to the [ImageGene].
@@ -19,8 +19,8 @@ impl Mutate<ImageChromosome> for ImageMutator {
     fn mutate_chromosome(
         &mut self,
         chromosome: &mut ImageChromosome,
-        _: &mut radiate::prelude::AlterContext,
-    ) -> radiate::prelude::AlterResult {
+        _: &mut AlterContext,
+    ) -> usize {
         let mut count = 0;
         for gene in chromosome.iter_mut() {
             for i in 0..gene.allele().len() {
@@ -32,6 +32,6 @@ impl Mutate<ImageChromosome> for ImageMutator {
             }
         }
 
-        count.into()
+        count
     }
 }

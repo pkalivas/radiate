@@ -1,4 +1,5 @@
 pub mod arithmetic;
+pub mod flip;
 pub mod gaussian;
 pub mod invert;
 pub mod jitter;
@@ -8,6 +9,7 @@ pub mod swap;
 pub mod uniform;
 
 pub use arithmetic::ArithmeticMutator;
+pub use flip::BitFlipMutator;
 pub use gaussian::GaussianMutator;
 pub use invert::InversionMutator;
 pub use jitter::JitterMutator;

@@ -5,16 +5,20 @@ from typing import Any, Callable
 from radiate.radiate import PySubscriber
 
 from .._bridge import RsObject
+from .._rd import event_types
 from .metrics import MetricSet
 
 
 class EventType(Enum):
-    ALL = "all"
-    START = "start_event"
-    STOP = "stop_event"
-    EPOCH_START = "epoch_start_event"
-    EPOCH_COMPLETE = "epoch_complete_event"
-    ENGINE_IMPROVEMENT = "engine_improvement_event"
+    ALL = event_types.ALL_EVENTS
+    START = event_types.START_EVENT
+    STOP = event_types.STOP_EVENT
+    EPOCH_START = event_types.EPOCH_START_EVENT
+    EPOCH_COMPLETE = event_types.EPOCH_COMPLETE_EVENT
+    ENGINE_IMPROVEMENT = event_types.ENGINE_IMPROVEMENT_EVENT
+    LIMIT_TRIGGERED = event_types.LIMIT_TRIGGERED_EVENT
+    LOG = event_types.LOG_EVENT
+    CHECKPOINT_SAVED = event_types.CHECKPOINT_SAVED_EVENT
 
 
 class EngineEvent(RsObject):
@@ -23,52 +27,34 @@ class EngineEvent(RsObject):
     This class provides a simple interface to access the value of the event.
     """
 
+    event_type: EventType
+    index: int
+    data: Any
+
+    def __init__(self, event_type: str, index: int | None, data: Any):
+        self.event_type = EventType(event_type)
+        self.index = index if index is not None else 0
+        self.data = data
+
     def __repr__(self):
-        return f"<EngineEvent>{self.__backend__().__repr__()}"
+        return f"<EngineEvent type={self.event_type}, index={self.index}, data={self.data}>"
 
     def __str__(self):
         return self.__repr__()
-
-    def index(self) -> int:
-        """
-        Get the index of the event.
-        :return: The index of the event.
-        """
-        index = self.__backend__().index()
-        return index if index is not None else 0
-
-    def event_type(self) -> EventType:
-        """
-        Get the type of the event.
-        :return: The type of the event.
-        """
-        event_type_str = self.__backend__().event_type()
-        if event_type_str == "start_event":
-            return EventType.START
-        elif event_type_str == "stop_event":
-            return EventType.STOP
-        elif event_type_str == "epoch_start_event":
-            return EventType.EPOCH_START
-        elif event_type_str == "epoch_complete_event":
-            return EventType.EPOCH_COMPLETE
-        elif event_type_str == "engine_improvement_event":
-            return EventType.ENGINE_IMPROVEMENT
-        else:
-            raise ValueError(f"Unknown event type: {event_type_str}")
 
     def score(self) -> list[float] | None:
         """
         Get the score of the event.
         :return: The score of the event.
         """
-        return self.try_get_cache("score_cache", lambda: self.__backend__().score())
+        return self.data.get("score", None)
 
     def value(self) -> Any:
         """
         Get the value of the event.
         :return: The value of the event.
         """
-        return self.try_get_cache("value_cache", lambda: self.__backend__().best())
+        return self.data.get("best", None)
 
     def metrics(self) -> MetricSet:
         """
@@ -76,22 +62,24 @@ class EngineEvent(RsObject):
         :return: The metrics of the event.
         """
 
-        def _acquire_metrics():
-            metrics = self.__backend__().metrics()
-            if metrics is None:
-                return MetricSet()
-            return MetricSet.from_rust(metrics)
-
-        return self.try_get_cache("metrics_cache", _acquire_metrics)
+        metrics = self.data.get("metrics", None)
+        if metrics is None:
+            return MetricSet()
+        return MetricSet.from_rust(metrics)
 
     def objective(self) -> list[str] | None:
         """
         Get the objective of the event.
         :return: The objective of the event.
         """
-        return self.try_get_cache(
-            "objective_cache", lambda: self.__backend__().objective()
-        )
+        return self.data.get("objective", None)
+
+    def limit(self) -> str | None:
+        """
+        Get the limit of the event.
+        :return: The limit of the event.
+        """
+        return self.data.get("limit", None)
 
 
 class EventHandler(abc.ABC):
@@ -105,7 +93,7 @@ class EventHandler(abc.ABC):
         :param event_type: Type of the event to handle.
         """
         self._py_handler = PySubscriber(
-            lambda event: self.on_event(EngineEvent.from_rust(event)), event_type.value
+            lambda event: self.on_event(event), event_type.value
         )
 
     def __call__(self, event: "EngineEvent") -> None:
@@ -250,3 +238,39 @@ def on_improvement(func: Callable[["EngineEvent"], None]) -> CallableEventHandle
     :return: A CallableEventHandler instance.
     """
     return CallableEventHandler(func, EventType.ENGINE_IMPROVEMENT)
+
+
+def on_limit_triggered(func: Callable[["EngineEvent"], None]) -> CallableEventHandler:
+    """
+    Decorator to register a function as an event handler for the LIMIT_TRIGGERED event.
+    :param func: The function to register as an event handler.
+    :return: A CallableEventHandler instance.
+    """
+    return CallableEventHandler(func, EventType.LIMIT_TRIGGERED)
+
+
+def on_log(func: Callable[["EngineEvent"], None]) -> CallableEventHandler:
+    """
+    Decorator to register a function as an event handler for the LOG event.
+    :param func: The function to register as an event handler.
+    :return: A CallableEventHandler instance.
+    """
+    return CallableEventHandler(func, EventType.LOG)
+
+
+def on_checkpoint_saved(func: Callable[["EngineEvent"], None]) -> CallableEventHandler:
+    """
+    Decorator to register a function as an event handler for the CHECKPOINT_SAVED event.
+    :param func: The function to register as an event handler.
+    :return: A CallableEventHandler instance.
+    """
+    return CallableEventHandler(func, EventType.CHECKPOINT_SAVED)
+
+
+def on_event(func: Callable[["EngineEvent"], None]) -> CallableEventHandler:
+    """
+    Decorator to register a function as an event handler for all events.
+    :param func: The function to register as an event handler.
+    :return: A CallableEventHandler instance.
+    """
+    return CallableEventHandler(func, EventType.ALL)

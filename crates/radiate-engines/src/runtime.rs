@@ -1,50 +1,35 @@
-use crate::actions::LoggingAction;
-use crate::generation::GenerationView;
-use crate::{Engine, EngineControl, EvolutionContext, Generation, Limit, init_logging};
-#[cfg(feature = "serde")]
-use crate::{FileWriter, JsonWriter};
+use crate::{
+    Engine, EvolutionContext, Generation, Handler, Limit,
+    events::{EngineLogger, Event, GenerationSnapshot, HealthMonitor, LoggingHandler},
+};
+use crate::{generation::GenerationView, init_logging};
+use radiate_core::Expr;
 use radiate_core::error::{RadiateResult, Result};
-use radiate_core::rate::Expr;
-use radiate_core::{Chromosome, Metric, Score, radiate_err};
-#[cfg(feature = "serde")]
-use serde::Serialize;
+use radiate_core::{Chromosome, EngineState, Score};
 use std::collections::VecDeque;
-#[cfg(feature = "serde")]
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::time::Duration;
 
 pub trait RuntimeLimit<E: Engine> {
     fn proceed(&mut self, context: &E::Ctx) -> RadiateResult<bool>;
 }
 
-pub trait RuntimeAction<E: Engine> {
-    fn execute(&mut self, context: &E::Ctx) -> RadiateResult<()>;
-}
-
 pub struct EngineRuntime<E: Engine> {
     engine: E,
-    control: Option<EngineControl>,
-    actions: Option<Vec<Box<dyn RuntimeAction<E>>>>,
-    limits: Option<Vec<Box<dyn RuntimeLimit<E>>>>,
-    done: bool,
+    limits: Vec<Box<dyn RuntimeLimit<E>>>,
 }
 
 impl<E: Engine> EngineRuntime<E> {
-    pub fn new(engine: E, control: Option<EngineControl>) -> Self {
+    pub fn new(engine: E) -> Self {
         Self {
             engine,
-            control,
-            actions: None,
-            limits: None,
-            done: false,
+            limits: Vec::new(),
         }
     }
 
     #[inline]
     pub fn run(mut self) -> Result<E::Epoch> {
         loop {
-            if self.done {
+            if matches!(self.engine.state(), EngineState::Stopped) {
                 return Ok(self.engine.epoch());
             }
 
@@ -54,39 +39,41 @@ impl<E: Engine> EngineRuntime<E> {
 
     #[inline]
     fn step(&mut self) -> Result<()> {
-        if self.done {
-            return Err(radiate_err!(Engine: "Engine has already completed"));
-        }
-
-        if let Some(control) = &self.control
-            && control.is_stopped()
-        {
-            self.done = true;
+        if matches!(self.engine.state(), EngineState::Stopped) {
             return Ok(());
         }
 
         self.engine.step()?;
 
-        if let Some(actions) = &mut self.actions {
-            let ctx = self.engine.context();
-            for action in actions.iter_mut() {
-                action.execute(ctx)?;
-            }
-        }
+        let ctx = self.engine.context();
 
-        if let Some(limits) = &mut self.limits {
-            let ctx = self.engine.context();
-            for limit in limits.iter_mut() {
-                if !limit.proceed(ctx)? {
-                    self.done = true;
-                    return Ok(());
-                }
+        for limit in self.limits.iter_mut() {
+            if !limit.proceed(ctx)? {
+                self.engine.stop();
+                return Ok(());
             }
         }
 
         Ok(())
     }
 
+    fn add_limit<L>(&mut self, limit: L)
+    where
+        L: RuntimeLimit<E> + 'static,
+    {
+        let boxed: Box<dyn RuntimeLimit<E>> = Box::new(limit);
+        self.limits.push(boxed);
+    }
+}
+
+/// General iter fns for the `EngineRuntime` struct, allowing for a more ergonomic
+/// and fluent interface when configuring the runtime.
+impl<C, T, E> EngineRuntime<E>
+where
+    E: Engine<Epoch = Generation<C, T>, Ctx = EvolutionContext<C, T>>,
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
+{
     pub fn chain_if(self, condition: bool, action_fn: impl FnOnce(Self) -> Self) -> Self {
         if condition { action_fn(self) } else { self }
     }
@@ -95,31 +82,49 @@ impl<E: Engine> EngineRuntime<E> {
         self.run()
     }
 
-    fn add_limit<L>(&mut self, limit: L)
+    pub fn every<F>(self, interval: usize, mut action_fn: F) -> Self
     where
-        L: RuntimeLimit<E> + 'static,
+        F: FnMut(GenerationView<C, T>) + Send + Sync + 'static,
     {
-        let boxed: Box<dyn RuntimeLimit<E>> = Box::new(limit);
-        if let Some(limits) = &mut self.limits {
-            limits.push(boxed);
-        } else {
-            self.limits = Some(vec![boxed]);
-        }
+        assert!(interval > 0, "every interval must be greater than zero");
+        let guarded_interval = interval.max(1);
+
+        self.engine
+            .context()
+            .event_stream()
+            .subscribe(move |ctx: &GenerationSnapshot<C, T>| {
+                let inner = &ctx.generation;
+                action_fn(GenerationView::from(inner.as_ref()));
+            })
+            .schedule(Expr::every(guarded_interval))
+            .unwrap();
+        self
     }
 
-    fn add_action<A>(&mut self, action: A)
+    pub fn throttle<F>(self, duration: Duration, mut action_fn: F) -> Self
     where
-        A: RuntimeAction<E> + 'static,
+        F: FnMut(GenerationView<C, T>) + Send + Sync + 'static,
     {
-        let boxed: Box<dyn RuntimeAction<E>> = Box::new(action);
-        if let Some(actions) = &mut self.actions {
-            actions.push(boxed);
-        } else {
-            self.actions = Some(vec![boxed]);
-        }
+        self.engine
+            .context()
+            .event_stream()
+            .subscribe(move |ctx: &GenerationSnapshot<C, T>| {
+                let inner = &ctx.generation;
+                action_fn(GenerationView::from(inner.as_ref()));
+            })
+            .schedule(Expr::throttle(duration))
+            .unwrap();
+        self
+    }
+
+    pub fn subscribe<EV: Event>(self, handler: impl Handler<EV>) -> Self {
+        self.engine.context().event_stream().subscribe(handler);
+        self
     }
 }
 
+/// Limit configuration methods for the `EngineRuntime` struct, allowing users to specify various
+/// stopping conditions for the evolutionary process.
 impl<C, T, E> EngineRuntime<E>
 where
     E: Engine<Epoch = Generation<C, T>, Ctx = EvolutionContext<C, T>>,
@@ -160,15 +165,6 @@ where
         self
     }
 
-    pub fn until_metric(
-        mut self,
-        name: &str,
-        predicate: Arc<dyn Fn(&Metric) -> bool + Send + Sync>,
-    ) -> EngineRuntime<E> {
-        self.add_limit(Limit::Metric(name.into(), predicate));
-        self
-    }
-
     pub fn until<F>(mut self, limit: F) -> EngineRuntime<E>
     where
         C: 'static,
@@ -186,10 +182,10 @@ where
             Limit::Score(score) => self.until_score(score),
             Limit::Convergence(window, epsilon, _) => self.until_convergence(window, epsilon),
             Limit::Expr(expr) => self.until_expr(expr),
-            Limit::Metric(name, predicate) => self.until_metric(&name, predicate),
             Limit::Combined(lims) => lims
                 .into_iter()
                 .fold(self, |runtime, limit| runtime.limit(limit)),
+            Limit::Fn => self,
         }
     }
 
@@ -197,68 +193,31 @@ where
         self.until_generation(count)
     }
 
+    pub fn take_while<F>(self, predicate: F) -> EngineRuntime<E>
+    where
+        C: 'static,
+        F: Fn(GenerationView<C, T>) -> bool + 'static,
+    {
+        self.until(move |view: GenerationView<C, T>| -> bool { !predicate(view) })
+    }
+}
+
+/// Action based configuration methods for the `EngineRuntime` struct, allowing users to specify various
+/// actions to be executed during the evolutionary process.
+impl<C, T, E> EngineRuntime<E>
+where
+    E: Engine<Epoch = Generation<C, T>, Ctx = EvolutionContext<C, T>>,
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
+{
     pub fn logging(self) -> EngineRuntime<E> {
-        self.log_every(1)
-    }
-
-    pub fn log_every(mut self, every: usize) -> EngineRuntime<E> {
         init_logging();
-        let action = LoggingAction(every);
-        self.add_action(action);
-        self
-    }
+        let stream = self.engine.context().event_stream();
 
-    #[cfg(feature = "serde")]
-    pub fn checkpoint(mut self, interval: usize, folder_path: impl AsRef<Path>) -> EngineRuntime<E>
-    where
-        E: Engine + 'static,
-        E::Epoch: Serialize,
-    {
-        use crate::actions::CheckpointAction;
+        stream.attatch(EngineLogger::<T>::new()).unwrap();
+        stream.attatch(HealthMonitor::<T>::default()).unwrap();
+        stream.subscribe(LoggingHandler);
 
-        let path_without_extension = folder_path
-            .as_ref()
-            .to_str()
-            .and_then(|s| s.rsplit('.').nth(1))
-            .unwrap_or(folder_path.as_ref().to_str().unwrap_or("checkpoints"));
-
-        let action = CheckpointAction {
-            interval,
-            path: PathBuf::from(path_without_extension),
-            writer: Box::new(JsonWriter),
-        };
-
-        self.add_action(action);
-
-        self
-    }
-
-    #[cfg(feature = "serde")]
-    pub fn checkpoint_with(
-        mut self,
-        interval: usize,
-        folder_path: impl AsRef<Path>,
-        writer: Box<dyn FileWriter<E::Epoch>>,
-    ) -> EngineRuntime<E>
-    where
-        E: Engine + 'static,
-        E::Epoch: Serialize,
-    {
-        use crate::actions::CheckpointAction;
-
-        let path_without_extension = folder_path
-            .as_ref()
-            .to_str()
-            .and_then(|s| s.rsplit('.').nth(1))
-            .unwrap_or(folder_path.as_ref().to_str().unwrap_or("checkpoints"));
-
-        let action = CheckpointAction {
-            interval,
-            path: PathBuf::from(path_without_extension),
-            writer,
-        };
-
-        self.add_action(action);
         self
     }
 }
@@ -270,7 +229,7 @@ where
     type Item = E::Epoch;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.done {
+        if matches!(self.engine.state(), EngineState::Stopped) {
             return None;
         }
 

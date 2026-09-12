@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Crossover, Expr, RateSet, random_provider,
+    AlterContext, Crossover, Expr, RateSet, chromosomes::ContiguousChromosome, random_provider,
 };
 
 /// The [MultiPointCrossover] is a crossover method that takes two chromosomes and crosses them
@@ -27,7 +27,7 @@ impl MultiPointCrossover {
     }
 }
 
-impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
+impl<C: ContiguousChromosome> Crossover<C> for MultiPointCrossover {
     fn rates(&self) -> RateSet {
         RateSet::new(self.rate.clone())
     }
@@ -38,17 +38,17 @@ impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
         chrom_one: &mut C,
         chrom_two: &mut C,
         _: &mut AlterContext,
-    ) -> AlterResult {
+    ) -> usize {
         let one = chrom_one.as_mut_slice();
         let two = chrom_two.as_mut_slice();
 
-        let num_crosses = if self.num_points == 1 {
+        
+
+        if self.num_points == 1 {
             crossover_single_point(one, two)
         } else {
             crossover_multi_point(one, two, self.num_points)
-        };
-
-        AlterResult::from(num_crosses)
+        }
     }
 }
 

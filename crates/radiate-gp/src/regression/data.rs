@@ -1,78 +1,41 @@
 use radiate_core::random_provider;
-use radiate_utils::Float;
-
-#[derive(Debug, Clone, Default)]
-pub struct Row<T> {
-    input: Vec<T>,
-    output: Vec<T>,
-}
-
-impl<T> Row<T> {
-    pub fn new(input: Vec<T>, output: Vec<T>) -> Self {
-        Row { input, output }
-    }
-
-    pub fn input(&self) -> &[T] {
-        &self.input
-    }
-
-    pub fn output(&self) -> &[T] {
-        &self.output
-    }
-}
-
-impl<T> From<(Vec<T>, Vec<T>)> for Row<T> {
-    fn from(data: (Vec<T>, Vec<T>)) -> Self {
-        Row::new(data.0, data.1)
-    }
-}
+use radiate_utils::{Float, Matrix};
 
 #[derive(Default, Clone)]
 pub struct DataSet<T> {
-    rows: Vec<Row<T>>,
+    features: Matrix<T>,
+    labels: Matrix<T>,
 }
 
 impl<T> DataSet<T> {
     pub fn new(inputs: Vec<Vec<T>>, outputs: Vec<Vec<T>>) -> Self {
-        let mut samples = Vec::new();
-        for (input, output) in inputs.into_iter().zip(outputs) {
-            samples.push(Row { input, output });
-        }
+        let features = Matrix::from(inputs);
+        let labels = Matrix::from(outputs);
 
-        DataSet { rows: samples }
+        DataSet { features, labels }
     }
 
-    pub fn row(mut self, row: impl Into<Row<T>>) -> Self {
-        self.rows.push(row.into());
-        self
-    }
-
-    pub fn iter(&self) -> std::slice::Iter<'_, Row<T>> {
-        self.rows.iter()
+    pub fn iter(&self) -> impl Iterator<Item = (&[T], &[T])> {
+        self.features.iter().zip(self.labels.iter())
     }
 
     pub fn len(&self) -> usize {
-        self.rows.len()
+        self.features.rows()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.rows.is_empty()
-    }
-
-    pub fn shuffle(mut self) -> Self {
-        random_provider::shuffle(&mut self.rows);
-        self
+        self.features.is_empty()
     }
 
     pub fn shape(&self) -> (usize, usize, usize) {
-        let num_samples = self.rows.len();
+        let num_samples = self.features.rows();
         let input_dim = if num_samples > 0 {
-            self.rows[0].input.len()
+            self.features.cols()
         } else {
             0
         };
         let output_dim = if num_samples > 0 {
-            self.rows[0].output.len()
+            self.labels.cols()
         } else {
             0
         };
@@ -80,37 +43,53 @@ impl<T> DataSet<T> {
         (num_samples, input_dim, output_dim)
     }
 
+    pub fn append(mut self, features: Vec<T>, labels: Vec<T>) -> Self {
+        self.features.append_row(features);
+        self.labels.append_row(labels);
+        self
+    }
+}
+
+impl<T: Clone> DataSet<T> {
     #[inline]
-    pub fn features(&self) -> Vec<Vec<T>>
-    where
-        T: Clone,
-    {
-        self.rows.iter().map(|row| row.input.clone()).collect()
+    pub fn features(&self) -> Vec<Vec<T>> {
+        (0..self.features.rows())
+            .map(|i| self.features.row(i).to_vec())
+            .collect()
     }
 
     #[inline]
-    pub fn labels(&self) -> Vec<Vec<T>>
-    where
-        T: Clone,
-    {
-        self.rows.iter().map(|row| row.output.clone()).collect()
+    pub fn labels(&self) -> Vec<Vec<T>> {
+        (0..self.labels.rows())
+            .map(|i| self.labels.row(i).to_vec())
+            .collect()
+    }
+
+    pub fn shuffle(self) -> Self {
+        let mut indices: Vec<usize> = (0..self.len()).collect();
+        random_provider::shuffle(&mut indices);
+
+        let features = self.features.sort_by_indices(&indices);
+        let labels = self.labels.sort_by_indices(&indices);
+
+        DataSet { features, labels }
     }
 
     #[inline]
-    pub fn split(self, ratio: f32) -> (Self, Self)
-    where
-        T: Clone,
-    {
+    pub fn split(self, ratio: f32) -> (Self, Self) {
         let ratio = ratio.clamp(0.0, 1.0);
         let split = (self.len() as f32 * ratio).round() as usize;
-        let (left, right) = self.rows.split_at(split);
+        let (features_left, features_right) = self.features.split_at_row(split);
+        let (labels_left, labels_right) = self.labels.split_at_row(split);
 
         (
             DataSet {
-                rows: left.to_vec(),
+                features: features_left,
+                labels: labels_left,
             },
             DataSet {
-                rows: right.to_vec(),
+                features: features_right,
+                labels: labels_right,
             },
         )
     }
@@ -118,90 +97,27 @@ impl<T> DataSet<T> {
 
 impl<F: Float> DataSet<F> {
     pub fn standardize(mut self) -> Self {
-        let mut means = vec![F::ZERO; self.rows[0].input.len()];
-        let mut stds = vec![F::ZERO; self.rows[0].input.len()];
-
-        for sample in self.rows.iter() {
-            for (i, &val) in sample.input.iter().enumerate() {
-                means[i] = means[i] + val;
-            }
-        }
-
-        let n = F::from(self.len()).unwrap();
-        for mean in means.iter_mut() {
-            *mean = *mean / n;
-        }
-
-        for sample in self.rows.iter() {
-            for (i, &val) in sample.input.iter().enumerate() {
-                stds[i] = stds[i] + (val - means[i]).powi(2);
-            }
-        }
-
-        for std in stds.iter_mut() {
-            *std = (*std / n).sqrt();
-        }
-
-        for sample in self.rows.iter_mut() {
-            for (i, val) in sample.input.iter_mut().enumerate() {
-                *val = (*val - means[i]) / stds[i];
-            }
-        }
-
+        self.features.standardize();
         self
     }
 
     pub fn normalize(mut self) -> Self {
-        let mut mins = vec![F::MAX; self.rows[0].input.len()];
-        let mut maxs = vec![F::MIN; self.rows[0].input.len()];
-
-        for sample in self.rows.iter() {
-            for (i, &val) in sample.input.iter().enumerate() {
-                if val < mins[i] {
-                    mins[i] = val;
-                }
-
-                if val > maxs[i] {
-                    maxs[i] = val;
-                }
-            }
-        }
-
-        for sample in self.rows.iter_mut() {
-            for (i, val) in sample.input.iter_mut().enumerate() {
-                *val = (*val - mins[i]) / (maxs[i] - mins[i]);
-            }
-        }
-
+        self.features.normalize();
         self
-    }
-}
-
-impl<T> From<Vec<Vec<Option<T>>>> for DataSet<T>
-where
-    T: Clone,
-{
-    fn from(data: Vec<Vec<Option<T>>>) -> Self {
-        let mut rows = Vec::new();
-        for row in data.into_iter() {
-            let input = row
-                .iter()
-                .filter_map(|v| v.as_ref())
-                .cloned()
-                .collect::<Vec<T>>();
-
-            rows.push(Row {
-                input,
-                output: Vec::new(),
-            });
-        }
-
-        DataSet { rows }
     }
 }
 
 impl<T> From<(Vec<Vec<T>>, Vec<Vec<T>>)> for DataSet<T> {
     fn from(data: (Vec<Vec<T>>, Vec<Vec<T>>)) -> Self {
         DataSet::new(data.0, data.1)
+    }
+}
+
+impl<T> From<(Matrix<T>, Matrix<T>)> for DataSet<T> {
+    fn from(data: (Matrix<T>, Matrix<T>)) -> Self {
+        DataSet {
+            features: data.0,
+            labels: data.1,
+        }
     }
 }

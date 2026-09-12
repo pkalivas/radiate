@@ -9,6 +9,7 @@ type Inner = compact_str::CompactString;
     derive(serde::Serialize, serde::Deserialize),
     serde(transparent)
 )]
+#[repr(transparent)]
 pub struct SmallStr(Inner);
 
 impl SmallStr {

@@ -2,7 +2,7 @@ use crate::{
     state::AppState, styles::COLOR_WHEEL_400, widgets::AppWidget,
     widgets::panels::tables::tagged_metrics,
 };
-use radiate_engines::{Chromosome, metric_names, stats::TagType};
+use radiate_engines::{Chromosome, TagType, metric_names};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,

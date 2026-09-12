@@ -21,7 +21,7 @@ where
     /// mutators and crossovers are added is the order in which they will be applied during
     /// the evolution process.
     pub fn mutator<M: Mutate<C> + 'static>(mut self, mutator: M) -> Self {
-        self.params.alterers.push(mutator.alterer());
+        self.params.alterers.push(mutator.into_alterer());
         self
     }
 
@@ -44,7 +44,7 @@ where
     /// mutators and crossovers are added is the order in which they will be applied during
     /// the evolution process.s
     pub fn crossover<R: Crossover<C> + 'static>(mut self, crossover: R) -> Self {
-        self.params.alterers.push(crossover.alterer());
+        self.params.alterers.push(crossover.into_alterer());
         self
     }
 

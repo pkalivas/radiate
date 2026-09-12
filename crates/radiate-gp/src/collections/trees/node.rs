@@ -294,6 +294,10 @@ where
             children: self.children.as_ref().map(|children| children.to_vec()),
         }
     }
+
+    fn set_allele(&mut self, allele: Self::Allele) {
+        self.value = allele;
+    }
 }
 
 impl<T> Valid for TreeNode<T> {

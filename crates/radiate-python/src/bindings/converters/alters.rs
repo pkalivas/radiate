@@ -52,7 +52,7 @@ macro_rules! alter_table {
                 AlterEntry {
                     name: $name,
                     convert: |input| {
-                        $fn(input).map(|value| value.alterer())
+                        $fn(input).map(|value| value.into_alterer())
                     },
                 },
             )*
@@ -186,6 +186,7 @@ fn bit_registry() -> AlterRegistry<BitChromosome> {
         crate::constants::components::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
         crate::constants::components::UNIFORM_MUTATOR         => convert_uniform_mutator,
         crate::constants::components::INVERSION_MUTATOR       => convert_inversion_mutator,
+        crate::constants::components::BIT_FLIP_MUTATOR        => convert_bit_flip_mutator,
     })
 }
 
@@ -396,4 +397,9 @@ fn convert_polynomial_mutator(input: &PyEngineInput) -> RadiateResult<Polynomial
     let eta = input.extract::<f64>("eta")?;
 
     Ok(PolynomialMutator::new(rate, eta as f32))
+}
+
+fn convert_bit_flip_mutator(input: &PyEngineInput) -> RadiateResult<BitFlipMutator> {
+    let rate = input.extract::<PyExpr>("rate")?.inner;
+    Ok(BitFlipMutator::new(rate))
 }

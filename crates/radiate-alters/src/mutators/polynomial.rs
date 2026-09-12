@@ -1,5 +1,5 @@
 use radiate_core::{
-    BoundedGene, Chromosome, Expr, FloatGene, Gene, Mutate, RateSet, random_provider,
+    AlterContext, BoundedGene, Chromosome, Expr, FloatGene, Gene, Mutate, RateSet, random_provider,
 };
 use radiate_utils::{Float, Primitive};
 
@@ -69,11 +69,7 @@ where
     }
 
     #[inline]
-    fn mutate_chromosome(
-        &mut self,
-        chromosome: &mut C,
-        ctx: &mut radiate_core::prelude::AlterContext,
-    ) -> radiate_core::AlterResult {
+    fn mutate_chromosome(&mut self, chromosome: &mut C, ctx: &mut AlterContext) -> usize {
         let mut count = 0;
         for gene in chromosome.iter_mut() {
             if random_provider::bool(ctx.rate()) {
@@ -85,13 +81,12 @@ where
 
                 let new_value = self.polynomial_mutation(value, min, max, eta);
 
-                let clamped_value = new_value.clamp(min, max);
-                *gene.allele_mut() = clamped_value.extract::<F>().unwrap();
+                gene.set_allele(F::from(new_value).unwrap());
 
                 count += 1;
             }
         }
 
-        count.into()
+        count
     }
 }

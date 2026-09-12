@@ -32,7 +32,7 @@ engine = (
     .fitness(zdt3)
     .objective(rd.MIN, rd.MIN, front_range=(200, 250))
     .select(rd.Select.tournament(5), rd.Select.nsga3(12))
-    .alters(rd.Cross.sbx(1.0, 2.0), rd.Mutate.uniform(0.1))
+    .alter(rd.Cross.sbx(1.0, 2.0), rd.Mutate.uniform(0.1))
     .limit(rd.Limit.generations(2000))
 )
 

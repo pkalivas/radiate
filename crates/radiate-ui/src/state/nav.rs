@@ -17,6 +17,7 @@ pub enum DashboardTab {
     Species,
     Log,
     Front,
+    Events,
 }
 
 impl DashboardTab {
@@ -27,32 +28,38 @@ impl DashboardTab {
             DashboardTab::Distribution => DashboardTab::Species,
             DashboardTab::Species => DashboardTab::Log,
             DashboardTab::Log => DashboardTab::Front,
-            DashboardTab::Front => DashboardTab::Stats,
+            DashboardTab::Front => DashboardTab::Events,
+            DashboardTab::Events => DashboardTab::Stats,
         }
     }
 
     pub fn previous(self) -> Self {
         match self {
-            DashboardTab::Stats => DashboardTab::Front,
+            DashboardTab::Stats => DashboardTab::Events,
             DashboardTab::Time => DashboardTab::Stats,
             DashboardTab::Distribution => DashboardTab::Time,
             DashboardTab::Species => DashboardTab::Distribution,
             DashboardTab::Log => DashboardTab::Species,
             DashboardTab::Front => DashboardTab::Log,
+            DashboardTab::Events => DashboardTab::Front,
         }
     }
 
     pub fn supports_metric_modal(self) -> bool {
         !matches!(
             self,
-            DashboardTab::Species | DashboardTab::Log | DashboardTab::Front
+            DashboardTab::Species | DashboardTab::Log | DashboardTab::Front | DashboardTab::Events
         )
     }
 
     /// The focusable panes this tab lays out, in `Tab`-cycle order. Every tab
     /// currently has the same shape: a list, a chart, and a detail panel.
+    /// Events is a single full-width list with no chart pane.
     pub fn panes(self) -> &'static [Pane] {
-        &[Pane::List, Pane::Chart]
+        match self {
+            DashboardTab::Events => &[Pane::List],
+            _ => &[Pane::List, Pane::Chart],
+        }
     }
 }
 
@@ -73,7 +80,7 @@ pub struct NavState {
     pub dashboard_tab: DashboardTab,
     pub focus: Pane,
     pub search: SearchState,
-    chart_tabs: [MetricChartType; 5],
+    chart_tabs: [MetricChartType; 7],
 }
 
 impl NavState {
@@ -187,6 +194,7 @@ impl NavState {
             DashboardTab::Species => 3,
             DashboardTab::Log => 4,
             DashboardTab::Front => 5,
+            DashboardTab::Events => 6,
         }
     }
 
@@ -219,6 +227,8 @@ impl Default for NavState {
                 MetricChartType::Mean,
                 MetricChartType::Mean,
                 MetricChartType::BoxWhisker,
+                MetricChartType::Mean,
+                MetricChartType::Mean,
                 MetricChartType::Mean,
                 MetricChartType::Mean,
             ],

@@ -1,6 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Expr, Gene, RateSet,
-    random_provider,
+    AlterContext, BoundedGene, Chromosome, Crossover, Expr, Gene, RateSet, random_provider,
 };
 use radiate_utils::Float;
 
@@ -38,19 +37,16 @@ where
         chrom_one: &mut C,
         chrom_two: &mut C,
         _: &mut AlterContext,
-    ) -> AlterResult {
+    ) -> usize {
         let length = std::cmp::min(chrom_one.len(), chrom_two.len());
 
         if length < 2 {
-            return AlterResult::empty();
+            return 0;
         }
 
         let mut count = 0;
-
         random_provider::with_rng(|rand| {
-            let one_slice = chrom_one.as_mut_slice();
-            let two_slice = chrom_two.as_slice();
-            for i in 0..length {
+            chrom_one.zip(chrom_two).for_each(|gene_one, gene_two| {
                 if rand.bool(0.5) {
                     let u = rand.random::<f32>();
                     let beta = A::from(if u <= 0.5 {
@@ -60,8 +56,8 @@ where
                     })
                     .unwrap();
 
-                    let v1 = *one_slice[i].allele();
-                    let v2 = *two_slice[i].allele();
+                    let v1 = *gene_one.allele();
+                    let v2 = *gene_two.allele();
 
                     let v = if rand.bool(0.5) {
                         ((v1 - v2) * A::HALF) - (beta * A::HALF * (v1 - v2).abs())
@@ -69,16 +65,13 @@ where
                         ((v1 - v2) * A::HALF) + (beta * A::HALF * (v1 - v2).abs())
                     };
 
-                    let (one_min, one_max) = one_slice[i].bound_range();
-                    let new_gene = v.clamp(*one_min, *one_max);
+                    gene_one.set_allele(v);
 
                     count += 1;
-
-                    *one_slice[i].allele_mut() = new_gene;
                 }
-            }
+            });
         });
 
-        AlterResult::from(count)
+        count
     }
 }

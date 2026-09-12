@@ -7,7 +7,7 @@ use std::collections::HashMap;
 #[derive(Clone, Debug, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ExprSet {
-    pub exprs: HashMap<SmallStr, Expr>,
+    exprs: HashMap<SmallStr, Expr>,
 }
 
 impl ExprSet {

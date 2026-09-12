@@ -9,8 +9,7 @@ We have a simple polynomial function and we want to evolve a graph that approxim
 import numpy as np
 import radiate as rd
 
-# rd.random.seed(67123)
-rd.random.seed(67)
+rd.random.seed(67123)
 
 
 def compute(x: float) -> float:
@@ -31,20 +30,30 @@ y = np.array(answers, dtype=np.float32)
 
 
 def fit(graph: rd.Graph) -> np.float32:
-    predictions = graph.eval(x)
+    predictions = graph.eval(x, unchecked=True)
     return np.mean((predictions - y) ** 2, dtype=np.float32)
 
 
 engine = (
     rd.Engine.graph(
+        # specify the shape of the graph: (num_inputs, num_outputs)
         shape=(1, 1),
+        # all vertex nodes will pick a random Op<T> from the below list.
         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+        # all edge nodes will use this operation - can be a list too
         edge=rd.Op.weight(),
+        # specify the dtype of the underlying graph node's Op's dtype T (Op<T>) -
+        # input data (x, y) must match this dtype
         dtype=rd.Float32,
     )
+    # .fitness(fit)
+    # .minimizing()
+    # calling regression below is _roughly_ equivalent to setting the fitness function
+    # and the objective above. However, the below runs in *pure rust* and as such is
+    # going to be much faster - no need to cross the rust/python bridge.
     .regression(x, y, loss=rd.MSE)
     .select(rd.Select.boltzmann(temp=4.0))
-    .alters(
+    .alter(
         rd.Cross.graph(0.4, 0.5),
         rd.Mutate.op(0.07, 0.05),
         rd.Mutate.graph(0.1, 0.1, False),
@@ -62,3 +71,7 @@ print(result)
 print(result.metrics().dashboard())
 print(accuracy)
 print(result.dtype())
+
+graph = result.value()
+out = graph.eval([2.2], unchecked=True)
+print(type(out), out)

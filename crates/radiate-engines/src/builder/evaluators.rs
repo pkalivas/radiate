@@ -1,6 +1,12 @@
 use crate::GeneticEngineBuilder;
-use radiate_core::{Chromosome, Evaluator, Executor, FitnessEvaluator};
+use radiate_core::{Chromosome, Evaluator, Executor, FitnessEvaluator, ThreadSync};
 use std::sync::Arc;
+
+#[derive(Clone, Debug, Default)]
+pub struct ExecutorParams {
+    pub changed: bool,
+    pub executor: Arc<Executor>,
+}
 
 #[derive(Clone)]
 pub struct EvaluationParams<C, T>
@@ -9,9 +15,10 @@ where
     T: Clone,
 {
     pub evaluator: Arc<dyn Evaluator<C, T>>,
-    pub fitness_executor: Arc<Executor>,
-    pub species_executor: Arc<Executor>,
-    pub bus_executor: Arc<Executor>,
+    pub fitness_executor: ExecutorParams,
+    pub species_executor: ExecutorParams,
+    pub event_stream_executor: ExecutorParams,
+    pub sync: ThreadSync,
 }
 
 impl<C, T> GeneticEngineBuilder<C, T>
@@ -40,27 +47,42 @@ where
 
     pub fn executor(mut self, executor: Executor) -> Self {
         let executor = Arc::new(executor);
+        let param = ExecutorParams {
+            changed: true,
+            executor: Arc::clone(&executor),
+        };
+
         self.params.evaluation_params = EvaluationParams {
-            evaluator: Arc::new(FitnessEvaluator::new(executor.clone())),
-            fitness_executor: executor.clone(),
-            species_executor: executor.clone(),
-            bus_executor: executor.clone(),
+            evaluator: Arc::new(FitnessEvaluator::new(Arc::clone(&executor))),
+            fitness_executor: param.clone(),
+            species_executor: param.clone(),
+            event_stream_executor: param,
+            sync: self.params.evaluation_params.sync.clone(),
         };
         self
     }
 
     pub fn fitness_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
-        self.params.evaluation_params.fitness_executor = executor.into();
+        self.params.evaluation_params.fitness_executor = ExecutorParams {
+            changed: true,
+            executor: executor.into(),
+        };
         self
     }
 
     pub fn species_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
-        self.params.evaluation_params.species_executor = executor.into();
+        self.params.evaluation_params.species_executor = ExecutorParams {
+            changed: true,
+            executor: executor.into(),
+        };
         self
     }
 
-    pub fn bus_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
-        self.params.evaluation_params.bus_executor = executor.into();
+    pub fn stream_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
+        self.params.evaluation_params.event_stream_executor = ExecutorParams {
+            changed: true,
+            executor: executor.into(),
+        };
         self
     }
 }

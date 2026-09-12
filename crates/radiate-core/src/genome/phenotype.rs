@@ -8,7 +8,6 @@ use radiate_utils::sentry_id;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;
-use std::sync::atomic::AtomicU64;
 
 sentry_id!(PhenotypeId);
 
@@ -122,7 +121,10 @@ impl<C: Chromosome> Valid for Phenotype<C> {
 /// which will be the `Score` of the `Phenotype`. This is used when adding a `Phenotype` to a pareto `Front` for sorting.
 impl<C: Chromosome> AsRef<[f32]> for Phenotype<C> {
     fn as_ref(&self) -> &[f32] {
-        self.score().unwrap().as_ref()
+        match self.score() {
+            Some(score) => score.as_ref(),
+            None => panic!("Phenotype has no score - this shouldn't happen."),
+        }
     }
 }
 

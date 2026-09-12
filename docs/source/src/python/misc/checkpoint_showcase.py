@@ -9,10 +9,13 @@ def fitness_func(x: list[str]) -> int:
 
 
 engine = (
-    rd.Engine.char(len(target)).fitness(fitness_func).limit(rd.Limit.score(len(target)))
+    rd.Engine.char(len(target))
+    .fitness(fitness_func)
+    .limit(rd.Limit.score(len(target)))
+    .write_checkpoint(interval=10, path="checks", file_type="pkl")
 )
 
-result = engine.run(checkpoint=(10, "checks", "pkl"))
+result = engine.run()
 
 # load from checkpoint from generation 10
 engine = (

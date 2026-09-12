@@ -1,24 +1,24 @@
-use std::sync::{Arc, mpsc};
+use crossbeam::channel;
 
 pub struct CommandChannel<T> {
-    sender: Arc<mpsc::Sender<T>>,
-    receiver: mpsc::Receiver<T>,
+    sender: channel::Sender<T>,
+    receiver: channel::Receiver<T>,
 }
 
 impl<T> CommandChannel<T> {
     pub fn new() -> Self {
-        let (tx, rx) = mpsc::channel();
+        let (tx, rx) = crossbeam::channel::unbounded();
         Self {
-            sender: Arc::new(tx),
+            sender: tx,
             receiver: rx,
         }
     }
 
-    pub fn dispatcher(&self) -> Arc<mpsc::Sender<T>> {
-        Arc::clone(&self.sender)
+    pub fn dispatcher(&self) -> channel::Sender<T> {
+        self.sender.clone()
     }
 
-    pub fn next(&self) -> Result<T, mpsc::RecvError> {
+    pub fn next(&self) -> Result<T, channel::RecvError> {
         self.receiver.recv()
     }
 }
@@ -34,6 +34,16 @@ impl<T> Iterator for CommandChannel<T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.receiver.recv().ok()
+    }
+}
+
+pub trait IntoPair<T> {
+    fn into_pair(self) -> (T, T);
+}
+
+impl<T> IntoPair<channel::Sender<T>> for channel::Sender<T> {
+    fn into_pair(self) -> (channel::Sender<T>, channel::Sender<T>) {
+        (self.clone(), self)
     }
 }
 

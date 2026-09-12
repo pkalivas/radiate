@@ -7,7 +7,15 @@ use crate::{
 use std::sync::Arc;
 
 pub trait Distance<T>: Send + Sync {
-    fn distance(&self, one: &T, two: &T) -> f32;
+    fn calculate(&self, one: &T, two: &T) -> f32;
+}
+
+/// Trait for measuring diversity between two [Genotype]s.
+/// Within radiate this is mostly used for speciation and determining how genetically
+/// similar two individuals are. Through this, the engine can determine
+/// whether two individuals belong to the same [Species](super::genome::species::Species) or not.
+pub trait Diversity<C: Chromosome>: Send + Sync {
+    fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32;
 }
 
 pub struct DistanceDiversityAdapter<C: Chromosome> {
@@ -21,25 +29,8 @@ impl<C: Chromosome> DistanceDiversityAdapter<C> {
 }
 
 impl<C: Chromosome> Distance<Phenotype<C>> for DistanceDiversityAdapter<C> {
-    fn distance(&self, one: &Phenotype<C>, two: &Phenotype<C>) -> f32 {
+    fn calculate(&self, one: &Phenotype<C>, two: &Phenotype<C>) -> f32 {
         self.diversity.measure(one, two)
-    }
-}
-
-/// Trait for measuring diversity between two [Genotype]s.
-/// Within radiate this is mostly used for speciation and determining how genetically
-/// similar two individuals are. Through this, the engine can determine
-/// whether two individuals belong to the same [Species](super::genome::species::Species) or not.
-pub trait Diversity<C: Chromosome>: Send + Sync {
-    fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32;
-}
-
-impl<C: Chromosome, F> Diversity<C> for F
-where
-    F: Fn(&Phenotype<C>, &Phenotype<C>) -> f32 + Send + Sync,
-{
-    fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
-        self(geno_one, geno_two)
     }
 }
 
@@ -55,6 +46,7 @@ where
     G: Gene,
     G::Allele: PartialEq,
 {
+    #[inline]
     fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
         let geno_one = geno_one.genotype();
         let geno_two = geno_two.genotype();
@@ -75,7 +67,7 @@ where
 }
 
 impl<P: AsRef<[f32]>> Distance<P> for HammingDistance {
-    fn distance(&self, one: &P, two: &P) -> f32 {
+    fn calculate(&self, one: &P, two: &P) -> f32 {
         let vec_one = one.as_ref();
         let vec_two = two.as_ref();
 
@@ -101,6 +93,7 @@ where
     G: NumericGene,
     G::Allele: NumericAllele,
 {
+    #[inline]
     fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
         let geno_one = geno_one.genotype();
         let geno_two = geno_two.genotype();
@@ -133,7 +126,7 @@ where
 }
 
 impl<P: AsRef<[f32]>> Distance<P> for EuclideanDistance {
-    fn distance(&self, one: &P, two: &P) -> f32 {
+    fn calculate(&self, one: &P, two: &P) -> f32 {
         let vec_one = one.as_ref();
         let vec_two = two.as_ref();
 
@@ -156,6 +149,7 @@ where
     G: NumericGene,
     G::Allele: NumericAllele,
 {
+    #[inline]
     fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
         let geno_one = geno_one.genotype();
         let geno_two = geno_two.genotype();
@@ -190,7 +184,7 @@ where
 }
 
 impl<P: AsRef<[f32]>> Distance<P> for CosineDistance {
-    fn distance(&self, one: &P, two: &P) -> f32 {
+    fn calculate(&self, one: &P, two: &P) -> f32 {
         let vec_one = one.as_ref();
         let vec_two = two.as_ref();
 
@@ -214,7 +208,7 @@ mod tests {
         let vec_one = vec![1.0, 2.0, 3.0];
         let vec_two = vec![1.0, 2.0, 4.0];
 
-        assert_eq!(distance.distance(&vec_one, &vec_two), 1.0 / 3.0);
+        assert_eq!(distance.calculate(&vec_one, &vec_two), 1.0 / 3.0);
     }
 
     #[test]
@@ -223,7 +217,7 @@ mod tests {
         let vec_one = vec![1.0, 2.0, 3.0];
         let vec_two = vec![1.0, 2.0, 4.0];
 
-        assert_eq!(distance.distance(&vec_one, &vec_two), 1.0);
+        assert_eq!(distance.calculate(&vec_one, &vec_two), 1.0);
     }
 
     #[test]
@@ -232,6 +226,6 @@ mod tests {
         let vec_one = vec![1.0, 2.0, 3.0];
         let vec_two = vec![1.0, 2.0, 4.0];
 
-        assert_eq!(distance.distance(&vec_one, &vec_two), 0.008539915);
+        assert_eq!(distance.calculate(&vec_one, &vec_two), 0.008539915);
     }
 }

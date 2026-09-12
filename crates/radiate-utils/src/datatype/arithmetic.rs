@@ -170,17 +170,18 @@ impl Add for AnyValue<'_> {
                     return Null;
                 }
 
-                Dict(a
-                    .into_iter()
-                    .zip(b)
-                    .map(|(one, two)| {
-                        if one.0 != two.0 {
-                            return (one.0, one.1, Null);
-                        }
+                Dict(
+                    a.into_iter()
+                        .zip(b)
+                        .map(|(one, two)| {
+                            if one.0 != two.0 {
+                                return (one.0, one.1, Null);
+                            }
 
-                        (one.0, one.1, one.2 + two.2)
-                    })
-                    .collect())
+                            (one.0, one.1, one.2 + two.2)
+                        })
+                        .collect(),
+                )
             }
             (lhs, rhs) => bin_numeric_op!(lhs, rhs, +),
         }
@@ -209,17 +210,18 @@ impl Sub for AnyValue<'_> {
                     return Null;
                 }
 
-                Dict(a
-                    .into_iter()
-                    .zip(b)
-                    .map(|(one, two)| {
-                        if one.0 != two.0 {
-                            return (one.0, one.1, Null);
-                        }
+                Dict(
+                    a.into_iter()
+                        .zip(b)
+                        .map(|(one, two)| {
+                            if one.0 != two.0 {
+                                return (one.0, one.1, Null);
+                            }
 
-                        (one.0, one.1, one.2 - two.2)
-                    })
-                    .collect())
+                            (one.0, one.1, one.2 - two.2)
+                        })
+                        .collect(),
+                )
             }
             (lhs, rhs) => bin_numeric_op!(lhs, rhs, -),
         }
@@ -248,17 +250,18 @@ impl Mul for AnyValue<'_> {
                     return Null;
                 }
 
-                Dict(a
-                    .into_iter()
-                    .zip(b)
-                    .map(|(one, two)| {
-                        if one.0 != two.0 {
-                            return (one.0, one.1, Null);
-                        }
+                Dict(
+                    a.into_iter()
+                        .zip(b)
+                        .map(|(one, two)| {
+                            if one.0 != two.0 {
+                                return (one.0, one.1, Null);
+                            }
 
-                        (one.0, one.1, one.2 * two.2)
-                    })
-                    .collect())
+                            (one.0, one.1, one.2 * two.2)
+                        })
+                        .collect(),
+                )
             }
             (lhs, rhs) => bin_numeric_op!(lhs, rhs, *),
         }
@@ -286,17 +289,18 @@ impl Div for AnyValue<'_> {
                     return Null;
                 }
 
-                Dict(a
-                    .into_iter()
-                    .zip(b)
-                    .map(|(one, two)| {
-                        if one.0 != two.0 {
-                            return (one.0, one.1, Null);
-                        }
+                Dict(
+                    a.into_iter()
+                        .zip(b)
+                        .map(|(one, two)| {
+                            if one.0 != two.0 {
+                                return (one.0, one.1, Null);
+                            }
 
-                        (one.0, one.1, one.2 / two.2)
-                    })
-                    .collect())
+                            (one.0, one.1, one.2 / two.2)
+                        })
+                        .collect(),
+                )
             }
             (lhs, rhs) => bin_numeric_div!(lhs, rhs),
         }
@@ -323,17 +327,18 @@ impl Rem for AnyValue<'_> {
                     return Null;
                 }
 
-                Dict(a
-                    .into_iter()
-                    .zip(b)
-                    .map(|(one, two)| {
-                        if one.0 != two.0 {
-                            return (one.0, one.1, Null);
-                        }
+                Dict(
+                    a.into_iter()
+                        .zip(b)
+                        .map(|(one, two)| {
+                            if one.0 != two.0 {
+                                return (one.0, one.1, Null);
+                            }
 
-                        (one.0, one.1, one.2 % two.2)
-                    })
-                    .collect())
+                            (one.0, one.1, one.2 % two.2)
+                        })
+                        .collect(),
+                )
             }
             (lhs, rhs) => bin_numeric_op!(lhs, rhs, %),
         }

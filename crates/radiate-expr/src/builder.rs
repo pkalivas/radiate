@@ -1,175 +1,164 @@
-use crate::nodes::{
-    aggregate::{AggExpr, Rollup},
-    ops::{BinaryExpr, BinaryOp, TrinaryExpr, TrinaryOp, UnaryExpr, UnaryOp, fuse_affine},
+use crate::{
+    Expr, ExprNode,
+    ops::{RollupOp, ScheduleOp},
 };
-use crate::{Expr, MetricField, MetricKind, expr::ExprKind};
-use radiate_utils::{DataType, Quantile};
+use crate::{
+    When,
+    ops::{BinaryOp, SelectOp, TrinaryOp, UnaryOp},
+};
+use radiate_utils::{AnyValue, DataType, SmallStr, WindowBuffer};
 use std::ops::{Add, Div, Mul, Neg, Not, Sub};
 
 impl Expr {
-    pub fn time(mut self) -> Expr {
-        self.try_swap_select_kind(MetricKind::Duration);
-        self
+    pub fn identity() -> Expr {
+        Expr::from(SelectOp::Identity)
     }
 
-    pub fn value(mut self) -> Expr {
-        self.try_swap_select_kind(MetricKind::Value);
-        self
+    pub fn lit(value: impl Into<AnyValue<'static>>) -> Expr {
+        Expr::from(value.into())
+    }
+
+    pub fn range(sel: impl Into<std::ops::Range<usize>>) -> Expr {
+        let range = sel.into();
+        Expr::from(SelectOp::Range(range.start, range.end))
+    }
+
+    pub fn select(name: impl Into<SmallStr>) -> Expr {
+        Expr::from(SelectOp::Field(name.into()))
+    }
+
+    pub fn warmup(period: usize) -> When {
+        When::new(Expr::new(ExprNode::Schedule(ScheduleOp::Warmup {
+            period,
+            current: 0,
+        })))
+    }
+
+    pub fn when(cond: impl Into<Expr>) -> When {
+        When::new(cond.into())
+    }
+
+    pub fn every(interval: usize) -> When {
+        When::new(Expr::new(ExprNode::Schedule(ScheduleOp::Interval {
+            count: 0,
+            limit: interval,
+        })))
+    }
+
+    pub fn throttle(duration: std::time::Duration) -> When {
+        When::new(Expr::new(ExprNode::Schedule(ScheduleOp::Duration {
+            last: None,
+            interval: duration,
+        })))
+    }
+
+    pub fn time(self) -> Expr {
+        self.cast(DataType::Duration)
+    }
+
+    pub fn value(self) -> Expr {
+        self.cast(DataType::Float32)
     }
 
     pub fn debug(self) -> Expr {
-        Expr::new(ExprKind::Unary(UnaryExpr::new(self, UnaryOp::Debug)))
+        self.unary(UnaryOp::Debug)
     }
 
-    pub fn coalesce(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Coalesce,
-        )))
-    }
-
-    pub fn rolling(self, window_size: usize) -> Expr {
-        match self.kind {
-            ExprKind::Aggregate(agg) => Expr::new(ExprKind::Aggregate(
-                AggExpr::new(*agg.child, agg.rollup).rolling(window_size),
-            )),
-            ExprKind::Selector(select) => Expr::new(ExprKind::Aggregate(
-                AggExpr::new(Expr::new(ExprKind::Selector(select)), Rollup::Last)
-                    .rolling(window_size),
-            )),
-            kind => Expr::new(ExprKind::Aggregate(
-                AggExpr::new(Expr::new(kind), Rollup::Last).rolling(window_size),
-            )),
+    pub fn attr(self, attr: impl Into<SmallStr>) -> Expr {
+        match self.node {
+            ExprNode::Selector(selector) => Expr::from(SelectOp::Nested {
+                parent: Box::new(selector),
+                child: Box::new(SelectOp::Field(attr.into())),
+            }),
+            _ => self,
         }
     }
 
-    pub fn first(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(MetricField::LastValue, Rollup::First, |expr| {
-            Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::First)))
+    pub fn rolling(self, window_size: usize) -> Expr {
+        Expr::new(ExprNode::Rolling {
+            child: Box::new(self),
+            buffer: WindowBuffer::with_capacity(window_size),
         })
+    }
+
+    pub fn coalesce(self, rhs: impl Into<Expr>) -> Expr {
+        self.binary(rhs.into(), BinaryOp::Coalesce)
+    }
+
+    pub fn first(self) -> Expr {
+        self.reducer(RollupOp::First)
     }
 
     pub fn last(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(MetricField::LastValue, Rollup::Last, |expr| {
-            Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Last)))
-        })
+        self.reducer(RollupOp::Last)
     }
 
     pub fn sum(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(MetricField::Sum, Rollup::Sum, |expr| {
-            Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Sum)))
-        })
+        self.reducer(RollupOp::Sum)
     }
 
     pub fn mean(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(MetricField::Mean, Rollup::Mean, |expr| {
-            Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Mean)))
-        })
+        self.reducer(RollupOp::Mean)
     }
 
     pub fn stddev(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(MetricField::StdDev, Rollup::StdDev, |expr| {
-            Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::StdDev)))
-        })
+        self.reducer(RollupOp::StdDev)
     }
 
     pub fn min(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(MetricField::Min, Rollup::Min, |expr| {
-            Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Min)))
-        })
+        self.reducer(RollupOp::Min)
     }
 
     pub fn max(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(MetricField::Max, Rollup::Max, |expr| {
-            Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Max)))
-        })
+        self.reducer(RollupOp::Max)
     }
 
     pub fn var(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(MetricField::Var, Rollup::Var, |expr| {
-            Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Var)))
-        })
+        self.reducer(RollupOp::Var)
     }
 
     pub fn skew(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(MetricField::Skew, Rollup::Skew, |expr| {
-            Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Skew)))
-        })
+        self.reducer(RollupOp::Skew)
     }
 
     pub fn count(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(MetricField::Count, Rollup::Count, |expr| {
-            Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Count)))
-        })
+        self.reducer(RollupOp::Count)
     }
 
     pub fn slope(self) -> Expr {
-        self.try_swap_agg_rollup_or(Rollup::Slope, |expr| {
-            Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Slope)))
-        })
+        self.reducer(RollupOp::Slope)
     }
 
     pub fn unique(self) -> Expr {
-        self.try_swap_agg_rollup_or(Rollup::Unique, |expr| {
-            Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::Unique)))
-        })
+        self.reducer(RollupOp::Unique)
     }
 
     pub fn pow(self, exp: impl Into<Expr>) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            exp.into(),
-            BinaryOp::Pow,
-        )))
+        self.binary(exp.into(), BinaryOp::Pow)
     }
 
     pub fn lt(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Lt,
-        )))
+        self.binary(rhs.into(), BinaryOp::Lt)
     }
 
     pub fn lte(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Lte,
-        )))
+        self.binary(rhs.into(), BinaryOp::Lte)
     }
 
     pub fn gt(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Gt,
-        )))
+        self.binary(rhs.into(), BinaryOp::Gt)
     }
 
     pub fn gte(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Gte,
-        )))
+        self.binary(rhs.into(), BinaryOp::Gte)
     }
 
     pub fn eq(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Eq,
-        )))
+        self.binary(rhs.into(), BinaryOp::Eq)
     }
 
     pub fn ne(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Ne,
-        )))
+        self.binary(rhs.into(), BinaryOp::Ne)
     }
 
     pub fn between(self, low: impl Into<Expr>, high: impl Into<Expr>) -> Expr {
@@ -179,136 +168,76 @@ impl Expr {
     }
 
     pub fn and(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::And,
-        )))
+        self.binary(rhs.into(), BinaryOp::And)
     }
 
     pub fn or(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Or,
-        )))
+        self.binary(rhs.into(), BinaryOp::Or)
     }
 
     #[allow(clippy::should_implement_trait)]
     pub fn not(self) -> Expr {
-        Expr::new(ExprKind::Unary(UnaryExpr::new(self, UnaryOp::Not)))
+        self.unary(UnaryOp::Not)
     }
 
     #[allow(clippy::should_implement_trait)]
     pub fn neg(self) -> Expr {
-        Expr::new(ExprKind::Unary(UnaryExpr::new(self, UnaryOp::Neg)))
+        self.unary(UnaryOp::Neg)
     }
 
     pub fn abs(self) -> Expr {
-        Expr::new(ExprKind::Unary(UnaryExpr::new(self, UnaryOp::Abs)))
+        self.unary(UnaryOp::Abs)
     }
 
     #[allow(clippy::should_implement_trait)]
     pub fn add(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Add,
-        )))
+        self.binary(rhs.into(), BinaryOp::Add)
     }
 
     #[allow(clippy::should_implement_trait)]
     pub fn sub(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Sub,
-        )))
+        self.binary(rhs.into(), BinaryOp::Sub)
     }
 
     #[allow(clippy::should_implement_trait)]
     pub fn mul(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Mul,
-        )))
+        self.binary(rhs.into(), BinaryOp::Mul)
     }
 
     #[allow(clippy::should_implement_trait)]
     pub fn div(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Div,
-        )))
+        self.binary(rhs.into(), BinaryOp::Div)
     }
 
     pub fn clamp(self, min: impl Into<Expr>, max: impl Into<Expr>) -> Expr {
-        Expr::new(ExprKind::Trinary(TrinaryExpr::new(
-            self,
-            min.into(),
-            max.into(),
-            TrinaryOp::Clamp,
-        )))
+        self.trinary(min.into(), max.into(), TrinaryOp::Clamp)
     }
 
-    /// Returns `self` if it evaluates to a finite number, otherwise `rhs`.
-    /// Triggers fallback on Null, NaN, and ±Inf. Short-circuits — `rhs` is only
-    /// evaluated when needed, so it's safe to use as a non-trivial default.
     pub fn or_else(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Coalesce,
-        )))
+        self.binary(rhs.into(), BinaryOp::Coalesce)
     }
 
-    /// Elementwise min: `min(self, rhs)`. NaN on one side returns the other.
-    /// Use as a ceiling: `expr.min_with(2.0)`.
     pub fn min_with(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Min,
-        )))
+        self.binary(rhs.into(), BinaryOp::Min)
     }
-
-    /// Elementwise max: `max(self, rhs)`. NaN on one side returns the other.
-    /// Use as a floor: `expr.max_with(0.05)`.
     pub fn max_with(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Max,
-        )))
+        self.binary(rhs.into(), BinaryOp::Max)
     }
 
-    /// Quantile at `q ∈ [0, 1]` via linear interpolation between adjacent ranks.
-    /// On an empty buffer returns 0.0. Filters non-finite samples before sorting.
-    /// O(n log n) per evaluation — fine for window sizes ≤ ~1000.
     pub fn quantile(self, q: f32) -> Expr {
-        self.try_swap_agg_rollup_or(Rollup::Quantile(Quantile::new(q)), |expr| {
-            Expr::new(ExprKind::Aggregate(AggExpr::new(
-                expr,
-                Rollup::Quantile(Quantile::new(q)),
-            )))
-        })
+        self.reducer(RollupOp::Quantile(q))
     }
 
     pub fn stagnation(self, epsilon: f32) -> Expr {
-        Expr::new(ExprKind::Unary(UnaryExpr::new(
-            self,
-            UnaryOp::Stagnation {
-                epsilon,
-                last_value: None,
-                count: 0,
-            },
-        )))
+        self.unary(UnaryOp::Stagnation {
+            epsilon,
+            last_value: None,
+            count: 0,
+        })
     }
 
     pub fn cast(self, to: DataType) -> Expr {
-        Expr::new(ExprKind::Unary(UnaryExpr::new(self, UnaryOp::Cast(to))))
+        self.unary(UnaryOp::Cast(to))
     }
 
     /// Relative error from a target: `(self - target) / target`. Fuses into
@@ -317,52 +246,40 @@ impl Expr {
     /// to the outer Clamp).
     pub fn error(self, target: f32) -> Expr {
         // (x - target) / target == x * (1/target) + (-1)
-        fuse_affine(self, 1.0 / target, -1.0)
+        self.binary(Expr::from(1.0 / target), BinaryOp::Mul)
+            .add(Expr::from(-1.0))
+            .compile()
     }
 
-    fn try_swap_select_kind(&mut self, to: MetricKind) -> bool {
-        if let ExprKind::Selector(sel) = &mut self.kind {
-            sel.kind = to;
-            return true;
-        }
-        false
+    fn unary(self, op: UnaryOp) -> Expr {
+        Expr::new(ExprNode::Unary {
+            child: Box::new(self),
+            op,
+        })
     }
 
-    fn try_swap_select_field(&mut self, to: MetricField) -> bool {
-        if let ExprKind::Selector(sel) = &mut self.kind {
-            sel.field = to;
-            return true;
-        }
-        false
+    fn binary(self, rhs: Expr, op: BinaryOp) -> Expr {
+        Expr::new(ExprNode::Binary {
+            lhs: Box::new(self),
+            rhs: Box::new(rhs),
+            op,
+        })
     }
 
-    fn try_swap_select_field_or(
-        mut self,
-        to: MetricField,
-        func: impl FnOnce(Self) -> Expr,
-    ) -> Expr {
-        if self.try_swap_select_field(to) {
-            return self;
-        }
-        func(self)
+    fn trinary(self, second: Expr, third: Expr, op: TrinaryOp) -> Expr {
+        Expr::new(ExprNode::Trinary {
+            first: Box::new(self),
+            second: Box::new(second),
+            third: Box::new(third),
+            op,
+        })
     }
 
-    fn try_swap_agg_rollup_or(mut self, to: Rollup, func: impl FnOnce(Self) -> Expr) -> Expr {
-        if let ExprKind::Aggregate(ref mut agg) = self.kind
-            && agg.rollup != Rollup::Unique {
-                agg.rollup = to;
-                return self;
-            }
-        func(self)
-    }
-
-    fn try_reduce_select_agg_rollup_or(
-        self,
-        field: MetricField,
-        to: Rollup,
-        func: impl FnOnce(Self) -> Expr,
-    ) -> Expr {
-        self.try_swap_select_field_or(field, |outer| outer.try_swap_agg_rollup_or(to, func))
+    fn reducer(self, rollup: RollupOp) -> Expr {
+        Expr::new(ExprNode::Reduce {
+            child: Box::new(self),
+            rollup,
+        })
     }
 }
 
@@ -371,8 +288,8 @@ macro_rules! impl_from_literal {
         $(
             impl From<$ty> for Expr {
                 fn from(value: $ty) -> Self {
-                    use crate::expr::ExprKind;
-                    Expr::new(ExprKind::Literal(value.into()))
+                    use crate::ExprNode;
+                    Expr::new(ExprNode::Literal(value.into()))
                 }
             }
         )*
@@ -408,11 +325,11 @@ where
 {
     type Output = Expr;
     fn add(self, rhs: T) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Add,
-        )))
+        Expr::new(ExprNode::Binary {
+            lhs: Box::new(self),
+            rhs: Box::new(rhs.into()),
+            op: BinaryOp::Add,
+        })
     }
 }
 
@@ -422,11 +339,11 @@ where
 {
     type Output = Expr;
     fn sub(self, rhs: T) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Sub,
-        )))
+        Expr::new(ExprNode::Binary {
+            lhs: Box::new(self),
+            rhs: Box::new(rhs.into()),
+            op: BinaryOp::Sub,
+        })
     }
 }
 
@@ -436,11 +353,11 @@ where
 {
     type Output = Expr;
     fn mul(self, rhs: T) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Mul,
-        )))
+        Expr::new(ExprNode::Binary {
+            lhs: Box::new(self),
+            rhs: Box::new(rhs.into()),
+            op: BinaryOp::Mul,
+        })
     }
 }
 
@@ -450,24 +367,30 @@ where
 {
     type Output = Expr;
     fn div(self, rhs: T) -> Expr {
-        Expr::new(ExprKind::Binary(BinaryExpr::new(
-            self,
-            rhs.into(),
-            BinaryOp::Div,
-        )))
+        Expr::new(ExprNode::Binary {
+            lhs: Box::new(self),
+            rhs: Box::new(rhs.into()),
+            op: BinaryOp::Div,
+        })
     }
 }
 
 impl Neg for Expr {
     type Output = Expr;
     fn neg(self) -> Expr {
-        Expr::new(ExprKind::Unary(UnaryExpr::new(self, UnaryOp::Neg)))
+        Expr::new(ExprNode::Unary {
+            child: Box::new(self),
+            op: UnaryOp::Neg,
+        })
     }
 }
 
 impl Not for Expr {
     type Output = Expr;
     fn not(self) -> Expr {
-        Expr::new(ExprKind::Unary(UnaryExpr::new(self, UnaryOp::Not)))
+        Expr::new(ExprNode::Unary {
+            child: Box::new(self),
+            op: UnaryOp::Not,
+        })
     }
 }

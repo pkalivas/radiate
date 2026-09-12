@@ -10,7 +10,7 @@ def test_engine_bit_optimization(random_seed):
         rd.Engine.bit(10)
         .fitness(lambda x: sum(1 for bit in x if bit))  # Maximize number of ones
         .select(rd.Select.elite())
-        .alters(rd.Cross.uniform(0.7), rd.Mutate.uniform(0.1))
+        .alter(rd.Cross.uniform(0.7), rd.Mutate.uniform(0.1))
         .limit(rd.Limit.score(10), rd.Limit.generations(100))
     )
 
@@ -34,7 +34,7 @@ def test_engine_bit_matrix_optimization(random_seed):
         rd.Engine.bit((rows, cols))
         .fitness(fitness_func)
         .select(rd.Select.elite())
-        .alters(rd.Cross.uniform(0.7), rd.Mutate.uniform(0.1))
+        .alter(rd.Cross.uniform(0.7), rd.Mutate.uniform(0.1))
         .limit(rd.Limit.score(rows * cols), rd.Limit.generations(200))
     )
 
