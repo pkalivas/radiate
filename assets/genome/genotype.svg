@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="296" viewBox="0 0 560 296" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
+  <rect x="0.5" y="0.5" width="559" height="295" rx="12" fill="#ffffff" stroke="#d0d7de"/>
+  <text x="24" y="36" font-size="18" font-weight="700" fill="#1f2328">Genotype</text>
+  <text x="24" y="56" font-size="12" fill="#57606a">a list of Chromosomes — all the same type</text>
+
+  <rect x="24" y="70" width="512" height="172" rx="10" fill="#f6f8fa" stroke="#d0d7de"/>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" fill="#0a3069">
+    <!-- Chromosome 0 -->
+    <rect x="40" y="84" width="472" height="44" rx="8" fill="#eef1f4" stroke="#d8dee4"/>
+    <text x="52" y="110" font-family="ui-sans-serif, system-ui, sans-serif" font-size="11" fill="#57606a">Chromosome 0</text>
+    <rect x="160" y="92" width="48" height="28" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="184" y="110" text-anchor="middle">0.42</text>
+    <rect x="218" y="92" width="48" height="28" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="242" y="110" text-anchor="middle">-1.3</text>
+    <rect x="276" y="92" width="48" height="28" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="300" y="110" text-anchor="middle">0.07</text>
+    <rect x="334" y="92" width="48" height="28" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="358" y="110" text-anchor="middle">2.51</text>
+
+    <!-- Chromosome 1 -->
+    <rect x="40" y="136" width="472" height="44" rx="8" fill="#eef1f4" stroke="#d8dee4"/>
+    <text x="52" y="162" font-family="ui-sans-serif, system-ui, sans-serif" font-size="11" fill="#57606a">Chromosome 1</text>
+    <rect x="160" y="144" width="48" height="28" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="184" y="162" text-anchor="middle">1.10</text>
+    <rect x="218" y="144" width="48" height="28" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="242" y="162" text-anchor="middle">0.93</text>
+
+    <!-- Chromosome 2 -->
+    <rect x="40" y="188" width="472" height="44" rx="8" fill="#eef1f4" stroke="#d8dee4"/>
+    <text x="52" y="214" font-family="ui-sans-serif, system-ui, sans-serif" font-size="11" fill="#57606a">Chromosome 2</text>
+    <rect x="160" y="196" width="48" height="28" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="184" y="214" text-anchor="middle">-0.50</text>
+    <rect x="218" y="196" width="48" height="28" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="242" y="214" text-anchor="middle">0.00</text>
+    <rect x="276" y="196" width="48" height="28" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="300" y="214" text-anchor="middle">3.14</text>
+  </g>
+
+  <text x="24" y="266" font-size="11" fill="#57606a">chromosomes may differ in length, but every chromosome in a genotype is the same type</text>
+</svg>
