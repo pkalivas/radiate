@@ -6,7 +6,7 @@ adheres to semantic versioning.
 
 For all code examples and further explanations, refer to the [documentation](https://pkalivas.github.io/radiate/).
 
-## [Unreleased]
+## [1.3.1] - 2026-09-13
 
 `Rate` is fully replaced by the expression DSL, events/checkpointing/stopping move onto the engine builder, and the Python operator API is reorganized into namespaces (`Select.*`/`Cross.*`/`Mutate.*`/`Dist.*`/`Limit.*`/`Filter.*`/`Fitness.*`). Also new: a population-filter stage for stagnation recovery, adaptive species-count targeting, a `BitFlipMutator`, f64 support for GP graphs/trees, and three new TUI dashboard tabs. Pareto front calculation's should be _much_ faster now; buffers are cached & reused whenever possible, efficent sorting, and in-place crowding distance calculation.
 

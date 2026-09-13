@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::io;
 use std::path::PathBuf;
 
+#[cfg(feature = "serde")]
 const JSON: &str = "json";
 
 pub trait FileWriter<T> {
