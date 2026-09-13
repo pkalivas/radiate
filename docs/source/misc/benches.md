@@ -3,7 +3,13 @@
 
     As of `9/13/26` this is a new section and is still being developed.
 
-I think it's useful to look through comparisons between `radiate` and other libraries that share this space in terms of performance and efficiency. All benchmarks and report generation are run in `python`, the code that created the below charts and comparisons can be found in the [raidate-benchmarks](https://github.com/pkalivas/radiate-benchmarks) repository on github. A majority of these benchmarks compare `radiate` against [PyMoo](https://pymoo.org) and [DEAP](https://deap.readthedocs.io).
+I think it's useful to look through comparisons between `radiate` and other libraries that share this space in terms of performance and efficiency. All benchmarks are run in python on a `2020 M1 Pro MacBook Pro`. The code that created the below charts and comparisons can be found in the [raidate-benchmarks](https://github.com/pkalivas/radiate-benchmarks) repository on github. 
+
+In the benchmark's project, we compare the performance and efficiency of `radiate` against other libraries like [PyMoo](https://pymoo.org) and [DEAP](https://deap.readthedocs.io) across various optimization problems. Below are the results of these simple problems, showing both the convergence quality & speed of the different libraries. Each library x problem combination is run 10 times, the best/worst/mean results & wall-clock times are recorded.
+
+<figure markdown="span">
+    ![Speed Summary](../../assets/benches/heatmap_overview.png){ width="850" }
+</figure>
 
 ## Ackley
 
@@ -28,3 +34,4 @@ Discrete optimization using `usize` precision integers & numpy arrays. `Radiate`
 <figure markdown="span">
     ![N-Queens](../../assets/benches/convergence_nqueens.png){ width="600" }
 </figure>
+
