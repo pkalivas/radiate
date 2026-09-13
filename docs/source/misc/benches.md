@@ -1,7 +1,7 @@
 
 !!! warning ":construction: Under Construction :construction:"
 
-    As of `9/13/26` This is a new section and is still being developed.
+    As of `9/13/26` this is a new section and is still being developed.
 
 I think it's useful to look through comparisons between `radiate` and other libraries that share this space in terms of performance and efficiency. All benchmarks and report generation are run in `python`, the code that created the below charts and comparisons can be found in the [raidate-benchmarks](https://github.com/pkalivas/radiate-benchmarks) repository on github. A majority of these benchmarks compare `radiate` against [PyMoo](https://pymoo.org) and [DEAP](https://deap.readthedocs.io).
 
