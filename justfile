@@ -90,8 +90,6 @@ test-rs:
         cargo test
     fi
 
-    # @cargo test
-
 # Execute every user-guide Python snippet (docs/source/src/python) to catch doc drift
 test-docs *args: _require-uv
     @uv run -m pytest py-radiate/tests/docs -n auto {{args}}
@@ -133,5 +131,6 @@ clean:
     @rm -rf target/
     @rm -rf .pytest_cache
     @rm -rf site
+    @rm -rf .coverage
     @rm -rf examples/data/scratch
     @just py-radiate/clean
