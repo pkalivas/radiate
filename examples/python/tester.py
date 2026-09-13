@@ -6,6 +6,8 @@ engine = rd.Engine.bit(TARGET_NUM).fitness(sum).limit(rd.Limit.score(TARGET_NUM)
 
 print(engine.run())
 
+print(rd.__version__)
+
 
 # def fit(x: list[list[bool]]) -> int:
 #     sum_one = sum(1 for bit in x[0] if bit)

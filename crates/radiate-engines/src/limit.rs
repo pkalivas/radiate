@@ -309,10 +309,6 @@ where
 
     if let AnyValue::Bool(b) = result {
         let proceed = !b;
-        // if !proceed {
-        //     ctx.event_stream()
-        //         .publish(LimitTriggered(ctx.index, Limit::Expr(expr.clone())));
-        // }
         Ok(if proceed {
             LimitOutcome::Proceed
         } else {
