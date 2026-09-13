@@ -207,8 +207,9 @@ pub trait EngineExt<E: Engine> {
     /// to hang indefinitely.
     #[deprecated(
         since = "1.3.1",
-        note = "Use the `EngineStream` trait instead, which provides a more flexible and \
-        efficient way to run engines with custom termination conditions."
+        note = "Use the `EngineStream` trait impl instead, which provides a more flexible and \
+        efficient way to run engines with custom termination conditions. Instead of an `E::Epoch` being \
+        given to the fn, a `GenerationView<'a, C, T>` is provided instead which is much more efficient."
     )]
     fn run<F>(&mut self, limit: F) -> E::Epoch
     where

@@ -5,6 +5,7 @@ default:
 
 extra-args := ""
 py-version := "3.12"
+publish-order := "radiate-error radiate-utils radiate-expr radiate-core radiate-selectors radiate-alters radiate-gp radiate-engines radiate-ui radiate"
 
 # --------------------------
 # Helpers
@@ -89,8 +90,6 @@ test-rs:
         cargo test
     fi
 
-    # @cargo test
-
 # Execute every user-guide Python snippet (docs/source/src/python) to catch doc drift
 test-docs *args: _require-uv
     @uv run -m pytest py-radiate/tests/docs -n auto {{args}}
@@ -98,6 +97,22 @@ test-docs *args: _require-uv
 # Strict mkdocs build — validates that all snippet (`--8<--`) includes resolve
 docs-build: _require-uv
     @uv run --with mkdocs-material mkdocs build --strict
+
+
+publish dry="false":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for crate in {{publish-order}}; do
+        echo "==> publishing $crate"
+        if [ "{{dry}}" = "true" ]; then
+            cargo publish -p "$crate" --dry-run
+        else
+            cargo publish -p "$crate"
+        fi
+    done
+
+publish-dry-run:
+    just publish true
 
 # --------------------------
 # Example commands
@@ -116,5 +131,6 @@ clean:
     @rm -rf target/
     @rm -rf .pytest_cache
     @rm -rf site
+    @rm -rf .coverage
     @rm -rf examples/data/scratch
     @just py-radiate/clean
