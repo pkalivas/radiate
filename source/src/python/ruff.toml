@@ -1,0 +1,11 @@
+# Ruff config scoped to the user-guide snippet files.
+#
+# These files are deliberately a sequence of independent, self-contained documentation
+# snippets separated by `# --8<-- [start/end]` markers (see py-radiate/tests/docs). Each
+# snippet re-imports `radiate` and may redefine names so it reads correctly in isolation
+# when rendered into the docs. That intentionally trips:
+#   E402 - module import not at top of file (imports live inside each snippet)
+#   F811 - redefinition while unused (repeated `import radiate as rd`, reused names)
+# Neither is meaningful here, so they're ignored for these files only.
+[lint]
+ignore = ["E402", "F811"]
