@@ -51,6 +51,7 @@ nav:
     - DataTypes: source/misc/dtype.md
     - Checkpointing: source/misc/checkpoint.md
     - UI: source/misc/ui.md
+    - Benchmarks: source/misc/benches.md
   - Examples: source/examples.md
   - Release Notes: source/releases.md
 
