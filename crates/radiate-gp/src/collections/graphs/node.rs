@@ -307,7 +307,7 @@ impl<T> Node for GraphNode<T> {
 
 impl<T> Gene for GraphNode<T>
 where
-    T: Clone + PartialEq,
+    T: Clone,
 {
     type Allele = T;
 

@@ -1,4 +1,4 @@
-use crate::bindings::datatype::py_object_into_2d_vec;
+use crate::bindings::datatype::py_object_into_matrix;
 use crate::{
     PyGraph, PyTree, Wrap,
     bindings::gp::{graph::PyGraphInner, tree::PyTreeInner},
@@ -82,13 +82,13 @@ pub fn py_accuracy<'py>(
     if let Ok(mut graph) = predictor.extract::<PyGraph>(py) {
         return match &mut graph.inner {
             PyGraphInner::Float32(graph) => {
-                let features = py_object_into_2d_vec::<f32>(features)?;
-                let targets = py_object_into_2d_vec::<f32>(targets)?;
+                let features = py_object_into_matrix::<f32>(features)?;
+                let targets = py_object_into_matrix::<f32>(targets)?;
                 graph.eval_scoped(|gr| run_accuracy(gr, features, targets, loss, name))
             }
             PyGraphInner::Float64(graph) => {
-                let features = py_object_into_2d_vec::<f64>(features)?;
-                let targets = py_object_into_2d_vec::<f64>(targets)?;
+                let features = py_object_into_matrix::<f64>(features)?;
+                let targets = py_object_into_matrix::<f64>(targets)?;
                 graph.eval_scoped(|gr| run_accuracy(gr, features, targets, loss, name))
             }
         };
@@ -97,13 +97,13 @@ pub fn py_accuracy<'py>(
     if let Ok(mut tree) = predictor.extract::<PyTree>(py) {
         return match &mut tree.inner {
             PyTreeInner::Float32(trees) => {
-                let features = py_object_into_2d_vec::<f32>(features)?;
-                let targets = py_object_into_2d_vec::<f32>(targets)?;
+                let features = py_object_into_matrix::<f32>(features)?;
+                let targets = py_object_into_matrix::<f32>(targets)?;
                 run_accuracy(trees, features, targets, loss, name)
             }
             PyTreeInner::Float64(trees) => {
-                let features = py_object_into_2d_vec::<f64>(features)?;
-                let targets = py_object_into_2d_vec::<f64>(targets)?;
+                let features = py_object_into_matrix::<f64>(features)?;
+                let targets = py_object_into_matrix::<f64>(targets)?;
                 run_accuracy(trees, features, targets, loss, name)
             }
         };
