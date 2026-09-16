@@ -150,9 +150,11 @@ impl PyGeneration {
             match_variant!(EpochHandle, &self.inner, epoch => (epoch.objective(), epoch.index()));
 
         Ok(format!(
-            "Generation(\n\tindex={},\n\tscore={},\n\tdtype={},\n\t{},\n\tvalue={}\n)",
+            "Generation(\n\tindex={},\n\tscore={},\n\tduration={:?},\n\tobjective={:?},\n\tdtype={},\n\t{},\n\tvalue={}\n)",
             index,
             score,
+            self.duration(),
+            objective,
             dtype,
             metrics.__repr__(),
             if objective.is_multi() {

@@ -8,20 +8,18 @@ def test_engine_permutation_tsp(random_seed):
     """Test engine with permutation codec for TSP-like problem."""
 
     # Simple TSP-like fitness: minimize sum of adjacent differences
-    def fitness_func(x: list[int]) -> float:
+    def fit(x: list[int]) -> float:
         return sum(abs(x[i] - x[i - 1]) for i in range(1, len(x)))
 
-    engine = rd.Engine(
-        codec=rd.PermutationCodec([0, 1, 2, 3, 4]),
-        fitness_func=fitness_func,
-        objective=rd.MIN,
-        population_size=50,
-        offspring_selector=rd.Select.tournament(k=3),
-        survivor_selector=rd.Select.elite(),
-        alters=[rd.Cross.pmx(rate=0.7), rd.Mutate.inversion(rate=0.1)],
-    ).limit(rd.Limit.score(5), rd.Limit.generations(100))
-
-    result = engine.run()
+    result = (
+        rd.Engine.permutation([0, 1, 2, 3, 4])
+        .fitness(fit)
+        .minimizing()
+        .size(50)
+        .select(rd.Select.tournament(k=3), rd.Select.elite())
+        .alter(rd.Cross.pmx(rate=0.7), rd.Mutate.inversion(rate=0.1))
+        .limit(rd.Limit.score(5), rd.Limit.generations(100))
+    ).run()
 
     assert result.index() <= 100
     assert len(set(result.value())) == 5
