@@ -10,5 +10,6 @@ This section collects features and utilities that sit outside the core evolution
 | [DataTypes](dtype.md) | choosing gene dtypes (`int8`…`float64`) to trade memory for speed (Python) |
 | [Checkpointing](checkpoint.md) | saving and resuming evolution runs |
 | [UI](ui.md) | the terminal dashboard for watching a run live |
+| [Benchmarks](benchmarks.md) | performance comparisons and benchmarking utilities |
 
 ---

@@ -44,8 +44,7 @@ def test_handler_integration_with_multiple_handlers(simple_float_engine, random_
         change2 = True
 
     result = (
-        simple_float_engine.subscribe(test_handler1)
-        .subscribe(test_handler2)
+        simple_float_engine.subscribe(test_handler1, test_handler2)
         .limit(rd.Limit.generations(50))
         .run()
     )
