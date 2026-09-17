@@ -30,7 +30,8 @@ repository = "https://github.com/pkalivas/radiate"
 
 [project.optional-dependencies]
 plot = [
-    "matplotlib>=3.8.0",
+    # "matplotlib>=3.8.0",
+    "plotly>=7.1.0",
 ]
 data = [
     "numpy>=2.4.3",
@@ -42,7 +43,8 @@ torch = [
 ]
 all = [
     "numpy>=2.5.1",
-    "matplotlib>=3.8.0",
+    # "matplotlib>=3.8.0",
+    "plotly>=7.1.0",
     "pandas>=2.1.0 ; python_version < '3.14'",
     "polars>=1.38.1 ; python_version < '3.14'",
     "torch>=2.7.1 ; python_version < '3.14'",
