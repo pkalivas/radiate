@@ -115,7 +115,7 @@ $$
     --8<-- "rust/examples.rs:dtlz1"
     ```
 
-The resulting Pareto front can be visualized using Plotly or matplotlib, as shown below:
+The resulting Pareto front can be visualized using Plotly, as shown below:
 
 <div id="dtlz_1"></div>
 

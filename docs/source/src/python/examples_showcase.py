@@ -83,7 +83,7 @@ N_GENES = 2
 def rastrigin_fitness_fn(x: list[float]) -> float:
     value = A * N_GENES
     for i in range(N_GENES):
-        value += x[i] ** 2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
+        value += x[i] ** 2 - A * math.cos(2.0 * 3.141592653589793 * x[i])
     return value
 
 
@@ -99,8 +99,8 @@ print(engine.run())
 # --8<-- [end:rastrigin]
 
 # --8<-- [start:dtlz1]
-import matplotlib.pyplot as plt
 import numpy as np
+import plotly.graph_objects as go
 import radiate as rd
 from numba import float32, jit
 
@@ -151,18 +151,19 @@ result = engine.run(ui=True)
 # engine's epoch result. This is stored in the 'front()' field of the result here:
 front = result.front()
 
-fig = plt.figure()
-ax = plt.axes(projection="3d")
-
 x = [member.score()[0] for member in front]
 y = [member.score()[1] for member in front]
 z = [member.score()[2] for member in front]
 
-ax.scatter(x, y, z)
-ax.set_xlim((0, 0.5))
-ax.set_ylim((0, 0.5))
-ax.set_zlim((0, 0.5))
-plt.show()
+fig = go.Figure(go.Scatter3d(x=x, y=y, z=z, mode="markers"))
+fig.update_layout(
+    scene={
+        "xaxis": {"range": [0, 0.5]},
+        "yaxis": {"range": [0, 0.5]},
+        "zaxis": {"range": [0, 0.5]},
+    }
+)
+fig.show()
 # --8<-- [end:dtlz1]
 
 # --8<-- [start:graph_xor]

@@ -20,8 +20,10 @@ that traditional fitness-based evolution might miss.
 
 import math
 
-import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
 import radiate as rd
 
 rd.random.seed(34)
@@ -135,34 +137,60 @@ class RobotBehavior:
         x_coords = [p[0] for p in self.trajectory]
         y_coords = [p[1] for p in self.trajectory]
 
-        plt.figure(figsize=(10, 8))
-        plt.plot(x_coords, y_coords, "b-", linewidth=2, alpha=0.7, label="Path")
-        plt.plot(x_coords[0], y_coords[0], "go", markersize=10, label="Start")
-        plt.plot(x_coords[-1], y_coords[-1], "ro", markersize=10, label="End")
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=x_coords,
+                y=y_coords,
+                mode="lines",
+                line={"color": "blue", "width": 2},
+                opacity=0.7,
+                name="Path",
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=[x_coords[0]],
+                y=[y_coords[0]],
+                mode="markers",
+                marker={"color": "green", "size": 10},
+                name="Start",
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=[x_coords[-1]],
+                y=[y_coords[-1]],
+                mode="markers",
+                marker={"color": "red", "size": 10},
+                name="End",
+            )
+        )
 
         # Add arrows to show direction
         for i in range(0, len(x_coords) - 1, 10):
-            dx = x_coords[i + 1] - x_coords[i]
-            dy = y_coords[i + 1] - y_coords[i]
-            plt.arrow(
-                x_coords[i],
-                y_coords[i],
-                dx,
-                dy,
-                head_width=0.2,
-                head_length=0.3,
-                fc="red",
-                ec="red",
-                alpha=0.5,
+            fig.add_annotation(
+                x=x_coords[i + 1],
+                y=y_coords[i + 1],
+                ax=x_coords[i],
+                ay=y_coords[i],
+                xref="x",
+                yref="y",
+                axref="x",
+                ayref="y",
+                showarrow=True,
+                arrowhead=3,
+                arrowcolor="red",
+                opacity=0.5,
             )
 
-        plt.xlabel("X Position")
-        plt.ylabel("Y Position")
-        plt.title(f"{title}\nBehavior: {self.movement_pattern[:4]}")
-        plt.legend()
-        plt.grid(True, alpha=0.3)
-        plt.axis("equal")
-        plt.show()
+        fig.update_layout(
+            xaxis_title="X Position",
+            yaxis_title="Y Position",
+            title=f"{title}<br>Behavior: {self.movement_pattern[:4]}",
+            yaxis={"scaleanchor": "x", "scaleratio": 1},
+        )
+        fig.show()
 
 
 def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
@@ -218,27 +246,59 @@ def analyze_diverse_behaviors(result: rd.Generation, num_behaviors: int = 6):
     print(f"Best novelty score: {sorted_population[0].score()[0]:.3f}")
 
     # Visualize top diverse behaviors
-    plt.figure(figsize=(15, 10))
+    fig = make_subplots(rows=2, cols=3)
 
     for i in range(min(num_behaviors, len(sorted_population))):
         individual = sorted_population[i]
         genes = [g.allele() for c in individual.genotype() for g in c]
         behavior = RobotBehavior(genes)
 
-        plt.subplot(2, 3, i + 1)
+        row, col = i // 3 + 1, i % 3 + 1
         x_coords = [p[0] for p in behavior.trajectory]
         y_coords = [p[1] for p in behavior.trajectory]
 
-        plt.plot(x_coords, y_coords, linewidth=2, alpha=0.8)
-        plt.plot(x_coords[0], y_coords[0], "go", markersize=8)
-        plt.plot(x_coords[-1], y_coords[-1], "ro", markersize=8)
+        fig.add_trace(
+            go.Scatter(
+                x=x_coords,
+                y=y_coords,
+                mode="lines",
+                line={"width": 2},
+                opacity=0.8,
+                showlegend=False,
+            ),
+            row=row,
+            col=col,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=[x_coords[0]],
+                y=[y_coords[0]],
+                mode="markers",
+                marker={"color": "green", "size": 8},
+                showlegend=False,
+            ),
+            row=row,
+            col=col,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=[x_coords[-1]],
+                y=[y_coords[-1]],
+                mode="markers",
+                marker={"color": "red", "size": 8},
+                showlegend=False,
+            ),
+            row=row,
+            col=col,
+        )
+        fig.update_xaxes(
+            title_text=f"Behavior {i + 1} (Novelty: {individual.score()[0]:.3f})",
+            row=row,
+            col=col,
+        )
 
-        plt.title(f"Behavior {i + 1}\nNovelty: {individual.score()[0]:.3f}")
-        plt.grid(True, alpha=0.3)
-        plt.axis("equal")
-
-    plt.tight_layout()
-    plt.show()
+    fig.update_layout(height=700, width=1000, title_text="Diverse Behaviors")
+    fig.show()
 
     # Print behavior characteristics
     print(f"\n=== Top {num_behaviors} Diverse Behaviors ===")

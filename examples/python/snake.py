@@ -6,10 +6,10 @@ This version includes extensive logging to understand why
 the best solution behaves differently after evolution.
 """
 
-import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
+import plotly.graph_objects as go
+
 import radiate as rd
-from matplotlib.animation import FuncAnimation  # type: ignore
 
 rd.random.seed(514)
 np.random.seed(514)
@@ -393,45 +393,76 @@ class SnakeEvolver:
     def visualize_best_snake(self, graph: rd.Graph, title: str = "Best Snake AI"):
         """Visualize the best evolved snake playing."""
         test_result = self.test_individual(graph, debug=True)
-        fig, ax = plt.subplots(figsize=(10, 8))
+        history = test_result["history"]
 
-        def animate(frame):
-            ax.clear()
+        def frame_traces(state):
+            snake_x = [pos[0] for pos in state["snake"]]
+            snake_y = [pos[1] for pos in state["snake"]]
+            return [
+                go.Scatter(
+                    x=snake_x,
+                    y=snake_y,
+                    mode="lines+markers",
+                    line={"color": "green", "width": 2},
+                    marker={"size": 8, "color": "green"},
+                    name="Snake",
+                ),
+                go.Scatter(
+                    x=[snake_x[0]],
+                    y=[snake_y[0]],
+                    mode="markers",
+                    marker={"size": 12, "color": "darkgreen"},
+                    name="Head",
+                ),
+                go.Scatter(
+                    x=[state["food"][0]],
+                    y=[state["food"][1]],
+                    mode="markers",
+                    marker={"size": 10, "color": "red", "symbol": "square"},
+                    name="Food",
+                ),
+            ]
 
-            if frame < len(test_result["history"]):
-                state = test_result["history"][frame]
+        def frame_title(state):
+            return f"{title}<br>Score: {state['score']} | Steps: {state['steps']} | Action: {state['action']}"
 
-                # Draw snake
-                snake_x = [pos[0] for pos in state["snake"]]
-                snake_y = [pos[1] for pos in state["snake"]]
-                ax.plot(
-                    snake_x, snake_y, "o-", color="green", linewidth=2, markersize=8
-                )
+        frames = [
+            go.Frame(
+                data=frame_traces(state),
+                name=str(i),
+                layout={"title": frame_title(state)},
+            )
+            for i, state in enumerate(history)
+        ]
 
-                # Draw head
-                ax.plot(snake_x[0], snake_y[0], "o", color="darkgreen", markersize=12)
-
-                # Draw food
-                ax.plot(
-                    state["food"][0], state["food"][1], "s", color="red", markersize=10
-                )
-
-                ax.set_xlim(-1, 20)
-                ax.set_ylim(-1, 20)
-                ax.set_aspect("equal")
-                ax.grid(True, alpha=0.3)
-                ax.set_title(
-                    f"{title}\nScore: {state['score']} | Steps: {state['steps']} | Action: {state['action']}"
-                )
-
-            return (ax,)
-
-        anim = FuncAnimation(
-            fig, animate, frames=len(test_result["history"]), interval=75, repeat=False
+        fig = go.Figure(data=frame_traces(history[0]), frames=frames)
+        fig.update_layout(
+            xaxis={"range": [-1, 20]},
+            yaxis={"range": [-1, 20], "scaleanchor": "x", "scaleratio": 1},
+            title=frame_title(history[0]),
+            updatemenus=[
+                {
+                    "type": "buttons",
+                    "buttons": [
+                        {
+                            "label": "Play",
+                            "method": "animate",
+                            "args": [
+                                None,
+                                {
+                                    "frame": {"duration": 75, "redraw": True},
+                                    "fromcurrent": True,
+                                    "mode": "immediate",
+                                },
+                            ],
+                        }
+                    ],
+                }
+            ],
         )
-        plt.show()
+        fig.show()
 
-        return anim
+        return fig
 
 
 def main():
