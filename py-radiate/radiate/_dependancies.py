@@ -18,7 +18,6 @@ _NUMPY_AVAILABLE = True
 _PANDAS_AVAILABLE = True
 _POLARS_AVAILABLE = True
 _TORCH_AVAILABLE = True
-# _MATPLOTLIB_AVAILABLE = True
 _PLOTLY_AVAILABLE = True
 
 
@@ -147,11 +146,8 @@ if TYPE_CHECKING:
     import pickle
     import subprocess
 
-    # import matplotlib.pyplot as matplotlib
     import numpy
     import pandas
-
-    # import matplotlib.pyplot as matplotlib
     import plotly
     import polars
     import torch
@@ -168,7 +164,6 @@ else:
     pandas, _PANDAS_AVAILABLE = _lazy_import("pandas")
     polars, _POLARS_AVAILABLE = _lazy_import("polars")
     torch, _TORCH_AVAILABLE = _lazy_import("torch")
-    # matplotlib, _MATPLOTLIB_AVAILABLE = _lazy_import("matplotlib.pyplot")
     plotly, _PLOTLY_AVAILABLE = _lazy_import("plotly")
 
 

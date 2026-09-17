@@ -163,7 +163,7 @@ For more complex event handling, you can create a custom event handler class:
     --8<-- "python/events.py:handler_subclass"
     ```
 
-    It's also completely possible to create more advanced forms of visualization or logging through this method. For example, below we will collect the scores from each epoch then use polars to create a DataFrame and finally plot it with matplotlib.
+    It's also completely possible to create more advanced forms of visualization or logging through this method. For example, below we will collect the scores from each epoch then use polars to create a DataFrame and finally plot it with plotly.
 
     ```python
     --8<-- "python/events.py:score_plotter"
@@ -207,10 +207,10 @@ For single-purpose handlers, four decorators skip the subclass-and-override boil
 
 === ":fontawesome-brands-python: Python"
 
-    As of `4/25/2026`, the python implementation includes one built in event handler called the `MetricCollector`. This handler collects the [metric set](engine/metrics.md) at the end of each epoch and stores it in a list for later use. Note to use this handler to its fullest capacity, you should install radiate with the `polars` (or `pandas`) and `matplotlib` extras, as shown below:
+    As of `4/25/2026`, the python implementation includes one built in event handler called the `MetricCollector`. This handler collects the [metric set](engine/metrics.md) at the end of each epoch and stores it in a list for later use. Note to use this handler to its fullest capacity, you should install radiate with the `polars` (or `pandas`) and `plot` extras, as shown below:
 
     ```bash
-    uv add "radiate[polars,pandas,matplotlib]"
+    uv add "radiate[polars,pandas,plot]"
     ```
 
     You can use this handler as follows (this is great when using radiate inside a `.ipynb` notebook):

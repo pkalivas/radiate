@@ -32,18 +32,14 @@ import pytest
 
 import radiate as rd
 
-# Plotting snippets must not try to display anything during tests: force a headless
-# backend AND make `plt.show()` a no-op. Both `events.py` (`plt.show()`) and the built-in
-# `MetricCollector.plot()` in radiate call `matplotlib.pyplot.show()` at call time, so
-# neutralizing it here covers every plotting snippet — the plotting logic still runs (and
-# stays tested) but nothing is rendered/displayed, avoiding the Agg "cannot be shown" warning.
+# Plotting snippets must not try to display anything during tests: make `fig.show()`
+# a no-op. Both `events.py` and the built-in `MetricCollector.plot()` in radiate call
+# plotly's `Figure.show()` at call time, so neutralizing it here covers every plotting
+# snippet — the plotting logic still runs (and stays tested) but nothing is rendered.
 try:
-    import matplotlib  # type: ignore[import]
+    import plotly.graph_objects as _go  # type: ignore[import]
 
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as _plt  # type: ignore[import]
-
-    _plt.show = lambda *args, **kwargs: None
+    _go.Figure.show = lambda *args, **kwargs: None
 except ImportError:
     pass
 
