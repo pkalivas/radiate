@@ -7,10 +7,11 @@ problem using the ZDT3 benchmark function. The ZDT3 function is a commonly used 
 problem in multi-objective optimization, which has two objectives and a non-convex Pareto front.
 """
 
-import matplotlib.pyplot as plt  # type: ignore
 import numpy as np  # type: ignore
-import radiate as rd
+import plotly.graph_objects as go
 from numba import float64, jit  # type: ignore
+
+import radiate as rd
 
 rd.random.seed(501)
 
@@ -44,7 +45,5 @@ front = result.front()
 x = [member.score()[0] for member in front]
 y = [member.score()[1] for member in front]
 
-fig = plt.figure()
-ax = plt.axes()
-ax.scatter(x, y)
-plt.show()
+fig = go.Figure(go.Scatter(x=x, y=y, mode="markers"))
+fig.show()

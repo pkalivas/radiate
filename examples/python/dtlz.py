@@ -7,10 +7,11 @@ We define a fitness function based on the DTLZ1 problem and use a genetic algori
 evolve solutions. The results are visualized in a 3D scatter plot.
 """
 
-import matplotlib.pyplot as plt  # type: ignore
 import numpy as np  # type: ignore
-import radiate as rd
+import plotly.graph_objects as go
 from numba import float64, jit  # type: ignore
+
+import radiate as rd
 
 rd.random.seed(501)
 
@@ -62,10 +63,12 @@ x = [member.score()[0] for member in front]
 y = [member.score()[1] for member in front]
 z = [member.score()[2] for member in front]
 
-fig = plt.figure()
-ax = plt.axes(projection="3d")
-ax.scatter(x, y, z)
-ax.set_xlim([0.0, 0.5])  # type: ignore
-ax.set_ylim([0.0, 0.5])  # type: ignore
-ax.set_zlim([0.0, 0.5])  # type: ignore
-plt.show()
+fig = go.Figure(go.Scatter3d(x=x, y=y, z=z, mode="markers"))
+fig.update_layout(
+    scene={
+        "xaxis": {"range": [0.0, 0.5]},
+        "yaxis": {"range": [0.0, 0.5]},
+        "zaxis": {"range": [0.0, 0.5]},
+    }
+)
+fig.show()

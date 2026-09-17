@@ -61,7 +61,7 @@ def test_last_value(simple_metric_set):
 
 # @pytest.mark.unit
 # def test_unique_returns_distinct_values(simple_metric_set):
-#     # unique() returns a list of distinct values, not a count
+#     unique() returns a list of distinct values, not a count
 #     result = rd.Expr.select("const").unique().eval(simple_metric_set)
 #     assert result == [5.0]
 

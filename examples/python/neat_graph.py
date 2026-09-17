@@ -34,7 +34,7 @@ engine = (
         shape=(1, 1),
         # each vertex node will pick a random Op<T> from the below list.
         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
-        ## all edge nodes will use this operation - can be a list too
+        # all edge nodes will use this operation - can be a list too
         edge=rd.Op.weight(),
         # all output nodes will use this operation - can be a list too
         output=rd.Op.linear(),
@@ -65,3 +65,4 @@ print(result)
 print(result.metrics().dashboard())
 print(accuracy)
 print(f"Graph Dtype: {result.value().dtype()}")
+print(result.metrics()["species.count"].mean())

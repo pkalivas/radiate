@@ -24,6 +24,7 @@ use std::cmp::Ordering;
 /// the average absolute weight difference across matching `Op::Value` genes, and `N`
 /// is `max(|a|, |b|)`. The `op_mismatch` term penalizes matching innovations whose
 /// op names disagree (e.g., `add` vs `mul`).
+#[derive(Debug, Clone, PartialEq)]
 pub struct NeatDistance {
     excess: f32,
     disjoint: f32,

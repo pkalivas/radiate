@@ -211,3 +211,35 @@ def test_graph_eval_with_py_func(example_1x1_regression_dataset, random_seed):
     # TODO: add some more asserts here. Tbh, we really just want to make sure this
     # runs. The test is really just to ensure the fitness fn operates on a python graph directly.
     # so if it runs without throwing, we're good.
+
+
+@pytest.mark.integration
+def test_graph_engine_species_targeting(example_1x1_regression_dataset, random_seed):
+    inputs, answers = example_1x1_regression_dataset
+
+    engine = (
+        rd.Engine.graph(
+            shape=(1, 1),
+            vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+            edge=rd.Op.weight(),
+            output=rd.Op.linear(),
+        )
+        .select(rd.Select.boltzmann(temp=4.0))
+        .regression(inputs, answers, loss=rd.MSE)
+        .diversity(
+            rd.Dist.neat(excess=1.0, disjoint=1.0, weight_diff=3.0),
+            target=5,
+        )
+        .alter(
+            rd.Cross.graph(0.4, 0.5),
+            rd.Mutate.op(0.07, 0.05),
+            rd.Mutate.graph(0.1, 0.1, False),
+        )
+        .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))
+    )
+
+    result = engine.run()
+    species_count_mean = result.metrics()["species.count"].mean()
+
+    assert species_count_mean is not None
+    assert abs(species_count_mean - 5.0) < 0.1  # Should be ~5

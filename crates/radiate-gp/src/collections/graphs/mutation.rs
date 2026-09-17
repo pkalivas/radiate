@@ -132,7 +132,7 @@ impl GraphMutator {
 
 impl<T> Mutate<GraphChromosome<T>> for GraphMutator
 where
-    T: Clone + PartialEq + Default,
+    T: Clone + Default,
 {
     fn rates(&self) -> RateSet {
         RateSet::new(1.0)

@@ -92,6 +92,7 @@ mod event_stream_tests {
     struct Doubled(usize);
 
     struct Doubler;
+
     impl Handler<Add> for Doubler {
         fn handle(&mut self, event: &Add, ctx: &EventContext<'_, Self>) {
             ctx.publish(Doubled(event.0 * 2));
@@ -121,6 +122,7 @@ mod event_stream_tests {
 
     #[allow(dead_code)]
     struct Ping(u32);
+
     #[allow(dead_code)]
     struct Pong(u32);
 
@@ -254,6 +256,7 @@ mod event_stream_tests {
     #[test]
     fn a_panicking_handler_poisons_the_lock_instead_of_being_isolated() {
         struct Boom;
+
         impl Handler<Add> for Boom {
             fn handle(&mut self, _: &Add, _ctx: &EventContext<'_, Self>) {
                 panic!("simulated failure");
@@ -274,6 +277,7 @@ mod event_stream_tests {
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             stream.publish(Add(1));
         }));
+
         assert!(result.is_err());
     }
 
@@ -309,6 +313,7 @@ mod event_stream_tests {
     fn throughput_publish_single_subscriber() {
         const WARMUP: usize = 50_000;
         const N: usize = 500_000;
+
         let stream = EventStream::new(serial());
         let count = Arc::new(AtomicUsize::new(0));
         let count_clone = Arc::clone(&count);
@@ -320,6 +325,7 @@ mod event_stream_tests {
         for i in 0..WARMUP {
             stream.publish(Ping(i as u32));
         }
+
         let baseline = count.load(Ordering::SeqCst);
 
         let start = Instant::now();
@@ -357,6 +363,7 @@ mod event_stream_tests {
         for i in 0..WARMUP {
             stream.publish(Ping(i as u32));
         }
+
         let baseline = counts[0].load(Ordering::SeqCst);
 
         let start = Instant::now();

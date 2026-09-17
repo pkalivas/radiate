@@ -1,4 +1,4 @@
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 import polars as pl
 import radiate as rd
 
@@ -137,12 +137,13 @@ class ScorePlotterHandler(rd.EventHandler):
             df = pl.DataFrame(
                 {"Generation": list(range(len(self.scores))), "Score": self.scores}
             )
-            plt.plot(df["Generation"], df["Score"])
-            plt.xlabel("Generation")
-            plt.ylabel("Best Score")
-            plt.title("Best Score over Generations")
-            plt.grid(True)
-            plt.show()
+            fig = go.Figure(go.Scatter(x=df["Generation"], y=df["Score"], mode="lines"))
+            fig.update_layout(
+                xaxis_title="Generation",
+                yaxis_title="Best Score",
+                title="Best Score over Generations",
+            )
+            fig.show()
 
 
 # Create an instance of your event handler
@@ -180,6 +181,6 @@ df = collector.to_polars(lazy=False)  # optional lazy arg - defaults to False
 # Same as above but with pandas instead of polars
 df = collector.to_pandas()
 
-# Plot specific metrics to a matplotlib line plot
+# Plot specific metrics to a plotly line plot
 collector.plot("scores.best", "pct.diversity")
 # --8<-- [end:metric_collector]

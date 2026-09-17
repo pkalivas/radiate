@@ -18,7 +18,7 @@ _NUMPY_AVAILABLE = True
 _PANDAS_AVAILABLE = True
 _POLARS_AVAILABLE = True
 _TORCH_AVAILABLE = True
-_MATPLOTLIB_AVAILABLE = True
+_PLOTLY_AVAILABLE = True
 
 
 class _LazyModule(ModuleType):
@@ -146,9 +146,9 @@ if TYPE_CHECKING:
     import pickle
     import subprocess
 
-    import matplotlib.pyplot as matplotlib
     import numpy
     import pandas
+    import plotly
     import polars
     import torch
 
@@ -164,7 +164,7 @@ else:
     pandas, _PANDAS_AVAILABLE = _lazy_import("pandas")
     polars, _POLARS_AVAILABLE = _lazy_import("polars")
     torch, _TORCH_AVAILABLE = _lazy_import("torch")
-    matplotlib, _MATPLOTLIB_AVAILABLE = _lazy_import("matplotlib.pyplot")
+    plotly, _PLOTLY_AVAILABLE = _lazy_import("plotly")
 
 
 @cache
@@ -202,9 +202,9 @@ def _check_for_polars(obj: Any, *, check_type: bool = True) -> bool:
     )
 
 
-def _check_for_matplotlib(obj: Any, *, check_type: bool = True) -> bool:
-    return _MATPLOTLIB_AVAILABLE and _might_be(
-        cast(Hashable, type(obj) if check_type else obj), "matplotlib"
+def _check_for_plotly(obj: Any, *, check_type: bool = True) -> bool:
+    return _PLOTLY_AVAILABLE and _might_be(
+        cast(Hashable, type(obj) if check_type else obj), "plotly"
     )
 
 
@@ -220,18 +220,18 @@ __all__ = [
     "pandas",
     "polars",
     "torch",
-    "matplotlib",
+    "plotly",
     # lazy utilities
     "_check_for_numpy",
     "_check_for_pandas",
     "_check_for_torch",
     "_check_for_polars",
-    "_check_for_matplotlib",
+    "_check_for_plotly",
     # exported flags/guards
     "_GIL_ENABLED",
     "_NUMPY_AVAILABLE",
     "_PANDAS_AVAILABLE",
     "_POLARS_AVAILABLE",
     "_TORCH_AVAILABLE",
-    "_MATPLOTLIB_AVAILABLE",
+    "_PLOTLY_AVAILABLE",
 ]

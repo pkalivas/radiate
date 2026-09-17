@@ -51,7 +51,7 @@ Python's radiate package includes all rust features by default, so you get all o
 - `pandas`: Enables integration with the [Pandas](https://pandas.pydata.org/) DataFrame library, providing similar functionality to the `polars` feature but with support for Pandas' extensive data manipulation capabilities. This allows for seamless analysis and visualization of evolutionary metrics using the popular Pandas library.
 - `torch`: Enables integration with the [PyTorch](https://pytorch.org/) library, allowing you to easily convert input data and genome evalutation to/from PyTorch tensors.
 - `numpy`: Enables integration with the [NumPy](https://numpy.org/) library, allowing you to easily convert genoms, fitness evaluations, and collected metrics to/from NumPy arrays for efficient numerical computations and analysis.
-- `matplotlib`: Enables integration with the [Matplotlib](https://matplotlib.org/) library, allowing you to easily visualize metrics collected from the engine using Matplotlib's powerful plotting capabilities. 
+- `plot`: Enables integration with the [Plotly](https://plotly.com/python/) library, allowing you to easily visualize metrics collected from the engine using Plotly's interactive plotting capabilities. 
 - `all`: Enables all of the above features.
 
 ```bash

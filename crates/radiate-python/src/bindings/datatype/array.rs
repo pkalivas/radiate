@@ -30,12 +30,12 @@ pub(crate) fn extract_regression_pair<'py>(
     {
         match wanted_dtype {
             DataType::Float32 => Ok(FloatMatrixPair::F32 {
-                features: py_object_into_2d_vec::<f32>(cast_features)?,
-                targets: py_object_into_2d_vec::<f32>(cast_targets)?,
+                features: py_object_into_matrix::<f32>(cast_features)?,
+                targets: py_object_into_matrix::<f32>(cast_targets)?,
             }),
             DataType::Float64 => Ok(FloatMatrixPair::F64 {
-                features: py_object_into_2d_vec::<f64>(cast_features)?,
-                targets: py_object_into_2d_vec::<f64>(cast_targets)?,
+                features: py_object_into_matrix::<f64>(cast_features)?,
+                targets: py_object_into_matrix::<f64>(cast_targets)?,
             }),
             _ => radiate_py_bail!(
                 "Unsupported data type for regression pair extraction: {wanted_dtype:?}"
@@ -46,12 +46,12 @@ pub(crate) fn extract_regression_pair<'py>(
     {
         match wanted_dtype {
             DataType::Float32 => Ok(FloatMatrixPair::F32 {
-                features: py_object_into_2d_vec::<f32>(cast_features)?,
-                targets: py_object_into_2d_vec::<f32>(cast_targets)?,
+                features: py_object_into_matrix::<f32>(cast_features)?,
+                targets: py_object_into_matrix::<f32>(cast_targets)?,
             }),
             DataType::Float64 => Ok(FloatMatrixPair::F64 {
-                features: py_object_into_2d_vec::<f64>(cast_features)?,
-                targets: py_object_into_2d_vec::<f64>(cast_targets)?,
+                features: py_object_into_matrix::<f64>(cast_features)?,
+                targets: py_object_into_matrix::<f64>(cast_targets)?,
             }),
             _ => radiate_py_bail!(
                 "Unsupported data type for regression pair extraction: {wanted_dtype:?}"
@@ -62,7 +62,7 @@ pub(crate) fn extract_regression_pair<'py>(
     }
 }
 
-pub(crate) fn py_object_into_2d_vec<'py, F>(obj: &Bound<'py, PyAny>) -> PyResult<Matrix<F>>
+pub(crate) fn py_object_into_matrix<'py, F>(obj: &Bound<'py, PyAny>) -> PyResult<Matrix<F>>
 where
     F: Float + numpy::Element + FromPyObjectOwned<'py>,
 {

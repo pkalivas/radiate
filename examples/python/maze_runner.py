@@ -11,9 +11,9 @@ and we need to find the shortest path through a set of waypoints.
 
 import math
 
-import matplotlib.pyplot as plt  # type: ignore
+import plotly.graph_objects as go
+
 import radiate as rd
-from matplotlib.markers import MarkerStyle  # type: ignore
 
 START_POINT = (0, 0)
 GENERATIONS = 250
@@ -64,55 +64,75 @@ def visualize_path(event: rd.EngineEvent):
 
     path_length = calculate_path_length(event.value())
 
-    _, ax = plt.subplots(figsize=(10, 8))
+    fig = go.Figure()
 
     x_coords = [wp.x for wp in waypoints]
     y_coords = [wp.y for wp in waypoints]
-    ax.scatter(x_coords, y_coords, c="blue", s=100, alpha=0.6, label="Waypoints")
+    fig.add_trace(
+        go.Scatter(
+            x=x_coords,
+            y=y_coords,
+            mode="markers",
+            marker={"color": "blue", "size": 14, "opacity": 0.6},
+            name="Waypoints",
+        )
+    )
 
-    ax.scatter(
-        START_POINT[0],
-        START_POINT[1],
-        c="green",
-        s=150,
-        marker=MarkerStyle("o"),
-        label="Start",
+    fig.add_trace(
+        go.Scatter(
+            x=[START_POINT[0]],
+            y=[START_POINT[1]],
+            mode="markers",
+            marker={"color": "green", "size": 18, "symbol": "circle"},
+            name="Start",
+        )
     )
 
     path_x = [START_POINT[0]] + [wp.x for wp in event.value()]
     path_y = [START_POINT[1]] + [wp.y for wp in event.value()]
 
-    ax.plot(
-        path_x,
-        path_y,
-        "r-",
-        linewidth=2,
-        alpha=0.8,
-        label=f"Path (Length: {path_length:.2f})",
+    fig.add_trace(
+        go.Scatter(
+            x=path_x,
+            y=path_y,
+            mode="lines",
+            line={"color": "red", "width": 2},
+            opacity=0.8,
+            name=f"Path (Length: {path_length:.2f})",
+        )
     )
-    ax.scatter(path_x[1:], path_y[1:], c="red", s=80, alpha=0.8)
+    fig.add_trace(
+        go.Scatter(
+            x=path_x[1:],
+            y=path_y[1:],
+            mode="markers",
+            marker={"color": "red", "size": 11, "opacity": 0.8},
+            showlegend=False,
+        )
+    )
 
     for i, wp in enumerate(waypoints):
-        ax.annotate(f"{i}", (wp.x, wp.y), xytext=(5, 5), textcoords="offset points")
-
-    for i, wp in enumerate(event.value()):
-        ax.annotate(
-            f"→{i + 1}",
-            (wp.x, wp.y),
-            xytext=(10, 10),
-            textcoords="offset points",
-            color="red",
-            fontweight="bold",
+        fig.add_annotation(
+            x=wp.x, y=wp.y, text=str(i), showarrow=False, xshift=8, yshift=8
         )
 
-    ax.set_xlabel("X Coordinate")
-    ax.set_ylabel("Y Coordinate")
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-    ax.set_aspect("equal")
+    for i, wp in enumerate(event.value()):
+        fig.add_annotation(
+            x=wp.x,
+            y=wp.y,
+            text=f"<b>→{i + 1}</b>",
+            showarrow=False,
+            xshift=16,
+            yshift=16,
+            font={"color": "red"},
+        )
 
-    plt.tight_layout()
-    plt.show()
+    fig.update_layout(
+        xaxis_title="X Coordinate",
+        yaxis_title="Y Coordinate",
+        yaxis={"scaleanchor": "x", "scaleratio": 1},
+    )
+    fig.show()
 
 
 waypoints = [

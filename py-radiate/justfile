@@ -11,4 +11,6 @@ clean:
     @rm -rf radiate/*.so
     @rm -rf .ruff_cache/
     @rm -rf .benchmarks/
+    @rm -rf uv.lock
+    @rm -rf .venv
     @find . -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -exec rm -r {} +

@@ -459,6 +459,7 @@ impl<'a> TryFrom<AnyValue<'a>> for MetricUpdate<'a> {
             AnyValue::Float64(v) => Ok(MetricUpdate::Float(v as f32)),
 
             AnyValue::Duration(v) => Ok(MetricUpdate::Duration(v)),
+            AnyValue::Bool(bool) => Ok(MetricUpdate::Bool(bool)),
 
             AnyValue::Slice(values) => {
                 let out = values
@@ -493,7 +494,6 @@ impl<'a> TryFrom<AnyValue<'a>> for MetricUpdate<'a> {
                 Ok(MetricUpdate::OwnedDistribution(out))
             }
 
-            AnyValue::Bool(bool) => Ok(MetricUpdate::Bool(bool)),
 
             other => Err(radiate_err!(Metric: "cannot convert AnyValue of type `{}` into MetricUpdate", other.type_name())),
         }

@@ -140,10 +140,7 @@ where
     }
 }
 
-impl<T> Chromosome for GraphChromosome<T>
-where
-    T: Clone + PartialEq,
-{
+impl<T: Clone> Chromosome for GraphChromosome<T> {
     type Gene = GraphNode<T>;
 
     fn get(&self, index: usize) -> Option<&Self::Gene> {

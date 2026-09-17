@@ -177,31 +177,44 @@ class MetricCollector(EventHandler):
         )
 
     def plot(self, *names: str):
-        from .._dependancies import _MATPLOTLIB_AVAILABLE
+        from .._dependancies import _PLOTLY_AVAILABLE
 
-        if not _MATPLOTLIB_AVAILABLE:
+        if not _PLOTLY_AVAILABLE:
             raise ImportError(
-                "Matplotlib is not available. Please install it to use this feature."
+                "Plotly is not available. Please install it to use this feature."
             )
 
-        from .._dependancies import matplotlib as plt
+        import plotly.graph_objects as go
 
         vals = {name: [] for name in names}
+
         for metric_set in self.metric_history:
             for name in names:
                 metric = metric_set[name]
                 vals[name].append(metric.value_last())
 
         x = list(range(max(len(v) for v in vals.values())))
-        for name, scores in vals.items():
-            plt.plot(x, scores, label=name)
 
-        plt.xlabel("Epoch")
-        plt.ylabel("Value")
-        plt.title("Metrics over Epochs")
-        plt.grid(True)
-        plt.legend()
-        plt.show()
+        fig = go.Figure()
+
+        for name, scores in vals.items():
+            fig.add_trace(
+                go.Scatter(
+                    x=x[: len(scores)],
+                    y=scores,
+                    mode="lines",
+                    name=name,
+                )
+            )
+
+        fig.update_layout(
+            xaxis_title="Epoch",
+            yaxis_title="Value",
+            title="Metrics over Epochs",
+            hovermode="x unified",
+        )
+
+        fig.show()
 
 
 def on_epoch(func: Callable[["EngineEvent"], None]) -> CallableEventHandler:

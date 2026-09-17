@@ -63,7 +63,7 @@ pub trait Valid {
 ///   }
 /// }
 /// ```
-pub trait Gene: Clone + Valid {
+pub trait Gene: Valid {
     type Allele;
 
     /// Get the `allele` of the [Gene]. This is the value that the [Gene] represents or "expresses".
@@ -100,7 +100,7 @@ pub trait BoundedGene: Gene {
 /// including integers, floats, etc. Essentially, any gene that can `Add`, `Sub`, `Mul`, and `Div`
 /// can be used as a [ArithmeticGene].
 pub trait NumericGene:
-    Gene + Add<Output = Self> + Sub<Output = Self> + Mul<Output = Self> + Div<Output = Self>
+    Gene + Clone + Add<Output = Self> + Sub<Output = Self> + Mul<Output = Self> + Div<Output = Self>
 {
     fn mean(&self, other: &Self) -> Self;
 
