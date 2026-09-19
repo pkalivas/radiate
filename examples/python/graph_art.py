@@ -60,7 +60,7 @@ answers = [
     for col in range(RESOLUTION)
 ]
 
-codec = rd.GraphCodec.directed(
+codec = rd.GraphCodec.weighted_directed(
     shape=(4, 3),
     vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sin(), rd.Op.cos(), rd.Op.tanh()],
     edge=rd.Op.weight(),

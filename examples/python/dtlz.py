@@ -9,9 +9,8 @@ evolve solutions. The results are visualized in a 3D scatter plot.
 
 import numpy as np  # type: ignore
 import plotly.graph_objects as go
-from numba import float64, jit  # type: ignore
-
 import radiate as rd
+from numba import float64, jit  # type: ignore
 
 rd.random.seed(501)
 
