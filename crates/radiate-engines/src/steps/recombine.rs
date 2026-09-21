@@ -265,12 +265,14 @@ where
 
     /// So, I was pulling my hair out over this for a bit because I knew it was possible but
     /// couldn't quite get it right. However, now that we've arrived at an elegant solution, this
-    /// approach is pretty significant. The key insight is that we can interleave the survivor and offspring
-    /// creation in a single walk over the union of selected indices, which allows us to save a clone for each
-    /// index that appears in both selections. In practice this can save
-    /// ~20-50% of clones compared to a naive approach.
+    /// approach to recombination is pretty significant. The key insight is that we can interleave
+    /// the survivor and offspring creation in a single walk over the union of selected indices,
+    /// which allows us to save a clone for each index that appears in both selections.
+    /// In practice this can save ~20-50% of clones compared to a naive approach. Because
+    /// _most_ mutation/crossover can actually happen in-place on the original phenotype/chromosome/whatever,
+    /// the more we can reduce clones, the more efficient the recombination process becomes.
     ///
-    /// In other words:
+    /// In more technical words:
     /// Single descending walk over the union of selected indices.
     /// For each unique source idx with total = s (survivors) + o (offspring) > 0, emit (total - 1)
     /// clones distributed to whichever bucket still needs entries, then
@@ -290,7 +292,9 @@ where
     ///
     /// Result: 3 clones to survivors, 1 clone & 1 move to offspring.
     /// This results in 4 clones total instead of 5. One deep Phenotype<C> clone saved
-    /// per unique source idx.
+    /// per unique source idx. This is a naive example, but with a realistic scenario where
+    /// the distribution of selected individuals is spread out in a more interesting way,
+    /// the savings become very significant.
     #[inline]
     fn unioned_walk(&self, ecosystem: &mut Ecosystem<C>) -> (Population<C>, Population<C>) {
         let mut survivors = Population::with_capacity(self.survivor.select.count);
