@@ -80,9 +80,8 @@ impl PyEngine {
             Ok(self
                 .iter
                 .as_mut()
-                .unwrap()
-                .next_epoch()
-                .map(PyGeneration::new))
+                .map(|it| it.next_epoch().map(PyGeneration::new))
+                .flatten())
         })
     }
 
