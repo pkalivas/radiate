@@ -63,8 +63,6 @@ pub fn crossover_multi_point<G>(
     }
 
     let num_points = num_points.clamp(1, length - 1);
-
-    // Valid cut points are 1..length - cutting before the first gene would swap an empty segment.
     let mut selected_points = random_provider::sample_indices(1..length, num_points);
 
     selected_points.sort();
