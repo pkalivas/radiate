@@ -145,8 +145,10 @@ impl<'a> RdRand<'a> {
     }
 
     #[inline]
-    pub fn bool(&mut self, prob: f32) -> bool {
-        self.0.random_bool(prob as f64)
+    pub fn bool<F: Float>(&mut self, prob: F) -> bool {
+        prob.extract::<f64>()
+            .map(|val| self.0.random_bool(val))
+            .unwrap_or_default()
     }
 
     #[inline]
