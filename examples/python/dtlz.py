@@ -45,10 +45,12 @@ engine = (
     .objective(rd.MIN, rd.MIN, rd.MIN)
     .front_range(100, 150)
     # NSGA-III for 3+ objectives: crowded-comparison tournament for parents, reference-point
+    # NSGA-II also works honestly just fine for this example
     # niching for survivors. A lower offspring fraction keeps more of the evaluated front.
     .select(
         rd.Select.tournament_nsga2(),
-        rd.Select.nsga3(points=12),
+        # rd.Select.nsga3(points=12),
+        rd.Select.nsga2(),
         frac=0.5,
     )
     .alter(
@@ -60,9 +62,14 @@ engine = (
 
 
 result = engine.run(ui=True)
-print(result.metrics().dashboard())
-
 front = result.front()
+hypervolume = front.hypervolume([1.0, 1.0, 1.0])
+
+print(result.metrics().dashboard())
+print()
+# DTLZ1's Pareto front is the plane f1 + f2 + f3 = 0.5, so with a reference point of
+# 1.0 in every objective the best achievable hypervolume is 1 - 0.5³/6 ≈ 0.9792.
+print(f"Hypervolume: {hypervolume}")
 
 x = [member.score()[0] for member in front]
 y = [member.score()[1] for member in front]
