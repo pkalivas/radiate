@@ -99,6 +99,57 @@ mod nsga_tests {
     }
 
     #[test]
+    fn nsga2_crowding_distance_is_computed_per_front() {
+        // rank 0: [0,10], [2,2], [10,0]
+        // rank 1: [2.5,8], [3,3], [8,2.5]   (each dominated by [2,2])
+        // Selecting 5 keeps rank 0 and truncates rank 1. Within rank 1, [2.5,8] and [8,2.5]
+        // are the front's boundary points (infinite distance), so [3,3] must be dropped.
+        // Measured over the whole population instead, [3,3] would be the most isolated
+        // point of rank 1 and a boundary point would be dropped.
+        let population = multi_obj_population(vec![
+            vec![0.0, 10.0],
+            vec![2.0, 2.0],
+            vec![10.0, 0.0],
+            vec![2.5, 8.0],
+            vec![3.0, 3.0],
+            vec![8.0, 2.5],
+        ]);
+        let selector = NSGA2Selector::new();
+        let selected = selector.select(population.as_ref(), &min2(), 5);
+
+        let scores: Vec<Vec<f32>> = selected
+            .iter()
+            .map(|&ind| population[ind].score().unwrap().as_slice().to_vec())
+            .collect();
+
+        assert!(
+            !scores.contains(&vec![3.0, 3.0]),
+            "expected [3,3] (interior of the truncated front) to be excluded, got {:?}",
+            scores
+        );
+    }
+
+    #[test]
+    fn front_crowding_distance_gives_each_front_infinite_boundaries() {
+        let scores = vec![
+            vec![0.0, 10.0],
+            vec![2.0, 2.0],
+            vec![10.0, 0.0],
+            vec![2.5, 8.0],
+            vec![3.0, 3.0],
+            vec![8.0, 2.5],
+        ];
+        let ranks = pareto::rank(&scores, &min2());
+        let distances = pareto::front_crowding_distance(&scores, &ranks);
+
+        assert_eq!(ranks, vec![0, 0, 0, 1, 1, 1]);
+        for idx in [0, 2, 3, 5] {
+            assert!(distances[idx].is_infinite(), "idx {idx}: {distances:?}");
+        }
+        assert!(distances[1].is_finite() && distances[4].is_finite());
+    }
+
+    #[test]
     fn nsga2_mixed_objectives_respects_dominance_direction() {
         // obj0: Minimize, obj1: Maximize.
         // [1,10] strictly dominates [2,9] (lower on obj0 AND higher on obj1).

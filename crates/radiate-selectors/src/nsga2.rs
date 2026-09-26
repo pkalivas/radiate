@@ -32,7 +32,7 @@ impl<C: Chromosome> Select<C> for NSGA2Selector {
             .filter_map(|p| p.score())
             .collect::<Vec<_>>();
         let ranks = pareto::rank(&scores, objective);
-        let distances = pareto::crowding_distance(&scores);
+        let distances = pareto::front_crowding_distance(&scores, &ranks);
 
         let mut indices = (0..population.len()).collect::<Vec<usize>>();
 
@@ -77,7 +77,7 @@ impl<C: Chromosome> Select<C> for TournamentNSGA2Selector {
             .filter_map(|p| p.score())
             .collect::<Vec<_>>();
         let ranks = pareto::rank(&scores, objective);
-        let distances = pareto::crowding_distance(&scores);
+        let distances = pareto::front_crowding_distance(&scores, &ranks);
 
         let mut result = Vec::new();
 
