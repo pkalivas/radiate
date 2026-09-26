@@ -42,8 +42,6 @@ impl<C: ContiguousChromosome> Crossover<C> for MultiPointCrossover {
         let one = chrom_one.as_mut_slice();
         let two = chrom_two.as_mut_slice();
 
-        
-
         if self.num_points == 1 {
             crossover_single_point(one, two)
         } else {
