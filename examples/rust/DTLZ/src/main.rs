@@ -16,6 +16,7 @@ fn main() {
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .offspring_selector(TournamentSelector::new(5))
         .survivor_selector(NSGA2Selector::new())
+        .offspring_fraction(0.5)
         // .survivor_selector(NSGA3Selector::new(12))
         .front_size(200..250)
         .alter(alters!(
