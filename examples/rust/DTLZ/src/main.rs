@@ -14,14 +14,16 @@ fn main() {
         .codec(codec)
         .fitness_fn(|geno: Vec<f32>| dtlz_1(&geno))
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
-        .offspring_selector(TournamentSelector::new(5))
-        .survivor_selector(NSGA2Selector::new())
+        // NSGA-III for 3+ objectives: crowded-comparison tournament for parents,
+        // reference-point niching for survivors. For 2 objectives use `NSGA2Selector::new()`.
+        .offspring_selector(TournamentNSGA2Selector::new())
+        .survivor_selector(NSGA3Selector::new(12))
+        // A lower offspring fraction keeps more of the already-evaluated front each generation.
         .offspring_fraction(0.5)
-        // .survivor_selector(NSGA3Selector::new(12))
         .front_size(200..250)
         .alter(alters!(
-            SimulatedBinaryCrossover::new(0.9_f32, 25_f32),
-            UniformMutator::new(1.0 / VARIABLES as f32),
+            SimulatedBinaryCrossover::new(0.8_f32, 20_f32),
+            PolynomialMutator::new(0.1, 20.0),
         ))
         .build();
 
@@ -52,7 +54,7 @@ fn plot_front(front: &Front<Phenotype<FloatChromosome<f32>>>) {
     let mut plot = Plot::new();
     plot.set_layout(
         Layout::new()
-            .title("DTLZ7 Pareto Front")
+            .title("DTLZ1 Pareto Front")
             .margin(Margin::new().left(0).right(0).top(0).bottom(0))
             .scene(plotly::layout::LayoutScene::new()),
     );

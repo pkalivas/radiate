@@ -61,9 +61,14 @@ engine = (
     .objective(rd.MIN, rd.MAX)  # Minimize obj1, maximize obj2
     .front_range(800, 900)  # Pareto front size range
     .select(
-        offspring=rd.Select.tournament_nsga2(k=3),
-        survivor=rd.Select.nsga3(points=12),  # 12 reference directions for niching
+        offspring=rd.Select.tournament_nsga2(),  # crowded-comparison tournament for parents
+        survivor=rd.Select.nsga2(),  # rank + crowding distance for survivors
+        frac=0.5,  # keep more of the already-evaluated front each generation
     )  # Set MO selectors
+    .alter(
+        rd.Cross.sbx(0.8, 20.0),  # Simulated Binary Crossover
+        rd.Mutate.polynomial(0.1, 20.0),  # Polynomial Mutation
+    )
     # ... other parameters ...
 )
 # --8<-- [end:multi_objective_selectors]

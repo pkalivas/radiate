@@ -138,10 +138,16 @@ engine = (
     .fitness(dtlz1_fitness_fn)
     .objective(rd.MIN, rd.MIN, rd.MIN)
     .front_range(100, 150)
-    .select(rd.Select.tournament(k=5), rd.Select.nsga3(points=12))
+    # NSGA-III for 3+ objectives: crowded-comparison tournament for parents, reference-point
+    # niching for survivors. A lower offspring fraction keeps more of the evaluated front.
+    .select(
+        rd.Select.tournament_nsga2(),
+        rd.Select.nsga3(points=12),
+        frac=0.5,
+    )
     .alter(
-        rd.Cross.sbx(1.0, 2.0),  # <- Simulated Binary Crossover
-        rd.Mutate.uniform(0.1),
+        rd.Cross.sbx(0.8, 20.0),  # <- Simulated Binary Crossover
+        rd.Mutate.polynomial(0.1, 20.0),  # <- Polynomial Mutation
     )
     .limit(rd.Limit.generations(2000))
 )

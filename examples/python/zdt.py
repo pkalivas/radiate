@@ -32,8 +32,10 @@ engine = (
     rd.Engine.float(variables, use_numpy=True)
     .fitness(zdt3)
     .objective(rd.MIN, rd.MIN, front_range=(200, 250))
-    .select(rd.Select.tournament(5), rd.Select.nsga3(12))
-    .alter(rd.Cross.sbx(1.0, 2.0), rd.Mutate.uniform(0.1))
+    # NSGA-II: crowded-comparison tournament for parents, rank + crowding distance for survivors.
+    # A lower offspring fraction keeps more of the already-evaluated front each generation.
+    .select(rd.Select.tournament_nsga2(), rd.Select.nsga2(), frac=0.5)
+    .alter(rd.Cross.sbx(0.8, 20.0), rd.Mutate.polynomial(0.1, 20.0))
     .limit(rd.Limit.generations(2000))
 )
 
