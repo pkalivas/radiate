@@ -32,6 +32,14 @@ fn main() {
     println!("{:?}", result);
     println!("{}", result.metrics().dashboard());
     let front = result.front().unwrap();
+
+    // DTLZ1's Pareto front is the plane f1 + f2 + f3 = 0.5, so with a reference point of
+    // 1.0 in every objective the best achievable hypervolume is 1 - 0.5³/6 ≈ 0.9792.
+    let reference = [1.0; OBJECTIVES];
+    if let Some(hypervolume) = front.hypervolume(&reference) {
+        println!("Hypervolume: {hypervolume:.4}");
+    }
+
     plot_front(front);
 }
 
@@ -54,7 +62,7 @@ fn plot_front(front: &Front<Phenotype<FloatChromosome<f32>>>) {
     let mut plot = Plot::new();
     plot.set_layout(
         Layout::new()
-            .title("DTLZ1 Pareto Front")
+            .title("DTLZ Pareto Front")
             .margin(Margin::new().left(0).right(0).top(0).bottom(0))
             .scene(plotly::layout::LayoutScene::new()),
     );

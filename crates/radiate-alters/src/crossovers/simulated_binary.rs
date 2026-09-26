@@ -71,7 +71,7 @@ where
                     gene_one.set_allele(c1);
                     gene_two.set_allele(c2);
 
-                    count += 1;
+                    count += 2;
                 }
             });
         });

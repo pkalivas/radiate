@@ -166,6 +166,16 @@ impl PyFront {
         }
     }
 
+    pub fn hypervolume(&mut self, reference: Vec<f32>) -> Option<f32> {
+        self.make_front();
+
+        if let PyFrontInner::Front(front) = &mut self.inner {
+            Arc::make_mut(front).hypervolume(&reference)
+        } else {
+            None
+        }
+    }
+
     pub fn crowding_distance(&mut self) -> Option<Vec<f32>> {
         self.make_front();
 

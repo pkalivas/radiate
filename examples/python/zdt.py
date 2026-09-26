@@ -9,9 +9,8 @@ problem in multi-objective optimization, which has two objectives and a non-conv
 
 import numpy as np  # type: ignore
 import plotly.graph_objects as go
-from numba import float64, jit  # type: ignore
-
 import radiate as rd
+from numba import float64, jit  # type: ignore
 
 rd.random.seed(501)
 
@@ -40,9 +39,15 @@ engine = (
 )
 
 result = engine.run(ui=True)
-print(result.metrics().dashboard())
-
 front = result.front()
+hypervolume = front.hypervolume([1.1, 1.1])
+
+print(result.metrics().dashboard())
+print()
+# ZDT3's Pareto front is five disconnected pieces with f1 in [0, ~0.85] and f2 in [~-0.77, 1].
+# With the standard reference point of 1.1 in both objectives, the best achievable
+# hypervolume is ≈ 1.332.
+print(f"Hypervolume: {hypervolume}")
 
 x = [member.score()[0] for member in front]
 y = [member.score()[1] for member in front]

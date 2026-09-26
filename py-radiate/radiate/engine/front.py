@@ -98,6 +98,14 @@ class Front[T](RsObject):
         """
         return self.try_get_cache("entropy_cache", self.__backend__().entropy)
 
+    def hypervolume(self, reference: list[float]) -> float | None:
+        """
+        Get the hypervolume of the front with respect to a reference point.
+        :param reference: The reference point for hypervolume calculation.
+        :return: The hypervolume of the front, or None if it cannot be calculated.
+        """
+        return self.__backend__().hypervolume(reference)
+
     def crowding_distance(self) -> list[float] | None:
         """
         Get the crowding distance of the front.
