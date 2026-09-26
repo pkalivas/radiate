@@ -152,6 +152,11 @@ pub fn shuffled_indices(range: Range<usize>) -> Vec<usize> {
     with_rng(|rng| rng.shuffled_indices(range))
 }
 
+/// Returns `sample_size` distinct indices from `range`, in random order. If `sample_size`
+/// is larger than the range, every index in the range is returned (shuffled).
+///
+/// Only the sampled indices are generated - the cost is roughly `O(sample_size)`,
+/// not `O(range.len())` - so this stays cheap when sampling a few points from a long range.
 pub fn sample_indices(range: Range<usize>, sample_size: usize) -> Vec<usize> {
     with_rng(|rng| rng.sample_indices(range, sample_size))
 }
@@ -229,10 +234,11 @@ impl<'a> RdRand<'a> {
 
     #[inline]
     pub fn sample_indices(&mut self, range: Range<usize>, sample_size: usize) -> Vec<usize> {
-        let mut indexes = range.collect::<Vec<usize>>();
-        indexes.shuffle(&mut self.0);
-        indexes.truncate(sample_size);
-        indexes
+        let len = range.len();
+        rand::seq::index::sample(self.0, len, sample_size.min(len))
+            .into_iter()
+            .map(|i| range.start + i)
+            .collect()
     }
 
     #[inline]
@@ -353,6 +359,53 @@ mod tests {
         let indexes = shuffled_indices(0..10);
         assert_eq!(indexes.len(), 10);
         assert_ne!(indexes, vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    }
+
+    #[test]
+    fn sample_indices_returns_distinct_indices_within_range() {
+        for (range, size) in [(0..10, 3), (5..25, 4), (100..1_100, 2), (3..4, 1)] {
+            for _ in 0..500 {
+                let mut picks = sample_indices(range.clone(), size);
+                assert_eq!(picks.len(), size);
+                assert!(picks.iter().all(|i| range.contains(i)), "{picks:?}");
+
+                picks.sort_unstable();
+                picks.dedup();
+                assert_eq!(picks.len(), size, "duplicate indices");
+            }
+        }
+    }
+
+    #[test]
+    fn sample_indices_edge_cases() {
+        assert!(sample_indices(0..0, 3).is_empty());
+        assert!(sample_indices(0..10, 0).is_empty());
+
+        // Asking for more than the range holds returns the whole range, shuffled.
+        let mut all = sample_indices(4..9, 20);
+        all.sort_unstable();
+        assert_eq!(all, vec![4, 5, 6, 7, 8]);
+    }
+
+    #[test]
+    fn sample_indices_picks_every_index_uniformly() {
+        const TRIALS: usize = 100_000;
+        let mut counts = [0usize; 10];
+        for _ in 0..TRIALS {
+            for i in sample_indices(0..10, 3) {
+                counts[i] += 1;
+            }
+        }
+
+        // Each of the 10 indices is in a 3-sample with probability 0.3.
+        let expected = TRIALS as f64 * 0.3;
+        for (i, &count) in counts.iter().enumerate() {
+            let deviation = (count as f64 - expected).abs() / expected;
+            assert!(
+                deviation < 0.02,
+                "index {i}: {count} vs ~{expected:.0}, {counts:?}"
+            );
+        }
     }
 
     fn selected(p: f32, range: Range<usize>) -> Vec<usize> {
