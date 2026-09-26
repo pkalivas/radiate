@@ -59,13 +59,17 @@ where
                     let v1 = *gene_one.allele();
                     let v2 = *gene_two.allele();
 
-                    let v = if rand.bool(0.5) {
-                        ((v1 - v2) * A::HALF) - (beta * A::HALF * (v1 - v2).abs())
+                    let mid = (v1 + v2) * A::HALF;
+                    let spread = beta * A::HALF * (v1 - v2).abs();
+
+                    let (c1, c2) = if rand.bool(0.5) {
+                        (mid - spread, mid + spread)
                     } else {
-                        ((v1 - v2) * A::HALF) + (beta * A::HALF * (v1 - v2).abs())
+                        (mid + spread, mid - spread)
                     };
 
-                    gene_one.set_allele(v);
+                    gene_one.set_allele(c1);
+                    gene_two.set_allele(c2);
 
                     count += 1;
                 }

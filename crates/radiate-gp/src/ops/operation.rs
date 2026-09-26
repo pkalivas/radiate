@@ -49,7 +49,16 @@ pub enum Op<T> {
     /// - `Param<T>` the actual data/value associated with this operation
     /// - An `fn(&[T], &T) -> T` for the function logic that uses the inputs and the value to produce an output.
     Value(&'static str, Arity, Param<T>, fn(&[T], &T) -> T),
-
+    /// 5) A pair-based value operation:
+    ///
+    /// This pretty much is just a specialized version of the `Value` operation above,
+    /// It is specifically designed to handle operations that naturally involve pairs of values.
+    ///
+    /// # Arguments
+    /// - `&'static str` name
+    /// - `Arity` of how many inputs it might read
+    /// - `Param<(T, T)>` the actual data/value associated with this operation
+    /// - An `fn(&[T], &(T, T)) -> T` for the function logic that uses the inputs and the value to produce an output.
     Pair(&'static str, Arity, Param<(T, T)>, fn(&[T], &(T, T)) -> T),
 }
 

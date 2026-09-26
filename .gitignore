@@ -27,6 +27,7 @@ examples/data/results/*
 *.coverage*
 *.env
 TODO.md
+moe.md
 
 # Ignore the agents file. 
 # AI is a part of engineering now, but this repo is _complicated_ so I explictely don't want vibe coded stuff coming in. 

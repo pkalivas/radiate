@@ -6,6 +6,37 @@ adheres to semantic versioning.
 
 For all code examples and further explanations, refer to the [documentation](https://pkalivas.github.io/radiate/).
 
+## [Unreleased]
+
+A multi-objective quality release. Three operator bugs were fixed: polynomial mutation, simulated binary crossover, and NSGA-II crowding distance. Together with better-tuned examples and a documented recommended configuration, they take `radiate` from clearly trailing pymoo and DEAP on multi-objective hypervolume (DTLZ2 0.30 vs ~0.70) to on par with them: within ~0.01 of the best library on ZDT1, ZDT3, and DTLZ2, ahead of pymoo on both ZDT problems, while running roughly 7–35× faster. A new exact hypervolume indicator lets you measure front quality directly, and a new [benchmarks page](https://pkalivas.github.io/radiate/source/misc/benches/) compares `radiate` against DEAP and pymoo across single- and multi-objective problems.
+
+### Changed
+
+- **Python: plotting moved from Matplotlib to Plotly.** The `plot` extra now installs `plotly` instead of `matplotlib` (`uv add "radiate[plot]"`), and `MetricCollector.plot(...)` renders an interactive Plotly figure. All Python examples and docs snippets were converted as well.
+- **`Gene` no longer requires `Clone`.** The bound moved down to `NumericGene`, and the GP graph types (`GraphNode`, `GraphChromosome`, `GraphMutator`) no longer require `PartialEq` on their value type. Generic code that relied on `G: Gene` implying `Clone` needs an explicit `G: Gene + Clone` bound.
+- **Multi-objective examples and docs use a tuned NSGA-II/III configuration**, and a new [recommended configuration](https://pkalivas.github.io/radiate/source/objectives/#recommended-configuration) section explains it:
+  - Parent selection: tournament NSGA-II.
+  - Survivor selection: NSGA-II for 2 objectives, NSGA-III for 3 or more.
+  - Offspring fraction: `0.5`.
+  - Crossover: SBX, distribution index 20.
+  - Mutation: polynomial, distribution index 20.
+
+  The ZDT3 example's hypervolume goes from ~0.85 to ~1.32.
+
+### Added
+
+- **Hypervolume indicator.** `pareto::hypervolume(scores, reference, objective)` and `Front::hypervolume(&reference)` compute the exact hypervolume of a set of scores or of the Pareto front against a reference point. They handle any mix of minimized/maximized objectives and any number of objectives: an `O(n log n)` sweep for 2, `O(n²)` slicing for 3, and recursive slicing for 4+.
+- **`pareto::front_crowding_distance` and `pareto::fronts_from_ranks`** are now public, so you can compute per-front crowding distance and group indices by Pareto rank directly.
+- **Benchmarks page** in the docs comparing `radiate` against DEAP and pymoo on continuous, combinatorial, and multi-objective problems.
+
+### Fixed
+
+- **`PolynomialMutator` returned values anchored at the lower bound instead of the current value.** It computed `min + q·(max − min)` instead of Deb's `x + δq·(max − min)`, so mutated genes landed near a bound or near the *reflection* of their current value. Higher `eta` made it worse, not more local. On DTLZ problems, where the optimum sits mid-range, this collapsed hypervolume (DTLZ1 went to 0). It now matches the reference NSGA-II / pymoo operator, with tests for locality, bounds, centering, and `eta` behavior.
+- **`SimulatedBinaryCrossover` produced the wrong children.** The child was centered on half the parents' *difference* instead of their midpoint, and only the first parent was updated. It now writes both children symmetrically around the parents' midpoint, per the standard SBX definition.
+- **NSGA-II crowding distance is now computed per Pareto front** instead of across the whole population. This affects `NSGA2Selector` and `TournamentNSGA2Selector`. Before, a truncated front could lose its own boundary points because they weren't extreme relative to *other* fronts.
+
+**For example and details please refer to the [user guide](https://pkalivas.github.io/radiate/) and API docs.**
+
 ## [1.3.1] - 2026-09-13
 
 `Rate` is fully replaced by the expression DSL, events/checkpointing/stopping move onto the engine builder, and the Python operator API is reorganized into namespaces (`Select.*`/`Cross.*`/`Mutate.*`/`Dist.*`/`Limit.*`/`Filter.*`/`Fitness.*`). Also new: a population-filter stage for stagnation recovery, adaptive species-count targeting, a `BitFlipMutator`, f64 support for GP graphs/trees, and three new TUI dashboard tabs. Pareto front calculation's should be _much_ faster now; buffers are cached & reused whenever possible, efficent sorting, and in-place crowding distance calculation.

@@ -1,3 +1,4 @@
+pub use radiate_core::pareto::fronts_from_ranks;
 use radiate_core::{Chromosome, Objective, Optimize, Phenotype, Select, pareto};
 use radiate_utils::Matrix;
 use std::cmp::Ordering;
@@ -119,26 +120,6 @@ pub fn to_minimization_space(score: &[f32], objective: &Objective) -> Vec<f32> {
             .map(|(&x, opt)| if *opt == Optimize::Minimize { x } else { -x })
             .collect(),
     }
-}
-
-#[inline]
-pub fn fronts_from_ranks(ranks: &[usize]) -> Vec<Vec<usize>> {
-    if ranks.is_empty() {
-        return Vec::new();
-    }
-
-    let max_rank = *ranks.iter().max().unwrap_or(&0);
-    let mut fronts = vec![Vec::<usize>::new(); max_rank + 1];
-
-    for (idx, &rank) in ranks.iter().enumerate() {
-        fronts[rank].push(idx);
-    }
-
-    while fronts.last().is_some_and(|front| front.is_empty()) {
-        fronts.pop();
-    }
-
-    fronts
 }
 
 #[derive(Debug, Clone)]

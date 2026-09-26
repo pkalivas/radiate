@@ -136,16 +136,20 @@ fn dtlz1() {
         f
     }
 
-    let codec = FloatCodec::vector(VARIABLES, 0_f32..1_f32).with_bounds(-100.0..100.0);
+    let codec = FloatCodec::vector(VARIABLES, 0_f32..1_f32);
 
     let engine = GeneticEngine::builder()
         .codec(codec)
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
-        .offspring_selector(TournamentSelector::new(5))
-        .survivor_selector(NSGA2Selector::new())
+        // NSGA-III for 3+ objectives: crowded-comparison tournament for parents,
+        // reference-point niching for survivors.
+        .offspring_selector(TournamentNSGA2Selector::new())
+        .survivor_selector(NSGA3Selector::new(12))
+        // A lower offspring fraction keeps more of the already-evaluated front each generation.
+        .offspring_fraction(0.5)
         .alter(alters!(
-            SimulatedBinaryCrossover::new(1_f32, 1.0),
-            UniformMutator::new(0.1),
+            SimulatedBinaryCrossover::new(0.8_f32, 20.0),
+            PolynomialMutator::new(0.1, 20.0),
         ))
         .fitness_fn(|geno: Vec<f32>| dtlz_1(&geno))
         .build();

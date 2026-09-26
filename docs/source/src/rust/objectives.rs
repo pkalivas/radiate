@@ -55,10 +55,16 @@ fn main() {
     let engine = GeneticEngine::builder()
         .codec(FloatCodec::vector(10, 0.0..1.0)) // Example codec
         .multi_objective(vec![Optimize::Minimize, Optimize::Maximize])
-        // Tournament selection with Pareto dominance
+        // Crowded-comparison tournament for parents
         .offspring_selector(TournamentNSGA2Selector::new())
-        // NSGA-III with 12 reference directions
-        .survivor_selector(NSGA3Selector::new(12))
+        // Rank + crowding distance for survivors
+        .survivor_selector(NSGA2Selector::new())
+        // Keep more of the already-evaluated front each generation
+        .offspring_fraction(0.5)
+        .alter(alters!(
+            SimulatedBinaryCrossover::new(0.8, 20.0),
+            PolynomialMutator::new(0.1, 20.0),
+        ))
         .front_size(800..900) // Pareto front size range
         .fitness_fn(|genotype: Vec<f32>| {
             vec![

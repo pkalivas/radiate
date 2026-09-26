@@ -96,6 +96,25 @@ impl<T: Scored> Front<T> {
         Some(pareto::entropy(scores.as_slice(), DEFAULT_ENTROPY_BINS))
     }
 
+    /// Calculate the hypervolume of the front with respect to the `reference` point, using the
+    /// front's own objective directions. See [pareto::hypervolume] for details.
+    ///
+    /// Returns `None` if the front is empty or the reference point's dimensions don't match
+    /// the objective.
+    pub fn hypervolume(&self, reference: &[f32]) -> Option<f32> {
+        if self.values.is_empty() || reference.len() != self.objective.dims() {
+            return None;
+        }
+
+        let scores = self
+            .values
+            .iter()
+            .filter_map(|v| v.score())
+            .collect::<Vec<_>>();
+
+        Some(pareto::hypervolume(&scores, reference, &self.objective))
+    }
+
     pub fn try_add_all<'a>(&mut self, items: impl Iterator<Item = &'a T>) -> FrontAddResult
     where
         T: Eq + Clone + 'static,

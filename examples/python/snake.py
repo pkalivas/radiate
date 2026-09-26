@@ -8,7 +8,6 @@ the best solution behaves differently after evolution.
 
 import numpy as np
 import plotly.graph_objects as go
-
 import radiate as rd
 
 rd.random.seed(514)

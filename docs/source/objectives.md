@@ -135,7 +135,23 @@ Although, any selector can be used, these are optimized for multi-objective prob
     ```rust
     --8<-- "rust/objectives.rs:multi_objective_selectors"
     ```
-    
+
+---
+
+### Recommended Configuration
+
+For real-valued multi-objective problems, a good starting point is the classic NSGA-II / NSGA-III setup:
+
+| Setting | Recommendation | Why |
+|---|---|---|
+| Offspring selector | Tournament NSGA-II | Picks parents by Pareto rank, then crowding distance. A plain tournament ranks by the first objective only, which pulls the population toward one end of the front. |
+| Survivor selector | NSGA-II for 2 objectives, NSGA-III for 3 or more | NSGA-III's reference-point niching spreads solutions better as the number of objectives grows. With NSGA-III, a population roughly the size of the number of reference points works well (12 partitions over 3 objectives gives 91 points). |
+| Offspring fraction | Around `0.5` | Survivors are selected from the current population before new offspring are evaluated, and offspring always enter the next generation. A lower fraction keeps more of the already-evaluated front each generation, which improves both convergence and spread. |
+| Crossover | Simulated Binary Crossover, distribution index ≈ 20 | The standard real-valued crossover for NSGA-II/III. Higher indices keep children closer to their parents. |
+| Mutation | Polynomial mutation, distribution index ≈ 20 | Makes small, bounded perturbations around the current value. Uniform mutation replaces genes with random values, which repeatedly undoes convergence. |
+
+The selector example above and the [DTLZ1 example](examples.md#dtlz1) use this configuration.
+
 ---
 
 ## Best Practices

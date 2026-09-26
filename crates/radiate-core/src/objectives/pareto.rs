@@ -83,6 +83,43 @@ pub fn buffered_crowding_distance<T: AsRef<[f32]>>(scores: &[T], buffer: &mut [f
 }
 
 #[inline]
+pub fn front_crowding_distance<T: AsRef<[f32]>>(scores: &[T], ranks: &[usize]) -> Vec<f32> {
+    let mut distances = vec![0.0; scores.len()];
+
+    for front in fronts_from_ranks(ranks) {
+        let front_scores = front
+            .iter()
+            .map(|&i| scores[i].as_ref())
+            .collect::<Vec<_>>();
+        for (&idx, distance) in front.iter().zip(crowding_distance(&front_scores)) {
+            distances[idx] = distance;
+        }
+    }
+
+    distances
+}
+
+#[inline]
+pub fn fronts_from_ranks(ranks: &[usize]) -> Vec<Vec<usize>> {
+    if ranks.is_empty() {
+        return Vec::new();
+    }
+
+    let max_rank = *ranks.iter().max().unwrap_or(&0);
+    let mut fronts = vec![Vec::<usize>::new(); max_rank + 1];
+
+    for (idx, &rank) in ranks.iter().enumerate() {
+        fronts[rank].push(idx);
+    }
+
+    while fronts.last().is_some_and(|front| front.is_empty()) {
+        fronts.pop();
+    }
+
+    fronts
+}
+
+#[inline]
 pub fn non_dominated<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -> Vec<usize> {
     let n = population.len();
     if n == 0 {
@@ -318,6 +355,153 @@ pub fn pareto_front<K: PartialOrd, T: AsRef<[K]> + Clone>(
     }
 
     front
+}
+
+/// Calculate the hypervolume indicator of a set of scores with respect to a `reference` point.
+///
+/// The hypervolume is the size of the objective-space region that is dominated by at least one
+/// score and that in turn dominates the reference point. Larger is better. It is the standard
+/// indicator for comparing Pareto front approximations because it rewards both convergence and
+/// spread. The value is only comparable between runs/libraries when the same reference point is
+/// used, so the reference point is always supplied by the caller rather than inferred.
+///
+/// - Maximized objectives are handled by mirroring them (and the reference) into minimization space.
+/// - Scores that do not strictly dominate the reference point contribute nothing and are ignored.
+/// - Dominated scores and duplicates are removed before the calculation.
+/// - Returns `0.0` if there are no scores, the reference is empty, or a `Multi` objective's
+///   dimensions do not match the reference.
+///
+/// The result is exact. Two objectives use an `O(n log n)` sweep, three objectives slice along
+/// the last objective in `O(n²)`, and four or more objectives recursively slice (HSO), whose
+/// cost grows exponentially with the number of objectives.
+pub fn hypervolume<T: AsRef<[f32]>>(scores: &[T], reference: &[f32], objective: &Objective) -> f32 {
+    let dims = reference.len();
+    if scores.is_empty() || dims == 0 {
+        return 0.0;
+    }
+
+    let directions = match objective {
+        Objective::Single(opt) => vec![*opt; dims],
+        Objective::Multi(opts) if opts.len() == dims => opts.clone(),
+        Objective::Multi(_) => return 0.0,
+    };
+
+    let to_min_space = |values: &[f32]| {
+        values
+            .iter()
+            .zip(directions.iter())
+            .map(|(&v, opt)| match opt {
+                Optimize::Minimize => v as f64,
+                Optimize::Maximize => -(v as f64),
+            })
+            .collect::<Vec<f64>>()
+    };
+
+    let reference = to_min_space(reference);
+
+    let mut points = scores
+        .iter()
+        .map(|score| score.as_ref())
+        .filter(|score| score.len() == dims)
+        .map(to_min_space)
+        .filter(|point| point.iter().zip(reference.iter()).all(|(p, r)| p < r))
+        .collect::<Vec<Vec<f64>>>();
+
+    points.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    points.dedup();
+
+    let minimize = Objective::Multi(vec![Optimize::Minimize; dims]);
+    let front = points
+        .iter()
+        .filter(|point| {
+            !points
+                .iter()
+                .any(|other| dominance(other, *point, &minimize))
+        })
+        .map(|point| point.as_slice())
+        .collect::<Vec<&[f64]>>();
+
+    sliced_hypervolume(front, &reference, dims) as f32
+}
+
+/// Hypervolume of `points` over their first `dims` coordinates (all in minimization space).
+/// Slices along the last coordinate: between consecutive values of that coordinate, the
+/// dominated cross-section is the `dims - 1` hypervolume of every point already passed.
+/// Dominated points are allowed here - they simply add nothing to a cross-section.
+fn sliced_hypervolume(mut points: Vec<&[f64]>, reference: &[f64], dims: usize) -> f64 {
+    if points.is_empty() {
+        return 0.0;
+    }
+
+    match dims {
+        1 => {
+            let best = points.iter().map(|p| p[0]).fold(f64::INFINITY, f64::min);
+            (reference[0] - best).max(0.0)
+        }
+        2 => {
+            points.sort_unstable_by(|a, b| {
+                a[0].partial_cmp(&b[0])
+                    .unwrap_or(std::cmp::Ordering::Equal)
+                    .then(a[1].partial_cmp(&b[1]).unwrap_or(std::cmp::Ordering::Equal))
+            });
+            sorted_hypervolume_2d(&points, reference)
+        }
+        _ => {
+            let last = dims - 1;
+            points.sort_unstable_by(|a, b| {
+                a[last]
+                    .partial_cmp(&b[last])
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
+
+            let mut volume = 0.0;
+            let mut section: Vec<&[f64]> = Vec::with_capacity(points.len());
+
+            for (i, &point) in points.iter().enumerate() {
+                if dims == 3 {
+                    // Keep the 2D cross-section sorted so each slice is a linear sweep.
+                    let at = section.partition_point(|p| {
+                        p[0] < point[0] || (p[0] == point[0] && p[1] <= point[1])
+                    });
+                    section.insert(at, point);
+                } else {
+                    section.push(point);
+                }
+
+                let top = points.get(i + 1).map_or(reference[last], |next| next[last]);
+                let height = top - point[last];
+
+                if height > 0.0 {
+                    let area = if dims == 3 {
+                        sorted_hypervolume_2d(&section, reference)
+                    } else {
+                        sliced_hypervolume(section.clone(), reference, last)
+                    };
+
+                    volume += height * area;
+                }
+            }
+
+            volume
+        }
+    }
+}
+
+/// 2D hypervolume of points sorted ascending by their first coordinate (ties by the second).
+/// Walks the staircase, adding the rectangle each non-dominated step adds below the last one.
+#[inline]
+fn sorted_hypervolume_2d(points: &[&[f64]], reference: &[f64]) -> f64 {
+    let mut area = 0.0;
+    let mut floor = reference[1];
+
+    for point in points {
+        if point[1] < floor {
+            area += (reference[0] - point[0]) * (floor - point[1]);
+            floor = point[1];
+        }
+    }
+
+    area
 }
 
 /// Das-Dennis reference directions on the simplex.
@@ -788,5 +972,143 @@ mod tests {
             "rank() should match iterative peel ranks\nrank={:?}\npeel={:?}",
             r, p
         );
+    }
+
+    // ---- hypervolume ----
+
+    fn assert_close(actual: f32, expected: f32) {
+        assert!(
+            (actual - expected).abs() < 1e-5,
+            "expected {expected}, got {actual}"
+        );
+    }
+
+    fn random_points(n: usize, dims: usize) -> Vec<Vec<f32>> {
+        use crate::domain::random_provider;
+        (0..n)
+            .map(|_| {
+                (0..dims)
+                    .map(|_| random_provider::random::<f32>())
+                    .collect()
+            })
+            .collect()
+    }
+
+    #[test]
+    fn hypervolume_empty_is_zero() {
+        let scores: Vec<Vec<f32>> = vec![];
+        assert_eq!(hypervolume(&scores, &[1.0, 1.0], &obj_min2()), 0.0);
+    }
+
+    #[test]
+    fn hypervolume_single_point_is_its_box() {
+        let scores = vec![vec![0.5f32, 0.5]];
+        assert_close(hypervolume(&scores, &[1.0, 1.0], &obj_min2()), 0.25);
+    }
+
+    #[test]
+    fn hypervolume_2d_staircase() {
+        // Union of boxes up to (4,4): 3x1 + 2x1 + 1x1 strips = 6
+        let scores = vec![vec![1.0f32, 3.0], vec![2.0, 2.0], vec![3.0, 1.0]];
+        assert_close(hypervolume(&scores, &[4.0, 4.0], &obj_min2()), 6.0);
+    }
+
+    #[test]
+    fn hypervolume_ignores_dominated_duplicate_and_out_of_reference_points() {
+        let front = vec![vec![1.0f32, 3.0], vec![2.0, 2.0], vec![3.0, 1.0]];
+        let mut noisy = front.clone();
+        noisy.push(vec![2.5, 2.5]); // dominated
+        noisy.push(vec![2.0, 2.0]); // duplicate
+        noisy.push(vec![0.5, 5.0]); // outside the reference in f2
+        noisy.push(vec![4.0, 0.0]); // on the reference boundary in f1 -> zero volume
+
+        assert_close(
+            hypervolume(&noisy, &[4.0, 4.0], &obj_min2()),
+            hypervolume(&front, &[4.0, 4.0], &obj_min2()),
+        );
+    }
+
+    #[test]
+    fn hypervolume_3d_known_values() {
+        let obj = Objective::Multi(vec![Optimize::Minimize; 3]);
+
+        let single = vec![vec![0.0f32, 0.0, 0.0]];
+        assert_close(hypervolume(&single, &[1.0, 2.0, 3.0], &obj), 6.0);
+
+        // boxes of volume 4 and 2 overlapping in a unit cube -> 4 + 2 - 1 = 5
+        let pair = vec![vec![0.0f32, 0.0, 1.0], vec![1.0, 1.0, 0.0]];
+        assert_close(hypervolume(&pair, &[2.0, 2.0, 2.0], &obj), 5.0);
+    }
+
+    #[test]
+    fn hypervolume_4d_known_values() {
+        let obj = Objective::Multi(vec![Optimize::Minimize; 4]);
+
+        // boxes of volume 8 and 2 overlapping in a unit hypercube -> 8 + 2 - 1 = 9
+        let pair = vec![vec![0.0f32, 0.0, 0.0, 1.0], vec![1.0, 1.0, 1.0, 0.0]];
+        assert_close(hypervolume(&pair, &[2.0; 4], &obj), 9.0);
+    }
+
+    #[test]
+    fn hypervolume_maximize_mirrors_minimize() {
+        let scores = vec![vec![1.0f32, 3.0], vec![2.0, 2.0], vec![3.0, 1.0]];
+        let negated = scores
+            .iter()
+            .map(|s| s.iter().map(|v| -v).collect::<Vec<f32>>())
+            .collect::<Vec<_>>();
+
+        assert_close(
+            hypervolume(&negated, &[-4.0, -4.0], &obj_max2()),
+            hypervolume(&scores, &[4.0, 4.0], &obj_min2()),
+        );
+    }
+
+    #[test]
+    fn hypervolume_mixed_objectives() {
+        // minimize f1, maximize f2 with reference (4, 0): (1,3) box 3x3, (2,4) box 2x4, overlap 2x3
+        let obj = Objective::Multi(vec![Optimize::Minimize, Optimize::Maximize]);
+        let scores = vec![vec![1.0f32, 3.0], vec![2.0, 4.0]];
+        assert_close(hypervolume(&scores, &[4.0, 0.0], &obj), 9.0 + 8.0 - 6.0);
+    }
+
+    #[test]
+    fn hypervolume_dimension_mismatch_is_zero() {
+        let scores = vec![vec![0.5f32, 0.5]];
+        let obj = Objective::Multi(vec![Optimize::Minimize; 3]);
+        assert_eq!(hypervolume(&scores, &[1.0, 1.0], &obj), 0.0);
+    }
+
+    #[test]
+    fn hypervolume_higher_dims_agree_with_lower_dim_paths() {
+        // Embedding a point set into one more dimension with a constant 0 coordinate and a
+        // reference of 1 in that dimension must not change the volume. This checks the 3D
+        // slicing path against the 2D sweep and the general (HSO) path against the 3D one.
+        crate::domain::random_provider::seed(17);
+
+        for dims in [2usize, 3] {
+            let obj = Objective::Multi(vec![Optimize::Minimize; dims]);
+            let obj_up = Objective::Multi(vec![Optimize::Minimize; dims + 1]);
+
+            let points = random_points(60, dims);
+            let lifted = points
+                .iter()
+                .map(|p| p.iter().copied().chain([0.0]).collect::<Vec<f32>>())
+                .collect::<Vec<_>>();
+
+            let reference = vec![1.1f32; dims];
+            let reference_up = vec![1.1f32; dims]
+                .into_iter()
+                .chain([1.0])
+                .collect::<Vec<_>>();
+
+            let hv = hypervolume(&points, &reference, &obj);
+            let hv_up = hypervolume(&lifted, &reference_up, &obj_up);
+
+            assert!(hv > 0.0);
+            assert!(
+                (hv - hv_up).abs() < 1e-4,
+                "dims {dims}: {hv} vs lifted {hv_up}"
+            );
+        }
     }
 }

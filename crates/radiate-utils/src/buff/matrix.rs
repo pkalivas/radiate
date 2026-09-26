@@ -244,6 +244,7 @@ impl<T: Float> Matrix<T> {
                 let diff = self[(row, col)] - mean;
                 variance_sum = variance_sum + diff * diff;
             }
+
             let variance = variance_sum / T::from(self.rows).unwrap();
             let std_dev = variance.sqrt();
 
