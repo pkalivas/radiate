@@ -38,50 +38,6 @@ pub fn crowding_distance<T: AsRef<[f32]>>(scores: &[T]) -> Vec<f32> {
     buffer
 }
 
-/// Calculate the crowding distance of each score within its own front, as in NSGA-II.
-///
-/// `ranks` are the front indices from [`rank`]. Each front is measured on its own, so a
-/// score's neighbors are only the scores of the same front, and the boundary points of
-/// every front get +∞. The result is in the same order as `scores`.
-#[inline]
-pub fn front_crowding_distance<T: AsRef<[f32]>>(scores: &[T], ranks: &[usize]) -> Vec<f32> {
-    let mut distances = vec![0.0; scores.len()];
-
-    for front in fronts_from_ranks(ranks) {
-        let front_scores = front
-            .iter()
-            .map(|&i| scores[i].as_ref())
-            .collect::<Vec<_>>();
-        for (&idx, distance) in front.iter().zip(crowding_distance(&front_scores)) {
-            distances[idx] = distance;
-        }
-    }
-
-    distances
-}
-
-/// Group indices by rank: `fronts[r]` holds the indices whose rank is `r`.
-/// Trailing empty fronts are removed.
-#[inline]
-pub fn fronts_from_ranks(ranks: &[usize]) -> Vec<Vec<usize>> {
-    if ranks.is_empty() {
-        return Vec::new();
-    }
-
-    let max_rank = *ranks.iter().max().unwrap_or(&0);
-    let mut fronts = vec![Vec::<usize>::new(); max_rank + 1];
-
-    for (idx, &rank) in ranks.iter().enumerate() {
-        fronts[rank].push(idx);
-    }
-
-    while fronts.last().is_some_and(|front| front.is_empty()) {
-        fronts.pop();
-    }
-
-    fronts
-}
-
 #[inline]
 pub fn buffered_crowding_distance<T: AsRef<[f32]>>(scores: &[T], buffer: &mut [f32]) {
     if !ensure_buffer_len(scores, buffer) {
@@ -124,6 +80,43 @@ pub fn buffered_crowding_distance<T: AsRef<[f32]>>(scores: &[T], buffer: &mut [f
             buffer[indices[k]] += contrib;
         }
     }
+}
+
+#[inline]
+pub fn front_crowding_distance<T: AsRef<[f32]>>(scores: &[T], ranks: &[usize]) -> Vec<f32> {
+    let mut distances = vec![0.0; scores.len()];
+
+    for front in fronts_from_ranks(ranks) {
+        let front_scores = front
+            .iter()
+            .map(|&i| scores[i].as_ref())
+            .collect::<Vec<_>>();
+        for (&idx, distance) in front.iter().zip(crowding_distance(&front_scores)) {
+            distances[idx] = distance;
+        }
+    }
+
+    distances
+}
+
+#[inline]
+pub fn fronts_from_ranks(ranks: &[usize]) -> Vec<Vec<usize>> {
+    if ranks.is_empty() {
+        return Vec::new();
+    }
+
+    let max_rank = *ranks.iter().max().unwrap_or(&0);
+    let mut fronts = vec![Vec::<usize>::new(); max_rank + 1];
+
+    for (idx, &rank) in ranks.iter().enumerate() {
+        fronts[rank].push(idx);
+    }
+
+    while fronts.last().is_some_and(|front| front.is_empty()) {
+        fronts.pop();
+    }
+
+    fronts
 }
 
 #[inline]

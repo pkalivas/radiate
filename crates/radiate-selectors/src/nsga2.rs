@@ -33,6 +33,7 @@ impl<C: Chromosome> Select<C> for NSGA2Selector {
             .collect::<Vec<_>>();
         let ranks = pareto::rank(&scores, objective);
         let distances = pareto::front_crowding_distance(&scores, &ranks);
+        // let distances = pareto::crowding_distance(&scores);
 
         let mut indices = (0..population.len()).collect::<Vec<usize>>();
 

@@ -71,14 +71,6 @@ where
                     gene_one.set_allele(c1);
                     gene_two.set_allele(c2);
 
-                    // let v = if rand.bool(0.5) {
-                    //     ((v1 - v2) * A::HALF) - (beta * A::HALF * (v1 - v2).abs())
-                    // } else {
-                    //     ((v1 - v2) * A::HALF) + (beta * A::HALF * (v1 - v2).abs())
-                    // };
-
-                    // gene_one.set_allele(v);
-
                     count += 1;
                 }
             });
