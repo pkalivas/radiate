@@ -51,20 +51,23 @@ where
         let mut cross_count = 0;
         let alpha = A::from(self.alpha).unwrap();
 
+        let min_len = chrom_one.len().min(chrom_two.len());
+
         random_provider::with_rng(|rand| {
-            chrom_one.zip(chrom_two).for_each(|one, two| {
-                if rand.bool(ctx.rate()) {
-                    let allele_one = *one.allele();
-                    let allele_two = *two.allele();
+            rand.bernoulli_indices(ctx.rate(), 0..min_len, |i| {
+                let one = chrom_one.get_mut(i).unwrap();
+                let two = chrom_two.get_mut(i).unwrap();
 
-                    let new_allele_one = allele_one - (alpha * (allele_two - allele_one));
-                    let new_allele_two = allele_two - (alpha * (allele_one - allele_two));
+                let allele_one = *one.allele();
+                let allele_two = *two.allele();
 
-                    one.set_allele(new_allele_one);
-                    two.set_allele(new_allele_two);
+                let new_allele_one = allele_one - (alpha * (allele_two - allele_one));
+                let new_allele_two = allele_two - (alpha * (allele_one - allele_two));
 
-                    cross_count += 1;
-                }
+                one.set_allele(new_allele_one);
+                two.set_allele(new_allele_two);
+
+                cross_count += 1;
             });
         });
 
