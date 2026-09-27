@@ -79,6 +79,10 @@
           {% endfor %}
         </div>
       {% endif %}
+
+      {% if hero.note %}
+        <p class="rd-hero__note rd-rise rd-rise--3">{{ hero.note }}</p>
+      {% endif %}
     </div>
   </section>
 {% endblock %}

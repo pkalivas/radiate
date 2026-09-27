@@ -6,7 +6,7 @@ hide:
   - toc
 hero:
   badge:
-    text: v1.3.2 is out · multi-objective fixes and a faster PMX
+    text: v1.3.2 released 09/27/26 · multi-objective fixes and a faster PMX
     link: source/releases/
   title: radiate
   # Optional: `banner: {light: <image>, dark: <image>}` shows images instead of the text title.
@@ -38,6 +38,7 @@ hero:
     - text: docs.rs
       link: https://docs.rs/radiate/latest/radiate/
       icon: simple/docsdotrs
+  note: Open source since 2019 · MIT licensed · actively maintained
 ---
 
 <div class="rd-section" markdown>
@@ -98,7 +99,7 @@ inspired by natural selection and genetics. The core is written in Rust with com
   </a>
   <a class="rd-tile" href="source/gp/graph/">
     <img src="assets/gp/graph_gp.png" alt="An evolved computational graph">
-    <span class="rd-tile__caption"><strong>Neuroevolution</strong>Evolve graph topologies, from feed-forward to recurrent and LSTM-style cells.</span>
+    <span class="rd-tile__caption"><strong>Neuroevolution</strong>Evolve graph topologies, from feed-forward to recurrent and LSTM-style networks.</span>
   </a>
   <a class="rd-tile" href="source/gp/trees/">
     <img src="assets/gp/Genetic_Program_Tree.png" alt="A genetic programming tree">

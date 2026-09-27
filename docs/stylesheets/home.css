@@ -345,6 +345,13 @@
   fill: currentColor;
 }
 
+.md-typeset .rd-hero__note {
+  margin: 1.1rem 0 0;
+  font-size: 0.62rem;
+  letter-spacing: 0.02em;
+  color: var(--rd-muted);
+}
+
 /* Hide the content column's top spacing on the landing page. */
 .md-main__inner:has(.rd-section) {
   margin-top: 0;

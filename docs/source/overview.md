@@ -3,7 +3,7 @@
   <img
     src="../../assets/logo/banner_light.jpeg"
     alt="Radiate"
-    style="width:900px; border-radius:20px;"
+    style="width:800px; border-radius:20px;"
   />
 </figure>
 
