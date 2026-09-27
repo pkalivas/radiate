@@ -25,11 +25,11 @@ $$
 
 ## N-Queens
 
-Discrete optimization using `usize` precision integers & numpy arrays. `Radiate` here is using the [permutation codec](https://pkalivas.github.io/radiate/source/genome/codec/#types-of-codecs).
+Discrete optimization using `usize` precision integers & numpy arrays. `Radiate` here is using the [permutation codec](https://radiate.rs/source/genome/codec/#types-of-codecs).
 
 !!! tip "Not using optimized `radiate` fitness function"
 
-    There are other examples in this user guide ([here](https://pkalivas.github.io/radiate/source/examples/#nqueens)) that will actually produce faster & more efficient results using `radiate`.
+    There are other examples in this user guide ([here](https://radiate.rs/source/examples/#nqueens)) that will actually produce faster & more efficient results using `radiate`.
 
 <figure markdown="span">
     ![N-Queens](../../assets/benches/convergence_nqueens.png){ width="600" }

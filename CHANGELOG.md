@@ -4,18 +4,18 @@ All notable changes to Radiate are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to semantic versioning.
 
-For all code examples and further explanations, refer to the [documentation](https://pkalivas.github.io/radiate/).
+For all code examples and further explanations, refer to the [documentation](https://radiate.rs/).
 
 ## [1.3.2] - 2026-09-27
 
-A multi-objective quality release. Three operator bugs were fixed: polynomial mutation, simulated binary crossover, and NSGA-II crowding distance. Together with better-tuned examples and a documented recommended configuration, they take `radiate` from clearly trailing pymoo and DEAP on multi-objective hypervolume (DTLZ2 0.30 vs ~0.70) to on par with them: within ~0.01 of the best library on ZDT1, ZDT3, and DTLZ2, ahead of pymoo on both ZDT problems, while running roughly 7–35× faster. A new exact hypervolume indicator lets you measure front quality directly, and a new [benchmarks page](https://pkalivas.github.io/radiate/source/misc/benches/) compares `radiate` against DEAP and pymoo across single- and multi-objective problems.
+A multi-objective quality release. Three operator bugs were fixed: polynomial mutation, simulated binary crossover, and NSGA-II crowding distance. Together with better-tuned examples and a documented recommended configuration, they take `radiate` from clearly trailing pymoo and DEAP on multi-objective hypervolume (DTLZ2 0.30 vs ~0.70) to on par with them: within ~0.01 of the best library on ZDT1, ZDT3, and DTLZ2, ahead of pymoo on both ZDT problems, while running roughly 7–35× faster. A new exact hypervolume indicator lets you measure front quality directly, and a new [benchmarks page](https://radiate.rs/source/misc/benches/) compares `radiate` against DEAP and pymoo across single- and multi-objective problems.
 
 ### Changed
 
 - **Python: plotting moved from Matplotlib to Plotly.** The `plot` extra now installs `plotly` instead of `matplotlib` (`uv add "radiate[plot]"`), and `MetricCollector.plot(...)` renders an interactive Plotly figure. All Python examples and docs snippets were converted as well.
 - **`Gene` no longer requires `Clone`.** The bound moved down to `NumericGene`, and the GP graph types (`GraphNode`, `GraphChromosome`, `GraphMutator`) no longer require `PartialEq` on their value type. Generic code that relied on `G: Gene` implying `Clone` needs an explicit `G: Gene + Clone` bound.
 - **`BitFlipMutator` is implemented for `BitChromosome` only** (breaking). It was implemented for any `ContiguousChromosome` with `Gene = BitGene`. A custom chromosome holding `BitGene`s no longer gets `BitFlipMutator` and needs its own `Mutate` impl. The rate is documented as per bit: a chromosome of `n` bits sees `n * rate` flips per generation on average.
-- **Multi-objective examples and docs use a tuned NSGA-II/III configuration**, and a new [recommended configuration](https://pkalivas.github.io/radiate/source/objectives/#recommended-configuration) section explains it:
+- **Multi-objective examples and docs use a tuned NSGA-II/III configuration**, and a new [recommended configuration](https://radiate.rs/source/objectives/#recommended-configuration) section explains it:
   - Parent selection: tournament NSGA-II.
   - Survivor selection: NSGA-II for 2 objectives, NSGA-III for 3 or more.
   - Offspring fraction: `0.5`.
@@ -41,7 +41,7 @@ A multi-objective quality release. Three operator bugs were fixed: polynomial mu
 - **`MultiPointCrossover` could lose a cut point.** Cut points were sampled from `0..length`, and a cut at index 0 swaps nothing, so a 2-point crossover sometimes behaved as a 1-point one. Cut points are now sampled from `1..length`.
 - **NSGA-II crowding distance is now computed per Pareto front** instead of across the whole population. This affects `NSGA2Selector` and `TournamentNSGA2Selector`. Before, a truncated front could lose its own boundary points because they weren't extreme relative to *other* fronts.
 
-**For example and details please refer to the [user guide](https://pkalivas.github.io/radiate/) and API docs.**
+**For example and details please refer to the [user guide](https://radiate.rs/) and API docs.**
 
 ## [1.3.1] - 2026-09-13
 
@@ -49,9 +49,9 @@ A multi-objective quality release. Three operator bugs were fixed: polynomial mu
 
 ### Breaking
 
-- **`Rate` is replaced by `float` or [Expr](https://pkalivas.github.io/radiate/source/engine/expressions/).** (`impl Into<Expr>` is now used for conversion - minimal friction expected.) Every crossover/mutator now takes a plain `float` or `Expr` instead of a `Rate`. Python: `rd.Rate` is deleted. This was implemented in order to support full dynamic rates for _anything_ in `radiate`'s ecosystem.
-- **[Events](https://pkalivas.github.io/radiate/source/events/) rewritten as typed pub/sub.** Implement `Handler<E>` for one event type (`EpochComplete`, `Improvement`, `EngineStart`/`Stop`, `LimitTriggered`, `Warning`, `CheckpointSaved`, ...) and register with `GeneticEngine::subscribe::<E>(handler)`. Python: new `rd.on_limit_triggered`/`on_log`/`on_checkpoint_saved` decorators; `event.index`/`event.event_type` are now attributes, not methods.
-- **[Checkpointing](https://pkalivas.github.io/radiate/source/misc/checkpoint/#__tabbed_1_2) moved onto the builder.** Use `GeneticEngineBuilder::checkpoint(interval, path)` instead of `run()`-time checkpointing. Python: `Engine.write_checkpoint(path, interval, file_type="pkl")` replaces `run(checkpoint=...)`. Checkpoint pickle format also changed — **checkpoints written by 1.3.0 may not load**.
+- **`Rate` is replaced by `float` or [Expr](https://radiate.rs/source/engine/expressions/).** (`impl Into<Expr>` is now used for conversion - minimal friction expected.) Every crossover/mutator now takes a plain `float` or `Expr` instead of a `Rate`. Python: `rd.Rate` is deleted. This was implemented in order to support full dynamic rates for _anything_ in `radiate`'s ecosystem.
+- **[Events](https://radiate.rs/source/events/) rewritten as typed pub/sub.** Implement `Handler<E>` for one event type (`EpochComplete`, `Improvement`, `EngineStart`/`Stop`, `LimitTriggered`, `Warning`, `CheckpointSaved`, ...) and register with `GeneticEngine::subscribe::<E>(handler)`. Python: new `rd.on_limit_triggered`/`on_log`/`on_checkpoint_saved` decorators; `event.index`/`event.event_type` are now attributes, not methods.
+- **[Checkpointing](https://radiate.rs/source/misc/checkpoint/#__tabbed_1_2) moved onto the builder.** Use `GeneticEngineBuilder::checkpoint(interval, path)` instead of `run()`-time checkpointing. Python: `Engine.write_checkpoint(path, interval, file_type="pkl")` replaces `run(checkpoint=...)`. Checkpoint pickle format also changed — **checkpoints written by 1.3.0 may not load**.
 - **Metric-predicate stopping removed** — no more `Limit::Metric`/`Limit.metric(...)`. Use `Limit::Expr`/`Limit.expr(...)` instead. Expressions read directly from the `MetricSet` so this is _functionally_ equivalent.
 - **Custom `Chromosome`/`Gene` implementors need updates.** Trait methods were re-split (bounds vs. init range, contiguous-storage methods moved to a new `ContiguousChromosome` sub-trait). No impact if you only use the built-in gene types.
 
@@ -59,16 +59,16 @@ A multi-objective quality release. Three operator bugs were fixed: polynomial mu
 - **GP ops/regression are generic over `f32`/`f64` now.** Calls like `Op::sigmoid()` may need `Op::<f32>::sigmoid()` if the type can't be inferred. Python `GraphCodec`/`TreeCodec` now take a `dtype` param.
 - **Python: operators collapsed into namespaces.** `TournamentSelector(k=3)` → `Select.tournament(k=3)`, `BlendCrossover(...)` → `Cross.blend(...)`, `UniformMutator(...)` → `Mutate.uniform(...)`, `HammingDistance()` → `Dist.hamming()`, `ScoreLimit(...)` → `Limit.score(...)`. Old class names are no longer exported.
 - **Python: `Engine.alters(...)` renamed `Engine.alter(...)`.**
-- **Python: `Engine.run()` no longer takes `limits=`** See [limits](https://pkalivas.github.io/radiate/source/engine/limits/) (set limits on the builder) and `step_next()` is gone — iterate the engine directly (`for epoch in engine:`).
+- **Python: `Engine.run()` no longer takes `limits=`** See [limits](https://radiate.rs/source/engine/limits/) (set limits on the builder) and `step_next()` is gone — iterate the engine directly (`for epoch in engine:`).
 - **Python: `EngineConfig.max_species_age` default changed 20 → 25** to match Rust.
 - **Python: install extras regrouped.** `[polars]`/`[pandas]`/`[numpy]`/`[matplotlib]` → `[data]` (numpy+pandas+polars) and `[plot]` (matplotlib); `[all]` unchanged.
-- **Metric names renamed** see [default metrics](https://pkalivas.github.io/radiate/source/engine/metrics/#collection). Consistency across the engine and `radiate-gp` (e.g. `age.replace` → `replace.age`, `count.species` → `species.count`). See `docs/source/engine/metrics.md` for the full mapping.
+- **Metric names renamed** see [default metrics](https://radiate.rs/source/engine/metrics/#collection). Consistency across the engine and `radiate-gp` (e.g. `age.replace` → `replace.age`, `count.species` → `species.count`). See `docs/source/engine/metrics.md` for the full mapping.
 - **Python: free-threaded wheels now actually target 3.14t** — CI had been building against 3.13t. This is out of `radiate`'s control and is a result of underlying maturin/pyo3 support.
 
 ### Added
 
 - **Population filter pipeline stage** — new `UniqueScoreFilter` detects score-diversity collapse and replaces duplicates. `GeneticEngineBuilder::filter(...)` / Python `rd.Filter.unique_score(...)` + `Engine.filter(...)`.
-- **Adaptive species-count targeting** — see [target species](https://pkalivas.github.io/radiate/source/diversity/species/#adaptive-thresholds). Set `target_species_count` to drive the speciation threshold toward a target instead of a fixed value. Python: `Engine.diversity(dist, threshold, target=...)`.
+- **Adaptive species-count targeting** — see [target species](https://radiate.rs/source/diversity/species/#adaptive-thresholds). Set `target_species_count` to drive the speciation threshold toward a target instead of a fixed value. Python: `Engine.diversity(dist, threshold, target=...)`.
 - **`BitFlipMutator`** for bit-string genomes. Python: `Mutate.bit_flip(rate=0.1)`.
 - **`HealthMonitor` event handler** — auto-emits `Warning` events for stagnation, diversity collapse, and species collapse.
 - **f64 support end-to-end for GP graphs/trees**, plus new ops: `Op.weight2`/`sign`/`reciprocal`/`gaussian`/`tooth`.
@@ -86,7 +86,7 @@ A multi-objective quality release. Three operator bugs were fixed: polynomial mu
 - **`AnyValue`'s numeric → `Duration` cast now treats the source `f32` as seconds, not milliseconds** — durations reported via metrics were previously 1000x off.
 - **LARGE BUG WITH CROSSOVER PARENT SELECTION** — previously, the engine could over select the same individual multiple times as a parent during crossover, leading to unexpected behavior and reduced genetic diversity. This has now been fixed to ensure a more even distribution of parent selection.
 
-**For example and details please refer to the [user guide](https://pkalivas.github.io/radiate/) and API docs.**
+**For example and details please refer to the [user guide](https://radiate.rs/) and API docs.**
 
 ## [1.3.0] — 2026-06-20
 
