@@ -66,7 +66,7 @@ readme = "README.md"
 categories = ["science", "simulation", "algorithms"]
 keywords = ["simulation", "genetic", "learning", "artificial", "evolution"]
 license = "MIT"
-homepage = "https://pkalivas.github.io/radiate/"
+homepage = "https://radiate.rs/"
 
 [workspace.dependencies]
 rand = "0.10.3"

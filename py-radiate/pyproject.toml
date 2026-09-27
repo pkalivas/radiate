@@ -25,7 +25,7 @@ name = "radiate"
 requires-python = ">=3.12"
 
 [project.urls]
-documentation = "https://pkalivas.github.io/radiate/"
+documentation = "https://radiate.rs/"
 repository = "https://github.com/pkalivas/radiate"
 
 [project.optional-dependencies]
