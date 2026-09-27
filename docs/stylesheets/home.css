@@ -1,0 +1,544 @@
+/*
+ * Landing page styles (docs/overrides/home.html + docs/index.md).
+ * Every selector is scoped to `rd-` classes, so no other docs page is affected.
+ * Colors follow the logo: an ember-to-amber glow on charcoal (dark) or cream (light).
+ *
+ * Tokens are declared on `[data-md-color-scheme]` (the <body>), not only `:root`, because
+ * Material sets its scheme colors there: a token that reads a Material color must resolve
+ * on the same element, or dark mode picks up the light-mode value.
+ */
+
+:root,
+[data-md-color-scheme] {
+  --rd-ember: #e8590c;
+  --rd-amber: #f59f00;
+  --rd-glow: rgba(255, 140, 40, 0.22);
+  --rd-card-bg: rgba(0, 0, 0, 0.025);
+  --rd-card-border: rgba(0, 0, 0, 0.08);
+  --rd-muted: var(--md-default-fg-color--light);
+  --rd-strong-border: rgba(0, 0, 0, 0.14);
+  --rd-tab-bg: rgba(0, 0, 0, 0.035);
+}
+
+[data-md-color-scheme="slate"] {
+  --rd-glow: rgba(255, 140, 40, 0.16);
+  --rd-strong-border: rgba(255, 255, 255, 0.14);
+  --rd-tab-bg: rgba(255, 255, 255, 0.03);
+  --rd-card-bg: rgba(255, 255, 255, 0.03);
+  --rd-card-border: rgba(255, 255, 255, 0.08);
+}
+
+/* ---------- Hero ---------- */
+
+.rd-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 4.5rem 0 3.5rem;
+  text-align: center;
+  border-bottom: 1px solid var(--rd-card-border);
+}
+
+.rd-hero__glow {
+  position: absolute;
+  inset: -30% -10% auto;
+  height: 120%;
+  background: radial-gradient(50% 60% at 50% 30%, var(--rd-glow), transparent 70%);
+  pointer-events: none;
+}
+
+.rd-hero__inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.rd-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.9rem;
+  border: 1px solid var(--rd-card-border);
+  border-radius: 999px;
+  background: var(--rd-card-bg);
+  font-size: 0.7rem;
+  color: var(--md-default-fg-color) !important;
+}
+
+.rd-pill:hover {
+  border-color: var(--rd-ember);
+}
+
+.rd-pill__dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #37b24d;
+  box-shadow: 0 0 0.5rem #37b24d;
+}
+
+.md-typeset .rd-hero__title {
+  margin: 1.2rem 0 0;
+  font-size: clamp(3rem, 10vw, 5.6rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  /* Room for the last glyph's overhang: with background-clip: text, anything
+     outside the box gets no gradient, and the tight letter-spacing pushes the
+     final "e" just past the right edge. */
+  padding: 0 0.08em 0.04em;
+  background: linear-gradient(100deg, var(--rd-ember) 10%, var(--rd-amber) 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 1.2rem var(--rd-glow));
+}
+
+.md-typeset .rd-hero__banner {
+  width: 100%;
+  max-width: 900px;
+  margin: 1.4rem 0 0;
+  line-height: 0;
+}
+
+.md-typeset .rd-banner {
+  width: 100%;
+  border-radius: 20px;
+  box-shadow: 0 1.5rem 4rem var(--rd-glow);
+}
+
+/* Heading text kept for screen readers and search engines, hidden visually. */
+.rd-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.md-typeset .rd-hero__banner + .rd-hero__tagline {
+  margin-top: 1.6rem;
+}
+
+/* Show only the banner that matches the active color scheme. */
+[data-md-color-scheme="slate"] .rd-banner--light,
+[data-md-color-scheme="default"] .rd-banner--dark {
+  display: none;
+}
+
+.md-typeset .rd-hero__tagline {
+  margin: 1rem 0 0;
+  font-size: clamp(1.05rem, 2.4vw, 1.45rem);
+  font-weight: 600;
+  color: var(--md-default-fg-color);
+}
+
+.md-typeset .rd-hero__lead {
+  max-width: 38rem;
+  margin: 0.8rem auto 0;
+  font-size: 0.85rem;
+  color: var(--rd-muted);
+}
+
+.rd-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 1.6rem;
+}
+
+.md-typeset .rd-hero__actions .md-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.5em 1.2em;
+  border-radius: 0.4rem;
+  font-size: 0.61rem;
+}
+
+.md-typeset .rd-hero__actions .md-button svg {
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+}
+
+/* Hero secondary buttons are neutral; section buttons keep the ember outline. */
+.md-typeset .rd-hero__actions .md-button:not(.md-button--primary) {
+  border: 1px solid var(--rd-strong-border);
+  background: var(--md-default-bg-color);
+  color: var(--md-default-fg-color);
+}
+
+.md-typeset .rd-hero__actions .md-button:not(.md-button--primary):hover {
+  border-color: var(--rd-ember);
+  color: var(--rd-ember);
+}
+
+.md-typeset .rd-section .md-button:not(.md-button--primary) {
+  border-color: var(--rd-ember);
+  color: var(--rd-ember);
+}
+
+.md-typeset .rd-section .md-button:not(.md-button--primary):hover {
+  background: var(--rd-ember);
+  color: #fff;
+}
+
+.md-typeset .rd-hero__actions .md-button--primary {
+  background: linear-gradient(100deg, var(--rd-ember), var(--rd-amber));
+  border-color: transparent;
+  color: #fff;
+}
+
+.md-typeset .rd-hero__actions .md-button--primary:hover {
+  filter: brightness(1.08);
+}
+
+/* ---------- Install box (tabs + copy) ---------- */
+
+.rd-install {
+  width: 100%;
+  max-width: 21.6rem;
+  margin-top: 1.8rem;
+  overflow: hidden;
+  border: 1px solid var(--rd-strong-border);
+  border-radius: 0.75rem;
+  background: var(--rd-card-bg);
+  text-align: left;
+}
+
+.rd-install__radio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.rd-install__tabs {
+  display: flex;
+  gap: 0.2rem;
+  padding: 0 0.6rem;
+  border-bottom: 1px solid var(--rd-card-border);
+  background: var(--rd-tab-bg);
+}
+
+.rd-install__tabs label {
+  padding: 0.4rem 0.54rem 0.36rem;
+  border-bottom: 2px solid transparent;
+  font-size: 0.59rem;
+  font-weight: 500;
+  color: var(--rd-muted);
+  cursor: pointer;
+}
+
+.rd-install__tabs label:hover {
+  color: var(--md-default-fg-color);
+}
+
+.rd-install__panel {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.45rem 0.45rem 0.45rem 0.77rem;
+}
+
+/* Tab N is active when radio N is checked (supports up to four languages). */
+.rd-install__radio:nth-of-type(1):checked ~ .rd-install__tabs label:nth-child(1),
+.rd-install__radio:nth-of-type(2):checked ~ .rd-install__tabs label:nth-child(2),
+.rd-install__radio:nth-of-type(3):checked ~ .rd-install__tabs label:nth-child(3),
+.rd-install__radio:nth-of-type(4):checked ~ .rd-install__tabs label:nth-child(4) {
+  border-bottom-color: var(--rd-ember);
+  color: var(--md-default-fg-color);
+}
+
+.rd-install__radio:nth-of-type(1):checked ~ .rd-install__panel--1,
+.rd-install__radio:nth-of-type(2):checked ~ .rd-install__panel--2,
+.rd-install__radio:nth-of-type(3):checked ~ .rd-install__panel--3,
+.rd-install__radio:nth-of-type(4):checked ~ .rd-install__panel--4 {
+  display: flex;
+}
+
+.rd-install__radio:focus-visible ~ .rd-install__tabs {
+  outline: 2px solid var(--rd-ember);
+  outline-offset: -2px;
+}
+
+.md-typeset .rd-install__cmd {
+  padding: 0;
+  background: none;
+  font-size: 0.63rem;
+  color: var(--md-default-fg-color);
+}
+
+.rd-install__bin {
+  color: var(--rd-ember);
+}
+
+.rd-copy {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.27rem 0.5rem;
+  border: 1px solid var(--rd-strong-border);
+  border-radius: 0.4rem;
+  background: var(--md-default-bg-color);
+  font: inherit;
+  font-size: 0.56rem;
+  color: var(--rd-muted);
+  cursor: pointer;
+}
+
+.rd-copy:hover,
+.rd-copy--done {
+  border-color: var(--rd-ember);
+  color: var(--rd-ember);
+}
+
+.rd-copy svg {
+  width: 0.72rem;
+  height: 0.72rem;
+  fill: currentColor;
+}
+
+.md-typeset .rd-install__note {
+  margin: 0.6rem 0 0;
+  font-size: 0.62rem;
+  color: var(--rd-muted);
+}
+
+/* ---------- Link pills ---------- */
+
+.rd-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.6rem;
+}
+
+.md-typeset .rd-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--rd-strong-border);
+  border-radius: 999px;
+  font-size: 0.66rem;
+  color: var(--md-default-fg-color--light);
+}
+
+.md-typeset .rd-link:hover {
+  border-color: var(--rd-ember);
+  color: var(--rd-ember);
+}
+
+.rd-link svg {
+  width: 0.85rem;
+  height: 0.85rem;
+  fill: currentColor;
+}
+
+/* Hide the content column's top spacing on the landing page. */
+.md-main__inner:has(.rd-section) {
+  margin-top: 0;
+}
+
+/* ---------- Sections ---------- */
+
+.md-typeset .rd-section {
+  margin: 3.5rem 0;
+}
+
+.md-typeset .rd-eyebrow {
+  margin: 0;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rd-ember);
+}
+
+.md-typeset .rd-section h2 {
+  margin: 0.3rem 0 0.4rem;
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.md-typeset .rd-section__lead {
+  max-width: 44rem;
+  margin: 0 0 1.4rem;
+  color: var(--rd-muted);
+}
+
+/* Card grids reuse Material's `grid cards`, with a warmer hover. */
+.md-typeset .rd-section .grid.cards > ul > li {
+  border-color: var(--rd-card-border);
+  background: var(--rd-card-bg);
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.md-typeset .rd-section .grid.cards > ul > li:hover {
+  border-color: var(--rd-ember);
+  transform: translateY(-2px);
+  box-shadow: none;
+}
+
+.md-typeset .rd-icon {
+  color: var(--rd-ember);
+}
+
+/* ---------- Genome showcase ---------- */
+
+.rd-showcase {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 1rem;
+}
+
+.md-typeset .rd-tile {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  color: inherit;
+  overflow: hidden;
+  border: 1px solid var(--rd-card-border);
+  border-radius: 0.6rem;
+  background: var(--rd-card-bg);
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.md-typeset .rd-tile:hover {
+  border-color: var(--rd-ember);
+  transform: translateY(-2px);
+}
+
+.md-typeset .rd-tile img {
+  width: 100%;
+  height: 9.5rem;
+  object-fit: contain;
+  padding: 0.6rem;
+  background: #fff;
+}
+
+.md-typeset .rd-tile__caption {
+  display: block;
+  padding: 0.7rem 0.9rem 0.9rem;
+  font-size: 0.72rem;
+  color: var(--rd-muted);
+}
+
+.md-typeset .rd-tile__caption strong {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--md-default-fg-color);
+}
+
+.rd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 1rem;
+}
+
+.rd-chip {
+  padding: 0.2rem 0.65rem;
+  border: 1px solid var(--rd-card-border);
+  border-radius: 999px;
+  font-size: 0.65rem;
+  color: var(--rd-muted);
+}
+
+/* ---------- Numbers ---------- */
+
+.rd-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 1rem;
+}
+
+.rd-stat {
+  padding: 1.1rem 1.2rem;
+  border: 1px solid var(--rd-card-border);
+  border-radius: 0.6rem;
+  background: var(--rd-card-bg);
+}
+
+.rd-stat__value {
+  display: block;
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(100deg, var(--rd-ember), var(--rd-amber));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.rd-stat__label {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.7rem;
+  color: var(--rd-muted);
+}
+
+.md-typeset .rd-footnote {
+  margin-top: 0.8rem;
+  font-size: 0.65rem;
+  color: var(--rd-muted);
+}
+
+.md-typeset .rd-footnote a {
+  color: var(--rd-ember);
+}
+
+/* ---------- Split (text + image) ---------- */
+
+.rd-split {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 2rem;
+  align-items: center;
+}
+
+.md-typeset .rd-split img {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--rd-card-border);
+  border-radius: 0.6rem;
+  box-shadow: 0 1rem 3rem var(--rd-glow);
+}
+
+@media screen and (max-width: 60em) {
+  .rd-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Entrance animation ---------- */
+
+.rd-rise {
+  animation: rd-rise 0.6s ease-out both;
+}
+
+.rd-rise--1 { animation-delay: 0.08s; }
+.rd-rise--2 { animation-delay: 0.16s; }
+.rd-rise--3 { animation-delay: 0.24s; }
+
+@keyframes rd-rise {
+  from { opacity: 0; transform: translateY(0.6rem); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rd-rise { animation: none; }
+  .md-typeset .rd-tile,
+  .md-typeset .rd-section .grid.cards > ul > li { transition: none; }
+}
