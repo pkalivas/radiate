@@ -22,10 +22,13 @@ A multi-objective quality release. Three operator bugs were fixed: polynomial mu
   - Mutation: polynomial, distribution index 20.
 
   The ZDT3 example's hypervolume goes from ~0.85 to ~1.32.
+- **`random_provider::sample_indices` only generates the indices it returns** instead of shuffling the whole range, so sampling a few points from a long range is much cheaper (2 points from 1,000 indices: ~2,250 ns → ~33 ns). This speeds up `MultiPointCrossover` on long chromosomes.
+- **Seeded runs produce different results than before.** The new sampling in `bernoulli_indices` and `sample_indices` draws random numbers in a different order, so a given seed now gives a different (but statistically equivalent) run for operators that use them.
 
 ### Added
 
 - **Hypervolume indicator.** `pareto::hypervolume(scores, reference, objective)` and `Front::hypervolume(&reference)` compute the exact hypervolume of a set of scores or of the Pareto front against a reference point. They handle any mix of minimized/maximized objectives and any number of objectives: an `O(n log n)` sweep for 2, `O(n²)` slicing for 3, and recursive slicing for 4+.
+- **`random_provider::bernoulli_indices(p, range, f)`** calls `f` for each index selected independently with probability `p`, the same as a per-index `bool(p)` check, but at low `p` it jumps straight to the next selected index, so the cost scales with the number of selections rather than the range length. `BitFlipMutator` and `BlendCrossover` now use it. Rates `<= 0` or `NaN` select nothing and rates `>= 1` select everything, instead of panicking.
 - **`pareto::front_crowding_distance` and `pareto::fronts_from_ranks`** are now public, so you can compute per-front crowding distance and group indices by Pareto rank directly.
 - **Benchmarks page** in the docs comparing `radiate` against DEAP and pymoo on continuous, combinatorial, and multi-objective problems.
 
@@ -33,6 +36,7 @@ A multi-objective quality release. Three operator bugs were fixed: polynomial mu
 
 - **`PolynomialMutator` returned values anchored at the lower bound instead of the current value.** It computed `min + q·(max − min)` instead of Deb's `x + δq·(max − min)`, so mutated genes landed near a bound or near the *reflection* of their current value. Higher `eta` made it worse, not more local. On DTLZ problems, where the optimum sits mid-range, this collapsed hypervolume (DTLZ1 went to 0). It now matches the reference NSGA-II / pymoo operator, with tests for locality, bounds, centering, and `eta` behavior.
 - **`SimulatedBinaryCrossover` produced the wrong children.** The child was centered on half the parents' *difference* instead of their midpoint, and only the first parent was updated. It now writes both children symmetrically around the parents' midpoint, per the standard SBX definition.
+- **`MultiPointCrossover` could lose a cut point.** Cut points were sampled from `0..length`, and a cut at index 0 swaps nothing, so a 2-point crossover sometimes behaved as a 1-point one. Cut points are now sampled from `1..length`.
 - **NSGA-II crowding distance is now computed per Pareto front** instead of across the whole population. This affects `NSGA2Selector` and `TournamentNSGA2Selector`. Before, a truncated front could lose its own boundary points because they weren't extreme relative to *other* fronts.
 
 **For example and details please refer to the [user guide](https://pkalivas.github.io/radiate/) and API docs.**
