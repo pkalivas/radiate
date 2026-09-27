@@ -8,7 +8,7 @@ hero:
   badge:
     text: v1.3.2 is out · multi-objective fixes and a faster PMX
     link: source/releases/
-  title: Radiate
+  title: radiate
   # Optional: `banner: {light: <image>, dark: <image>}` shows images instead of the text title.
   tagline: Genetic algorithms and evolutionary computation.
   lead: >-
@@ -25,7 +25,6 @@ hero:
       primary: true
     - text: Browse examples
       link: source/examples/
-  # `icon` is a path under Material's bundled icons (.icons/<icon>.svg).
   links:
     - text: GitHub
       link: https://github.com/pkalivas/radiate
@@ -68,58 +67,23 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 
     Between Rust's performance capabilities, a multi-threaded architecture, and hours spent optimizing code, Radiate ensures efficient execution of genetic operations, even for large populations and complex problem spaces. 
 
--   **Flexibility** :material-domain:{ .right .rd-icon }
+-   **Genome** :material-dna:{ .right .rd-icon }
 
     ---
 
-    Out of the box support for a customizable genotypes and fitness functions, Radiate can be adapted to a wide range of problem domains, from single and multi optimization tasks to neuroevolution and machine learning applications.
+    Bits, characters, integers, floats, permutations, graphs and trees all evolve through the same core engine.
 
 </div>
-
-<!-- 
-<p class="rd-eyebrow">Why Radiate</p>
-
-## Built for real optimization work
-
-<p class="rd-section__lead">A small set of well-chosen abstractions: pick a genome, write a fitness function, and let the engine handle selection, variation, diversity and parallelism.</p>
-
-<div class="grid cards" markdown>
-
--   :material-rocket-launch:{ .lg .rd-icon } **Fast**
-
-    ---
-
-    A Rust core with parallel evaluation. It was the fastest library on every problem in our benchmarks.
-
--   :material-dna:{ .lg .rd-icon } **Any genome**
-
-    ---
-
-    Bits, characters, integers, floats, permutations, graphs and trees all evolve through the same engine. Change the codec, keep everything else.
-
--   :material-language-python:{ .lg .rd-icon } **Rust and Python**
-
-    ---
-
-    The same engine, operators and results in both languages. The Python package is a thin binding over the Rust core, not a reimplementation.
-
--   :material-chart-timeline-variant:{ .lg .rd-icon } **Observable**
-
-    ---
-
-    Metrics for every generation, events you can subscribe to, checkpoints, and a live terminal dashboard.
-
-</div> -->
 
 </div>
 
 <div class="rd-section" markdown>
 
-<p class="rd-eyebrow">One engine, many genomes</p>
+<p class="rd-eyebrow">Flexibility</p>
 
-## From parameter tuning to neuroevolution
+## Customizable Genotypes and Fitness Functions
 
-<p class="rd-section__lead">The same pipeline that evolves a string evolves neural network topologies and symbolic-regression programs.</p>
+<p class="rd-section__lead">Out of the box support for a customizable genotypes and fitness functions, Radiate can be adapted to a wide range of problem domains, from single and multi optimization tasks to neuroevolution and machine learning applications.</p>
 
 <div class="rd-showcase">
   <a class="rd-tile" href="source/examples/">
@@ -158,33 +122,6 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 
 <div class="rd-section" markdown>
 
-<!-- <p class="rd-eyebrow">Benchmarks</p>
-
-## Fast, without trading away quality
-
-<p class="rd-section__lead">Radiate against DEAP and pymoo on ten continuous, combinatorial and multi-objective problems.</p>
-
-<div class="rd-stats">
-  <div class="rd-stat">
-    <span class="rd-stat__value">10 / 10</span>
-    <span class="rd-stat__label">problems where Radiate finished fastest</span>
-  </div>
-  <div class="rd-stat">
-    <span class="rd-stat__value">2–35×</span>
-    <span class="rd-stat__label">faster than DEAP and pymoo, wall-clock</span>
-  </div>
-  <div class="rd-stat">
-    <span class="rd-stat__value">7 / 7</span>
-    <span class="rd-stat__label">single-objective problems with the best or tied-best result</span>
-  </div>
-  <div class="rd-stat">
-    <span class="rd-stat__value">≤ 0.01</span>
-    <span class="rd-stat__label">hypervolume from the best library on ZDT1, ZDT3 and DTLZ2</span>
-  </div>
-</div>
-
-<p class="rd-footnote">Python API, 10 runs per library and problem, on an M1 Pro. Full results and methodology on the <a href="source/misc/benches/">benchmarks page</a>.</p> -->
-
 </div>
 
 <div class="rd-section" markdown>
@@ -193,7 +130,7 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 
 <div markdown>
 
-<p class="rd-eyebrow">Observe</p>
+<p class="rd-eyebrow">Observability</p>
 
 ## Deep insight into the engine in real-time
 
