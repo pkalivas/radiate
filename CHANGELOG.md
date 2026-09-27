@@ -24,6 +24,7 @@ A multi-objective quality release. Three operator bugs were fixed: polynomial mu
 
   The ZDT3 example's hypervolume goes from ~0.85 to ~1.32.
 - **`random_provider::sample_indices` only generates the indices it returns** instead of shuffling the whole range, so sampling a few points from a long range is much cheaper (2 points from 1,000 indices: ~2,250 ns → ~33 ns). This speeds up `MultiPointCrossover` on long chromosomes.
+- **`PMXCrossover` is much faster.** It now builds each child in place by swapping genes, using position lookup tables. This is `O(n)` instead of the previous quadratic search, and it doesn't clone genes. Each crossover is roughly 7× faster at 20 genes, 23× at 100, and 260× at 2,000. The output is unchanged (still standard PMX), and seeded runs produce the same results as before.
 - **Seeded runs produce different results than before.** The new sampling in `bernoulli_indices` and `sample_indices` draws random numbers in a different order, so a given seed now gives a different (but statistically equivalent) run for operators that use them.
 
 ### Added

@@ -1,7 +1,18 @@
 use radiate_core::{
-    AlterContext, Chromosome, Crossover, Expr, PermutationChromosome, RateSet, math::indexes,
+    AlterContext, Chromosome, Crossover, Expr, PermutationChromosome, PermutationGene, RateSet,
+    math::indexes,
 };
 
+/// Partially Matched Crossover (PMX) for permutations.
+///
+/// A random segment is exchanged between the two parents. Outside the segment each
+/// child keeps its own genes, except where a gene would be duplicated - those are
+/// resolved through the mapping defined by the segment, so both children stay valid
+/// permutations.
+///
+/// Implemented in place: each child is built by swapping genes within its own
+/// chromosome, using a position lookup per parent, so a crossover is `O(n)` and never
+/// clones genes.
 pub struct PMXCrossover {
     rate: Expr,
 }
@@ -29,44 +40,85 @@ impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover 
             return 0;
         }
 
-        let mut subset = vec![0; 2];
-        indexes::fill_subset(chrom_one.genes.len(), &mut subset);
+        debug_assert_eq!(
+            chrom_one.len(),
+            chrom_two.len(),
+            "PMX parents must be permutations of the same alleles"
+        );
 
-        // start will always be less than end due to StratifiedCorrect
-        let start = subset[0];
-        let end = subset[1];
+        // `fill_subset` returns distinct indices in ascending order, so start < end.
+        let mut subset = [0; 2];
+        indexes::fill_subset(length, &mut subset);
+        let (start, end) = (subset[0], subset[1]);
 
-        let mut offspring_one = chrom_one.genes.clone();
-        let mut offspring_two = chrom_two.genes.clone();
-
-        offspring_one[start..(end + 1)].clone_from_slice(&chrom_two.genes[start..(end + 1)]);
-        offspring_two[start..(end + 1)].clone_from_slice(&chrom_one.genes[start..(end + 1)]);
-
-        for i in 0..length {
-            if i < start || i > end {
-                let mut gene_one = chrom_one.get(i).expect("Gene not found in chromosome");
-                let mut gene_two = chrom_two.get(i).expect("Gene not found in chromosome");
-
-                while offspring_one[start..=end].contains(gene_one) {
-                    let index = chrom_two.genes.iter().position(|g| g == gene_one).unwrap();
-                    gene_one = chrom_one.get(index).expect("Gene not found in chromosome");
-                }
-
-                while offspring_two[start..=end].contains(gene_two) {
-                    let index = chrom_one.genes.iter().position(|g| g == gene_two).unwrap();
-                    gene_two = chrom_two.get(index).expect("Gene not found in chromosome");
-                }
-
-                offspring_one[i] = gene_one.clone();
-                offspring_two[i] = gene_two.clone();
-            }
-        }
-
-        chrom_one.genes = offspring_one;
-        chrom_two.genes = offspring_two;
+        let num_alleles = chrom_one.alleles().len();
+        partially_matched_swap(
+            &mut chrom_one.genes,
+            &mut chrom_two.genes,
+            start,
+            end,
+            num_alleles,
+        );
 
         2
     }
+}
+
+/// Goldberg's swap formulation of PMX: for each position `i` in `start..=end`, child one
+/// swaps the gene holding parent two's value at `i` into place, and vice versa.
+///
+/// The value each child needs must come from a snapshot of the *other parent's original
+/// segment*. Reading the other chromosome's current value instead gives a different
+/// (non-PMX) result, because earlier swaps can already have moved genes inside the segment.
+fn partially_matched_swap<A: PartialEq + Clone>(
+    one: &mut [PermutationGene<A>],
+    two: &mut [PermutationGene<A>],
+    start: usize,
+    end: usize,
+    num_alleles: usize,
+) {
+    let segment_len = end - start + 1;
+
+    // One allocation: [position in one | position in two | segment of one | segment of two]
+    let mut buffer = vec![0; 2 * num_alleles + 2 * segment_len];
+    let (pos_one, rest) = buffer.split_at_mut(num_alleles);
+    let (pos_two, rest) = rest.split_at_mut(num_alleles);
+    let (segment_one, segment_two) = rest.split_at_mut(segment_len);
+
+    for (i, gene) in one.iter().enumerate() {
+        pos_one[gene.index()] = i;
+    }
+
+    for (i, gene) in two.iter().enumerate() {
+        pos_two[gene.index()] = i;
+    }
+
+    for (k, i) in (start..=end).enumerate() {
+        segment_one[k] = one[i].index();
+        segment_two[k] = two[i].index();
+    }
+
+    for (k, i) in (start..=end).enumerate() {
+        swap_into_place(one, pos_one, i, segment_two[k]);
+        swap_into_place(two, pos_two, i, segment_one[k]);
+    }
+}
+
+/// Moves the gene holding `value` to position `i`, swapping it with the gene currently
+/// there, and keeps `positions` in sync.
+#[inline]
+fn swap_into_place<A: PartialEq + Clone>(
+    genes: &mut [PermutationGene<A>],
+    positions: &mut [usize],
+    i: usize,
+    value: usize,
+) {
+    let j = positions[value];
+    let displaced = genes[i].index();
+
+    genes.swap(i, j);
+    positions[displaced] = j;
+    positions[value] = i;
 }
 
 #[cfg(test)]
