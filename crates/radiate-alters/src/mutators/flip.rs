@@ -2,11 +2,18 @@ use radiate_core::{
     AlterContext, BitChromosome, ContiguousChromosome, Expr, Mutate, RateSet, random_provider,
 };
 
-/// Flips each [`BitGene`] in a chromosome independently with probability `rate`.
+/// Flips each bit of a [`BitChromosome`] independently with probability `rate`.
 ///
-/// Genes are picked with [`random_provider::bernoulli_indices`], so at low rates
-/// the cost scales with the number of flipped genes rather than the length of
-/// the chromosome. A rate `<= 0` flips nothing and a rate `>= 1` flips every gene.
+/// The rate is **per bit**, so a chromosome of `n` bits sees `n * rate` flips per
+/// generation on average. A common starting point is `rate = 1 / n` - one expected
+/// flip per chromosome.
+///
+/// Bits are picked with [`random_provider::bernoulli_indices`], so at low rates
+/// the cost scales with the number of flipped bits rather than the length of
+/// the chromosome. A rate `<= 0` or `NaN` flips nothing and a rate `>= 1` flips every bit.
+///
+/// Implemented for [`BitChromosome`] specifically, not for any chromosome whose
+/// gene is a [`BitGene`](radiate_core::BitGene).
 #[derive(Debug, Clone)]
 pub struct BitFlipMutator {
     rate: Expr,
@@ -30,8 +37,6 @@ impl Mutate<BitChromosome> for BitFlipMutator {
         ctx: &mut AlterContext,
     ) -> usize {
         let p = ctx.rate();
-        debug_assert!(p.is_finite());
-
         let genes = chromosome.as_mut_slice();
 
         let mut flips = 0;

@@ -14,6 +14,7 @@ A multi-objective quality release. Three operator bugs were fixed: polynomial mu
 
 - **Python: plotting moved from Matplotlib to Plotly.** The `plot` extra now installs `plotly` instead of `matplotlib` (`uv add "radiate[plot]"`), and `MetricCollector.plot(...)` renders an interactive Plotly figure. All Python examples and docs snippets were converted as well.
 - **`Gene` no longer requires `Clone`.** The bound moved down to `NumericGene`, and the GP graph types (`GraphNode`, `GraphChromosome`, `GraphMutator`) no longer require `PartialEq` on their value type. Generic code that relied on `G: Gene` implying `Clone` needs an explicit `G: Gene + Clone` bound.
+- **`BitFlipMutator` is implemented for `BitChromosome` only** (breaking). It was implemented for any `ContiguousChromosome` with `Gene = BitGene`. A custom chromosome holding `BitGene`s no longer gets `BitFlipMutator` and needs its own `Mutate` impl. The rate is documented as per bit: a chromosome of `n` bits sees `n * rate` flips per generation on average.
 - **Multi-objective examples and docs use a tuned NSGA-II/III configuration**, and a new [recommended configuration](https://pkalivas.github.io/radiate/source/objectives/#recommended-configuration) section explains it:
   - Parent selection: tournament NSGA-II.
   - Survivor selection: NSGA-II for 2 objectives, NSGA-III for 3 or more.

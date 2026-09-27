@@ -80,7 +80,6 @@ impl<C: Chromosome> Select<C> for TournamentNSGA2Selector {
         let distances = pareto::front_crowding_distance(&scores, &ranks);
 
         let mut result = Vec::new();
-
         while result.len() < count {
             let k = std::cmp::min(2 * count - result.len(), population.len());
             let mut g = vec![0; k];

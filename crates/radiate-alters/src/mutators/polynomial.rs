@@ -22,14 +22,14 @@ use radiate_utils::{Float, Primitive};
 #[derive(Debug, Clone)]
 pub struct PolynomialMutator {
     rate: Expr,
-    eta: f32,
+    eta: f64,
 }
 
 impl PolynomialMutator {
     pub fn new(rate: impl Into<Expr>, eta: f32) -> Self {
         PolynomialMutator {
             rate: rate.into(),
-            eta,
+            eta: eta as f64,
         }
     }
 
@@ -81,10 +81,9 @@ where
                 let min = lower.extract::<f64>().unwrap();
                 let max = upper.extract::<f64>().unwrap();
                 let value = gene.allele().extract::<f64>().unwrap();
-                let eta = self.eta as f64;
 
                 // `new_value` here is clamped safely within the bounds when the allele is set.
-                let new_value = self.polynomial_mutation(value, min, max, eta);
+                let new_value = self.polynomial_mutation(value, min, max, self.eta);
                 gene.set_allele(F::from(new_value).unwrap());
 
                 count += 1;
