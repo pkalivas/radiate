@@ -54,20 +54,19 @@ where
         let min_len = chrom_one.len().min(chrom_two.len());
 
         random_provider::with_rng(|rand| {
-            rand.bernoulli_indices(ctx.rate(), 0..min_len, |i| {
-                let one = chrom_one.get_mut(i).unwrap();
-                let two = chrom_two.get_mut(i).unwrap();
+            rand.bernoulli_indices(ctx.rate(), min_len, |i| {
+                if let Some((one, two)) = chrom_one.get_mut(i).zip(chrom_two.get_mut(i)) {
+                    let allele_one = *one.allele();
+                    let allele_two = *two.allele();
 
-                let allele_one = *one.allele();
-                let allele_two = *two.allele();
+                    let new_allele_one = allele_one - (alpha * (allele_two - allele_one));
+                    let new_allele_two = allele_two - (alpha * (allele_one - allele_two));
 
-                let new_allele_one = allele_one - (alpha * (allele_two - allele_one));
-                let new_allele_two = allele_two - (alpha * (allele_one - allele_two));
+                    one.set_allele(new_allele_one);
+                    two.set_allele(new_allele_two);
 
-                one.set_allele(new_allele_one);
-                two.set_allele(new_allele_two);
-
-                cross_count += 1;
+                    cross_count += 1;
+                }
             });
         });
 

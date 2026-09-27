@@ -16,7 +16,7 @@ fn main() -> io::Result<()> {
         .codec(codec)
         .minimizing()
         .population_size(250)
-        .alter(alters!(PMXCrossover::new(0.4), SwapMutator::new(0.05)))
+        .alter(alters!(PMXCrossover::new(0.5), SwapMutator::new(0.01)))
         .fitness_fn(move |genotype: Vec<usize>| {
             let mut total_distance = 0.0;
             for i in 0..genotype.len() {
@@ -32,7 +32,7 @@ fn main() -> io::Result<()> {
         .iter()
         .until(move |ctx| {
             println!("[ {:?} ]: {:?}", ctx.index(), ctx.score());
-            ctx.index() > 2500 || ctx.score().as_usize() == 2085
+            ctx.score().as_usize() == 2085
         })
         .run()
         .unwrap();

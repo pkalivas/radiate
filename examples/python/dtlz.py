@@ -61,7 +61,7 @@ engine = (
 )
 
 
-result = engine.run(ui=True)
+result = engine.run(ui=False)
 front = result.front()
 hypervolume = front.hypervolume([1.0, 1.0, 1.0])
 

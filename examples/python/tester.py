@@ -17,7 +17,7 @@ engine = (
     rd.Engine.bit([20, 20])
     .fitness(fit)
     .minimizing()
-    # .alter(rd.Mutate.bit_flip(0.01), rd.Cross.uniform())
+    .alter(rd.Mutate.bit_flip(0.01), rd.Cross.uniform())
     .limit(rd.Limit.score(0), rd.Limit.generations(200))
 )
 

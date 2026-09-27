@@ -37,41 +37,6 @@ pub fn with_rng<R>(f: impl FnOnce(&mut RdRand<'_>) -> R) -> R {
     })
 }
 
-/// Calls `f(i)` for each index in `range`, where each index is selected independently
-/// with probability `p` - the same result as `if bool(p) { f(i) }` for every index,
-/// but usually much cheaper. `p <= 0` or `NaN` selects nothing and `p >= 1` selects
-/// every index. Indices are passed to `f` in ascending order.
-///
-/// Two strategies are used, chosen by `p`:
-///
-/// - **Geometric (low `p`)**: the number of unselected indices before the next selected
-///   one follows a geometric distribution, so it's sampled directly and the loop jumps
-///   straight to the next selected index. This costs one random draw per *selected*
-///   index (plus one) instead of one per index.
-/// - **Per-index (high `p`)**: one Bernoulli draw per index. When most indices are
-///   selected anyway, this is cheaper than the logarithm the geometric strategy needs
-///   per selection.
-///
-/// Benchmark over 1000 indices, in ns per call:
-///
-/// | `p`    | Geometric | Per-index |
-/// |-------:|----------:|----------:|
-/// | 0.0002 |        19 |      1245 |
-/// | 0.01   |       109 |      1257 |
-/// | 0.1    |       699 |      1696 |
-/// | 0.4    |      2691 |      3435 |
-/// | 0.5    |      3357 |      3782 |
-/// | 0.7    |      4749 |      2692 |
-///
-/// The switch happens at `p = 0.45`, on the conservative side of where the two cross.
-///
-/// The RNG is only borrowed for each draw, not while `f` runs, so `f` is free to use
-/// `random_provider` itself (e.g. `gene.new_instance()`). If `f` doesn't need
-/// randomness, [RdRand::bernoulli_indices] avoids re-borrowing the RNG for each draw.
-pub fn bernoulli_indices<F: Float>(p: F, range: Range<usize>, f: impl FnMut(usize)) {
-    bernoulli_select(p, range, random::<u64>, f);
-}
-
 /// Seeds the thread-local random number generator with the given seed.
 pub fn seed(seed: u64) {
     let mut global = GLOBAL_RNG.lock().unwrap();
@@ -166,6 +131,49 @@ pub fn cond_indices(range: Range<usize>, prob: f32) -> Vec<usize> {
     with_rng(|rng| rng.cond_indices(range, prob))
 }
 
+/// Calls `f(i)` for each index in `input`, where each index is selected independently
+/// with probability `p` - the same result as `if bool(p) { f(i) }` for every index,
+/// but usually much cheaper. `p <= 0` or `NaN` selects nothing and `p >= 1` selects
+/// every index. Indices are passed to `f` in ascending order.
+///
+/// `input` is either a length `n`, which covers `0..n`, or an explicit `Range<usize>`
+/// (see [BernoulliInput]):
+///
+/// ```rust,ignore
+/// bernoulli_indices(p, chromosome.len(), |i| { /* 0..len */ });
+/// bernoulli_indices(p, 5..25, |i| { /* 5..25 */ });
+/// ```
+///
+/// Two strategies are used, chosen by `p`:
+///
+/// - **Geometric (low `p`)**: the number of unselected indices before the next selected
+///   one follows a geometric distribution, so it's sampled directly and the loop jumps
+///   straight to the next selected index. This costs one random draw per *selected*
+///   index (plus one) instead of one per index.
+/// - **Per-index (high `p`)**: one Bernoulli draw per index. When most indices are
+///   selected anyway, this is cheaper than the logarithm the geometric strategy needs
+///   per selection.
+///
+/// Benchmark over 1000 indices, in ns per call:
+///
+/// | `p`    | Geometric | Per-index |
+/// |-------:|----------:|----------:|
+/// | 0.0002 |        19 |      1245 |
+/// | 0.01   |       109 |      1257 |
+/// | 0.1    |       699 |      1696 |
+/// | 0.4    |      2691 |      3435 |
+/// | 0.5    |      3357 |      3782 |
+/// | 0.7    |      4749 |      2692 |
+///
+/// The switch happens at `p = 0.45`, on the conservative side of where the two cross.
+///
+/// The RNG is only borrowed for each draw, not while `f` runs, so `f` is free to use
+/// `random_provider` itself (e.g. `gene.new_instance()`). If `f` doesn't need
+/// randomness, [RdRand::bernoulli_indices] avoids re-borrowing the RNG for each draw.
+pub fn bernoulli_indices<F: Float>(p: F, input: impl Into<BernoulliInput>, f: impl FnMut(usize)) {
+    bernoulli_select(p, input, random::<u64>, f);
+}
+
 pub struct RdRand<'a>(&'a mut SmallRng);
 
 impl<'a> RdRand<'a> {
@@ -257,8 +265,13 @@ impl<'a> RdRand<'a> {
     /// Same as [bernoulli_indices], but draws from this RNG. The RNG stays borrowed while
     /// `f` runs, so `f` must not call `random_provider` - use the free function if it does.
     #[inline]
-    pub fn bernoulli_indices<F: Float>(&mut self, p: F, range: Range<usize>, f: impl FnMut(usize)) {
-        bernoulli_select(p, range, || self.0.next_u64(), f);
+    pub fn bernoulli_indices<F: Float>(
+        &mut self,
+        p: F,
+        input: impl Into<BernoulliInput>,
+        f: impl FnMut(usize),
+    ) {
+        bernoulli_select(p, input, || self.0.next_u64(), f);
     }
 }
 
@@ -267,12 +280,17 @@ impl<'a> RdRand<'a> {
 #[inline]
 fn bernoulli_select<F: Float>(
     p: F,
-    range: Range<usize>,
+    input: impl Into<BernoulliInput>,
     mut next_u64: impl FnMut() -> u64,
     mut f: impl FnMut(usize),
 ) {
     let Some(p) = p.extract::<f64>() else {
         return;
+    };
+
+    let range = match input.into() {
+        BernoulliInput::Max(max) => 0..max,
+        BernoulliInput::Range(r) => r,
     };
 
     if p.is_nan() || p <= 0.0 || range.is_empty() {
@@ -315,6 +333,29 @@ fn bernoulli_select<F: Float>(
         i += gap as usize;
         f(i);
         i += 1;
+    }
+}
+
+/// The indices [bernoulli_indices] and [RdRand::bernoulli_indices] select from.
+///
+/// Usually built implicitly through `Into`: a `usize` becomes [BernoulliInput::Max]
+/// and a `Range<usize>` becomes [BernoulliInput::Range].
+pub enum BernoulliInput {
+    /// Every index in `0..max` - the common case of `0..chromosome.len()`.
+    Max(usize),
+    /// Every index in the given range.
+    Range(Range<usize>),
+}
+
+impl From<Range<usize>> for BernoulliInput {
+    fn from(range: Range<usize>) -> Self {
+        BernoulliInput::Range(range)
+    }
+}
+
+impl From<usize> for BernoulliInput {
+    fn from(max: usize) -> Self {
+        BernoulliInput::Max(max)
     }
 }
 
