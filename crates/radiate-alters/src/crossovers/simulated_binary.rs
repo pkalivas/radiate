@@ -3,6 +3,7 @@ use radiate_core::{
 };
 use radiate_utils::Float;
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct SimulatedBinaryCrossover {
     rate: Expr,
     contiguty: f32,
