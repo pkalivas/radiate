@@ -27,7 +27,6 @@ examples/data/results/*
 *.coverage*
 *.env
 TODO.md
-bitflip.md
 packed.md
 
 # Ignore the agents file. 
