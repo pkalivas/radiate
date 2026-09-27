@@ -39,7 +39,7 @@ Provided `Ops` include:
     | `Div` | 2 | x / y (1 if y ≈ 0) | `Op::div()` | Fn |
     | `Sum` | Any | Sum of n values | `Op::sum()` | Fn |
     | `Product` | Any | Product of n values | `Op::prod()` | Fn |
-    | `Difference` | Any | Difference of n values | `Op::diff()` | Fn |
+    | `Difference` | Any | x1 - x2 - ... - xn (the first input minus the rest) | `Op::diff()` | Fn |
     | `Neg` | 1 | -x | `Op::neg()` | Fn |
     | `Abs` | 1 | abs(x) | `Op::abs()` | Fn |
     | `pow` | 2 | x^y | `Op::pow()` | Fn |
@@ -102,6 +102,7 @@ Provided `Ops` include:
     | `LessEqual` | 2 | x <= y | `Op::le()` | Fn |
     | `IfElse` | 3 | if x then y else z | `Op::if_else()` | Fn |
     | `AndThen` | 3 | x && y && z | `Op::and_then()` | Fn |
+    | `OrElse` | 3 | `x || y || z` | `Op::or_else()` | Fn |
     | `Implies` | 2 | `!x || y` | `Op::implies()` | Fn |
     | `Iff` | 2 | x == y | `Op::iff()` | Fn |
 
