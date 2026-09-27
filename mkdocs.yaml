@@ -1,11 +1,15 @@
 site_name: Radiate
 site_url: https://radiate.rs/
+# Theme overrides live in docs/overrides/ but are templates, not pages.
+exclude_docs: |
+  overrides/
 repo_url: http://github.com/pkalivas/radiate
 repo_name: radiate
 
 nav:
   - Home:
-    - User Guide: index.md
+    - index.md
+    - Overview: source/overview.md
     - Getting Started: source/installation.md
   - Genome:
     - source/genome/index.md
@@ -57,6 +61,7 @@ nav:
   - Release Notes: source/releases.md
 
 theme:
+  custom_dir: docs/overrides
   favicon: assets/logo/radiate.ico
   logo: assets/logo/radiate.png
   name: material
@@ -123,8 +128,10 @@ extra:
   generator: 
 extra_javascript:
   - javascripts/katex.js
+  - javascripts/home.js
   - https://unpkg.com/katex@0/dist/katex.min.js
   - https://unpkg.com/katex@0/dist/contrib/auto-render.min.js
 extra_css:
   - stylesheets/extra.css
+  - stylesheets/home.css
   - https://unpkg.com/katex@0/dist/katex.min.css  

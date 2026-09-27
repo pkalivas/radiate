@@ -55,7 +55,7 @@ impl Op<bool> {
     }
 
     pub fn or_else() -> Self {
-        Op::Fn(op_names::OR_ELSE, 2.into(), |args: &[bool]| {
+        Op::Fn(op_names::OR_ELSE, 3.into(), |args: &[bool]| {
             args[0] || args[1] || args[2]
         })
     }
@@ -86,5 +86,25 @@ impl Op<bool> {
 
     pub fn iff() -> Self {
         Op::Fn(op_names::IFF, 2.into(), |args: &[bool]| args[0] == args[1])
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{Arity, Eval};
+
+    #[test]
+    fn or_else_takes_three_inputs() {
+        let op = Op::<bool>::or_else();
+        assert_eq!(op.arity(), Arity::Exact(3));
+
+        for a in [false, true] {
+            for b in [false, true] {
+                for c in [false, true] {
+                    assert_eq!(op.eval(&[a, b, c]), a || b || c, "or_else({a}, {b}, {c})");
+                }
+            }
+        }
     }
 }

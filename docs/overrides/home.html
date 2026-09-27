@@ -1,0 +1,92 @@
+{#-
+  Landing page template for the docs homepage (docs/index.md opts in with
+  `template: home.html`). The hero copy lives in index.md's front matter under
+  `hero:`, so wording changes never need to touch this file. Everything below
+  the hero is ordinary Markdown in index.md. Styles: docs/stylesheets/home.css.
+  The install box's copy button is wired up in docs/javascripts/home.js.
+-#}
+{% extends "main.html" %}
+
+{% block tabs %}
+  {{ super() }}
+  {% set hero = page.meta.hero %}
+  <section class="rd-hero">
+    <div class="rd-hero__glow" aria-hidden="true"></div>
+    <div class="md-grid md-typeset rd-hero__inner">
+      {% if hero.badge %}
+        <a class="rd-pill rd-rise" href="{{ hero.badge.link | url }}">
+          <span class="rd-pill__dot" aria-hidden="true"></span>
+          <span>{{ hero.badge.text }}</span>
+          <span aria-hidden="true">&rarr;</span>
+        </a>
+      {% endif %}
+
+      {% if hero.banner %}
+        {#- One banner per color scheme; CSS shows the one matching the active theme. -#}
+        <h1 class="rd-hero__banner rd-rise">
+          <img class="rd-banner rd-banner--light" src="{{ hero.banner.light | url }}" alt="">
+          <img class="rd-banner rd-banner--dark" src="{{ hero.banner.dark | url }}" alt="">
+          <span class="rd-sr-only">{{ hero.title }}</span>
+        </h1>
+      {% else %}
+        <h1 class="rd-hero__title rd-rise">{{ hero.title }}</h1>
+      {% endif %}
+      <p class="rd-hero__tagline rd-rise rd-rise--1">{{ hero.tagline }}</p>
+      <p class="rd-hero__lead rd-rise rd-rise--1">{{ hero.lead }}</p>
+
+      {#- Install box: CSS-only tabs (one radio per language), plus a copy button. -#}
+      <div class="rd-install rd-rise rd-rise--2">
+        {% for item in hero.install %}
+          <input class="rd-install__radio" type="radio" name="rd-install"
+                 id="rd-install-{{ loop.index }}" {% if loop.first %}checked{% endif %}>
+        {% endfor %}
+        <div class="rd-install__tabs" role="tablist">
+          {% for item in hero.install %}
+            <label for="rd-install-{{ loop.index }}">{{ item.lang }}</label>
+          {% endfor %}
+        </div>
+        {% for item in hero.install %}
+          {% set parts = item.cmd.split(" ", 1) %}
+          <div class="rd-install__panel rd-install__panel--{{ loop.index }}">
+            <code class="rd-install__cmd"><span class="rd-install__bin">{{ parts[0] }}</span> {{ parts[1] }}</code>
+            <button class="rd-copy" type="button" data-copy="{{ item.cmd }}"
+                    aria-label="Copy {{ item.lang }} install command">
+              {% include ".icons/octicons/copy-16.svg" %}<span>Copy</span>
+            </button>
+          </div>
+        {% endfor %}
+      </div>
+      {% if hero.install_note %}
+        <p class="rd-install__note rd-rise rd-rise--2">{{ hero.install_note }}</p>
+      {% endif %}
+
+      <div class="rd-hero__actions rd-rise rd-rise--3">
+        {% for button in hero.buttons %}
+          <a href="{{ button.link | url }}"
+             class="md-button{% if button.primary %} md-button--primary{% endif %}">
+            {{ button.text }}
+            {% if button.primary %}{% include ".icons/octicons/arrow-right-16.svg" %}{% endif %}
+          </a>
+        {% endfor %}
+      </div>
+
+      {% if hero.links %}
+        <div class="rd-links rd-rise rd-rise--3">
+          {% for link in hero.links %}
+            <a class="rd-link" href="{{ link.link | url }}">
+              {% include ".icons/" ~ link.icon ~ ".svg" %}<span>{{ link.text }}</span>
+            </a>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if hero.note %}
+        <p class="rd-hero__note rd-rise rd-rise--3">{{ hero.note }}</p>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}
+
+{% block content %}
+  {{ page.content }}
+{% endblock %}

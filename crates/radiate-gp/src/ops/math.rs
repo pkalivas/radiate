@@ -184,9 +184,11 @@ impl AggregateOperations {
     pub fn apply<F: OpFloat>(&self, inputs: &[F]) -> F {
         match self {
             AggregateOperations::Sum => clamp(aggregate(inputs)),
-            AggregateOperations::Diff => {
-                clamp(inputs.iter().copied().fold(F::ZERO, |acc, x| acc - x))
-            }
+            // x1 - x2 - ... - xn: the first input minus every other input.
+            AggregateOperations::Diff => match inputs.split_first() {
+                Some((first, rest)) => clamp(rest.iter().copied().fold(*first, |acc, x| acc - x)),
+                None => F::ZERO,
+            },
             AggregateOperations::Prod => {
                 clamp(inputs.iter().copied().fold(F::ONE, |acc, x| acc * x))
             }
@@ -590,7 +592,10 @@ mod tests {
         let xs = [2.0_f32, 3.0, 4.0];
         assert_eq!(AggregateOperations::Sum.apply(&xs), 9.0);
         assert_eq!(AggregateOperations::Prod.apply(&xs), 24.0);
-        assert_eq!(AggregateOperations::Diff.apply(&xs), -9.0);
+        assert_eq!(AggregateOperations::Diff.apply(&xs), -5.0);
+        assert_eq!(AggregateOperations::Diff.apply(&[5.0_f32, 3.0]), 2.0);
+        assert_eq!(AggregateOperations::Diff.apply(&[7.0_f32]), 7.0);
+        assert_eq!(AggregateOperations::Diff.apply::<f32>(&[]), 0.0);
     }
 
     #[test]
