@@ -336,14 +336,8 @@ fn bernoulli_select<F: Float>(
     }
 }
 
-/// The indices [bernoulli_indices] and [RdRand::bernoulli_indices] select from.
-///
-/// Usually built implicitly through `Into`: a `usize` becomes [BernoulliInput::Max]
-/// and a `Range<usize>` becomes [BernoulliInput::Range].
 pub enum BernoulliInput {
-    /// Every index in `0..max` - the common case of `0..chromosome.len()`.
     Max(usize),
-    /// Every index in the given range.
     Range(Range<usize>),
 }
 
