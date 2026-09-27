@@ -151,12 +151,7 @@ impl<C: Chromosome> Alterer<C> {
 
         self.alter_counts.clear();
 
-        let mut ctx = AlterContext {
-            alter_counts: &mut self.alter_counts,
-            generation,
-            control_rate: rates[0],
-            internal_rates: &rates[1..],
-        };
+        let mut ctx = AlterContext::new(&mut self.alter_counts, generation, rates[0], &rates[1..]);
 
         match &mut self.inner {
             AlterInner::Mutate(m) => {

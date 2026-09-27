@@ -28,7 +28,7 @@ A multi-objective quality release. Three operator bugs were fixed: polynomial mu
 ### Added
 
 - **Hypervolume indicator.** `pareto::hypervolume(scores, reference, objective)` and `Front::hypervolume(&reference)` compute the exact hypervolume of a set of scores or of the Pareto front against a reference point. They handle any mix of minimized/maximized objectives and any number of objectives: an `O(n log n)` sweep for 2, `O(n²)` slicing for 3, and recursive slicing for 4+.
-- **`random_provider::bernoulli_indices(p, range, f)`** calls `f` for each index selected independently with probability `p`, the same as a per-index `bool(p)` check, but at low `p` it jumps straight to the next selected index, so the cost scales with the number of selections rather than the range length. `BitFlipMutator` and `BlendCrossover` now use it. Rates `<= 0` or `NaN` select nothing and rates `>= 1` select everything, instead of panicking.
+- **`random_provider::bernoulli_indices(p, input, f)`** calls `f` for each index in `input` (a length `n` for `0..n`, or a `Range<usize>`) selected independently with probability `p`, the same as a per-index `bool(p)` check, but at low `p` it jumps straight to the next selected index, so the cost scales with the number of selections rather than the range length. `BitFlipMutator` and `BlendCrossover` now use it. Rates `<= 0` or `NaN` select nothing and rates `>= 1` select everything, instead of panicking.
 - **`pareto::front_crowding_distance` and `pareto::fronts_from_ranks`** are now public, so you can compute per-front crowding distance and group indices by Pareto rank directly.
 - **Benchmarks page** in the docs comparing `radiate` against DEAP and pymoo on continuous, combinatorial, and multi-objective problems.
 
