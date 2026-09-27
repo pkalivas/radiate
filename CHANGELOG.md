@@ -6,7 +6,7 @@ adheres to semantic versioning.
 
 For all code examples and further explanations, refer to the [documentation](https://pkalivas.github.io/radiate/).
 
-## [Unreleased]
+## [1.3.2] - 2026-09-27
 
 A multi-objective quality release. Three operator bugs were fixed: polynomial mutation, simulated binary crossover, and NSGA-II crowding distance. Together with better-tuned examples and a documented recommended configuration, they take `radiate` from clearly trailing pymoo and DEAP on multi-objective hypervolume (DTLZ2 0.30 vs ~0.70) to on par with them: within ~0.01 of the best library on ZDT1, ZDT3, and DTLZ2, ahead of pymoo on both ZDT problems, while running roughly 7–35× faster. A new exact hypervolume indicator lets you measure front quality directly, and a new [benchmarks page](https://pkalivas.github.io/radiate/source/misc/benches/) compares `radiate` against DEAP and pymoo across single- and multi-objective problems.
 
