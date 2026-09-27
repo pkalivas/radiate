@@ -1,4 +1,3 @@
-# Overview
 
 <figure>
   <img
@@ -7,37 +6,6 @@
     style="width:900px; border-radius:20px;"
   />
 </figure>
-
-Radiate is a powerful library for implementing genetic algorithms and artificial evolution techniques. It provides a fast and flexible framework for creating, evolving, and optimizing solutions to complex problems using principles
-inspired by natural selection and genetics. The core is written in Rust and is available for Python.
-
-<div class="grid cards" markdown>
-    
--   **Ease of use** :material-thumb-up:{ .right }
-
-    ---
-
-    Intuitive API design allows users to easily configure and run genetic algorithms without needed to know the nuts and bolts of the complex operations underlying them.
-
--   **Modular Design** :material-draw:{ .right }
-
-    ---
-
-    The library architecture enables users to mix and match different components such as selection strategies, crossover methods, and mutation techniques to suit their specific needs.
-
--   **Performance** :material-rocket-launch:{ .right }
-
-    ---
-
-    Between Rust's performance capabilities, a multi-threaded architecture, and hours spent optimizing code, Radiate ensures efficient execution of genetic operations, even for large populations and complex problem spaces. 
-
--   **Flexibility** :material-domain:{ .right }
-
-    ---
-
-    Out of the box support for a customizable genotypes and fitness functions, Radiate can be adapted to a wide range of problem domains, from single and multi optimization tasks to neuroevolution and machine learning applications.
-
-</div>
 
 ## Key Features
 

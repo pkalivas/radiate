@@ -44,8 +44,10 @@ hero:
 
 <p class="rd-eyebrow">Why Radiate</p>
 
+## Evolution Made Easy
+
 <p class="rd-section__lead">Radiate is a powerful library for implementing genetic algorithms and artificial evolution techniques. It provides a fast and flexible framework for creating, evolving, and optimizing solutions to complex problems using principles
-inspired by natural selection and genetics. The core is written in Rust and is available for Python.</p>
+inspired by natural selection and genetics. The core is written in Rust with complete parity in Python.</p>
 
 <div class="grid cards" markdown>
     
@@ -148,15 +150,37 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 
 <div class="rd-section" markdown>
 
+<div class="rd-example" markdown>
+
+<div class="rd-example__intro" markdown>
+
 <p class="rd-eyebrow">Example</p>
 
 ## Hello, Radiate!
 
-<p class="rd-section__lead">Evolve a string of characters until it matches a target.</p>
+<p class="rd-section__lead">Evolve a string of characters until it matches a target. The same run in Python and Rust.</p>
+
+<ol class="rd-steps">
+  <li><span class="rd-step">1</span><span><strong>Pick a genome.</strong> A codec turns the problem into something the engine can evolve: here, a vector of characters as long as the target.</span></li>
+  <li><span class="rd-step">2</span><span><strong>Score it.</strong> The fitness function counts the characters that already match.</span></li>
+  <li><span class="rd-step">3</span><span><strong>Run it.</strong> The engine evolves the population until a limit is reached: here, a perfect score.</span></li>
+</ol>
+
+<div class="rd-links rd-links--start" markdown>
+
+[:material-dna: Codecs](source/genome/codec.md){ .rd-link }
+[:material-scale-balance: Fitness](source/fitness.md){ .rd-link }
+[:material-flag-checkered: Limits](source/engine/limits.md){ .rd-link }
+
+</div>
+
+</div>
+
+<div class="rd-example__code" markdown>
 
 === ":fontawesome-brands-python: Python"
 
-    ```python
+    ```python title="hello_radiate.py"
     import radiate as rd
 
     target = "Hello, Radiate!"
@@ -176,7 +200,7 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 
 === ":fontawesome-brands-rust: Rust"
 
-    ```rust
+    ```rust title="src/main.rs"
     use radiate::prelude::*;
 
     let target = "Hello, Radiate!";
@@ -184,22 +208,24 @@ inspired by natural selection and genetics. The core is written in Rust and is a
     let engine = GeneticEngine::builder()
         .codec(CharCodec::vector(target.len()))
         .fitness_fn(|geno: Vec<char>| {
-            geno.into_iter().zip(target.chars()).fold(
-                0,
-                |acc, (allele, targ)| {
-                    if allele == targ { acc + 1 } else { acc }
-                },
-            )
+            geno.into_iter()
+                .zip(target.chars())
+                .filter(|(allele, targ)| allele == targ)
+                .count()
         })
         .build();
 
-    engine
+    let result = engine
         .iter()
-        .logging()
         .until_score(target.len())
-        .last()
-        .unwrap();
+        .last()?;
+
+    println!("{}", result.value().iter().collect::<String>());
     ```
+
+</div>
+
+</div>
 
 </div>
 
@@ -215,7 +241,7 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 
     ---
 
-    Genomes, codecs, selectors, alterers and the engine, one concept at a time.
+    Explore the library one concept at a time.
 
     [:octicons-arrow-right-24: Read the guide](source/overview.md)
 
@@ -223,7 +249,7 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 
     ---
 
-    Complete problems in both languages, from N-Queens to multi-objective fronts.
+    Complete problems in both languages.
 
     [:octicons-arrow-right-24: Browse examples](source/examples.md)
 
@@ -231,7 +257,7 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 
     ---
 
-    Every type and trait, on docs.rs.
+    docs.rs.
 
     [:octicons-arrow-right-24: docs.rs/radiate](https://docs.rs/radiate/latest/radiate/)
 
@@ -239,7 +265,7 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 
     ---
 
-    Issues, discussions and the changelog.
+    Issues, code, and the changelog.
 
     [:octicons-arrow-right-24: pkalivas/radiate](https://github.com/pkalivas/radiate)
 
