@@ -118,3 +118,8 @@ Both the above have an optional argument `py` to build the python package for a 
 * `just clean` to nuke the build artifacts
 
 Run examples with `just example` to run a small python script which shows & runs selected examples.
+
+## Contributing
+
+Contributions are welcome. Pull requests should target the `develop` branch.
+If you use AI tools, disclose it in your PR or issue. See the [AI usage policy](https://github.com/pkalivas/radiate/blob/master/AI_POLICY.md).
