@@ -3,7 +3,9 @@ use radiate_core::{
 };
 use radiate_utils::Float;
 
-/// The `GaussianMutator` is a simple mutator that adds a small amount of Gaussian noise to the gene.
+/// The `GaussianMutator` is a simple mutator that adds Gaussian noise to the gene. The noise's
+/// standard deviation is a quarter of the gene's init range, and the result is clamped to that
+/// range.
 ///
 /// This mutator is for use with any [Chromosome] which holds [FloatGene]s.
 #[derive(Debug, Clone)]
