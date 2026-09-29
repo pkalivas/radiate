@@ -6,6 +6,12 @@ adheres to semantic versioning.
 
 For all code examples and further explanations, refer to the [documentation](https://radiate.rs/).
 
+## [Unreleased]
+
+### Fixed
+
+- **`GaussianMutator` ignored a gene's `bounds`.** Mutated values were clamped to the gene's sampling range (`value_range`) instead of its `bounds`, so a gene with wider bounds could never be moved past its initial range by Gaussian mutation, and a gene already outside it was pulled back in. Values are now clamped only to `bounds`. The noise is unchanged: the standard deviation is still 25% of the sampling range, so mutations stay local. Genes without explicit bounds behave exactly as before; seeded runs with bounds wider than the sampling range will produce different results.
+
 ## [1.3.2] - 2026-09-27
 
 A multi-objective quality release. Three operator bugs were fixed: polynomial mutation, simulated binary crossover, and NSGA-II crowding distance. Together with better-tuned examples and a documented recommended configuration, they take `radiate` from clearly trailing pymoo and DEAP on multi-objective hypervolume (DTLZ2 0.30 vs ~0.70) to on par with them: within ~0.01 of the best library on ZDT1, ZDT3, and DTLZ2, ahead of pymoo on both ZDT problems, while running roughly 7–35× faster. A new exact hypervolume indicator lets you measure front quality directly, and a new [benchmarks page](https://radiate.rs/source/misc/benches/) compares `radiate` against DEAP and pymoo across single- and multi-objective problems.

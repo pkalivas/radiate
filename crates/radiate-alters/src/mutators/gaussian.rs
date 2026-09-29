@@ -44,7 +44,8 @@ where
                     let std_dev = (*max - *min) * F::from(0.25).unwrap();
                     let gaussian = rand.gaussian(*gene.allele(), std_dev);
 
-                    gene.set_allele(gaussian.clamp(*min, *max));
+                    // `set_allele` here safely clamps the value within the gene's bounds
+                    gene.set_allele(gaussian);
 
                     count += 1;
                 }
