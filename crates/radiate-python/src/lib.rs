@@ -18,7 +18,8 @@ pub use random::PyRandomProvider;
 pub mod prelude {
     pub use super::{IntoPyAnyObject, PyAnyObject, PyProblem};
     pub use crate::{
-        PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType, PyGraphCodec, PyIntCodec, Wrap,
+        PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType, PyGraphCodec, PyIntCodec,
+        PyPackedBitCodec, Wrap,
     };
     pub use pyo3::prelude::*;
     pub use pyo3::types::PyAny;

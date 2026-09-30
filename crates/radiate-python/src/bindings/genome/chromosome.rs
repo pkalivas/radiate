@@ -30,6 +30,7 @@ macro_rules! match_chromosome {
 
             Char($epoch) => $body,
             Bit($epoch) => $body,
+            PackedBit($epoch) => $body,
 
             Permutation($epoch) => $body,
 
@@ -61,6 +62,7 @@ pub(crate) enum ChromosomeInner {
 
     Bit(BitChromosome),
     Char(CharChromosome),
+    PackedBit(PackedBitChromosome),
 
     Permutation(PermutationChromosome<usize>),
 
@@ -90,6 +92,7 @@ impl From<ChromosomeInner> for Vec<PyGene> {
             ChromosomeInner::Float64(chrom) => chrom.into_iter().map(PyGene::from).collect(),
 
             ChromosomeInner::Bit(chrom) => chrom.into_iter().map(PyGene::from).collect(),
+            ChromosomeInner::PackedBit(chrom) => chrom.into_iter().map(PyGene::from).collect(),
             ChromosomeInner::Char(chrom) => chrom.into_iter().map(PyGene::from).collect(),
             ChromosomeInner::Permutation(chrom) => chrom.into_iter().map(PyGene::from).collect(),
 
@@ -145,6 +148,7 @@ impl_into_py_chromosome_inner!(FloatChromosome<f32>, Float32);
 impl_into_py_chromosome_inner!(FloatChromosome<f64>, Float64);
 
 impl_into_py_chromosome_inner!(BitChromosome, Bit);
+impl_into_py_chromosome_inner!(PackedBitChromosome, PackedBit);
 impl_into_py_chromosome_inner!(CharChromosome, Char);
 impl_into_py_chromosome_inner!(PermutationChromosome<usize>, Permutation);
 
@@ -202,6 +206,7 @@ impl PyChromosome {
             Float32 => Float32(FloatChromosome<f32>, FloatGene<f32>),
             Float64 => Float64(FloatChromosome<f64>, FloatGene<f64>),
             Boolean => Bit(BitChromosome,          BitGene),
+            // PackedBit => PackedBit(PackedBitChromosome, BitWordGene),
             Char    => Char(CharChromosome,        CharGene),
         });
 
@@ -262,6 +267,7 @@ impl PyChromosome {
             ChromosomeInner::Float64(_) => PyGeneType::Float,
 
             ChromosomeInner::Bit(_) => PyGeneType::Bit,
+            ChromosomeInner::PackedBit(_) => PyGeneType::Bit,
             ChromosomeInner::Char(_) => PyGeneType::Char,
 
             ChromosomeInner::Permutation(_) => PyGeneType::Permutation,
@@ -292,6 +298,7 @@ impl PyChromosome {
             ChromosomeInner::Float64(_) => DataType::Float64,
 
             ChromosomeInner::Bit(_) => DataType::Boolean,
+            ChromosomeInner::PackedBit(_) => DataType::Boolean,
             ChromosomeInner::Char(_) => DataType::Char,
 
             ChromosomeInner::Permutation(_) => DataType::Usize,
@@ -344,6 +351,7 @@ impl_into_py_chromosome!(FloatChromosome<f32>, Float32);
 impl_into_py_chromosome!(FloatChromosome<f64>, Float64);
 
 impl_into_py_chromosome!(BitChromosome, Bit);
+impl_into_py_chromosome!(PackedBitChromosome, PackedBit);
 impl_into_py_chromosome!(CharChromosome, Char);
 impl_into_py_chromosome!(PermutationChromosome<usize>, Permutation);
 

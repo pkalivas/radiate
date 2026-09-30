@@ -702,6 +702,45 @@ class Engine[G, T]:
         shape: AtLeastOne[int] = 1,
         use_numpy: bool = False,
     ) -> "Engine[bool, Any]": ...
+    @overload
+    @staticmethod
+    def packed_bit(
+        num_bits: int,
+        use_numpy: Literal[False] = False,
+        *,
+        words: Literal[False] = False,
+    ) -> "Engine[bool, list[bool]]": ...
+    @overload
+    @staticmethod
+    def packed_bit(
+        num_bits: int,
+        use_numpy: Literal[True],
+        *,
+        words: Literal[False] = False,
+    ) -> "Engine[bool, np.ndarray]": ...
+    @overload
+    @staticmethod
+    def packed_bit(
+        num_bits: int,
+        use_numpy: Literal[False] = False,
+        *,
+        words: Literal[True],
+    ) -> "Engine[bool, list[int]]": ...
+    @overload
+    @staticmethod
+    def packed_bit(
+        num_bits: int,
+        use_numpy: Literal[True],
+        *,
+        words: Literal[True],
+    ) -> "Engine[bool, np.ndarray]": ...
+    @staticmethod
+    def packed_bit(
+        num_bits: int,
+        use_numpy: bool = False,
+        *,
+        words: bool = False,
+    ) -> "Engine[bool, Any]": ...
 
     # ----------------------------
     # Other constructors

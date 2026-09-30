@@ -17,6 +17,7 @@ from .codec import (
     FloatCodec,
     GraphCodec,
     IntCodec,
+    PackedBitCodec,
     PermutationCodec,
     TreeCodec,
 )
@@ -122,6 +123,7 @@ __all__ = [
     "IntCodec",
     "CharCodec",
     "BitCodec",
+    "PackedBitCodec",
     "GraphCodec",
     "GraphType",
     "TreeCodec",

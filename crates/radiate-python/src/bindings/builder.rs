@@ -51,6 +51,7 @@ macro_rules! dispatch_builder_typed {
             Float64(b) => $call(b).map(Float64),
             Char(b) => $call(b).map(Char),
             Bit(b) => $call(b).map(Bit),
+            PackedBit(b) => $call(b).map(PackedBit),
             Permutation(b) => $call(b).map(Permutation),
             Graph32(b) => $call(b).map(Graph32),
             Graph64(b) => $call(b).map(Graph64),
@@ -545,6 +546,8 @@ impl PyEngineBuilder {
             Char(Self::new_builder(fitness, char_codec.codec, executor))
         } else if let Ok(bit_codec) = codec.extract::<PyBitCodec>() {
             Bit(Self::new_builder(fitness, bit_codec.codec, executor))
+        } else if let Ok(packed_bit_codec) = codec.extract::<PyPackedBitCodec>() {
+            PackedBit(Self::new_builder(fitness, packed_bit_codec.codec, executor))
         } else if let Ok(perm_codec) = codec.extract::<PyPermutationCodec>() {
             Permutation(Self::new_builder(fitness, perm_codec.codec, executor))
         } else if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
@@ -716,6 +719,8 @@ impl PyEngineBuilder {
             Char(Self::new_builder(fitness, char_codec.codec, executor))
         } else if let Ok(bit_codec) = codec.extract::<PyBitCodec>() {
             Bit(Self::new_builder(fitness, bit_codec.codec, executor))
+        } else if let Ok(packed_bit_codec) = codec.extract::<PyPackedBitCodec>() {
+            PackedBit(Self::new_builder(fitness, packed_bit_codec.codec, executor))
         } else if let Ok(permutation_codec) = codec.extract::<PyPermutationCodec>() {
             Permutation(Self::new_builder(
                 fitness,

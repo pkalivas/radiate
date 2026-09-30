@@ -1,4 +1,6 @@
-use crate::{BitChromosome, Chromosome, ContiguousChromosome, Gene, Valid, random_provider};
+use crate::{
+    BitChromosome, Chromosome, ContiguousChromosome, Gene, Valid, domain::bits, random_provider,
+};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -166,6 +168,22 @@ impl PackedBitChromosome {
         (0..self.num_bits).map(move |i| self.bit(i))
     }
 
+    /// Unpacks the bits into a `Vec<bool>` of length [`num_bits`](Self::num_bits).
+    ///
+    /// Works a byte at a time through [`bits::TABLE`], so it's several times faster
+    /// than collecting [`iter_bits`](Self::iter_bits). Use this when you need every bit
+    /// at once, e.g. when handing the bit string to a fitness function.
+    pub fn to_bools(&self) -> Vec<bool> {
+        let mut out = vec![false; self.words.len() * WORD_BITS];
+        let bytes = self.words.iter().flat_map(|word| word.0.to_le_bytes());
+        for (chunk, byte) in out.chunks_exact_mut(8).zip(bytes) {
+            chunk.copy_from_slice(&bits::TABLE[byte as usize]);
+        }
+
+        out.truncate(self.num_bits);
+        out
+    }
+
     /// Zero the unspecified bits past `num_bits`.
     pub fn clear_tail(&mut self) {
         let mask = self.tail_mask();
@@ -222,6 +240,15 @@ impl From<&BitChromosome> for PackedBitChromosome {
         }
 
         chromosome
+    }
+}
+
+impl IntoIterator for PackedBitChromosome {
+    type Item = BitWordGene;
+    type IntoIter = std::vec::IntoIter<BitWordGene>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.words.into_iter()
     }
 }
 

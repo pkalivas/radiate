@@ -95,6 +95,7 @@ impl PyGeneration {
             Float64(epoch) => get_value(py, epoch),
             Char(epoch) => get_value(py, epoch),
             Bit(epoch) => get_value(py, epoch),
+            PackedBit(epoch) => get_value(py, epoch),
             Permutation(epoch) => get_value(py, epoch),
             Graph32(epoch) => PyGraph::from(epoch.value().clone()).into_bound_py_any(py),
             Graph64(epoch) => PyGraph::from(epoch.value().clone()).into_bound_py_any(py),

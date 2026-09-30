@@ -2,7 +2,8 @@ use crate::{PyPopulation, PySpecies};
 use pyo3::{Bound, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitChromosome, CharChromosome, Chromosome, Ecosystem, FloatChromosome, GraphChromosome,
-    IntChromosome, Op, PermutationChromosome, Population, Species, TreeChromosome,
+    IntChromosome, Op, PackedBitChromosome, PermutationChromosome, Population, Species,
+    TreeChromosome,
 };
 
 #[pyclass(from_py_object)]
@@ -112,6 +113,7 @@ impl_into_py_ecosystem!(FloatChromosome<f32>);
 impl_into_py_ecosystem!(FloatChromosome<f64>);
 
 impl_into_py_ecosystem!(BitChromosome);
+impl_into_py_ecosystem!(PackedBitChromosome);
 impl_into_py_ecosystem!(CharChromosome);
 impl_into_py_ecosystem!(PermutationChromosome<usize>);
 

@@ -5,6 +5,7 @@ from .char import CharCodec
 from .float import FloatCodec
 from .graph import GraphCodec
 from .int import IntCodec
+from .packed import PackedBitCodec
 from .permutation import PermutationCodec
 from .tree import TreeCodec
 
@@ -13,6 +14,7 @@ __all__ = [
     "IntCodec",
     "CharCodec",
     "BitCodec",
+    "PackedBitCodec",
     "GraphCodec",
     "TreeCodec",
     "CodecBase",

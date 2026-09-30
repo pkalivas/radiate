@@ -4,6 +4,7 @@ mod char;
 mod float;
 mod graph;
 mod int;
+mod packed;
 mod permutation;
 mod tree;
 
@@ -15,6 +16,7 @@ pub use char::PyCharCodec;
 pub use float::PyFloatCodec;
 pub use graph::{PyGraphCodec, PyGraphCodecInner};
 pub use int::PyIntCodec;
+pub use packed::PyPackedBitCodec;
 pub use permutation::PyPermutationCodec;
 pub use tree::{PyTreeCodec, PyTreeCodecInner};
 

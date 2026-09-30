@@ -2,7 +2,7 @@ use crate::{PyChromosome, PyGeneType, Wrap};
 use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitChromosome, CharChromosome, Chromosome, FloatChromosome, Genotype, GraphChromosome,
-    IntChromosome, Op, PermutationChromosome, TreeChromosome,
+    IntChromosome, Op, PackedBitChromosome, PermutationChromosome, TreeChromosome,
 };
 use radiate_utils::DataType;
 
@@ -131,6 +131,7 @@ impl_into_py_genotype!(FloatChromosome<f64>);
 impl_into_py_genotype!(PermutationChromosome<usize>);
 
 impl_into_py_genotype!(BitChromosome);
+impl_into_py_genotype!(PackedBitChromosome);
 impl_into_py_genotype!(CharChromosome);
 
 impl_into_py_genotype!(GraphChromosome<Op<f32>>);

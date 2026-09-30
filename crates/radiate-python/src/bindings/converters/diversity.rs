@@ -1,8 +1,9 @@
 use crate::{InputTransform, PyEngineInput};
 use radiate::{
     BitChromosome, CharChromosome, CosineDistance, Diversity, EuclideanDistance, FloatChromosome,
-    GraphChromosome, HammingDistance, IntChromosome, NeatDistance, Op, PermutationChromosome,
-    RadiateResult, TreeChromosome, chromosomes::NumericAllele, ops::OpFloat,
+    GraphChromosome, HammingDistance, IntChromosome, NeatDistance, Op, PackedBitChromosome,
+    PackedBitHammingDistance, PermutationChromosome, RadiateResult, TreeChromosome,
+    chromosomes::NumericAllele, ops::OpFloat,
 };
 use radiate_error::radiate_bail;
 use radiate_utils::{Float, Integer};
@@ -37,6 +38,17 @@ impl InputTransform<RadiateResult<Box<dyn Diversity<BitChromosome>>>> for PyEngi
     fn transform(&self) -> RadiateResult<Box<dyn Diversity<BitChromosome>>> {
         match self.component() {
             crate::constants::components::HAMMING_DISTANCE => Ok(Box::new(HammingDistance)),
+            _ => radiate_bail!(Builder: "Unknown diversity measure: {}", self.component()),
+        }
+    }
+}
+
+impl InputTransform<RadiateResult<Box<dyn Diversity<PackedBitChromosome>>>> for PyEngineInput {
+    fn transform(&self) -> RadiateResult<Box<dyn Diversity<PackedBitChromosome>>> {
+        match self.component() {
+            crate::constants::components::HAMMING_DISTANCE => {
+                Ok(Box::new(PackedBitHammingDistance))
+            }
             _ => radiate_bail!(Builder: "Unknown diversity measure: {}", self.component()),
         }
     }
