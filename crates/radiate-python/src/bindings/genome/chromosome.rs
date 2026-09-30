@@ -10,7 +10,7 @@ use radiate_utils::DataType;
 use serde::{Deserialize, Serialize};
 
 macro_rules! match_chromosome {
-    ($handle:expr, $epoch:ident => $body:expr) => {{
+    ($handle:expr, $epoch:ident => $body:expr, packed $packed:ident => $packed_body:expr) => {{
         use ChromosomeInner::*;
         match &$handle {
             UInt8($epoch) => $body,
@@ -30,7 +30,7 @@ macro_rules! match_chromosome {
 
             Char($epoch) => $body,
             Bit($epoch) => $body,
-            PackedBit($epoch) => $body,
+            PackedBit($packed) => $packed_body,
 
             Permutation($epoch) => $body,
 
@@ -92,7 +92,11 @@ impl From<ChromosomeInner> for Vec<PyGene> {
             ChromosomeInner::Float64(chrom) => chrom.into_iter().map(PyGene::from).collect(),
 
             ChromosomeInner::Bit(chrom) => chrom.into_iter().map(PyGene::from).collect(),
-            ChromosomeInner::PackedBit(chrom) => chrom.into_iter().map(PyGene::from).collect(),
+            ChromosomeInner::PackedBit(chrom) => chrom
+                .to_bools()
+                .into_iter()
+                .map(|bit| PyGene::from(BitGene::from(bit)))
+                .collect(),
             ChromosomeInner::Char(chrom) => chrom.into_iter().map(PyGene::from).collect(),
             ChromosomeInner::Permutation(chrom) => chrom.into_iter().map(PyGene::from).collect(),
 
@@ -216,6 +220,13 @@ impl PyChromosome {
     pub fn __repr__(&self) -> String {
         match_chromosome!(self.inner, chrom => {
             format!("{:?}", chrom)
+        }, packed chrom => {
+            let bits = chrom
+                .to_bools()
+                .into_iter()
+                .map(|bit| if bit { '1' } else { '0' })
+                .collect::<String>();
+            format!("PackedBitChromosome(num_bits={}, bits={})", chrom.num_bits(), bits)
         })
     }
 
@@ -223,8 +234,9 @@ impl PyChromosome {
         self.__repr__()
     }
 
+    /// Number of genes. For a packed bit chromosome this is the number of bits.
     pub fn __len__(&self) -> usize {
-        match_chromosome!(self.inner, chrom => chrom.len())
+        match_chromosome!(self.inner, chrom => chrom.len(), packed chrom => chrom.num_bits())
     }
 
     pub fn __eq__(&self, other: &Self) -> bool {
@@ -232,7 +244,7 @@ impl PyChromosome {
     }
 
     pub fn __getitem__(&self, index: isize) -> PyResult<PyGene> {
-        let len = match_chromosome!(self.inner, chrom => chrom.len());
+        let len = self.__len__();
         if index >= len as isize || index < -(len as isize) {
             return Err(PyIndexError::new_err("index out of range"));
         }
@@ -246,7 +258,7 @@ impl PyChromosome {
         match_chromosome!(self.inner, chrom => match chrom.get(index) {
             Some(gene) => Ok(PyGene::from(gene.clone())),
             None => Err(PyIndexError::new_err("index out of range")),
-        })
+        }, packed chrom => Ok(PyGene::from(BitGene::from(chrom.bit(index)))))
     }
 
     pub fn gene_type(&self) -> PyGeneType {

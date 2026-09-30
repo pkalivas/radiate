@@ -1,8 +1,8 @@
 use crate::{PyGeneType, PyOp, Wrap, bindings::datatype, dtype};
 use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
-    BitGene, BitWordGene, BoundedGene, CharGene, FloatGene, Gene, GraphNode, IntGene, Op,
-    PermutationGene, TreeNode, random_provider,
+    BitGene, BoundedGene, CharGene, FloatGene, Gene, GraphNode, IntGene, Op, PermutationGene,
+    TreeNode, random_provider,
 };
 use radiate_error::radiate_py_bail;
 use radiate_utils::{DataType, dtype_names};
@@ -26,7 +26,6 @@ enum GeneInner {
     Float64(FloatGene<f64>),
 
     Bit(BitGene),
-    PackedBit(BitWordGene),
     Char(CharGene),
 
     Permutation(PermutationGene<usize>),
@@ -64,7 +63,6 @@ impl PyGene {
             GeneInner::Float64(gene) => format!("{}", gene),
 
             GeneInner::Bit(gene) => format!("{}", gene),
-            GeneInner::PackedBit(gene) => format!("{}", gene.get()),
             GeneInner::Char(gene) => format!("{:?}", gene),
             GeneInner::Permutation(gene) => format!("{:?}", gene),
 
@@ -102,7 +100,6 @@ impl PyGene {
             GeneInner::Float64(_) => PyGeneType::Float,
 
             GeneInner::Bit(_) => PyGeneType::Bit,
-            GeneInner::PackedBit(_) => PyGeneType::Bit,
             GeneInner::Char(_) => PyGeneType::Char,
             GeneInner::Permutation(_) => PyGeneType::Permutation,
 
@@ -132,7 +129,6 @@ impl PyGene {
             GeneInner::Float64(_) => DataType::Float64,
 
             GeneInner::Bit(_) => DataType::Boolean,
-            GeneInner::PackedBit(_) => DataType::Boolean,
             GeneInner::Char(_) => DataType::Char,
             GeneInner::Permutation(_) => DataType::UInt64,
 
@@ -164,7 +160,6 @@ impl PyGene {
             GeneInner::Float64(gene) => gene.allele().into_bound_py_any(py),
 
             GeneInner::Bit(gene) => gene.allele().into_bound_py_any(py),
-            GeneInner::PackedBit(gene) => gene.allele().into_bound_py_any(py),
             GeneInner::Char(gene) => gene.allele().into_bound_py_any(py),
             GeneInner::Permutation(gene) => gene.allele().into_bound_py_any(py),
 
@@ -411,7 +406,6 @@ impl_into_py_gene!(FloatGene<f32>, Float32);
 impl_into_py_gene!(FloatGene<f64>, Float64);
 
 impl_into_py_gene!(BitGene, Bit);
-impl_into_py_gene!(BitWordGene, PackedBit);
 impl_into_py_gene!(CharGene, Char);
 impl_into_py_gene!(PermutationGene<usize>, Permutation);
 

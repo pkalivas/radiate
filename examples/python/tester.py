@@ -29,6 +29,12 @@ engine = (
 
 print(engine.run())
 
+print(rd.Chromosome.float(length=1, init_range=(0.0, 1.0)))
+print(rd.Chromosome.int(length=1, init_range=(0, 10)))
+print(rd.Chromosome.bit(length=1))
+
+print(rd.Chromosome.char(length=1, char_set=set("abcdefghijklmnopqrstuvwxyz")))
+
 
 # def fit(x: list[list[bool]]) -> int:
 #     sum_one = sum(1 for bit in x[0] if bit)

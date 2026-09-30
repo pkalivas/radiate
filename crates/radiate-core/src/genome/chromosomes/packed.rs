@@ -243,15 +243,6 @@ impl From<&BitChromosome> for PackedBitChromosome {
     }
 }
 
-impl IntoIterator for PackedBitChromosome {
-    type Item = BitWordGene;
-    type IntoIter = std::vec::IntoIter<BitWordGene>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.words.into_iter()
-    }
-}
-
 /// Equality ignores the unspecified tail bits.
 impl PartialEq for PackedBitChromosome {
     fn eq(&self, other: &Self) -> bool {
