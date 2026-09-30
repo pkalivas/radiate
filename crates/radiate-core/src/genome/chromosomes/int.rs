@@ -392,13 +392,21 @@ impl<T: Integer> From<Vec<T>> for IntChromosome<T> {
     }
 }
 
+/// One gene per 64-bit word, least-significant bit first. The unspecified bits past
+/// [`PackedBitChromosome::num_bits`] in the last word are cleared.
 impl From<&PackedBitChromosome> for IntChromosome<u64> {
     fn from(packed_chromosome: &PackedBitChromosome) -> Self {
-        packed_chromosome
+        let mut genes = packed_chromosome
             .iter()
-            .map(|bit| IntGene::from(bit.get()))
-            .collect::<Vec<IntGene<u64>>>()
-            .into()
+            .map(|word| IntGene::from(word.get()))
+            .collect::<Vec<IntGene<u64>>>();
+
+        if let Some(last) = genes.last_mut() {
+            let masked = *last.allele() & packed_chromosome.tail_mask();
+            *last = IntGene::from(masked);
+        }
+
+        genes.into()
     }
 }
 

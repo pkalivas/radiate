@@ -23,7 +23,9 @@ pub use codecs::{
     BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PackedBitCodec, PermutationCodec,
     SubSetCodec,
 };
-pub use diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
+pub use diversity::{
+    CosineDistance, Diversity, EuclideanDistance, HammingDistance, PackedBitHammingDistance,
+};
 pub use domain::env_vars;
 pub use domain::*;
 pub use engine::{Engine, EngineExt, EngineState, EngineStream};
@@ -55,7 +57,9 @@ pub mod prelude {
         BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PackedBitCodec,
         PermutationCodec, SubSetCodec,
     };
-    pub use super::diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
+    pub use super::diversity::{
+        CosineDistance, Diversity, EuclideanDistance, HammingDistance, PackedBitHammingDistance,
+    };
     pub use super::domain::env_vars;
     pub use super::domain::random_provider;
     pub use super::engine::{Engine, EngineExt, EngineState, EngineStream};

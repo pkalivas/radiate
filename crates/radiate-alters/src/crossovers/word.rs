@@ -3,6 +3,17 @@ use radiate_core::{
     RateSet, random_provider,
 };
 
+/// Uniform crossover at bit granularity for [`PackedBitChromosome`].
+///
+/// Each bit position is swapped between the two parents with probability `rate`.
+/// The generic [`UniformCrossover`](crate::UniformCrossover) swaps whole 64-bit words
+/// on a packed chromosome. This one swaps individual bits.
+///
+/// The rate is used twice, the same as `UniformCrossover`: it decides which pairs are
+/// crossed, and then the per-bit swap probability within a crossed pair. Selected bits
+/// are gathered into one mask per word and swapped with a single masked XOR.
+///
+/// The returned count is the number of bits selected for swapping.
 #[derive(Debug, Clone)]
 pub struct PackedBitCrossover {
     rate: Expr,
@@ -62,21 +73,21 @@ impl Crossover<PackedBitChromosome> for PackedBitCrossover {
 /// Whole words inside a segment are swapped directly, and the words a cut falls
 /// inside are swapped under a mask. The rate decides which pairs are crossed.
 #[derive(Debug, Clone)]
-pub struct MultiPointPackedBitCrossover {
-    num_points: usize,
+pub struct PackedBitMultiPointCrossover {
     rate: Expr,
+    num_points: usize,
 }
 
-impl MultiPointPackedBitCrossover {
+impl PackedBitMultiPointCrossover {
     pub fn new(rate: impl Into<Expr>, num_points: usize) -> Self {
         Self {
-            num_points,
             rate: rate.into(),
+            num_points,
         }
     }
 }
 
-impl Crossover<PackedBitChromosome> for MultiPointPackedBitCrossover {
+impl Crossover<PackedBitChromosome> for PackedBitMultiPointCrossover {
     fn rates(&self) -> RateSet {
         RateSet::new(self.rate.clone())
     }

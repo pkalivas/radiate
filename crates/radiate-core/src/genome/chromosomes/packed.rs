@@ -5,8 +5,10 @@ use serde::{Deserialize, Serialize};
 const WORD_BITS: usize = 64;
 
 /// 64 bits of a [`PackedBitChromosome`]. The gene is the word, not the bit, so
-/// `&mut BitWord` is a real reference and the chromosome can implement
+/// `&mut BitWordGene` is a real reference and the chromosome can implement
 /// [`ContiguousChromosome`] without proxies.
+///
+/// Bit `i` of the chromosome is bit `i % 64` of word `i / 64` (least-significant first).
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(transparent)]
@@ -48,11 +50,40 @@ impl Gene for BitWordGene {
     }
 }
 
-/// A bit string stored 64 bits per [`BitWord`] gene.
+/// A bit string stored 64 bits per [`BitWordGene`] gene.
 ///
-/// Generic operators see 64-bit words. Bit-level access goes through the methods
-/// below. Bits at positions `>= num_bits` in the last word are unspecified, and
-/// every bit-level reader masks them.
+/// An opt-in alternative to [`BitChromosome`] for long bit strings: one bit of memory
+/// per bit instead of one byte, and operators that work on 64 bits at a time.
+/// For short strings, [`BitChromosome`] is simpler and just as fast.
+///
+/// # Operators
+///
+/// Use the bit-level operators from `radiate-alters`:
+///
+/// - `BitFlipMutator` - flips each bit with probability `rate`
+/// - `PackedBitCrossover` - uniform crossover, swaps each bit with probability `rate`
+/// - `PackedBitMultiPointCrossover` - multi-point crossover with cuts at any bit
+///
+/// Mutation and crossover counts from these operators are in bits, the same as for
+/// [`BitChromosome`].
+///
+/// Because the gene is a whole word, generic operators also compile against this
+/// type, but they act on 64-bit words rather than bits. `UniformCrossover` swaps whole
+/// words, `MultiPointCrossover` only cuts at word boundaries, `ShuffleCrossover`
+/// shuffles words, `UniformMutator` re-randomizes 64 bits at a time, and the swap,
+/// scramble and inversion mutators move 64-bit blocks. `HammingDistance` counts
+/// differing words. Prefer the packed operators above.
+///
+/// # Bits and words
+///
+/// [`Chromosome::len`] counts words; [`num_bits`](Self::num_bits) counts bits.
+/// Bit-level access goes through [`bit`](Self::bit), [`set_bit`](Self::set_bit),
+/// [`flip_bit`](Self::flip_bit), [`count_ones`](Self::count_ones) and
+/// [`iter_bits`](Self::iter_bits). Bit `i` lives in word `i / 64` at bit `i % 64`.
+///
+/// Bits at positions `>= num_bits` in the last word are unspecified: generic
+/// operators may write to them. Every bit-level reader ([`count_ones`](Self::count_ones),
+/// [`iter_bits`](Self::iter_bits), equality, conversions) masks them.
 #[derive(Clone, Default, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PackedBitChromosome {
@@ -111,6 +142,11 @@ impl PackedBitChromosome {
             }
             None => 0,
         }
+    }
+
+    /// Tail-masked count of zero bits.
+    pub fn count_zeros(&self) -> usize {
+        self.num_bits - self.count_ones()
     }
 
     pub fn iter_bits(&self) -> impl Iterator<Item = bool> + '_ {

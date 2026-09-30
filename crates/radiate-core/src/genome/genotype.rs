@@ -1,4 +1,4 @@
-use crate::{Chromosome, Valid};
+use crate::{Chromosome, PackedBitChromosome, Valid};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{
@@ -57,6 +57,24 @@ impl<C: Chromosome> Genotype<C> {
 
     pub fn get_mut(&mut self, index: usize) -> Option<&mut C> {
         self.chromosomes.get_mut(index)
+    }
+
+    pub fn first(&self) -> Option<&C> {
+        self.chromosomes.first()
+    }
+
+    pub fn last(&self) -> Option<&C> {
+        self.chromosomes.last()
+    }
+}
+
+impl Genotype<PackedBitChromosome> {
+    pub fn count_ones(&self) -> usize {
+        self.chromosomes.iter().map(|c| c.count_ones()).sum()
+    }
+
+    pub fn count_zeros(&self) -> usize {
+        self.chromosomes.iter().map(|c| c.count_zeros()).sum()
     }
 }
 

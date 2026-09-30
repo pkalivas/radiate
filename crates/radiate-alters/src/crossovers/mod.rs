@@ -18,4 +18,4 @@ pub use pmx::PMXCrossover;
 pub use shuffle::ShuffleCrossover;
 pub use simulated_binary::SimulatedBinaryCrossover;
 pub use uniform::UniformCrossover;
-pub use word::{MultiPointPackedBitCrossover, PackedBitCrossover};
+pub use word::{PackedBitCrossover, PackedBitMultiPointCrossover};

@@ -1,5 +1,10 @@
 use crate::{Chromosome, Codec, Genotype, PackedBitChromosome};
 
+/// A [`Codec`] for a single [`PackedBitChromosome`] of `num_bits` bits.
+///
+/// Decodes to the chromosome's raw 64-bit words. Bit `i` is bit `i % 64` of word
+/// `i / 64` (least-significant first), and the unused bits past `num_bits` in the
+/// last word are cleared.
 pub struct PackedBitCodec {
     num_bits: usize,
 }
