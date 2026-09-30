@@ -4,6 +4,7 @@ pub mod chromosome;
 pub mod float;
 pub mod gene;
 pub mod int;
+pub mod packed;
 pub mod permutation;
 
 pub use bit::{BitChromosome, BitGene};
@@ -13,6 +14,7 @@ pub use float::{FloatChromosome, FloatGene};
 pub use gene::{BoundedGene, Gene, NumericGene, Valid};
 pub use int::{IntChromosome, IntGene};
 use num_traits::NumCast;
+pub use packed::{BitWordGene, PackedBitChromosome};
 pub use permutation::{PermutationChromosome, PermutationGene};
 use radiate_utils::Primitive;
 

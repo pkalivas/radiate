@@ -20,9 +20,12 @@ pub use radiate_expr::*;
 
 pub use alter::{AlterContext, Alterer, Crossover, Mutate};
 pub use codecs::{
-    BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,
+    BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PackedBitCodec, PermutationCodec,
+    SubSetCodec,
 };
-pub use diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
+pub use diversity::{
+    CosineDistance, Diversity, EuclideanDistance, HammingDistance, PackedBitHammingDistance,
+};
 pub use domain::env_vars;
 pub use domain::*;
 pub use engine::{Engine, EngineExt, EngineState, EngineStream};
@@ -51,9 +54,12 @@ pub mod prelude {
 
     pub use super::alter::{AlterContext, Alterer, Crossover, Mutate};
     pub use super::codecs::{
-        BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,
+        BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PackedBitCodec,
+        PermutationCodec, SubSetCodec,
     };
-    pub use super::diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
+    pub use super::diversity::{
+        CosineDistance, Diversity, EuclideanDistance, HammingDistance, PackedBitHammingDistance,
+    };
     pub use super::domain::env_vars;
     pub use super::domain::random_provider;
     pub use super::engine::{Engine, EngineExt, EngineState, EngineStream};
@@ -63,8 +69,8 @@ pub mod prelude {
         BatchFitnessFunction, BatchedFn, CompositeFitnessFn, FitnessFunction, NoveltySearch,
     };
     pub use super::genome::{
-        BitChromosome, BitGene, BoundedGene, CharChromosome, CharGene, Chromosome, FloatChromosome,
-        FloatGene, Gene, IntChromosome, IntGene, Valid,
+        BitChromosome, BitGene, BitWordGene, BoundedGene, CharChromosome, CharGene, Chromosome,
+        FloatChromosome, FloatGene, Gene, IntChromosome, IntGene, PackedBitChromosome, Valid,
     };
     pub use super::objectives::{Front, Objective, Optimize, Score, pareto};
     pub use super::problem::Problem;

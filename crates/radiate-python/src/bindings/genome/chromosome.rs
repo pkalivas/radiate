@@ -10,7 +10,7 @@ use radiate_utils::DataType;
 use serde::{Deserialize, Serialize};
 
 macro_rules! match_chromosome {
-    ($handle:expr, $epoch:ident => $body:expr) => {{
+    ($handle:expr, $epoch:ident => $body:expr, packed $packed:ident => $packed_body:expr) => {{
         use ChromosomeInner::*;
         match &$handle {
             UInt8($epoch) => $body,
@@ -30,6 +30,7 @@ macro_rules! match_chromosome {
 
             Char($epoch) => $body,
             Bit($epoch) => $body,
+            PackedBit($packed) => $packed_body,
 
             Permutation($epoch) => $body,
 
@@ -61,6 +62,7 @@ pub(crate) enum ChromosomeInner {
 
     Bit(BitChromosome),
     Char(CharChromosome),
+    PackedBit(PackedBitChromosome),
 
     Permutation(PermutationChromosome<usize>),
 
@@ -90,6 +92,11 @@ impl From<ChromosomeInner> for Vec<PyGene> {
             ChromosomeInner::Float64(chrom) => chrom.into_iter().map(PyGene::from).collect(),
 
             ChromosomeInner::Bit(chrom) => chrom.into_iter().map(PyGene::from).collect(),
+            ChromosomeInner::PackedBit(chrom) => chrom
+                .to_bools()
+                .into_iter()
+                .map(|bit| PyGene::from(BitGene::from(bit)))
+                .collect(),
             ChromosomeInner::Char(chrom) => chrom.into_iter().map(PyGene::from).collect(),
             ChromosomeInner::Permutation(chrom) => chrom.into_iter().map(PyGene::from).collect(),
 
@@ -145,6 +152,7 @@ impl_into_py_chromosome_inner!(FloatChromosome<f32>, Float32);
 impl_into_py_chromosome_inner!(FloatChromosome<f64>, Float64);
 
 impl_into_py_chromosome_inner!(BitChromosome, Bit);
+impl_into_py_chromosome_inner!(PackedBitChromosome, PackedBit);
 impl_into_py_chromosome_inner!(CharChromosome, Char);
 impl_into_py_chromosome_inner!(PermutationChromosome<usize>, Permutation);
 
@@ -209,17 +217,61 @@ impl PyChromosome {
     }
 
     pub fn __repr__(&self) -> String {
-        match_chromosome!(self.inner, chrom => {
-            format!("{:?}", chrom)
-        })
+        use ChromosomeInner::*;
+
+        let alleles = match &self.inner {
+            UInt8(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+            UInt16(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+            UInt32(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+            UInt64(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+            UInt128(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+
+            Int8(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+            Int16(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+            Int32(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+            Int64(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+            Int128(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+
+            Float32(chrom) => gene_alleles_repr(chrom, |a| format!("{a:?}")),
+            Float64(chrom) => gene_alleles_repr(chrom, |a| format!("{a:?}")),
+
+            Bit(chrom) => gene_alleles_repr(chrom, |a| py_bool(*a).to_string()),
+            PackedBit(chrom) => {
+                alleles_repr(chrom.num_bits(), |i| py_bool(chrom.bit(i)).to_string())
+            }
+            Char(chrom) => gene_alleles_repr(chrom, |a| py_char(*a)),
+
+            Permutation(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+
+            Graph32(chrom) => return format!("{chrom:?}"),
+            Graph64(chrom) => return format!("{chrom:?}"),
+            Tree32(chrom) => return format!("{chrom:?}"),
+            Tree64(chrom) => return format!("{chrom:?}"),
+        };
+
+        let packed = if matches!(self.inner, PackedBit(_)) {
+            ", packed=True"
+        } else {
+            ""
+        };
+
+        format!(
+            "Chromosome({}, dtype={:?}, len={}{}, {})",
+            self.gene_type().name(),
+            self.data_type(),
+            self.__len__(),
+            packed,
+            alleles
+        )
     }
 
     pub fn __str__(&self) -> String {
         self.__repr__()
     }
 
+    /// Number of genes. For a packed bit chromosome this is the number of bits.
     pub fn __len__(&self) -> usize {
-        match_chromosome!(self.inner, chrom => chrom.len())
+        match_chromosome!(self.inner, chrom => chrom.len(), packed chrom => chrom.num_bits())
     }
 
     pub fn __eq__(&self, other: &Self) -> bool {
@@ -227,7 +279,7 @@ impl PyChromosome {
     }
 
     pub fn __getitem__(&self, index: isize) -> PyResult<PyGene> {
-        let len = match_chromosome!(self.inner, chrom => chrom.len());
+        let len = self.__len__();
         if index >= len as isize || index < -(len as isize) {
             return Err(PyIndexError::new_err("index out of range"));
         }
@@ -241,7 +293,7 @@ impl PyChromosome {
         match_chromosome!(self.inner, chrom => match chrom.get(index) {
             Some(gene) => Ok(PyGene::from(gene.clone())),
             None => Err(PyIndexError::new_err("index out of range")),
-        })
+        }, packed chrom => Ok(PyGene::from(BitGene::from(chrom.bit(index)))))
     }
 
     pub fn gene_type(&self) -> PyGeneType {
@@ -262,6 +314,7 @@ impl PyChromosome {
             ChromosomeInner::Float64(_) => PyGeneType::Float,
 
             ChromosomeInner::Bit(_) => PyGeneType::Bit,
+            ChromosomeInner::PackedBit(_) => PyGeneType::Bit,
             ChromosomeInner::Char(_) => PyGeneType::Char,
 
             ChromosomeInner::Permutation(_) => PyGeneType::Permutation,
@@ -275,7 +328,13 @@ impl PyChromosome {
     }
 
     pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let dtype = match self.inner {
+        Wrap(self.data_type()).into_pyobject(py)
+    }
+}
+
+impl PyChromosome {
+    fn data_type(&self) -> DataType {
+        match self.inner {
             ChromosomeInner::UInt8(_) => DataType::UInt8,
             ChromosomeInner::UInt16(_) => DataType::UInt16,
             ChromosomeInner::UInt32(_) => DataType::UInt32,
@@ -292,6 +351,7 @@ impl PyChromosome {
             ChromosomeInner::Float64(_) => DataType::Float64,
 
             ChromosomeInner::Bit(_) => DataType::Boolean,
+            ChromosomeInner::PackedBit(_) => DataType::Boolean,
             ChromosomeInner::Char(_) => DataType::Char,
 
             ChromosomeInner::Permutation(_) => DataType::Usize,
@@ -301,10 +361,50 @@ impl PyChromosome {
 
             ChromosomeInner::Tree32(_) => dtype::tree_node_dtype(DataType::Float32),
             ChromosomeInner::Tree64(_) => dtype::tree_node_dtype(DataType::Float64),
-        };
-
-        Wrap(dtype).into_pyobject(py)
+        }
     }
+}
+
+/// Show every allele up to this many; past it, show the first and last few.
+const REPR_MAX_ALLELES: usize = 20;
+const REPR_EDGE_ALLELES: usize = 3;
+
+/// `[a, b, c]`, or `[a, b, c, ..., x, y, z]` past [`REPR_MAX_ALLELES`]. Only the
+/// alleles that are shown get formatted.
+fn alleles_repr(len: usize, allele: impl Fn(usize) -> String) -> String {
+    let shown = if len > REPR_MAX_ALLELES {
+        (0..REPR_EDGE_ALLELES)
+            .map(&allele)
+            .chain(std::iter::once("...".to_string()))
+            .chain((len - REPR_EDGE_ALLELES..len).map(&allele))
+            .collect::<Vec<_>>()
+    } else {
+        (0..len).map(&allele).collect::<Vec<_>>()
+    };
+
+    format!("[{}]", shown.join(", "))
+}
+
+fn gene_alleles_repr<C: Chromosome>(
+    chrom: &C,
+    allele: impl Fn(&<C::Gene as Gene>::Allele) -> String,
+) -> String {
+    alleles_repr(chrom.len(), |i| match chrom.get(i) {
+        Some(gene) => allele(gene.allele()),
+        None => "?".to_string(),
+    })
+}
+
+fn py_char(value: char) -> String {
+    if value == '\'' {
+        "\"'\"".to_string()
+    } else {
+        format!("{value:?}")
+    }
+}
+
+fn py_bool(value: bool) -> &'static str {
+    if value { "True" } else { "False" }
 }
 
 macro_rules! impl_into_py_chromosome {
@@ -344,6 +444,7 @@ impl_into_py_chromosome!(FloatChromosome<f32>, Float32);
 impl_into_py_chromosome!(FloatChromosome<f64>, Float64);
 
 impl_into_py_chromosome!(BitChromosome, Bit);
+impl_into_py_chromosome!(PackedBitChromosome, PackedBit);
 impl_into_py_chromosome!(CharChromosome, Char);
 impl_into_py_chromosome!(PermutationChromosome<usize>, Permutation);
 

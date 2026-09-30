@@ -20,6 +20,7 @@ use pyo3::{pyclass, pymethods};
 pub const FLOAT_GENE_TYPE: &str = "FloatGene";
 pub const INT_GENE_TYPE: &str = "IntGene";
 pub const BIT_GENE_TYPE: &str = "BitGene";
+pub const PACKED_BIT_GENE_TYPE: &str = "PackedBitGene";
 pub const CHAR_GENE_TYPE: &str = "CharGene";
 pub const GRAPH_GENE_TYPE: &str = "GraphNode";
 pub const TREE_GENE_TYPE: &str = "TreeNode";
@@ -32,6 +33,7 @@ pub enum PyGeneType {
     Int,
     Float,
     Bit,
+    PackedBit,
     Char,
     GraphNode,
     TreeNode,
@@ -46,6 +48,7 @@ impl PyGeneType {
             PyGeneType::Int => INT_GENE_TYPE.into(),
             PyGeneType::Float => FLOAT_GENE_TYPE.into(),
             PyGeneType::Bit => BIT_GENE_TYPE.into(),
+            PyGeneType::PackedBit => PACKED_BIT_GENE_TYPE.into(),
             PyGeneType::Char => CHAR_GENE_TYPE.into(),
             PyGeneType::GraphNode => GRAPH_GENE_TYPE.into(),
             PyGeneType::TreeNode => TREE_GENE_TYPE.into(),
@@ -59,6 +62,7 @@ impl PyGeneType {
             PyGeneType::Int => INT_GENE_TYPE.into(),
             PyGeneType::Float => FLOAT_GENE_TYPE.into(),
             PyGeneType::Bit => BIT_GENE_TYPE.into(),
+            PyGeneType::PackedBit => PACKED_BIT_GENE_TYPE.into(),
             PyGeneType::Char => CHAR_GENE_TYPE.into(),
             PyGeneType::GraphNode => GRAPH_GENE_TYPE.into(),
             PyGeneType::TreeNode => TREE_GENE_TYPE.into(),
@@ -76,10 +80,11 @@ impl PyGeneType {
             PyGeneType::Int => 1,
             PyGeneType::Float => 2,
             PyGeneType::Bit => 3,
-            PyGeneType::Char => 4,
-            PyGeneType::GraphNode => 5,
-            PyGeneType::TreeNode => 6,
-            PyGeneType::Permutation => 7,
+            PyGeneType::PackedBit => 4,
+            PyGeneType::Char => 5,
+            PyGeneType::GraphNode => 6,
+            PyGeneType::TreeNode => 7,
+            PyGeneType::Permutation => 8,
         }
     }
 

@@ -8,6 +8,15 @@ For all code examples and further explanations, refer to the [documentation](htt
 
 ## [Unreleased]
 
+### Added
+
+- **`PackedBitChromosome` for large bit strings.** Stores 64 bits per `u64` word (`BitWordGene`), using 8× less memory than `BitChromosome`. Comes with `PackedBitCodec`, bit-level operators (`BitFlipMutator`, `PackedBitCrossover`, `PackedBitMultiPointCrossover`) and `PackedBitHammingDistance`. The generic crossovers, mutators and `HammingDistance` also compile against it but act on whole 64-bit words, so prefer the packed versions.
+- **Python: `Engine.packed_bit(num_bits, use_numpy=False, *, words=False)` and `PackedBitCodec`.** By default the fitness function gets bits, exactly like `Engine.bit`. With `words=True` it gets the packed 64-bit words instead. Paired with `use_numpy=True`, that runs up to ~10× faster than `Engine.bit` at 100k bits.
+
+### Changed
+
+- **Python: chromosome reprs are consistent across types,** e.g. `Chromosome(FloatGene, dtype=Float64, len=3, [0.5, 1.25, 2.0])`, with long chromosomes truncated. Genotype, phenotype and population reprs use it. Graph and tree chromosomes are unchanged.
+
 ### Fixed
 
 - **`GaussianMutator` ignored a gene's `bounds`.** Mutated values were clamped to the gene's sampling range (`value_range`) instead of its `bounds`, so a gene with wider bounds could never be moved past its initial range by Gaussian mutation, and a gene already outside it was pulled back in. Values are now clamped only to `bounds`. The noise is unchanged: the standard deviation is still 25% of the sampling range, so mutations stay local. Genes without explicit bounds behave exactly as before; seeded runs with bounds wider than the sampling range will produce different results.

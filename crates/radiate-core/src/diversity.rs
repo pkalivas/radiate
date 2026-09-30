@@ -1,5 +1,5 @@
 use crate::{
-    Chromosome, Gene, Phenotype,
+    Chromosome, ContiguousChromosome, Gene, PackedBitChromosome, Phenotype,
     chromosomes::{NumericAllele, gene::NumericGene},
     fitness::Novelty,
     math::distance,
@@ -78,6 +78,78 @@ impl<P: AsRef<[f32]>> Distance<P> for HammingDistance {
 impl Novelty<Vec<f32>> for HammingDistance {
     fn description(&self, phenotype: &Vec<f32>) -> Vec<f32> {
         phenotype.clone()
+    }
+}
+
+/// Bit-level Hamming distance for [`PackedBitChromosome`]s: the number of differing
+/// bits normalized by the number of bits compared.
+///
+/// The generic [`HammingDistance`] compares whole 64-bit words on a packed chromosome,
+/// so two words that differ in a single bit count the same as two that differ in all 64.
+/// This one XORs the words and counts the set bits, so it's exact at the bit level
+/// and still works 64 bits at a time.
+///
+/// Like [`HammingDistance`], chromosomes of different lengths are compared over their
+/// common prefix. The unspecified tail bits are never counted. Comparing zero bits
+/// gives a distance of `0.0`.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackedBitHammingDistance;
+
+impl PackedBitHammingDistance {
+    /// Returns `(differing bits, bits compared)` over the first
+    /// `min(one.num_bits(), two.num_bits())` bits.
+    #[inline]
+    fn count(one: &PackedBitChromosome, two: &PackedBitChromosome) -> (usize, usize) {
+        let num_bits = one.num_bits().min(two.num_bits());
+        let (one, two) = (one.as_slice(), two.as_slice());
+
+        let full_words = num_bits / 64;
+        let mut differing = one[..full_words]
+            .iter()
+            .zip(&two[..full_words])
+            .map(|(a, b)| (a.get() ^ b.get()).count_ones() as usize)
+            .sum::<usize>();
+
+        let tail_bits = num_bits % 64;
+        if tail_bits != 0 {
+            let mask = (1u64 << tail_bits) - 1;
+            let diff = one[full_words].get() ^ two[full_words].get();
+            differing += (diff & mask).count_ones() as usize;
+        }
+
+        (differing, num_bits)
+    }
+}
+
+impl Diversity<PackedBitChromosome> for PackedBitHammingDistance {
+    #[inline]
+    fn measure(
+        &self,
+        geno_one: &Phenotype<PackedBitChromosome>,
+        geno_two: &Phenotype<PackedBitChromosome>,
+    ) -> f32 {
+        let (mut differing, mut total_bits) = (0, 0);
+        for (one, two) in geno_one.genotype().iter().zip(geno_two.genotype().iter()) {
+            let (diff, bits) = Self::count(one, two);
+            differing += diff;
+            total_bits += bits;
+        }
+
+        if total_bits == 0 {
+            return 0.0;
+        }
+
+        differing as f32 / total_bits as f32
+    }
+}
+
+impl Distance<PackedBitChromosome> for PackedBitHammingDistance {
+    #[inline]
+    fn calculate(&self, one: &PackedBitChromosome, two: &PackedBitChromosome) -> f32 {
+        match Self::count(one, two) {
+            (_, 0) => 0.0,
+            (differing, total_bits) => differing as f32 / total_bits as f32,
+        }
     }
 }
 

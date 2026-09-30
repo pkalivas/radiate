@@ -1,7 +1,10 @@
 use radiate_core::{
-    AlterContext, BoundedGene, Chromosome, Crossover, Expr, Gene, RateSet, random_provider,
+    AlterContext, BoundedGene, Chromosome, Crossover, Expr, Gene, RateSet, SmallStr,
+    random_provider,
 };
 use radiate_utils::Float;
+
+const METRIC_KEY: SmallStr = SmallStr::from_static("crossover.sbx");
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SimulatedBinaryCrossover {
@@ -25,7 +28,7 @@ where
     C: Chromosome<Gene = G>,
 {
     fn name(&self) -> String {
-        "crossover.sbx".to_string()
+        METRIC_KEY.to_string()
     }
 
     fn rates(&self) -> RateSet {

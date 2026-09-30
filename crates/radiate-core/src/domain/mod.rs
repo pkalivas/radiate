@@ -1,3 +1,4 @@
+pub mod bits;
 pub mod env_vars;
 pub mod executor;
 pub mod math;

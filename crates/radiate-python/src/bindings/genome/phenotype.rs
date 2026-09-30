@@ -2,7 +2,8 @@ use crate::{PyGeneType, PyGenotype, Wrap};
 use pyo3::{Bound, IntoPyObject, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitChromosome, CharChromosome, Chromosome, FloatChromosome, Genotype, GraphChromosome,
-    IntChromosome, Op, PermutationChromosome, Phenotype, TreeChromosome, phenotype::PhenotypeId,
+    IntChromosome, Op, PackedBitChromosome, PermutationChromosome, Phenotype, TreeChromosome,
+    phenotype::PhenotypeId,
 };
 use radiate_utils::DataType;
 
@@ -31,7 +32,7 @@ impl PyPhenotype {
 
     pub fn __repr__(&self) -> String {
         format!(
-            "Phenotype(id={}, score={:?}, genotype={:?})",
+            "Phenotype(id={}, score={:?}, genotype={})",
             self.id,
             self.score,
             self.genotype.__repr__()
@@ -122,6 +123,7 @@ impl_from_py_phenotype!(FloatChromosome<f32>);
 impl_from_py_phenotype!(FloatChromosome<f64>);
 
 impl_from_py_phenotype!(BitChromosome);
+impl_from_py_phenotype!(PackedBitChromosome);
 impl_from_py_phenotype!(CharChromosome);
 impl_from_py_phenotype!(PermutationChromosome<usize>);
 

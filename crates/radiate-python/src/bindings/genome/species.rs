@@ -2,7 +2,7 @@ use crate::PyPhenotype;
 use pyo3::{pyclass, pymethods};
 use radiate::{
     BitChromosome, CharChromosome, Chromosome, FloatChromosome, GraphChromosome, IntChromosome, Op,
-    PermutationChromosome, Phenotype, Species, TreeChromosome,
+    PackedBitChromosome, PermutationChromosome, Phenotype, Species, TreeChromosome,
 };
 use std::collections::HashSet;
 
@@ -132,6 +132,7 @@ impl_into_py_species!(FloatChromosome<f32>);
 impl_into_py_species!(FloatChromosome<f64>);
 
 impl_into_py_species!(BitChromosome);
+impl_into_py_species!(PackedBitChromosome);
 impl_into_py_species!(CharChromosome);
 impl_into_py_species!(PermutationChromosome<usize>);
 

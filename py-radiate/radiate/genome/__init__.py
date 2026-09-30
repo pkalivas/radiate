@@ -10,6 +10,7 @@ class GeneType(Enum):
     FLOAT = "FloatGene"
     INT = "IntGene"
     BIT = "BitGene"
+    PACKED_BIT = "PackedBitGene"
     CHAR = "CharGene"
     PERMUTATION = "PermutationGene"
     GRAPH = "GraphNode"
@@ -21,6 +22,7 @@ class GeneType(Enum):
             GeneType.FLOAT,
             GeneType.INT,
             GeneType.BIT,
+            GeneType.PACKED_BIT,
             GeneType.CHAR,
             GeneType.PERMUTATION,
             GeneType.GRAPH,
@@ -33,6 +35,7 @@ class GeneType(Enum):
             GeneType.FLOAT,
             GeneType.INT,
             GeneType.BIT,
+            # GeneType.PACKED_BIT,
             GeneType.CHAR,
             GeneType.PERMUTATION,
         }
@@ -47,6 +50,8 @@ class GeneType(Enum):
                 return GeneType.INT
             case "bitgene":
                 return GeneType.BIT
+            case "packedbitgene":
+                return GeneType.PACKED_BIT
             case "chargene":
                 return GeneType.CHAR
             case "permutationgene":
@@ -64,6 +69,7 @@ GENE_TYPE_MAPPING = {
         gt.Float: GeneType.FLOAT,
         gt.Int: GeneType.INT,
         gt.Bit: GeneType.BIT,
+        gt.PackedBit: GeneType.PACKED_BIT,
         gt.Char: GeneType.CHAR,
         gt.GraphNode: GeneType.GRAPH,
         gt.TreeNode: GeneType.TREE,
@@ -73,6 +79,7 @@ GENE_TYPE_MAPPING = {
         GeneType.FLOAT: gt.Float,
         GeneType.INT: gt.Int,
         GeneType.BIT: gt.Bit,
+        GeneType.PACKED_BIT: gt.PackedBit,
         GeneType.CHAR: gt.Char,
         GeneType.GRAPH: gt.GraphNode,
         GeneType.TREE: gt.TreeNode,
