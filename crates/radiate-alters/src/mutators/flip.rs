@@ -1,5 +1,6 @@
 use radiate_core::{
-    AlterContext, BitChromosome, ContiguousChromosome, Expr, Mutate, RateSet, random_provider,
+    AlterContext, BitChromosome, ContiguousChromosome, Expr, Gene, Mutate, PackedBitChromosome,
+    RateSet, random_provider,
 };
 
 /// Flips each bit of a [`BitChromosome`] independently with probability `rate`.
@@ -43,6 +44,33 @@ impl Mutate<BitChromosome> for BitFlipMutator {
         random_provider::with_rng(|rng| {
             rng.bernoulli_indices(p, genes.len(), |i| {
                 genes[i].flip();
+                flips += 1;
+            });
+        });
+
+        flips
+    }
+}
+
+impl Mutate<PackedBitChromosome> for BitFlipMutator {
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
+    }
+
+    #[inline]
+    fn mutate_chromosome(
+        &mut self,
+        chromosome: &mut PackedBitChromosome,
+        ctx: &mut AlterContext,
+    ) -> usize {
+        let p = ctx.rate();
+        let num_bits = chromosome.num_bits();
+        let words = chromosome.as_mut_slice();
+
+        let mut flips = 0;
+        random_provider::with_rng(|rng| {
+            rng.bernoulli_indices(p, num_bits, |k| {
+                *words[k >> 6].allele_mut() ^= 1 << (k & 63);
                 flips += 1;
             });
         });

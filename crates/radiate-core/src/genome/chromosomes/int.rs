@@ -3,6 +3,7 @@ use super::{
     gene::{Gene, Valid},
 };
 use crate::{
+    PackedBitChromosome,
     chromosomes::{BoundedGene, ContiguousChromosome, NumericGene},
     random_provider,
 };
@@ -388,6 +389,16 @@ impl<T: Integer> From<Vec<T>> for IntChromosome<T> {
         IntChromosome {
             genes: alleles.into_iter().map(IntGene::from).collect(),
         }
+    }
+}
+
+impl From<&PackedBitChromosome> for IntChromosome<u64> {
+    fn from(packed_chromosome: &PackedBitChromosome) -> Self {
+        packed_chromosome
+            .iter()
+            .map(|bit| IntGene::from(bit.get()))
+            .collect::<Vec<IntGene<u64>>>()
+            .into()
     }
 }
 

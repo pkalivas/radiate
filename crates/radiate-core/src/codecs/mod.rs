@@ -5,6 +5,7 @@ pub mod char;
 pub mod float;
 pub mod function;
 pub mod int;
+pub mod packed;
 pub mod permutation;
 pub mod subset;
 
@@ -14,6 +15,7 @@ pub use char::CharCodec;
 pub use float::FloatCodec;
 pub use function::FnCodec;
 pub use int::IntCodec;
+pub use packed::PackedBitCodec;
 pub use permutation::PermutationCodec;
 pub use subset::SubSetCodec;
 

@@ -7,6 +7,7 @@ pub mod pmx;
 pub mod shuffle;
 pub mod simulated_binary;
 pub mod uniform;
+pub mod word;
 
 pub use blend::BlendCrossover;
 pub use edge_recombine::EdgeRecombinationCrossover;
@@ -17,3 +18,4 @@ pub use pmx::PMXCrossover;
 pub use shuffle::ShuffleCrossover;
 pub use simulated_binary::SimulatedBinaryCrossover;
 pub use uniform::UniformCrossover;
+pub use word::{MultiPointPackedBitCrossover, PackedBitCrossover};

@@ -1,4 +1,7 @@
-use crate::{Chromosome, Gene, Valid, chromosomes::ContiguousChromosome, random_provider};
+use crate::{
+    Chromosome, Gene, PackedBitChromosome, Valid, chromosomes::ContiguousChromosome,
+    random_provider,
+};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
@@ -218,6 +221,12 @@ impl From<Vec<bool>> for BitChromosome {
         BitChromosome {
             genes: alleles.into_iter().map(BitGene::from).collect(),
         }
+    }
+}
+
+impl From<&PackedBitChromosome> for BitChromosome {
+    fn from(packed_chromosome: &PackedBitChromosome) -> Self {
+        packed_chromosome.iter_bits().collect::<Vec<bool>>().into()
     }
 }
 
