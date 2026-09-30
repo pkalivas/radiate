@@ -1,0 +1,75 @@
+# Config for actions/labeler@v5 (.github/workflows/labeler.yml).
+# Area labels follow the Rust crates; radiate-utils and radiate-error fold into core.
+
+"lang: rust":
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - examples/rust/**
+              - docs/source/src/rust/**
+              - Cargo.toml
+              - Cargo.lock
+      - changed-files:
+          - all-globs-to-any-file:
+              - crates/**
+              - "!crates/radiate-python/**"
+
+"lang: python":
+  - changed-files:
+      - any-glob-to-any-file:
+          - py-radiate/**
+          - crates/radiate-python/**
+          - examples/python/**
+          - docs/source/src/python/**
+
+"area: core":
+  - changed-files:
+      - any-glob-to-any-file:
+          - crates/radiate-core/**
+          - crates/radiate-utils/**
+          - crates/radiate-error/**
+
+"area: engines":
+  - changed-files:
+      - any-glob-to-any-file: crates/radiate-engines/**
+
+"area: alters":
+  - changed-files:
+      - any-glob-to-any-file: crates/radiate-alters/**
+
+"area: selectors":
+  - changed-files:
+      - any-glob-to-any-file: crates/radiate-selectors/**
+
+"area: expr":
+  - changed-files:
+      - any-glob-to-any-file: crates/radiate-expr/**
+
+"area: gp":
+  - changed-files:
+      - any-glob-to-any-file: crates/radiate-gp/**
+
+"area: ui":
+  - changed-files:
+      - any-glob-to-any-file: crates/radiate-ui/**
+
+"area: bindings":
+  - changed-files:
+      - any-glob-to-any-file: crates/radiate-python/**
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - docs/**
+          - mkdocs.yaml
+          - "*.md"
+
+examples:
+  - changed-files:
+      - any-glob-to-any-file: examples/**
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/**
+          - justfile

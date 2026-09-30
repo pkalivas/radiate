@@ -135,7 +135,7 @@ inspired by natural selection and genetics. The core is written in Rust with com
 
 <p class="rd-eyebrow">Observability</p>
 
-## Deep insight into the engine in real-time
+## Real-time insight into the engine
 
 <p class="rd-section__lead">A first-class metric system is inter-woven into every aspect of radiate. Read them in your own code, subscribe to events, or open the opt-in terminal dashboard.</p>
 

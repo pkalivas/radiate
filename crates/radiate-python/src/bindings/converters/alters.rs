@@ -191,6 +191,23 @@ fn bit_registry() -> AlterRegistry<BitChromosome> {
 }
 
 /// ---------------------------------------------------------------------------
+/// PACKED BIT REGISTRY
+/// ---------------------------------------------------------------------------
+fn packed_bit_registry() -> AlterRegistry<PackedBitChromosome> {
+    AlterRegistry::new(alter_table! {
+        crate::constants::components::MULTI_POINT_CROSSOVER   => convert_packed_bit_multi_point_crossover,
+        crate::constants::components::UNIFORM_CROSSOVER       => convert_packed_bit_uniform_crossover,
+        // crate::constants::components::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
+
+        // crate::constants::components::SWAP_MUTATOR            => convert_swap_mutator,
+        // crate::constants::components::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
+        // crate::constants::components::UNIFORM_MUTATOR         => convert_uniform_mutator,
+        // crate::constants::components::INVERSION_MUTATOR       => convert_inversion_mutator,
+        crate::constants::components::BIT_FLIP_MUTATOR        => convert_bit_flip_mutator,
+    })
+}
+
+/// ---------------------------------------------------------------------------
 /// PERMUTATION REGISTRY
 /// ---------------------------------------------------------------------------
 fn perm_registry() -> AlterRegistry<PermutationChromosome<usize>> {
@@ -242,8 +259,9 @@ impl_input_transform_for!(IntChromosome<i64>, int_registry);
 impl_input_transform_for!(FloatChromosome<f32>, float_registry);
 impl_input_transform_for!(FloatChromosome<f64>, float_registry);
 
-impl_input_transform_for!(CharChromosome, char_registry);
 impl_input_transform_for!(BitChromosome, bit_registry);
+impl_input_transform_for!(PackedBitChromosome, packed_bit_registry);
+impl_input_transform_for!(CharChromosome, char_registry);
 impl_input_transform_for!(PermutationChromosome<usize>, perm_registry);
 
 impl_input_transform_for!(GraphChromosome<Op<f32>>, graph_registry);
@@ -286,9 +304,25 @@ fn convert_multi_point_crossover(input: &PyEngineInput) -> RadiateResult<MultiPo
     Ok(MultiPointCrossover::new(rate, points as usize))
 }
 
+fn convert_packed_bit_multi_point_crossover(
+    input: &PyEngineInput,
+) -> RadiateResult<PackedBitMultiPointCrossover> {
+    let rate = input.extract::<PyExpr>("rate")?.inner;
+    let points = input.extract::<i64>("num_points")?;
+
+    Ok(PackedBitMultiPointCrossover::new(rate, points as usize))
+}
+
 fn convert_uniform_crossover(input: &PyEngineInput) -> RadiateResult<UniformCrossover> {
     let rate = input.extract::<PyExpr>("rate")?.inner;
     Ok(UniformCrossover::new(rate))
+}
+
+fn convert_packed_bit_uniform_crossover(
+    input: &PyEngineInput,
+) -> RadiateResult<PackedBitCrossover> {
+    let rate = input.extract::<PyExpr>("rate")?.inner;
+    Ok(PackedBitCrossover::new(rate))
 }
 
 fn convert_uniform_mutator(input: &PyEngineInput) -> RadiateResult<UniformMutator> {

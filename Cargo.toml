@@ -17,6 +17,7 @@ members = [
     "examples/rust/image-evo",
     "examples/rust/novelty_search",
     "examples/rust/snake",
+    "examples/rust/onemax",
     # "examples/rust/flappy-bird",
 
     "examples/rust/graphs/iris-graph",
@@ -26,7 +27,7 @@ members = [
     "examples/rust/graphs/neat-graph",
 
     "examples/rust/trees/regression-tree",
-    "examples/rust/trees/iris-tree",
+    "examples/rust/trees/iris-tree"
 ]
 default-members = [
     "crates/*"
@@ -45,6 +46,7 @@ exclude = [
     "examples/rust/novelty_search",
     "examples/rust/snake",
     "examples/rust/flappy-bird",
+    "examples/rust/onemax",
 
     "examples/rust/graphs/iris-graph",
     "examples/rust/graphs/xor-graph",

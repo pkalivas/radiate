@@ -3,6 +3,7 @@ use super::{
     gene::{Gene, Valid},
 };
 use crate::{
+    PackedBitChromosome,
     chromosomes::{BoundedGene, ContiguousChromosome, NumericGene},
     random_provider,
 };
@@ -388,6 +389,24 @@ impl<T: Integer> From<Vec<T>> for IntChromosome<T> {
         IntChromosome {
             genes: alleles.into_iter().map(IntGene::from).collect(),
         }
+    }
+}
+
+/// One gene per 64-bit word, least-significant bit first. The unspecified bits past
+/// [`PackedBitChromosome::num_bits`] in the last word are cleared.
+impl From<&PackedBitChromosome> for IntChromosome<u64> {
+    fn from(packed_chromosome: &PackedBitChromosome) -> Self {
+        let mut genes = packed_chromosome
+            .iter()
+            .map(|word| IntGene::from(word.get()))
+            .collect::<Vec<IntGene<u64>>>();
+
+        if let Some(last) = genes.last_mut() {
+            let masked = *last.allele() & packed_chromosome.tail_mask();
+            *last = IntGene::from(masked);
+        }
+
+        genes.into()
     }
 }
 

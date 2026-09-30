@@ -1,4 +1,7 @@
-use crate::{Chromosome, Gene, Valid, chromosomes::ContiguousChromosome, random_provider};
+use crate::{
+    Chromosome, Gene, PackedBitChromosome, Valid, chromosomes::ContiguousChromosome,
+    random_provider,
+};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
@@ -95,7 +98,8 @@ impl From<bool> for BitGene {
 
 /// A [`Chromosome`] that contains [`BitGene`].
 /// A [`BitChromosome`] is a collection of [`BitGene`] that represent the genetic
-/// material of an individual in the population.
+/// material of an individual in the population. For large collections of bits, use
+/// [`PackedBitChromosome`] for better memory efficiency and potential speedups.
 #[derive(Clone, PartialEq, Default, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BitChromosome {
@@ -218,6 +222,12 @@ impl From<Vec<bool>> for BitChromosome {
         BitChromosome {
             genes: alleles.into_iter().map(BitGene::from).collect(),
         }
+    }
+}
+
+impl From<&PackedBitChromosome> for BitChromosome {
+    fn from(packed_chromosome: &PackedBitChromosome) -> Self {
+        packed_chromosome.to_bools().into()
     }
 }
 

@@ -42,7 +42,7 @@ impl Problem<ImageChromosome, ImageBuffer<Rgba<u8>, Vec<u8>>> for ImageProblem {
         genotype[0].draw(self.width, self.height)
     }
 
-    fn eval(&self, individual: &Genotype<ImageChromosome>) -> radiate::RadiateResult<Score> {
+    fn eval(&self, individual: &Genotype<ImageChromosome>) -> RadiateResult<Score> {
         let decoded = self.decode(individual);
 
         let mut diff = 0.0;

@@ -2,8 +2,8 @@ use crate::PyAnyObject;
 use pyo3::PyResult;
 use radiate::{
     BitChromosome, CharChromosome, FloatChromosome, Generation, GeneticEngine,
-    GeneticEngineBuilder, Graph, GraphChromosome, IntChromosome, Limit, Op, PermutationChromosome,
-    Tree, TreeChromosome,
+    GeneticEngineBuilder, Graph, GraphChromosome, IntChromosome, Limit, Op, PackedBitChromosome,
+    PermutationChromosome, Tree, TreeChromosome,
 };
 use radiate_error::radiate_py_err;
 use serde::{Deserialize, Serialize};
@@ -29,6 +29,7 @@ macro_rules! gene_variants {
             Float64       => FloatChromosome<f64>,         PyAnyObject;
             Char          => CharChromosome,               PyAnyObject;
             Bit           => BitChromosome,                PyAnyObject;
+            PackedBit     => PackedBitChromosome,           PyAnyObject;
             Permutation   => PermutationChromosome<usize>, PyAnyObject;
             Graph32       => GraphChromosome<Op<f32>>,     Graph<Op<f32>>;
             Graph64       => GraphChromosome<Op<f64>>,     Graph<Op<f64>>;
@@ -55,6 +56,7 @@ macro_rules! match_variant {
             Float64($bind) => $body,
             Char($bind) => $body,
             Bit($bind) => $body,
+            PackedBit($bind) => $body,
             Permutation($bind) => $body,
             Graph32($bind) => $body,
             Graph64($bind) => $body,

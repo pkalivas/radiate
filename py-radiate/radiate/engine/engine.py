@@ -20,6 +20,7 @@ from ..codec import (
     FloatCodec,
     GraphCodec,
     IntCodec,
+    PackedBitCodec,
     PermutationCodec,
     TreeCodec,
 )
@@ -224,8 +225,32 @@ class Engine[G, T]:
 
     @staticmethod
     def bit(shape: AtLeastOne[int] = 1, use_numpy: bool = False) -> "Engine[bool, Any]":
-        """Create a genetic engine for optimizing boolean values."""
+        """
+        Create a genetic engine for optimizing boolean values.
+
+        For long bit strings (roughly 10k bits and up), see `Engine.packed_bit`.
+        """
         return Engine(codec=BitCodec(shape, use_numpy=use_numpy))
+
+    @staticmethod
+    def packed_bit(
+        num_bits: int, use_numpy: bool = False, *, words: bool = False
+    ) -> "Engine[bool, Any]":
+        """
+        Create a genetic engine for a single long bit string, stored 64 bits per word.
+
+        By default the fitness function gets the bits, exactly as with `Engine.bit`,
+        and the gain is memory. With `words=True` it gets the packed 64-bit words
+        instead (least-significant bit first, unused tail bits zero), so it can work
+        64 bits at a time. Pair it with `use_numpy=True` for speed, e.g.
+        `np.bitwise_count(words).sum()`.
+
+        :param num_bits: Number of bits. Must be a positive integer.
+        :param use_numpy: Decode to a numpy array (`np.bool_`, or `np.uint64` with
+            `words=True`) instead of a Python list.
+        :param words: Decode to the packed 64-bit words instead of bits.
+        """
+        return Engine(codec=PackedBitCodec(num_bits, use_numpy=use_numpy, words=words))
 
     @staticmethod
     def permutation[P](items: list[P]) -> Engine[P, list[P]]:

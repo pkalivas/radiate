@@ -4,9 +4,9 @@ use radiate_python::{
     PyBitCodec, PyCharCodec, PyChromosome, PyEcosystem, PyEngine, PyEngineBuilder, PyEngineInput,
     PyEngineInputType, PyEngineRunOption, PyExpr, PyFitnessFn, PyFloatCodec, PyFront, PyFrontValue,
     PyGene, PyGeneType, PyGeneration, PyGenotype, PyGraph, PyGraphCodec, PyIntCodec, PyMetric,
-    PyMetricSet, PyOp, PyPermutationCodec, PyPhenotype, PyPopulation, PyRandomProvider, PySpecies,
-    PySubscriber, PyTree, PyTreeCodec, components, constants::event_types, loss_functions,
-    py_accuracy, py_alter, py_select,
+    PyMetricSet, PyOp, PyPackedBitCodec, PyPermutationCodec, PyPhenotype, PyPopulation,
+    PyRandomProvider, PySpecies, PySubscriber, PyTree, PyTreeCodec, components,
+    constants::event_types, loss_functions, py_accuracy, py_alter, py_select,
 };
 
 #[pyfunction]
@@ -48,6 +48,7 @@ fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyIntCodec>()?;
     m.add_class::<PyCharCodec>()?;
     m.add_class::<PyBitCodec>()?;
+    m.add_class::<PyPackedBitCodec>()?;
     m.add_class::<PyGraphCodec>()?;
     m.add_class::<PyTreeCodec>()?;
     m.add_class::<PyPermutationCodec>()?;
