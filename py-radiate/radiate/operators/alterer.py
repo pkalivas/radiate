@@ -198,19 +198,22 @@ class Cross(AlterBase):
     @staticmethod
     def shuffle(rate: OperatorRate = 0.1) -> Cross:
         """
-        The `ShuffleCrossover` is a crossover operator used in genetic algorithms,
-        particularly when working with permutations or chromosomes where order matters.
-        It works by shuffling the order in which genes are exchanged between two parent chromosomes
-        to introduce randomness while preserving valid gene configurations.
+        The `ShuffleCrossover` is a crossover operator used in genetic algorithms.
+        It exchanges genes between two parent chromosomes at randomly chosen positions,
+        selecting the positions by shuffling the order in which genes are exchanged.
 
         1. Determine Gene Indices:
             * Generate a list of indices corresponding to the positions in the chromosomes.
             * Shuffle these indices to randomize the order in which genes will be swapped.
         2.	Swap Genes Alternately:
             * Iterate over the shuffled indices.
-            * For even indices, copy the gene from Parent 2 into the corresponding position in Child 1, and vice versa for odd indices.
+            * At every other shuffled index (the 1st, 3rd, 5th, ...), swap the genes of the two parents at that position with probability `rate`. The genes at the other positions are not exchanged.
         3.	Result:
-            * Two offspring chromosomes are produced with genes shuffled and swapped in random positions.
+            * Two offspring chromosomes are produced with genes swapped in random positions.
+
+        Each gene keeps its position, so the children of two permutation chromosomes are usually
+        not permutations, and the engine replaces them with new random individuals.
+        For permutations, use `Cross.pmx` or `Cross.edge_recombination`.
 
         :param rate: The probability of applying the crossover to a pair of parents.
         """
@@ -305,10 +308,11 @@ class Mutate(AlterBase):
     @staticmethod
     def gaussian(rate: OperatorRate = 0.1) -> Mutate:
         """
-        The `GaussianMutator` operator is a mutation mechanism designed for `ArithmeticGene`s.
-        It introduces random noise to the gene values by adding a sample from a Gaussian distribution
-        with a specified standard deviation. This mutation operator produces small, incremental
-        changes centered around the current gene value.
+        The `GaussianMutator` operator is a mutation mechanism designed for float genes.
+        It adds to the gene's value a sample from a Gaussian distribution centered on zero,
+        whose standard deviation is a quarter of the gene's `init_range`, then clamps the result
+        to the `init_range`. The changes are large: for a gene initialized in [-5, 5], the standard
+        deviation is 2.5. For small changes, use `Mutate.jitter` or `Mutate.polynomial` with a high `eta`.
 
         :param rate: The probability of mutating each gene in an individual.
         """

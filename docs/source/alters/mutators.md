@@ -49,11 +49,11 @@ The most basic mutation operator. It randomly replaces a gene with a new instanc
 >   * `rate`: f32 - Mutation rate (0.0 to 1.0)
 
 - **Purpose**: Adds Gaussian (normal) noise to gene values
-- **Best for**: Continuous values where you want small, normally distributed changes
-- **Example**: Perfect for fine-tuning real-valued parameters in optimization problems
+- **Best for**: Continuous values where you want normally distributed changes, scaled to each gene's init range
+- **Example**: Exploring real-valued parameters in optimization problems
 - **Compatible with**: `FloatGene`
 
-The `GaussianMutator` operator is a mutation mechanism designed for `ArithmeticGene`s. It introduces random noise to the gene values by adding a sample from a Gaussian distribution with a specified standard deviation. This mutation operator produces small, incremental changes centered around the current gene value.
+The `GaussianMutator` operator is a mutation mechanism designed for `FloatGene`s. It adds to the gene's value a sample from a Gaussian distribution centered on zero, whose standard deviation is a quarter of the gene's init range (`value_range` in Rust, `init_range` in Python), then clamps the result to that init range. The changes are large: for a gene initialized in `[-5, 5]`, the standard deviation is 2.5. For small, incremental changes, use the [Jitter](#jitter) mutator or the [Polynomial](#polynomial) mutator with a high `eta`.
   
 === ":fontawesome-brands-python: Python"
 
