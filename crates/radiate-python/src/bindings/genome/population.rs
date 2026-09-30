@@ -24,7 +24,7 @@ impl PyPopulation {
         let mut result = String::new();
         result.push_str("Population(\n");
         for phenotype in &self.phenotypes {
-            result.push_str(&format!("  {:?},\n", phenotype));
+            result.push_str(&format!("  {},\n", phenotype.__repr__()));
         }
         result.push(')');
         result

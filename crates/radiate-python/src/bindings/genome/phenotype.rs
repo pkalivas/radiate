@@ -32,7 +32,7 @@ impl PyPhenotype {
 
     pub fn __repr__(&self) -> String {
         format!(
-            "Phenotype(id={}, score={:?}, genotype={:?})",
+            "Phenotype(id={}, score={:?}, genotype={})",
             self.id,
             self.score,
             self.genotype.__repr__()

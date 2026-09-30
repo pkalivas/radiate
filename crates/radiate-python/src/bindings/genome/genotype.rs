@@ -21,13 +21,12 @@ impl PyGenotype {
     }
 
     pub fn __repr__(&self) -> String {
-        format!(
-            "{:?}",
-            self.chromosomes
-                .iter()
-                .map(|c| c.__repr__())
-                .collect::<Vec<_>>()
-        )
+        let chromosomes = self
+            .chromosomes
+            .iter()
+            .map(|c| c.__repr__())
+            .collect::<Vec<_>>();
+        format!("[{}]", chromosomes.join(", "))
     }
 
     pub fn __str__(&self) -> String {

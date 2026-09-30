@@ -210,7 +210,6 @@ impl PyChromosome {
             Float32 => Float32(FloatChromosome<f32>, FloatGene<f32>),
             Float64 => Float64(FloatChromosome<f64>, FloatGene<f64>),
             Boolean => Bit(BitChromosome,          BitGene),
-            // PackedBit => PackedBit(PackedBitChromosome, BitWordGene),
             Char    => Char(CharChromosome,        CharGene),
         });
 
@@ -218,16 +217,52 @@ impl PyChromosome {
     }
 
     pub fn __repr__(&self) -> String {
-        match_chromosome!(self.inner, chrom => {
-            format!("{:?}", chrom)
-        }, packed chrom => {
-            let bits = chrom
-                .to_bools()
-                .into_iter()
-                .map(|bit| if bit { '1' } else { '0' })
-                .collect::<String>();
-            format!("PackedBitChromosome(num_bits={}, bits={})", chrom.num_bits(), bits)
-        })
+        use ChromosomeInner::*;
+
+        let alleles = match &self.inner {
+            UInt8(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+            UInt16(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+            UInt32(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+            UInt64(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+            UInt128(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+
+            Int8(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+            Int16(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+            Int32(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+            Int64(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+            Int128(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+
+            Float32(chrom) => gene_alleles_repr(chrom, |a| format!("{a:?}")),
+            Float64(chrom) => gene_alleles_repr(chrom, |a| format!("{a:?}")),
+
+            Bit(chrom) => gene_alleles_repr(chrom, |a| py_bool(*a).to_string()),
+            PackedBit(chrom) => {
+                alleles_repr(chrom.num_bits(), |i| py_bool(chrom.bit(i)).to_string())
+            }
+            Char(chrom) => gene_alleles_repr(chrom, |a| py_char(*a)),
+
+            Permutation(chrom) => gene_alleles_repr(chrom, |a| a.to_string()),
+
+            Graph32(chrom) => return format!("{chrom:?}"),
+            Graph64(chrom) => return format!("{chrom:?}"),
+            Tree32(chrom) => return format!("{chrom:?}"),
+            Tree64(chrom) => return format!("{chrom:?}"),
+        };
+
+        let packed = if matches!(self.inner, PackedBit(_)) {
+            ", packed=True"
+        } else {
+            ""
+        };
+
+        format!(
+            "Chromosome({}, dtype={:?}, len={}{}, {})",
+            self.gene_type().name(),
+            self.data_type(),
+            self.__len__(),
+            packed,
+            alleles
+        )
     }
 
     pub fn __str__(&self) -> String {
@@ -293,7 +328,13 @@ impl PyChromosome {
     }
 
     pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let dtype = match self.inner {
+        Wrap(self.data_type()).into_pyobject(py)
+    }
+}
+
+impl PyChromosome {
+    fn data_type(&self) -> DataType {
+        match self.inner {
             ChromosomeInner::UInt8(_) => DataType::UInt8,
             ChromosomeInner::UInt16(_) => DataType::UInt16,
             ChromosomeInner::UInt32(_) => DataType::UInt32,
@@ -320,10 +361,50 @@ impl PyChromosome {
 
             ChromosomeInner::Tree32(_) => dtype::tree_node_dtype(DataType::Float32),
             ChromosomeInner::Tree64(_) => dtype::tree_node_dtype(DataType::Float64),
-        };
-
-        Wrap(dtype).into_pyobject(py)
+        }
     }
+}
+
+/// Show every allele up to this many; past it, show the first and last few.
+const REPR_MAX_ALLELES: usize = 20;
+const REPR_EDGE_ALLELES: usize = 3;
+
+/// `[a, b, c]`, or `[a, b, c, ..., x, y, z]` past [`REPR_MAX_ALLELES`]. Only the
+/// alleles that are shown get formatted.
+fn alleles_repr(len: usize, allele: impl Fn(usize) -> String) -> String {
+    let shown = if len > REPR_MAX_ALLELES {
+        (0..REPR_EDGE_ALLELES)
+            .map(&allele)
+            .chain(std::iter::once("...".to_string()))
+            .chain((len - REPR_EDGE_ALLELES..len).map(&allele))
+            .collect::<Vec<_>>()
+    } else {
+        (0..len).map(&allele).collect::<Vec<_>>()
+    };
+
+    format!("[{}]", shown.join(", "))
+}
+
+fn gene_alleles_repr<C: Chromosome>(
+    chrom: &C,
+    allele: impl Fn(&<C::Gene as Gene>::Allele) -> String,
+) -> String {
+    alleles_repr(chrom.len(), |i| match chrom.get(i) {
+        Some(gene) => allele(gene.allele()),
+        None => "?".to_string(),
+    })
+}
+
+fn py_char(value: char) -> String {
+    if value == '\'' {
+        "\"'\"".to_string()
+    } else {
+        format!("{value:?}")
+    }
+}
+
+fn py_bool(value: bool) -> &'static str {
+    if value { "True" } else { "False" }
 }
 
 macro_rules! impl_into_py_chromosome {
