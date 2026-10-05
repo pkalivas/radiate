@@ -72,7 +72,7 @@ homepage = "https://radiate.rs/"
 
 [workspace.dependencies]
 rand = "0.10.3"
-pyo3 = "0.29.2"
+pyo3 = "0.29.3"
 numpy ="0.29.0"
 rayon = "1.12.0"
 smallvec = { version = "1.16.2", features = ["serde"] }
