@@ -3,7 +3,7 @@ import radiate as rd
 
 rd.random.seed(514)
 
-TARGET_NUM = 1000
+NUM_BITS = 10000
 
 
 def fit(val: np.ndarray) -> int:
@@ -11,10 +11,10 @@ def fit(val: np.ndarray) -> int:
 
 
 engine = (
-    rd.Engine.packed_bit(TARGET_NUM, use_numpy=True, words=True)
+    rd.Engine.packed_bit(NUM_BITS, use_numpy=True, words=True)
     .fitness(fit)
-    .alter(rd.Cross.multipoint(0.7, 2), rd.Mutate.bit_flip(0.02 / TARGET_NUM))
-    .limit(rd.Limit.score(TARGET_NUM))
+    .alter(rd.Cross.multipoint(0.7, 2), rd.Mutate.bit_flip(0.2 / NUM_BITS))
+    .limit(rd.Limit.score(NUM_BITS))
 )
 
 print(engine.run())
