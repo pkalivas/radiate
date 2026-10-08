@@ -34,7 +34,7 @@ This section is organized as:
 
 2. **Choosing the Right Alterer**:
     - For continuous problems: Use Gaussian or Arithmetic [mutators](mutators.md) with Blend/Intermediate [crossover](crossovers.md)
-    - For permutation problems: Use Swap/Scramble [mutators](mutators.md) with PMX or Shuffle [crossover](crossovers.md)
+    - For permutation problems: Use Swap/Scramble [mutators](mutators.md) with PMX or Edge Recombination [crossover](crossovers.md)
     - For binary problems: Use Uniform [mutator](mutators.md) with Multi-point or Uniform [crossover](crossovers.md)
 
 3. **Combining Alterers**:

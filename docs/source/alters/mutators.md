@@ -4,7 +4,7 @@ Mutators introduce (usually small) random changes to individual genes or chromos
 
 | Mutator | Works on | What it does |
 |---|---|---|
-| [Uniform](#uniform) | any gene | replaces a gene with a fresh random value |
+| [Uniform](#uniform) | Bit, Char, Float, Int | replaces a gene with a fresh random value |
 | [Gaussian](#gaussian) | Float | adds normally-distributed noise |
 | [Arithmetic](#arithmetic) | Float, Int | applies a random +, −, ×, or ÷ |
 | [Swap](#swap) | any gene | swaps two genes' positions |
@@ -24,7 +24,8 @@ Mutators introduce (usually small) random changes to individual genes or chromos
 - **Purpose**: Randomly changes genes to new random values
 - **Best for**: General-purpose mutation when you want simple random changes
 - **Example**: Binary or discrete genes where you want to flip values randomly
-- **Compatible with**: `BitGene`, `CharGene`, `FloatGene`, `IntGene<I>`, `PermutationGene<A>`
+- **Compatible with**: `BitGene`, `CharGene`, `FloatGene`, `IntGene<I>`
+- **Not for**: `PermutationGene<A>` — a new permutation gene keeps its index, so this mutator has no effect. Use [Swap](#swap), [Scramble](#scramble), or [Invert](#invert) instead.
 
 The most basic mutation operator. It randomly replaces a gene with a new instance of the gene type.
 
@@ -53,7 +54,7 @@ The most basic mutation operator. It randomly replaces a gene with a new instanc
 - **Example**: Perfect for fine-tuning real-valued parameters in optimization problems
 - **Compatible with**: `FloatGene`
 
-The `GaussianMutator` operator is a mutation mechanism designed for `ArithmeticGene`s. It introduces random noise to the gene values by adding a sample from a Gaussian distribution with a specified standard deviation. This mutation operator produces small, incremental changes centered around the current gene value.
+The `GaussianMutator` operator is a mutation mechanism designed for `FloatGene`s. It introduces random noise to the gene values by adding a sample from a Gaussian distribution with a specified standard deviation. This mutation operator produces small, incremental changes centered around the current gene value.
   
 === ":fontawesome-brands-python: Python"
 
