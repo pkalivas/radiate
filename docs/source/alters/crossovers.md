@@ -23,13 +23,12 @@ Crossovers combine genetic material from two parents to create offspring, allowi
 > 	* `rate`: f32 - Crossover rate (0.0 to 1.0)
 > 	* `alpha`: f32 - Blending factor (0.0 to 1.0)
 
-- **Purpose**: Creates offspring by blending parent genes using a weighted average
+- **Purpose**: Creates offspring by extrapolating each parent's gene away from the other parent, scaled by `alpha`
 - **Best for**: Continuous optimization problems
-- **Example**: Useful when you want to explore the space between parent solutions
+- **Example**: Useful when you want to explore just beyond the region spanned by the parent solutions
 - **Compatible with**: `FloatGene`, `IntGene<I>`
 
-The `BlendCrossover` is a crossover operator designed for `ArithmeticGene`s. It introduces variability by blending the `gene` controlled by the `alpha` parameter. This approach allows for smooth transitions between `gene` values, promoting exploration of the search space.
-Its functionality is similar to the `IntermediateCrossover`, but it uses a different formula to calculate the new `gene` value.
+The `BlendCrossover` is a crossover operator designed for `ArithmeticGene`s. It introduces variability by moving each `gene` away from the other parent's value by a fraction `alpha` of their difference, so children land outside the interval between the two parents rather than inside it. Contrast this with the `IntermediateCrossover`, which interpolates *between* the parents.
 Its defined as:
 
 $$
