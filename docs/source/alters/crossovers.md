@@ -4,15 +4,15 @@ Crossovers combine genetic material from two parents to create offspring, allowi
 
 | Crossover | Works on | What it does |
 |---|---|---|
-| [Blend](#blend) | Float, Int | child = parent ± α·(difference); can reach past a parent |
+| [Blend](#blend) | Float | child = parent ± α·(difference); can reach past a parent |
 | [Intermediate](#intermediate) | Float | weighted average of the two parents' alleles |
 | [Mean](#mean) | Float, Int | child gene = mean of the two parents' genes |
-| [Multi-Point](#multi-point) | any gene | swaps segments at N cut points (classic GA crossover) |
+| [Multi-Point](#multi-point) | Bit, Char, Float, Int | swaps segments at N cut points (classic GA crossover) |
 | [Partially Mapped (PMX)](#partially-mapped-pmx) | Permutation | order-preserving crossover for permutations |
 | [Edge Recombination](#edge-recombination) | Permutation | preserves adjacency/edges from both parents |
-| [Shuffle](#shuffle) | any gene | shuffles positions, then swaps genes |
+| [Shuffle](#shuffle) | Bit, Char, Float, Int | shuffles positions, then swaps genes |
 | [Simulated Binary](#simulated-binary) | Float | real-valued analog of binary crossover (contiguity-controlled) |
-| [Uniform](#uniform) | any gene | each gene independently taken from either parent |
+| [Uniform](#uniform) | Bit, Char, Float, Int | each gene independently taken from either parent |
 
 ---
 
@@ -26,9 +26,9 @@ Crossovers combine genetic material from two parents to create offspring, allowi
 - **Purpose**: Creates offspring by extrapolating each parent's gene away from the other parent, scaled by `alpha`
 - **Best for**: Continuous optimization problems
 - **Example**: Useful when you want to explore just beyond the region spanned by the parent solutions
-- **Compatible with**: `FloatGene`, `IntGene<I>`
+- **Compatible with**: `FloatGene`
 
-The `BlendCrossover` is a crossover operator designed for `ArithmeticGene`s. It introduces variability by moving each `gene` away from the other parent's value by a fraction `alpha` of their difference, so children land outside the interval between the two parents rather than inside it. Contrast this with the `IntermediateCrossover`, which interpolates *between* the parents.
+The `BlendCrossover` is a crossover operator designed for `FloatGene`s. It introduces variability by moving each `gene` away from the other parent's value by a fraction `alpha` of their difference, so children land outside the interval between the two parents rather than inside it. Contrast this with the `IntermediateCrossover`, which interpolates *between* the parents.
 Its defined as:
 
 $$
@@ -60,7 +60,7 @@ $$
 - **Example**: Good for fine-tuning solutions in continuous spaces
 - **Compatible with**: `FloatGene`
 
-The `IntermediateCrossover` operator is a crossover mechanism designed for `ArithmeticGene`s. 
+The `IntermediateCrossover` operator is a crossover mechanism designed for `FloatGene`s. 
 It combines the corresponding `genes` of two parent chromosomes by replacing a gene in one chromosome
 with a value that lies between the two parent `genes`. The new gene is calculated as the weighted average
 of the two parent `genes`, where the weight is determined by the `alpha` parameter.
@@ -109,7 +109,7 @@ of the two parent `genes`, where the weight is determined by the `alpha` paramet
 - **Compatible with**: `FloatGene`, `IntGene<I>`
 
 The `MeanCrossover` operator is a crossover mechanism designed 
-for `ArithmeticGene`s. It combines the corresponding `genes` of two parent chromosomes by 
+for `NumericGene`s (`FloatGene` and `IntGene<I>`). It combines the corresponding `genes` of two parent chromosomes by 
 replacing a gene in one chromosome with the mean (average) of the two `genes`. This approach 
 is useful when `genes` represent numeric values such as weights or coordinates, 
 as it promotes a balanced combination of parent traits.
@@ -138,7 +138,8 @@ as it promotes a balanced combination of parent traits.
 - **Purpose**: Swaps segments between parents at multiple points
 - **Best for**: General-purpose crossover for most problems
 - **Example**: Classic genetic algorithm crossover, good for most applications
-- **Compatible with**: `FloatGene`, `IntGene<I>`, `BitGene`, `CharGene`, `PermutationGene<A>`
+- **Compatible with**: `FloatGene`, `IntGene<I>`, `BitGene`, `CharGene`
+- **Not for**: `PermutationGene<A>` — swapping genes position-by-position between parents creates duplicates, producing invalid permutations. Use [PMX](#partially-mapped-pmx) or [Edge Recombination](#edge-recombination) instead.
 
 The `MultiPointCrossover` is a crossover operator that combines two parent individuals by selecting multiple crossover points and swapping the genetic material between the parents at those points. This is a 
 classic crossover operator.
@@ -244,12 +245,12 @@ The `EdgeRecombinationCrossover` is a specialized crossover operator for permuta
 - **Purpose**: Shuffles genes before performing crossover
 - **Best for**: Problems where gene position is important
 - **Example**: Useful for problems where you want to maintain gene independence while exploring new combinations
-- **Compatible with**: `FloatGene`, `IntGene<I>`, `BitGene`, `CharGene`, `PermutationGene<A>`
+- **Compatible with**: `FloatGene`, `IntGene<I>`, `BitGene`, `CharGene`
+- **Not for**: `PermutationGene<A>` — swapping genes position-by-position between parents creates duplicates, producing invalid permutations. Use [PMX](#partially-mapped-pmx) or [Edge Recombination](#edge-recombination) instead.
 
-The `ShuffleCrossover` is a crossover operator used in genetic algorithms, 
-particularly when working with permutations or chromosomes where order matters. 
+The `ShuffleCrossover` is a crossover operator used in genetic algorithms. 
 It works by shuffling the order in which genes are exchanged between two parent chromosomes 
-to introduce randomness while preserving valid gene configurations.
+to introduce randomness. Genes are still swapped position-for-position, so it is not suitable for permutations.
 
 1. Determine Gene Indices:
     * Generate a list of indices corresponding to the positions in the chromosomes.
@@ -311,7 +312,8 @@ The `SimulatedBinaryCrossover` is a crossover operator designed for `FloatGene`s
 - **Purpose**: Randomly selects genes from either parent
 - **Best for**: Problems where gene independence is high
 - **Example**: Useful when genes have little interaction with each other
-- **Compatible with**: `FloatGene`, `IntGene<I>`, `BitGene`, `CharGene`, `PermutationGene<A>`
+- **Compatible with**: `FloatGene`, `IntGene<I>`, `BitGene`, `CharGene`
+- **Not for**: `PermutationGene<A>` — swapping genes position-by-position between parents creates duplicates, producing invalid permutations. Use [PMX](#partially-mapped-pmx) or [Edge Recombination](#edge-recombination) instead.
 
 The `UniformCrossover` is a crossover operator creates new individuals by selecting `genes` from the parents with equal probability and swapping them between the parents. This is a simple crossover operator that can be effective in a wide range of problems.
 
