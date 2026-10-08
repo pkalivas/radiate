@@ -126,7 +126,7 @@ There's no built-in "exponential" node — it's a half-life formula built from `
 This is the recipe none of the others can express: a rate that responds to the population's *actual behavior* instead of a schedule fixed in advance. Two common shapes —
 
 - **Gated on stagnation.** Boost mutation once the best score has gone `patience` generations without improving by more than `epsilon`. Python's `Expr.is_stagnant(...)` is sugar for `Expr.select(metric).stagnation(epsilon).gte(patience)`, shown explicitly on the Rust side.
-- **Tracking a continuous signal.** `score.volatility` (coefficient of variation of the best score) is a good general-purpose "how settled is the population" signal — dial the rate down as it drops.
+- **Tracking a continuous signal.** `score.volatility` (coefficient of variation of the population's scores) is a good general-purpose "how settled is the population" signal — dial the rate down as it drops.
 
 === ":fontawesome-brands-python: Python"
 

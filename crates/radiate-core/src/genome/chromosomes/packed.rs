@@ -93,11 +93,11 @@ impl Gene for BitWordGene {
 /// For what it's worth, the speed-up over using the normal [BitChromosome] is really only
 /// significant for large bit strings:
 /// ```text
-/// Bits	Speedup
-/// 1k	1.2×
-/// 10k	2.1×
-/// 100k	7.3×
-/// 1M	8.4×
+/// Bits  Speedup
+/// 1k    1.2×
+/// 10k   2.1×
+/// 100k  7.3×
+/// 1M    8.4×
 /// ```
 #[derive(Clone, Default, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -176,7 +176,7 @@ impl PackedBitChromosome {
     pub fn to_bools(&self) -> Vec<bool> {
         let mut out = vec![false; self.words.len() * WORD_BITS];
         let bytes = self.words.iter().flat_map(|word| word.0.to_le_bytes());
-        for (chunk, byte) in out.chunks_exact_mut(8).zip(bytes) {
+        for (chunk, byte) in out.as_chunks_mut::<8>().0.iter_mut().zip(bytes) {
             chunk.copy_from_slice(&bits::TABLE[byte as usize]);
         }
 
@@ -217,10 +217,8 @@ impl FromIterator<bool> for PackedBitChromosome {
                 words.push(BitWordGene(0));
             }
 
-            if bit {
-                if let Some(last) = words.last_mut() {
-                    last.0 |= 1u64 << bit_index;
-                }
+            if bit && let Some(last) = words.last_mut() {
+                last.0 |= 1u64 << bit_index;
             }
 
             num_bits += 1;

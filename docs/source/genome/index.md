@@ -37,7 +37,7 @@ Certain `Genes` have additional functionality that allows them to be manipulated
 
 ??? info "FloatGene"
 
-    For evolving floating-point numbers. If the `allele` is not specified, it will be randomly initialized within the `value_range`. If the `value_range` is not specified, it will default to (`-1e10`, `1e10`). If the `bound_range` is not specified, it will default to `value_range`.
+    For evolving floating-point numbers. If the `allele` is not specified, it will be randomly initialized within the `value_range`. If the `value_range` is not specified, it will default to the full range of the underlying type (its min to max value). If the `bound_range` is not specified, it will default to `value_range`.
 
     The `FloatGene` is generic over the floating-point type `F`, which can be either `f32` or `f64`.
 
@@ -56,7 +56,7 @@ Certain `Genes` have additional functionality that allows them to be manipulated
 
 ??? info "IntGene"
 
-    For evolving integer values. If the `allele` is not specified, it will be randomly initialized within the `value_range`. If the `value_range` is not specified, it will default to (`-1e10`, `1e10`). If the `bound_range` is not specified, it will default to `value_range`. The `IntGene` holds a generic type `I` that implements the `Integer<I>` trait, which allows it to work with various integer types such as `i8`, `i16`, `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, and `u128`.
+    For evolving integer values. If the `allele` is not specified, it will be randomly initialized within the `value_range`. If the `value_range` is not specified, it will default to the full range of the underlying type (its min to max value). If the `bound_range` is not specified, it will default to `value_range`. The `IntGene` holds a generic type `I` that implements the `Integer<I>` trait, which allows it to work with various integer types such as `i8`, `i16`, `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, and `u128`.
 
     === ":fontawesome-brands-python: Python"
 

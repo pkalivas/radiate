@@ -30,6 +30,8 @@ y = np.array(answers, dtype=np.float32)
 
 
 def fit(graph: rd.Graph) -> np.float32:
+    # Unchecked evaluates the graph without safety checks around
+    # the inputs (x) - this can be faster but unsafe if x contains invalid values/shapes.
     predictions = graph.eval(x, unchecked=True)
     return np.mean((predictions - y) ** 2, dtype=np.float32)
 
@@ -43,7 +45,8 @@ engine = (
         # all edge nodes will use this operation - can be a list too
         edge=rd.Op.weight(),
         # specify the dtype of the underlying graph node's Op's dtype T (Op<T>) -
-        # input data (x, y) must match this dtype
+        # input data (x, y) must match this dtype - notice how
+        # line 32 specifies the np dtype when computing the fitness.
         dtype=rd.Float32,
     )
     # .fitness(fit)

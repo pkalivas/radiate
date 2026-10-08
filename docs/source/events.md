@@ -177,7 +177,7 @@ For more complex event handling, you can create a custom event handler class:
 
 ### Decorator Shortcuts
 
-For single-purpose handlers, four decorators skip the subclass-and-override boilerplate by pinning a plain function to one `EventType`. Each one just wraps your function in a `CallableEventHandler`, so the result is still a normal handler you pass to `.subscribe()`.
+For single-purpose handlers, a set of decorators skip the subclass-and-override boilerplate by pinning a plain function to one `EventType`. Each one just wraps your function in a `CallableEventHandler`, so the result is still a normal handler you pass to `.subscribe()`.
 
 | Decorator | Fires on |
 |---|---|
@@ -187,11 +187,12 @@ For single-purpose handlers, four decorators skip the subclass-and-override boil
 | `on_stop` | `EventType.STOP` |
 | `on_limit_triggered` | `EventType.LIMIT_TRIGGERED` |
 | `on_checkpoint_saved` | `EventType.CHECKPOINT_SAVED` |
+| `on_log` | `EventType.LOG` |
 | `on_event` | All event types |
 
 !!! note "No shortcut for `EPOCH_START`"
 
-    There isn't an `on_epoch_start` decorator — of the five event types, only these four have a decorator. Use a lambda or an `EventHandler` subclass if you need to react to `EPOCH_START` specifically. Also note `on_epoch` maps to `EPOCH_COMPLETE`, not `EPOCH_START`.
+    There isn't an `on_epoch_start` decorator — it's the only event type without one. Use a lambda or an `EventHandler` subclass if you need to react to `EPOCH_START` specifically. Also note `on_epoch` maps to `EPOCH_COMPLETE`, not `EPOCH_START`.
 
 === ":fontawesome-brands-python: Python"
 
