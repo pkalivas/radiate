@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="628" height="306" viewBox="0 0 628 306" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
+  <defs>
+    <marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#57606a"/>
+    </marker>
+  </defs>
+
+  <rect x="0.5" y="0.5" width="627" height="305" rx="12" fill="#ffffff" stroke="#d0d7de"/>
+
+  <!-- ===== Mutation ===== -->
+  <text x="24" y="40" font-size="15" font-weight="700" fill="#1f2328">Mutation</text>
+  <text x="24" y="58" font-size="11" fill="#57606a">tweaks genes within a single individual</text>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">
+    <!-- parent -->
+    <rect x="40"  y="72" width="52" height="30" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="66"  y="91" text-anchor="middle" fill="#0a3069">0.42</text>
+    <rect x="98"  y="72" width="52" height="30" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="124" y="91" text-anchor="middle" fill="#0a3069">-1.3</text>
+    <rect x="156" y="72" width="52" height="30" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="182" y="91" text-anchor="middle" fill="#0a3069">0.07</text>
+    <rect x="214" y="72" width="52" height="30" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="240" y="91" text-anchor="middle" fill="#0a3069">2.51</text>
+
+    <!-- arrow -->
+    <text x="312" y="82" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="10" fill="#57606a">mutate</text>
+    <line x1="284" y1="87" x2="338" y2="87" stroke="#57606a" stroke-width="2" marker-end="url(#ah)"/>
+
+    <!-- result, one gene changed -->
+    <rect x="356" y="72" width="52" height="30" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="382" y="91" text-anchor="middle" fill="#0a3069">0.42</text>
+    <rect x="414" y="72" width="52" height="30" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="440" y="91" text-anchor="middle" fill="#0a3069">-1.3</text>
+    <rect x="472" y="72" width="52" height="30" rx="5" fill="#fff8c5" stroke="#d4a72c"/><text x="498" y="91" text-anchor="middle" fill="#7d4e00">0.88</text>
+    <rect x="530" y="72" width="52" height="30" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="556" y="91" text-anchor="middle" fill="#0a3069">2.51</text>
+  </g>
+
+  <line x1="24" y1="126" x2="604" y2="126" stroke="#eaeef2"/>
+
+  <!-- ===== Crossover ===== -->
+  <text x="24" y="156" font-size="15" font-weight="700" fill="#1f2328">Crossover</text>
+  <text x="24" y="174" font-size="11" fill="#57606a">combines two parents into a child</text>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">
+    <!-- parent A -->
+    <text x="24" y="210" font-family="ui-sans-serif, sans-serif" font-size="10" fill="#57606a">Parent A</text>
+    <rect x="92"  y="192" width="50" height="28" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="117" y="210" text-anchor="middle" fill="#0a3069">1.0</text>
+    <rect x="148" y="192" width="50" height="28" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="173" y="210" text-anchor="middle" fill="#0a3069">1.1</text>
+    <rect x="204" y="192" width="50" height="28" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="229" y="210" text-anchor="middle" fill="#0a3069">1.2</text>
+    <rect x="260" y="192" width="50" height="28" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="285" y="210" text-anchor="middle" fill="#0a3069">1.3</text>
+
+    <!-- parent B -->
+    <text x="24" y="246" font-family="ui-sans-serif, sans-serif" font-size="10" fill="#57606a">Parent B</text>
+    <rect x="92"  y="228" width="50" height="28" rx="5" fill="#dafbe1" stroke="#2da44e"/><text x="117" y="246" text-anchor="middle" fill="#1a7f37">9.0</text>
+    <rect x="148" y="228" width="50" height="28" rx="5" fill="#dafbe1" stroke="#2da44e"/><text x="173" y="246" text-anchor="middle" fill="#1a7f37">9.1</text>
+    <rect x="204" y="228" width="50" height="28" rx="5" fill="#dafbe1" stroke="#2da44e"/><text x="229" y="246" text-anchor="middle" fill="#1a7f37">9.2</text>
+    <rect x="260" y="228" width="50" height="28" rx="5" fill="#dafbe1" stroke="#2da44e"/><text x="285" y="246" text-anchor="middle" fill="#1a7f37">9.3</text>
+
+    <!-- arrow -->
+    <text x="346" y="222" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="10" fill="#57606a">crossover</text>
+    <line x1="318" y1="228" x2="372" y2="228" stroke="#57606a" stroke-width="2" marker-end="url(#ah)"/>
+
+    <!-- child (mix of A and B) -->
+    <text x="468" y="200" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="10" fill="#57606a">Child</text>
+    <rect x="388" y="214" width="50" height="28" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="413" y="232" text-anchor="middle" fill="#0a3069">1.0</text>
+    <rect x="444" y="214" width="50" height="28" rx="5" fill="#ddf4ff" stroke="#54aeff"/><text x="469" y="232" text-anchor="middle" fill="#0a3069">1.1</text>
+    <rect x="500" y="214" width="50" height="28" rx="5" fill="#dafbe1" stroke="#2da44e"/><text x="525" y="232" text-anchor="middle" fill="#1a7f37">9.2</text>
+    <rect x="556" y="214" width="50" height="28" rx="5" fill="#dafbe1" stroke="#2da44e"/><text x="581" y="232" text-anchor="middle" fill="#1a7f37">9.3</text>
+  </g>
+
+  <text x="24" y="288" font-size="11" fill="#57606a">a mutator works on one individual; a crossover mixes the genes of two parents into a new child</text>
+</svg>
