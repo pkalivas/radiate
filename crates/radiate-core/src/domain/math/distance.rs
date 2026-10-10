@@ -1,14 +1,6 @@
 use radiate_utils::Float;
 
-#[inline]
-pub fn euclidean<F: Float>(one: &[F], two: &[F]) -> F {
-    let mut sum = F::zero();
-    for (&a, &b) in one.iter().zip(two.iter()) {
-        let diff = a - b;
-        sum = sum + diff * diff;
-    }
-    sum.sqrt()
-}
+use crate::bits::WORD_SIZE;
 
 #[inline]
 pub fn hamming<T>(one: &[T], two: &[T]) -> f32
@@ -20,6 +12,32 @@ where
         .map(|(a, b)| if a != b { 1.0 } else { 0.0 })
         .sum::<f32>()
         / one.len() as f32
+}
+
+#[inline]
+pub fn packed_hamming(one: &[u64], two: &[u64]) -> f32 {
+    let words = one.len().min(two.len());
+    if words == 0 {
+        return 0.0;
+    }
+
+    let differing = one[..words]
+        .iter()
+        .zip(&two[..words])
+        .map(|(a, b)| (a ^ b).count_ones())
+        .sum::<u32>();
+
+    differing as f32 / (words * WORD_SIZE) as f32
+}
+
+#[inline]
+pub fn euclidean<F: Float>(one: &[F], two: &[F]) -> F {
+    let mut sum = F::zero();
+    for (&a, &b) in one.iter().zip(two.iter()) {
+        let diff = a - b;
+        sum = sum + diff * diff;
+    }
+    sum.sqrt()
 }
 
 #[inline]

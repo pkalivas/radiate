@@ -1,4 +1,4 @@
-use crate::{Chromosome, Codec, Genotype, PackedBitChromosome};
+use crate::{Codec, Genotype, PackedBitChromosome};
 
 /// A [`Codec`] for a single [`PackedBitChromosome`] of `num_bits` bits.
 ///
@@ -21,12 +21,6 @@ impl Codec<PackedBitChromosome, Vec<u64>> for PackedBitCodec {
     }
 
     fn decode(&self, genotype: &Genotype<PackedBitChromosome>) -> Vec<u64> {
-        let tail_mask = genotype[0].tail_mask();
-        let mut words = genotype[0].iter().map(|w| w.get()).collect::<Vec<_>>();
-        if let Some(last) = words.last_mut() {
-            *last &= tail_mask;
-        }
-
-        words
+        genotype[0].to_words()
     }
 }

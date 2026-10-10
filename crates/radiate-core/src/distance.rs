@@ -1,5 +1,6 @@
 use crate::{
     Chromosome, ContiguousChromosome, Gene, PackedBitChromosome, Phenotype,
+    bits::WORD_SIZE,
     chromosomes::{NumericAllele, gene::NumericGene},
     math::distance,
 };
@@ -12,7 +13,7 @@ where
 }
 
 /// A concrete implementation of the [Distance] trait that calculates the Hamming distance
-/// between two [Genotype]s. The Hamming distance is the number of positions at which the
+/// between two [crate::Genotype]s. The Hamming distance is the number of positions at which the
 /// corresponding genes are different normalized by the total number of genes.
 #[derive(Clone)]
 pub struct HammingDistance;
@@ -66,6 +67,14 @@ impl Distance<Vec<f32>> for HammingDistance {
 /// Like [`HammingDistance`], chromosomes of different lengths are compared over their
 /// common prefix. The unspecified tail bits are never counted. Comparing zero bits
 /// gives a distance of `0.0`.
+///
+/// It also works on raw words (`[u64]` and `Vec<u64>`), such as the output of
+/// [`PackedBitCodec`](crate::PackedBitCodec), which is what novelty search compares.
+/// Raw words don't carry a bit count, so the distance is normalized by
+/// `words * 64` instead of the number of bits, and the tail bits past the end of
+/// the bit string are assumed to be zero. `PackedBitCodec` guarantees this, and
+/// with zeroed tails the result differs from the exact bit-level fraction only by a
+/// constant factor.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackedBitHammingDistance;
 
@@ -77,14 +86,14 @@ impl PackedBitHammingDistance {
         let num_bits = one.num_bits().min(two.num_bits());
         let (one, two) = (one.as_slice(), two.as_slice());
 
-        let full_words = num_bits / 64;
+        let full_words = num_bits / WORD_SIZE;
         let mut differing = one[..full_words]
             .iter()
             .zip(&two[..full_words])
             .map(|(a, b)| (a.get() ^ b.get()).count_ones() as usize)
             .sum::<usize>();
 
-        let tail_bits = num_bits % 64;
+        let tail_bits = num_bits % WORD_SIZE;
         if tail_bits != 0 {
             let mask = (1u64 << tail_bits) - 1;
             let diff = one[full_words].get() ^ two[full_words].get();
@@ -117,8 +126,22 @@ impl Distance<Phenotype<PackedBitChromosome>> for PackedBitHammingDistance {
     }
 }
 
+impl Distance<[u64]> for PackedBitHammingDistance {
+    #[inline]
+    fn calculate(&self, one: &[u64], two: &[u64]) -> f32 {
+        distance::packed_hamming(one, two)
+    }
+}
+
+impl Distance<Vec<u64>> for PackedBitHammingDistance {
+    #[inline]
+    fn calculate(&self, one: &Vec<u64>, two: &Vec<u64>) -> f32 {
+        <Self as Distance<[u64]>>::calculate(self, one, two)
+    }
+}
+
 /// Implementation of the [Distance] trait that calculates the Euclidean distance
-/// between two [Genotype]s. The Euclidean distance is the square root of the sum of the
+/// between two [crate::Genotype]s. The Euclidean distance is the square root of the sum of the
 /// squared differences between the corresponding genes' alleles, normalized by the number of genes.
 #[derive(Clone)]
 pub struct EuclideanDistance;
