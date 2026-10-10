@@ -157,12 +157,12 @@ impl<G: AsRef<[GraphNode<Op<f32>>]>> Distance<G> for NeatDistance {
     }
 }
 
-impl<G: AsRef<[GraphNode<Op<f32>>]>> Novelty<G> for NeatDistance {
-    fn description(&self, phenotype: &G) -> Vec<f32> {
+impl<G: AsRef<[GraphNode<Op<f32>>]>> Novelty<G, Vec<u64>> for NeatDistance {
+    fn description(&self, phenotype: &G) -> Vec<u64> {
         phenotype
             .as_ref()
             .iter()
-            .map(|n| n.innovation().map_or(0.0, |id| id.get() as f32))
+            .map(|n| n.innovation().map_or(0, |id| id.get()))
             .collect()
     }
 }

@@ -19,27 +19,20 @@ impl PyNoveltySearch {
         archive_size: usize,
         distance: String,
     ) -> Self {
+        // The Python descriptor runs in `__call__`, so the inner search receives the
+        // finished descriptor and only needs to pass it through.
+        let identity = |described: &Vec<f32>| described.clone();
+        let search = if distance == crate::constants::components::EUCLIDEAN_DISTANCE {
+            NoveltySearch::new(identity, EuclideanDistance)
+        } else if distance == crate::constants::components::COSINE_DISTANCE {
+            NoveltySearch::new(identity, CosineDistance)
+        } else {
+            NoveltySearch::new(identity, HammingDistance)
+        };
+
         PyNoveltySearch {
             descriptor,
-            inner: if distance == crate::constants::components::EUCLIDEAN_DISTANCE {
-                NoveltySearch::new(EuclideanDistance)
-                    .k(k)
-                    .threshold(threshold)
-                    .archive_size(archive_size)
-                    .euclidean_distance()
-            } else if distance == crate::constants::components::COSINE_DISTANCE {
-                NoveltySearch::new(CosineDistance)
-                    .k(k)
-                    .threshold(threshold)
-                    .archive_size(archive_size)
-                    .cosine_distance()
-            } else {
-                NoveltySearch::new(HammingDistance)
-                    .k(k)
-                    .threshold(threshold)
-                    .archive_size(archive_size)
-                    .hamming_distance()
-            },
+            inner: search.k(k).threshold(threshold).archive_size(archive_size),
         }
     }
 

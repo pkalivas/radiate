@@ -100,6 +100,7 @@ engine
 ```bash
 git clone https://github.com/pkalivas/radiate.git
 cd radiate
+just release 3.13
 ```
 
 Radiate uses [Just](https://github.com/casey/just) as a build tool, you can install it from [here](https://github.com/casey/just#installation).

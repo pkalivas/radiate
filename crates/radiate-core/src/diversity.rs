@@ -1,7 +1,6 @@
 use crate::{
     Chromosome, ContiguousChromosome, Gene, PackedBitChromosome, Phenotype,
     chromosomes::{NumericAllele, gene::NumericGene},
-    fitness::Novelty,
     math::distance,
 };
 use std::sync::Arc;
@@ -72,12 +71,6 @@ impl<P: AsRef<[f32]>> Distance<P> for HammingDistance {
         let vec_two = two.as_ref();
 
         distance::hamming(vec_one, vec_two)
-    }
-}
-
-impl Novelty<Vec<f32>> for HammingDistance {
-    fn description(&self, phenotype: &Vec<f32>) -> Vec<f32> {
-        phenotype.clone()
     }
 }
 
@@ -206,12 +199,6 @@ impl<P: AsRef<[f32]>> Distance<P> for EuclideanDistance {
     }
 }
 
-impl Novelty<Vec<f32>> for EuclideanDistance {
-    fn description(&self, phenotype: &Vec<f32>) -> Vec<f32> {
-        phenotype.clone()
-    }
-}
-
 #[derive(Clone)]
 pub struct CosineDistance;
 
@@ -261,12 +248,6 @@ impl<P: AsRef<[f32]>> Distance<P> for CosineDistance {
         let vec_two = two.as_ref();
 
         distance::cosine(vec_one, vec_two)
-    }
-}
-
-impl Novelty<Vec<f32>> for CosineDistance {
-    fn description(&self, phenotype: &Vec<f32>) -> Vec<f32> {
-        phenotype.clone()
     }
 }
 

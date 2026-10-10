@@ -10,11 +10,10 @@ const GENE_RANGE: std::ops::Range<f32> = -5.0..5.0;
 fn main() {
     random_provider::seed(12345);
 
-    let novelty = NoveltySearch::new(robot::behavior_descriptor)
+    let novelty = NoveltySearch::new(robot::behavior_descriptor, CosineDistance)
         .k(10)
         .threshold(0.6)
-        .archive_size(1000)
-        .cosine_distance();
+        .archive_size(1000);
 
     let engine = GeneticEngine::builder()
         .codec(FloatChromosome::from((NUM_GENES, GENE_RANGE)))
