@@ -44,7 +44,7 @@ mod stress_tests {
     fn many_species_stable() {
         const POP_SIZE: usize = 200;
         const GENS: usize = 300;
-        const SPECIES_COUNT: usize = 73;
+        const SPECIES_COUNT: usize = 64;
 
         seeded(424242, || {
             let engine = speciated_sphere_engine(5, POP_SIZE, 0.1);
