@@ -1,7 +1,7 @@
 use super::GraphChromosome;
 use super::node::InnovationId;
 use crate::{GraphNode, Node, Op};
-use radiate_core::{Novelty, Phenotype, diversity::Distance};
+use radiate_core::{Novelty, Phenotype, distance::Distance};
 use radiate_utils::Float;
 use std::cmp::Ordering;
 
@@ -151,12 +151,12 @@ impl<F: Float> Distance<Phenotype<GraphChromosome<Op<F>>>> for NeatDistance {
     }
 }
 
-impl<G: AsRef<[GraphNode<Op<f32>>]>> Novelty<G, Vec<u64>> for NeatDistance {
-    fn description(&self, phenotype: &G) -> Vec<u64> {
+impl<G: AsRef<[GraphNode<Op<f32>>]>> Novelty<G, Vec<f32>> for NeatDistance {
+    fn description(&self, phenotype: &G) -> Vec<f32> {
         phenotype
             .as_ref()
             .iter()
-            .map(|n| n.innovation().map_or(0, |id| id.get()))
+            .map(|n| n.innovation().map_or(0.0, |id| id.get() as f32))
             .collect()
     }
 }

@@ -1,4 +1,4 @@
-use crate::diversity::Distance;
+use crate::distance::Distance;
 use crate::math::knn::KNN;
 use std::sync::Arc;
 

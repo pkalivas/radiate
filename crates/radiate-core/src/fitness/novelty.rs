@@ -1,6 +1,4 @@
-use crate::{
-    BatchFitnessFunction, BatchedFn, FitnessFunction, diversity::Distance, math::knn::KNN,
-};
+use crate::{BatchFitnessFunction, BatchedFn, FitnessFunction, distance::Distance, math::knn::KNN};
 use radiate_utils::WindowBuffer;
 use std::sync::{Arc, RwLock};
 
@@ -452,7 +450,7 @@ mod tests {
                 move |members: &[Vec<f32>]| {
                     batch_calls.fetch_add(1, Ordering::Relaxed);
                     total_seen.fetch_add(members.len(), Ordering::Relaxed);
-                    members.iter().map(|v| v.clone()).collect()
+                    members.to_vec()
                 },
                 EuclideanDistance,
             )

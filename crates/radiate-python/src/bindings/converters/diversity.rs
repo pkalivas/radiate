@@ -3,7 +3,7 @@ use radiate::{
     BitChromosome, CharChromosome, CosineDistance, EuclideanDistance, FloatChromosome,
     GraphChromosome, HammingDistance, IntChromosome, NeatDistance, Op, PackedBitChromosome,
     PackedBitHammingDistance, PermutationChromosome, Phenotype, RadiateResult, TreeChromosome,
-    chromosomes::NumericAllele, diversity::Distance, ops::OpFloat,
+    chromosomes::NumericAllele, distance::Distance, ops::OpFloat,
 };
 use radiate_error::radiate_bail;
 use radiate_utils::{Float, Integer};

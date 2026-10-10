@@ -17,7 +17,7 @@ use crate::{
 use crate::{PyGeneration, PySubscriber};
 use core::panic;
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
-use radiate::{diversity::Distance, prelude::*};
+use radiate::{distance::Distance, prelude::*};
 use radiate_error::{ResultExt, radiate_py_bail, radiate_py_err};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};

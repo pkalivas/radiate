@@ -1,7 +1,7 @@
 use crate::steps::EngineStep;
 use radiate_core::{
     Chromosome, Ecosystem, Executor, MetricSet, Objective, Phenotype, Population, RateSet, Species,
-    diversity::Distance, math::distribution, metric_names, random_provider,
+    distance::Distance, math::distribution, metric_names, random_provider,
 };
 use radiate_error::Result;
 use std::sync::{Arc, Mutex, RwLock};

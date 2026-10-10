@@ -7,7 +7,7 @@ use crate::{Front, Problem, ReplacementStrategy, Select};
 use crate::{Generation, events::EventStream};
 use radiate_core::{Alterer, Ecosystem, Evaluator, Executor, Genotype};
 use radiate_core::{EcosystemFilter, ThreadSync};
-use radiate_core::{ExprSet, diversity::Distance};
+use radiate_core::{ExprSet, distance::Distance};
 use std::sync::{Arc, Mutex, RwLock};
 
 #[derive(Clone)]

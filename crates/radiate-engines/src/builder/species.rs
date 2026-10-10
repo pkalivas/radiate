@@ -1,5 +1,5 @@
 use crate::GeneticEngineBuilder;
-use radiate_core::{Chromosome, Expr, Phenotype, diversity::Distance};
+use radiate_core::{Chromosome, Expr, Phenotype, distance::Distance};
 use std::sync::Arc;
 
 #[derive(Clone)]
