@@ -1,7 +1,7 @@
 use super::GraphChromosome;
 use super::node::InnovationId;
 use crate::{GraphNode, Node, Op};
-use radiate_core::{Diversity, Novelty, Phenotype, diversity::Distance};
+use radiate_core::{Novelty, Phenotype, diversity::Distance};
 use radiate_utils::Float;
 use std::cmp::Ordering;
 
@@ -137,23 +137,19 @@ fn bump(id: InnovationId, cutoff: Option<InnovationId>, excess: &mut f32, disjoi
     }
 }
 
-impl<F: Float> Diversity<GraphChromosome<Op<F>>> for NeatDistance {
-    fn measure(
+impl<F: Float> Distance<Phenotype<GraphChromosome<Op<F>>>> for NeatDistance {
+    type Output = f32;
+
+    fn calculate(
         &self,
         one: &Phenotype<GraphChromosome<Op<F>>>,
         two: &Phenotype<GraphChromosome<Op<F>>>,
-    ) -> f32 {
+    ) -> Self::Output {
         one.genotype()
             .iter()
             .zip(two.genotype().iter())
             .map(|(a, b)| self.graph_distance(a, b))
             .sum()
-    }
-}
-
-impl<G: AsRef<[GraphNode<Op<f32>>]>> Distance<G> for NeatDistance {
-    fn calculate(&self, one: &G, two: &G) -> f32 {
-        self.graph_distance(one, two)
     }
 }
 

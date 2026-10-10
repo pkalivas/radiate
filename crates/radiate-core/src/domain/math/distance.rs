@@ -1,13 +1,13 @@
+use radiate_utils::Float;
+
 #[inline]
-pub fn euclidean(one: &[f32], two: &[f32]) -> f32 {
-    one.iter()
-        .zip(two.iter())
-        .map(|(&a, &b)| {
-            let diff = a - b;
-            diff * diff
-        })
-        .sum::<f32>()
-        .sqrt()
+pub fn euclidean<F: Float>(one: &[F], two: &[F]) -> F {
+    let mut sum = F::zero();
+    for (&a, &b) in one.iter().zip(two.iter()) {
+        let diff = a - b;
+        sum = sum + diff * diff;
+    }
+    sum.sqrt()
 }
 
 #[inline]
@@ -23,20 +23,20 @@ where
 }
 
 #[inline]
-pub fn cosine(one: &[f32], two: &[f32]) -> f32 {
-    let mut dot_product = 0.0;
-    let mut norm_one = 0.0;
-    let mut norm_two = 0.0;
+pub fn cosine<F: Float>(one: &[F], two: &[F]) -> F {
+    let mut dot_product = F::zero();
+    let mut norm_one = F::zero();
+    let mut norm_two = F::zero();
 
     for (&val_one, &val_two) in one.iter().zip(two.iter()) {
-        dot_product += val_one * val_two;
-        norm_one += val_one * val_one;
-        norm_two += val_two * val_two;
+        dot_product = dot_product + val_one * val_two;
+        norm_one = norm_one + val_one * val_one;
+        norm_two = norm_two + val_two * val_two;
     }
 
-    if norm_one == 0.0 || norm_two == 0.0 {
-        return 1.0;
+    if norm_one == F::zero() || norm_two == F::zero() {
+        return F::one();
     }
 
-    1.0 - (dot_product / (norm_one.sqrt() * norm_two.sqrt()))
+    F::one() - (dot_product / (norm_one.sqrt() * norm_two.sqrt()))
 }

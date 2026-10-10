@@ -34,13 +34,13 @@ impl<'a> KnnQueryResult<'a> {
 /// - `M`: distance metric
 pub struct KNN<'a, P> {
     points: &'a [P],
-    metric: Arc<dyn Distance<P>>,
+    metric: Arc<dyn Distance<P, Output = f32>>,
     scratch: Vec<(usize, f32)>,
 }
 
 impl<'a, P> KNN<'a, P> {
     #[inline]
-    pub fn new(points: &'a [P], metric: impl Into<Arc<dyn Distance<P>>>) -> Self {
+    pub fn new(points: &'a [P], metric: impl Into<Arc<dyn Distance<P, Output = f32>>>) -> Self {
         let len = points.len();
         KNN {
             points,

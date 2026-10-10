@@ -3,50 +3,31 @@ use crate::{
     chromosomes::{NumericAllele, gene::NumericGene},
     math::distance,
 };
-use std::sync::Arc;
 
-pub trait Distance<T>: Send + Sync {
-    fn calculate(&self, one: &T, two: &T) -> f32;
+pub trait Distance<I>: Send + Sync
+where
+    I: ?Sized,
+{
+    type Output;
+    fn calculate(&self, one: &I, two: &I) -> Self::Output;
 }
 
-/// Trait for measuring diversity between two [Genotype]s.
-/// Within radiate this is mostly used for speciation and determining how genetically
-/// similar two individuals are. Through this, the engine can determine
-/// whether two individuals belong to the same [Species](super::genome::species::Species) or not.
-pub trait Diversity<C: Chromosome>: Send + Sync {
-    fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32;
-}
-
-pub struct DistanceDiversityAdapter<C: Chromosome> {
-    diversity: Arc<dyn Diversity<C>>,
-}
-
-impl<C: Chromosome> DistanceDiversityAdapter<C> {
-    pub fn new(diversity: Arc<dyn Diversity<C>>) -> Self {
-        Self { diversity }
-    }
-}
-
-impl<C: Chromosome> Distance<Phenotype<C>> for DistanceDiversityAdapter<C> {
-    fn calculate(&self, one: &Phenotype<C>, two: &Phenotype<C>) -> f32 {
-        self.diversity.measure(one, two)
-    }
-}
-
-/// A concrete implementation of the [Diversity] trait that calculates the Hamming distance
+/// A concrete implementation of the [Distance] trait that calculates the Hamming distance
 /// between two [Genotype]s. The Hamming distance is the number of positions at which the
 /// corresponding genes are different normalized by the total number of genes.
 #[derive(Clone)]
 pub struct HammingDistance;
 
-impl<G, C> Diversity<C> for HammingDistance
+impl<G, C> Distance<Phenotype<C>> for HammingDistance
 where
     C: Chromosome<Gene = G>,
     G: Gene,
     G::Allele: PartialEq,
 {
+    type Output = f32;
+
     #[inline]
-    fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
+    fn calculate(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
         let geno_one = geno_one.genotype();
         let geno_two = geno_two.genotype();
 
@@ -65,12 +46,27 @@ where
     }
 }
 
-impl<P: AsRef<[f32]>> Distance<P> for HammingDistance {
-    fn calculate(&self, one: &P, two: &P) -> f32 {
-        let vec_one = one.as_ref();
-        let vec_two = two.as_ref();
+impl Distance<[f32]> for HammingDistance {
+    type Output = f32;
 
-        distance::hamming(vec_one, vec_two)
+    fn calculate(&self, one: &[f32], two: &[f32]) -> f32 {
+        distance::hamming(one, two)
+    }
+}
+
+impl Distance<Vec<f32>> for HammingDistance {
+    type Output = f32;
+
+    fn calculate(&self, one: &Vec<f32>, two: &Vec<f32>) -> f32 {
+        distance::hamming(one, two)
+    }
+}
+
+impl Distance<[u64]> for HammingDistance {
+    type Output = f32;
+
+    fn calculate(&self, one: &[u64], two: &[u64]) -> f32 {
+        distance::hamming(one, two)
     }
 }
 
@@ -114,13 +110,15 @@ impl PackedBitHammingDistance {
     }
 }
 
-impl Diversity<PackedBitChromosome> for PackedBitHammingDistance {
+impl Distance<Phenotype<PackedBitChromosome>> for PackedBitHammingDistance {
+    type Output = f32;
+
     #[inline]
-    fn measure(
+    fn calculate(
         &self,
         geno_one: &Phenotype<PackedBitChromosome>,
         geno_two: &Phenotype<PackedBitChromosome>,
-    ) -> f32 {
+    ) -> Self::Output {
         let (mut differing, mut total_bits) = (0, 0);
         for (one, two) in geno_one.genotype().iter().zip(geno_two.genotype().iter()) {
             let (diff, bits) = Self::count(one, two);
@@ -136,15 +134,15 @@ impl Diversity<PackedBitChromosome> for PackedBitHammingDistance {
     }
 }
 
-impl Distance<PackedBitChromosome> for PackedBitHammingDistance {
-    #[inline]
-    fn calculate(&self, one: &PackedBitChromosome, two: &PackedBitChromosome) -> f32 {
-        match Self::count(one, two) {
-            (_, 0) => 0.0,
-            (differing, total_bits) => differing as f32 / total_bits as f32,
-        }
-    }
-}
+// impl Distance<PackedBitChromosome> for PackedBitHammingDistance {
+//     #[inline]
+//     fn calculate(&self, one: &PackedBitChromosome, two: &PackedBitChromosome) -> f32 {
+//         match Self::count(one, two) {
+//             (_, 0) => 0.0,
+//             (differing, total_bits) => differing as f32 / total_bits as f32,
+//         }
+//     }
+// }
 
 /// Implementation of the [Diversity] trait that calculates the Euclidean distance
 /// between two [Genotype]s. The Euclidean distance is the square root of the sum of the
@@ -152,14 +150,16 @@ impl Distance<PackedBitChromosome> for PackedBitHammingDistance {
 #[derive(Clone)]
 pub struct EuclideanDistance;
 
-impl<G, C> Diversity<C> for EuclideanDistance
+impl<G, C> Distance<Phenotype<C>> for EuclideanDistance
 where
     C: Chromosome<Gene = G>,
     G: NumericGene,
     G::Allele: NumericAllele,
 {
+    type Output = f32;
+
     #[inline]
-    fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
+    fn calculate(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
         let geno_one = geno_one.genotype();
         let geno_two = geno_two.genotype();
 
@@ -190,26 +190,43 @@ where
     }
 }
 
-impl<P: AsRef<[f32]>> Distance<P> for EuclideanDistance {
-    fn calculate(&self, one: &P, two: &P) -> f32 {
-        let vec_one = one.as_ref();
-        let vec_two = two.as_ref();
+impl Distance<[f32]> for EuclideanDistance {
+    type Output = f32;
 
-        distance::euclidean(vec_one, vec_two)
+    fn calculate(&self, one: &[f32], two: &[f32]) -> Self::Output {
+        distance::euclidean(one, two)
+    }
+}
+
+impl Distance<Vec<f32>> for EuclideanDistance {
+    type Output = f32;
+
+    fn calculate(&self, one: &Vec<f32>, two: &Vec<f32>) -> Self::Output {
+        distance::euclidean(one, two)
+    }
+}
+
+impl Distance<[f64]> for EuclideanDistance {
+    type Output = f64;
+
+    fn calculate(&self, one: &[f64], two: &[f64]) -> Self::Output {
+        distance::euclidean(one, two) as f64
     }
 }
 
 #[derive(Clone)]
 pub struct CosineDistance;
 
-impl<G, C> Diversity<C> for CosineDistance
+impl<G, C> Distance<Phenotype<C>> for CosineDistance
 where
     C: Chromosome<Gene = G>,
     G: NumericGene,
     G::Allele: NumericAllele,
 {
+    type Output = f32;
+
     #[inline]
-    fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
+    fn calculate(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
         let geno_one = geno_one.genotype();
         let geno_two = geno_two.genotype();
 
@@ -242,12 +259,27 @@ where
     }
 }
 
-impl<P: AsRef<[f32]>> Distance<P> for CosineDistance {
-    fn calculate(&self, one: &P, two: &P) -> f32 {
-        let vec_one = one.as_ref();
-        let vec_two = two.as_ref();
+impl Distance<[f32]> for CosineDistance {
+    type Output = f32;
 
-        distance::cosine(vec_one, vec_two)
+    fn calculate(&self, one: &[f32], two: &[f32]) -> Self::Output {
+        distance::cosine(one, two)
+    }
+}
+
+impl Distance<Vec<f32>> for CosineDistance {
+    type Output = f32;
+
+    fn calculate(&self, one: &Vec<f32>, two: &Vec<f32>) -> Self::Output {
+        distance::cosine(one, two)
+    }
+}
+
+impl Distance<[f64]> for CosineDistance {
+    type Output = f64;
+
+    fn calculate(&self, one: &[f64], two: &[f64]) -> Self::Output {
+        distance::cosine(one, two)
     }
 }
 
@@ -261,7 +293,7 @@ mod tests {
         let vec_one = vec![1.0, 2.0, 3.0];
         let vec_two = vec![1.0, 2.0, 4.0];
 
-        assert_eq!(distance.calculate(&vec_one, &vec_two), 1.0 / 3.0);
+        assert_eq!(distance.calculate(vec_one.as_slice(), &vec_two), 1.0 / 3.0);
     }
 
     #[test]
@@ -270,7 +302,7 @@ mod tests {
         let vec_one = vec![1.0, 2.0, 3.0];
         let vec_two = vec![1.0, 2.0, 4.0];
 
-        assert_eq!(distance.calculate(&vec_one, &vec_two), 1.0);
+        assert_eq!(distance.calculate(vec_one.as_slice(), &vec_two), 1.0);
     }
 
     #[test]
@@ -279,6 +311,9 @@ mod tests {
         let vec_one = vec![1.0, 2.0, 3.0];
         let vec_two = vec![1.0, 2.0, 4.0];
 
-        assert_eq!(distance.calculate(&vec_one, &vec_two), 0.008539915);
+        assert_eq!(
+            distance.calculate(vec_one.as_slice(), vec_two.as_slice()),
+            0.008539915_f64
+        );
     }
 }

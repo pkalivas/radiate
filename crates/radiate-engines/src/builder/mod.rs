@@ -402,7 +402,7 @@ where
     fn build_rates(&mut self) -> Result<()> {
         let mut exprs = ExprSet::default();
 
-        if self.params.species_params.diversity.is_some() {
+        if self.params.species_params.distance.is_some() {
             let curr_threshold = &self.params.species_params.species_threshold;
             let threshold = if let Some(count) = self.params.species_params.target_species_count {
                 let first_val = f32::try_from(curr_threshold.clone()).unwrap_or(0.5);
@@ -519,7 +519,7 @@ where
     }
 
     fn build_species_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        let diversity = config.diversity()?;
+        let distance = config.distance()?;
         let threshold_expr = config.exprs().and_then(|exprs| {
             exprs
                 .lock()
@@ -530,7 +530,7 @@ where
 
         let species_step = SpeciateStep {
             threshold: RateSet::new(threshold_expr),
-            distance: diversity,
+            distance: distance,
             executor: config.species_executor(),
             objective: config.objective(),
             distances: Vec::new(),
@@ -555,7 +555,7 @@ where
                     ecosystem: None,
                 },
                 species_params: SpeciesParams {
-                    diversity: None,
+                    distance: None,
                     species_threshold: Expr::lit(0.5),
                     max_species_age: 25,
                     target_species_count: None,

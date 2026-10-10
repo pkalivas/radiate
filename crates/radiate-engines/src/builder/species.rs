@@ -1,10 +1,10 @@
 use crate::GeneticEngineBuilder;
-use radiate_core::{Chromosome, Diversity, Expr};
+use radiate_core::{Chromosome, Expr, Phenotype, diversity::Distance};
 use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct SpeciesParams<C: Chromosome> {
-    pub diversity: Option<Arc<dyn Diversity<C>>>,
+    pub distance: Option<Arc<dyn Distance<Phenotype<C>, Output = f32>>>,
     pub species_threshold: Expr,
     pub max_species_age: usize,
     pub target_species_count: Option<usize>,
@@ -15,13 +15,19 @@ where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
 {
-    pub fn boxed_diversity(mut self, diversity: Option<Box<dyn Diversity<C>>>) -> Self {
-        self.params.species_params.diversity = diversity.map(|d| d.into());
+    pub fn boxed_diversity(
+        mut self,
+        diversity: Option<Box<dyn Distance<Phenotype<C>, Output = f32>>>,
+    ) -> Self {
+        self.params.species_params.distance = diversity.map(|d| d.into());
         self
     }
 
-    pub fn diversity<D: Diversity<C> + 'static>(mut self, diversity: D) -> Self {
-        self.params.species_params.diversity = Some(Arc::new(diversity));
+    pub fn diversity<D: Distance<Phenotype<C>, Output = f32> + 'static>(
+        mut self,
+        diversity: D,
+    ) -> Self {
+        self.params.species_params.distance = Some(Arc::new(diversity));
         self
     }
 

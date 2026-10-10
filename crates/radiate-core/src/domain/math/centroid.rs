@@ -7,11 +7,11 @@ use std::sync::Arc;
 /// - `P`: point type (e.g. Vec<f32>, Genotype<C>, etc.)
 pub struct CentroidClusterer<P> {
     centroids: Vec<P>,
-    metric: Arc<dyn Distance<P>>,
+    metric: Arc<dyn Distance<P, Output = f32>>,
 }
 
 impl<P> CentroidClusterer<P> {
-    pub fn new(metric: Arc<dyn Distance<P>>) -> Self {
+    pub fn new(metric: Arc<dyn Distance<P, Output = f32>>) -> Self {
         CentroidClusterer {
             centroids: Vec::new(),
             metric,
@@ -83,7 +83,7 @@ mod tests {
         let metric = EuclideanDistance;
         let mut clusterer = CentroidClusterer::new(Arc::new(metric));
 
-        let points = vec![
+        let points: Vec<Vec<f32>> = vec![
             vec![1.0, 2.0],
             vec![1.5, 1.8],
             vec![5.0, 8.0],

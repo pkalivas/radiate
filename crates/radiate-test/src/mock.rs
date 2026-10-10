@@ -4,7 +4,7 @@ use radiate_alters::{BlendCrossover, GaussianMutator, UniformCrossover, UniformM
 use radiate_core::{
     AlterContext, Alterer, BitChromosome, Chromosome, Codec, Crossover, Ecosystem, Executor, Expr,
     FloatChromosome, FloatCodec, Gene, Genotype, IntChromosome, Mutate, Objective, Optimize,
-    Phenotype, Population, Score, Species, alter::AlterUpdates, alters, diversity::Diversity,
+    Phenotype, Population, Score, Species, alter::AlterUpdates, alters, diversity::Distance,
     random_provider,
 };
 use radiate_engines::{OffspringConfig, RecombineStep, SelectConfig, SpeciateStep, SurvivorConfig};
@@ -187,7 +187,7 @@ pub fn default_bit_alters() -> Vec<Alterer<BitChromosome>> {
 
 pub fn mock_speciate_step<C: Chromosome>(
     threshold: f32,
-    distance: impl Diversity<C> + 'static,
+    distance: impl Distance<Phenotype<C>, Output = f32> + 'static,
 ) -> SpeciateStep<C> {
     SpeciateStep::new(
         Expr::lit(threshold),
