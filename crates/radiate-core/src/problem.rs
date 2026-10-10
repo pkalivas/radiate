@@ -15,6 +15,30 @@ use crate::{Objective, error::RadiateResult};
 use radiate_error::{RadiateError, radiate_err};
 use std::sync::Arc;
 
+#[derive(Clone)]
+pub enum FitnessKind<C, T>
+where
+    C: Chromosome,
+{
+    Single(Arc<dyn Fn(T) -> Score + Send + Sync>),
+    Batch(Arc<dyn Fn(Vec<T>) -> Vec<Score> + Send + Sync>),
+    RawSingle(Arc<dyn Fn(&Genotype<C>) -> Score + Send + Sync>),
+    RawBatch(Arc<dyn Fn(Vec<&Genotype<C>>) -> Vec<Score> + Send + Sync>),
+}
+
+impl<C, T> FitnessKind<C, T>
+where
+    C: Chromosome,
+{
+    pub fn is_single(&self) -> bool {
+        matches!(self, FitnessKind::Single(_) | FitnessKind::RawSingle(_))
+    }
+
+    pub fn is_batch(&self) -> bool {
+        matches!(self, FitnessKind::Batch(_) | FitnessKind::RawBatch(_))
+    }
+}
+
 /// The core interface for genetic algorithm problems.
 ///
 /// The [Problem] trait encapsulates the three essential components of a genetic
@@ -120,9 +144,6 @@ pub trait Problem<C: Chromosome, T>: Send + Sync {
     }
 }
 
-type FitnessFn<T> = dyn Fn(T) -> Score + Send + Sync;
-type RawFitnessFn<C> = dyn Fn(&Genotype<C>) -> Score + Send + Sync;
-
 /// A standard implementation of the [Problem] trait for general use.
 /// [EngineProblem] is a generic, base level concrete implementation of the [Problem] trait that is the
 /// default problem used by the engine if none other is specified during building.
@@ -140,8 +161,7 @@ where
 {
     pub objective: Objective,
     pub codec: Arc<dyn Codec<C, T>>,
-    pub fitness_fn: Option<Arc<FitnessFn<T>>>,
-    pub raw_fitness_fn: Option<Arc<RawFitnessFn<C>>>,
+    pub fitness_kind: FitnessKind<C, T>,
 }
 
 /// Implementation of [Problem] for [EngineProblem].
@@ -159,15 +179,17 @@ impl<C: Chromosome, T> Problem<C, T> for EngineProblem<C, T> {
     }
 
     fn eval(&self, individual: &Genotype<C>) -> RadiateResult<Score> {
-        let score = if let Some(raw_fn) = &self.raw_fitness_fn {
-            raw_fn(individual)
-        } else if let Some(fitness_fn) = &self.fitness_fn {
-            let phenotype = self.decode(individual);
-            fitness_fn(phenotype)
-        } else {
-            return Err(radiate_err!(
-                Fitness: "No fitness function defined for EngineProblem"
-            ));
+        let score = match &self.fitness_kind {
+            FitnessKind::RawSingle(raw_fn) => raw_fn(individual),
+            FitnessKind::Single(fitness_fn) => {
+                let phenotype = self.decode(individual);
+                fitness_fn(phenotype)
+            }
+            _ => {
+                return Err(radiate_err!(
+                    Fitness: "No suitable fitness function defined for EngineProblem"
+                ));
+            }
         };
 
         if self.objective.validate(&score) {
@@ -180,97 +202,33 @@ impl<C: Chromosome, T> Problem<C, T> for EngineProblem<C, T> {
             self.objective
         ))
     }
-}
-
-/// Mark [EngineProblem] as thread-safe for parallel execution.
-///
-/// This implementation is safe because:
-/// - `Arc<dyn Codec<C, T>>` is `Send + Sync` when `C` and `T` are `Send + Sync`
-/// - `Arc<dyn Fn(T) -> Score + Send + Sync>` is `Send + Sync` by construction
-/// - The struct contains no interior mutability
-unsafe impl<C: Chromosome, T> Send for EngineProblem<C, T> {}
-unsafe impl<C: Chromosome, T> Sync for EngineProblem<C, T> {}
-
-type BatchFitnessFn<T> = dyn Fn(Vec<T>) -> Vec<Score> + Send + Sync;
-type RawBatchFitnessFn<C> = dyn Fn(Vec<&Genotype<C>>) -> Vec<Score> + Send + Sync;
-
-/// A specialized implementation of the [Problem] trait optimized for batch evaluation.
-///
-/// [BatchEngineProblem] is designed for problems where batch fitness evaluation
-/// is significantly more efficient than individual evaluation. It uses a batch
-/// fitness function that can process multiple phenotypes at once, potentially
-/// leveraging vectorization, shared computations, or parallel processing.
-///
-/// # Generic Parameters
-///
-/// - `C`: The [Chromosome] type that represents the genetic material
-/// - `T`: The phenotype type that represents the decoded individual
-///
-/// # Use Cases
-///
-/// Use [BatchEngineProblem] when:
-/// - Your fitness function can benefit from vectorization
-/// - There are shared computations between multiple individuals
-/// - The problem domain supports efficient batch processing
-/// - You're evaluating large populations where batch overhead is amortized
-/// - You need parts or the whole of a population to be evaluated together
-pub struct BatchEngineProblem<C, T>
-where
-    C: Chromosome,
-{
-    pub objective: Objective,
-    pub codec: Arc<dyn Codec<C, T>>,
-    pub batch_fitness_fn: Option<Arc<BatchFitnessFn<T>>>,
-    pub raw_batch_fitness_fn: Option<Arc<RawBatchFitnessFn<C>>>,
-}
-
-/// Implementation of [Problem] for [BatchEngineProblem].
-///
-/// This implementation provides both individual and batch evaluation methods.
-/// The individual evaluation method (`eval`) is implemented by wrapping the
-/// phenotype in a single-element slice and calling the batch function, then
-/// extracting the first result. This ensures consistency between individual
-/// and batch evaluation while maintaining the benefits of batch processing.
-impl<C: Chromosome, T> Problem<C, T> for BatchEngineProblem<C, T> {
-    fn encode(&self) -> Genotype<C> {
-        self.codec.encode()
-    }
-
-    fn decode(&self, genotype: &Genotype<C>) -> T {
-        self.codec.decode(genotype)
-    }
-
-    fn eval(&self, individual: &Genotype<C>) -> RadiateResult<Score> {
-        let scores = if let Some(raw_batch_fn) = &self.raw_batch_fitness_fn {
-            raw_batch_fn(vec![individual])
-        } else if let Some(batch_fn) = &self.batch_fitness_fn {
-            let phenotypes = vec![self.decode(individual)];
-            batch_fn(phenotypes)
-        } else {
-            return Err(radiate_err!(
-                Fitness: "No batch fitness function defined for BatchEngineProblem"
-            ));
-        };
-
-        // Cloning a score is a lightweight operation - the internal of a score is an Arc<[f32]>
-        // This function will likely never be called anyways as we expect `eval_batch` to be used.
-        Ok(scores[0].clone())
-    }
 
     fn eval_batch(&self, individuals: &[Genotype<C>]) -> RadiateResult<Vec<Score>> {
-        let scores = if let Some(raw_batch_fn) = &self.raw_batch_fitness_fn {
-            raw_batch_fn(individuals.iter().collect())
-        } else if let Some(batch_fn) = &self.batch_fitness_fn {
-            let phenotypes = individuals
-                .iter()
-                .map(|genotype| self.decode(genotype))
-                .collect::<Vec<T>>();
-            batch_fn(phenotypes)
-        } else {
-            return Err(radiate_err!(
-                Fitness: "No batch fitness function defined for BatchEngineProblem"
-            ));
+        let scores = match &self.fitness_kind {
+            FitnessKind::RawBatch(raw_batch_fn) => raw_batch_fn(individuals.iter().collect()),
+            FitnessKind::Batch(batch_fn) => {
+                let phenotypes = individuals
+                    .iter()
+                    .map(|genotype| self.decode(genotype))
+                    .collect::<Vec<T>>();
+                batch_fn(phenotypes)
+            }
+            _ => {
+                return Err(radiate_err!(
+                    Fitness: "No batch fitness function defined for BatchEngineProblem"
+                ));
+            }
         };
+
+        let num_individuals = individuals.len();
+        let num_scores = scores.len();
+        if num_scores != num_individuals {
+            return Err(radiate_err!(
+                Fitness: "Mismatch between number of individuals and number of scores: expected {}, got {}",
+                num_individuals,
+                num_scores
+            ));
+        }
 
         for value in scores.iter() {
             if !self.objective.validate(value) {
@@ -286,15 +244,14 @@ impl<C: Chromosome, T> Problem<C, T> for BatchEngineProblem<C, T> {
     }
 }
 
-/// Mark [BatchEngineProblem] as thread-safe for parallel execution.
+/// Mark [EngineProblem] as thread-safe for parallel execution.
 ///
 /// This implementation is safe because:
 /// - `Arc<dyn Codec<C, T>>` is `Send + Sync` when `C` and `T` are `Send + Sync`
-/// - `Arc<dyn Fn(&[T]) -> Vec<Score> + Send + Sync>` is `Send + Sync` by construction
+/// - `Arc<dyn Fn(T) -> Score + Send + Sync>` is `Send + Sync` by construction
 /// - The struct contains no interior mutability
-/// - Batch operations are designed to be thread-safe
-unsafe impl<C: Chromosome, T> Send for BatchEngineProblem<C, T> {}
-unsafe impl<C: Chromosome, T> Sync for BatchEngineProblem<C, T> {}
+unsafe impl<C: Chromosome, T> Send for EngineProblem<C, T> {}
+unsafe impl<C: Chromosome, T> Sync for EngineProblem<C, T> {}
 
 #[cfg(test)]
 mod tests {
@@ -333,8 +290,7 @@ mod tests {
         let problem = EngineProblem {
             objective: Objective::default(),
             codec: Arc::new(MockCodec),
-            fitness_fn: Some(fitness_fn),
-            raw_fitness_fn: None,
+            fitness_kind: FitnessKind::Single(fitness_fn),
         };
 
         let genotype = problem.encode();
@@ -350,14 +306,14 @@ mod tests {
 
     #[test]
     fn test_engine_problem_batch_evaluation() {
-        let fitness_fn =
-            Arc::new(|phenotype: MockPhenotype| Score::from(phenotype.x + phenotype.y));
+        let fitness_fn = Arc::new(|phenotype: Vec<MockPhenotype>| {
+            phenotype.iter().map(|p| Score::from(p.x + p.y)).collect()
+        });
 
         let problem = EngineProblem {
             objective: Objective::default(),
             codec: Arc::new(MockCodec),
-            fitness_fn: Some(fitness_fn),
-            raw_fitness_fn: None,
+            fitness_kind: FitnessKind::Batch(fitness_fn),
         };
 
         let genotypes = vec![problem.encode(), problem.encode()];
@@ -366,73 +322,5 @@ mod tests {
         assert_eq!(scores.len(), 2);
         assert_eq!(scores[0].as_f32(), 3.0);
         assert_eq!(scores[1].as_f32(), 3.0);
-    }
-
-    #[test]
-    fn test_batch_engine_problem_basic_functionality() {
-        let batch_fitness_fn = Arc::new(|phenotypes: Vec<MockPhenotype>| {
-            phenotypes.iter().map(|p| Score::from(p.x * p.y)).collect()
-        });
-
-        let problem = BatchEngineProblem {
-            objective: Objective::default(),
-            codec: Arc::new(MockCodec),
-            batch_fitness_fn: Some(batch_fitness_fn),
-            raw_batch_fitness_fn: None,
-        };
-
-        let genotype = problem.encode();
-        assert_eq!(genotype.len(), 2);
-
-        let phenotype = problem.decode(&genotype);
-        assert_eq!(phenotype.x, 1.0);
-        assert_eq!(phenotype.y, 2.0);
-
-        let fitness = problem.eval(&genotype).unwrap();
-        assert_eq!(fitness.as_f32(), 2.0); // 1.0 * 2.0
-    }
-
-    #[test]
-    fn test_batch_engine_problem_batch_evaluation() {
-        let batch_fitness_fn = Arc::new(|phenotypes: Vec<MockPhenotype>| {
-            phenotypes.iter().map(|p| Score::from(p.x * p.y)).collect()
-        });
-
-        let problem = BatchEngineProblem {
-            objective: Objective::default(),
-            codec: Arc::new(MockCodec),
-            batch_fitness_fn: Some(batch_fitness_fn),
-            raw_batch_fitness_fn: None,
-        };
-
-        let genotypes = vec![problem.encode(), problem.encode()];
-
-        let scores = problem.eval_batch(&genotypes).unwrap();
-        assert_eq!(scores.len(), 2);
-        assert_eq!(scores[0].as_f32(), 2.0); // 1.0 * 2.0
-        assert_eq!(scores[1].as_f32(), 2.0); // 1.0 * 2.0
-    }
-
-    #[test]
-    fn test_consistency_between_eval_and_eval_batch() {
-        let batch_fitness_fn = Arc::new(|phenotypes: Vec<MockPhenotype>| {
-            phenotypes.iter().map(|p| Score::from(p.x * p.y)).collect()
-        });
-
-        let problem = BatchEngineProblem {
-            objective: Objective::default(),
-            codec: Arc::new(MockCodec),
-            batch_fitness_fn: Some(batch_fitness_fn),
-            raw_batch_fitness_fn: None,
-        };
-
-        let genotype = problem.encode();
-
-        let individual_fitness = problem.eval(&genotype).unwrap();
-
-        let batch_scores = problem.eval_batch(&[genotype.clone()]).unwrap();
-        let batch_fitness = &batch_scores[0];
-
-        assert_eq!(individual_fitness.as_f32(), batch_fitness.as_f32());
     }
 }

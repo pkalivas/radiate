@@ -2,13 +2,9 @@ use crate::GeneticEngineBuilder;
 use radiate_core::{
     Chromosome, Codec, Genotype, Problem, Score,
     fitness::{BatchFitnessFunction, FitnessFunction},
+    problem::FitnessKind,
 };
 use std::sync::Arc;
-
-type FitnessFn<T> = dyn Fn(T) -> Score + Send + Sync;
-type BatchFitnessFn<T> = dyn Fn(Vec<T>) -> Vec<Score> + Send + Sync;
-type RawFitnessFn<C> = dyn Fn(&Genotype<C>) -> Score + Send + Sync;
-type RawBatchFitnessFn<C> = dyn Fn(Vec<&Genotype<C>>) -> Vec<Score> + Send + Sync;
 
 #[derive(Clone)]
 pub struct ProblemParams<C, T>
@@ -18,10 +14,7 @@ where
 {
     pub codec: Option<Arc<dyn Codec<C, T>>>,
     pub problem: Option<Arc<dyn Problem<C, T>>>,
-    pub fitness_fn: Option<Arc<FitnessFn<T>>>,
-    pub batch_fitness_fn: Option<Arc<BatchFitnessFn<T>>>,
-    pub raw_fitness_fn: Option<Arc<RawFitnessFn<C>>>,
-    pub raw_batch_fitness_fn: Option<Arc<RawBatchFitnessFn<C>>>,
+    pub fitness_kind: Option<FitnessKind<C, T>>,
 }
 
 impl<C, T> GeneticEngineBuilder<C, T>
@@ -52,7 +45,7 @@ where
         fitness_func: impl FitnessFunction<T, S> + 'static,
     ) -> Self {
         let other = move |x| fitness_func.evaluate(x).into();
-        self.params.problem_params.fitness_fn = Some(Arc::new(other));
+        self.params.problem_params.fitness_kind = Some(FitnessKind::Single(Arc::new(other)));
         self
     }
 
@@ -73,7 +66,7 @@ where
                 .map(|s| s.into())
                 .collect()
         };
-        self.params.problem_params.batch_fitness_fn = Some(Arc::new(other));
+        self.params.problem_params.fitness_kind = Some(FitnessKind::Batch(Arc::new(other)));
         self
     }
 
@@ -82,7 +75,7 @@ where
         raw_fitness_func: impl for<'a> FitnessFunction<&'a Genotype<C>, S> + 'static,
     ) -> Self {
         let other = move |x: &Genotype<C>| raw_fitness_func.evaluate(x).into();
-        self.params.problem_params.raw_fitness_fn = Some(Arc::new(other));
+        self.params.problem_params.fitness_kind = Some(FitnessKind::RawSingle(Arc::new(other)));
         self
     }
 
@@ -97,7 +90,7 @@ where
                 .map(|s| s.into())
                 .collect()
         };
-        self.params.problem_params.raw_batch_fitness_fn = Some(Arc::new(other));
+        self.params.problem_params.fitness_kind = Some(FitnessKind::RawBatch(Arc::new(other)));
         self
     }
 }

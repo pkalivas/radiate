@@ -37,12 +37,9 @@ use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::{Alterer, Ecosystem, Expr, FitnessEvaluator, Valid, metric_names};
 use radiate_core::{ExprSet, ThreadSync};
-use radiate_core::{RadiateError, ensure, radiate_err};
+use radiate_core::{RadiateError, radiate_err};
 use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
-use radiate_core::{
-    expr,
-    problem::{BatchEngineProblem, EngineProblem},
-};
+use radiate_core::{expr, problem::EngineProblem};
 use radiate_utils::VersionedCounts;
 #[cfg(feature = "serde")]
 use serde::Deserialize;
@@ -231,6 +228,7 @@ where
 
         self.build_event_stream()?;
         self.build_problem()?;
+        self.build_evaluator()?;
         self.build_population()?;
         self.build_alterer()?;
         self.build_front()?;
@@ -279,46 +277,56 @@ where
             return Ok(());
         }
 
-        ensure!(
-            self.params.problem_params.codec.is_some(),
-            Builder: "Codec not set"
-        );
+        if self.params.problem_params.codec.is_none() {
+            return Err(radiate_err!(Builder: "Codec not set"));
+        }
 
-        let raw_fitness_fn = self.params.problem_params.raw_fitness_fn.clone();
-        let fitness_fn = self.params.problem_params.fitness_fn.clone();
-        let batch_fitness_fn = self.params.problem_params.batch_fitness_fn.clone();
-        let raw_batch_fitness_fn = self.params.problem_params.raw_batch_fitness_fn.clone();
+        let codec = self.params.problem_params.codec.clone().unwrap();
+        let objective = self.params.optimization_params.objectives.clone();
+        let fitness_kind = self.params.problem_params.fitness_kind.clone();
 
-        if batch_fitness_fn.is_some() || raw_batch_fitness_fn.is_some() {
-            self.params.problem_params.problem = Some(Arc::new(BatchEngineProblem {
-                objective: self.params.optimization_params.objectives.clone(),
-                codec: self.params.problem_params.codec.clone().unwrap(),
-                batch_fitness_fn,
-                raw_batch_fitness_fn,
-            }));
+        if let Some(fitness_kind) = fitness_kind {
+            let problem = Arc::new(EngineProblem {
+                objective,
+                codec,
+                fitness_kind,
+            });
 
-            // Replace the evaluator with BatchFitnessEvaluator
-            self.params.evaluation_params.evaluator = Arc::new(BatchFitnessEvaluator::new(
-                self.params
-                    .evaluation_params
-                    .fitness_executor
-                    .executor
-                    .clone(),
-            ));
+            self.params.problem_params.problem = Some(problem);
 
-            Ok(())
-        } else if fitness_fn.is_some() || raw_fitness_fn.is_some() {
-            self.params.problem_params.problem = Some(Arc::new(EngineProblem {
-                objective: self.params.optimization_params.objectives.clone(),
-                codec: self.params.problem_params.codec.clone().unwrap(),
-                fitness_fn,
-                raw_fitness_fn,
-            }));
-
-            Ok(())
+            return Ok(());
         } else {
             Err(radiate_err!(Builder: "Fitness function not set"))
         }
+    }
+
+    fn build_evaluator(&mut self) -> Result<()> {
+        let fitness_kind = self.params.problem_params.fitness_kind.clone();
+        let evaluator = self.params.evaluation_params.evaluator.clone();
+
+        if evaluator.is_none() {
+            if let Some(fitness_kind) = fitness_kind
+                && fitness_kind.is_batch()
+            {
+                self.params.evaluation_params.evaluator =
+                    Some(Arc::new(BatchFitnessEvaluator::new(
+                        self.params
+                            .evaluation_params
+                            .fitness_executor
+                            .executor
+                            .clone(),
+                    )));
+            } else {
+                self.params.evaluation_params.evaluator = Some(Arc::new(FitnessEvaluator::new(
+                    self.params
+                        .evaluation_params
+                        .fitness_executor
+                        .executor
+                        .clone(),
+                )));
+            }
+        }
+        Ok(())
     }
 
     /// Build the population of the genetic engine. This will create a new population
@@ -440,7 +448,10 @@ where
         let eval_step = EvaluateStep {
             objective: config.objective(),
             problem: config.problem(),
-            evaluator: config.evaluator(),
+            evaluator: config
+                .evaluator()
+                .clone()
+                .expect("No Evaluator set - this shouldn't happen"),
         };
 
         Some(Box::new(eval_step))
@@ -561,7 +572,7 @@ where
                     target_species_count: None,
                 },
                 evaluation_params: EvaluationParams {
-                    evaluator: Arc::new(FitnessEvaluator::default()),
+                    evaluator: None,
                     fitness_executor: ExecutorParams::default(),
                     species_executor: ExecutorParams::default(),
                     event_stream_executor: ExecutorParams::default(),
@@ -580,10 +591,7 @@ where
                 problem_params: ProblemParams {
                     codec: None,
                     problem: None,
-                    fitness_fn: None,
-                    batch_fitness_fn: None,
-                    raw_fitness_fn: None,
-                    raw_batch_fitness_fn: None,
+                    fitness_kind: None,
                 },
                 filter_params: FilterParams {
                     filters: Vec::new(),
