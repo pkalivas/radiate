@@ -77,13 +77,15 @@ impl PyEngineBuilder {
     pub fn build<'py>(&mut self, py: Python<'py>) -> PyResult<PyEngine> {
         let mut inner = self.create_builder(py)?;
 
-        let mut accum = HashMap::<PyEngineInputType, Vec<PyEngineInput>>::new();
-        let input_groups = self.inputs.iter().fold(&mut accum, |acc, input| {
-            acc.entry(input.input_type())
-                .or_default()
-                .push(input.clone());
-            acc
-        });
+        let input_groups = self.inputs.iter().fold(
+            HashMap::<PyEngineInputType, Vec<PyEngineInput>>::new(),
+            |mut acc, input| {
+                acc.entry(input.input_type())
+                    .or_default()
+                    .push(input.clone());
+                acc
+            },
+        );
 
         for (input_type, inputs) in input_groups.iter() {
             inner = Self::process_inputs(inner, *input_type, inputs)?;

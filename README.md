@@ -80,12 +80,10 @@ let target = "Hello, Radiate!";
 let engine = GeneticEngine::builder()
     .codec(CharCodec::vector(target.len()))
     .fitness_fn(|geno: Vec<char>| {
-        geno.into_iter().zip(target.chars()).fold(
-            0,
-            |acc, (allele, targ)| {
-                if allele == targ { acc + 1 } else { acc }
-            },
-        )
+        geno.into_iter()
+            .zip(target.chars())
+            .filter(|(allele, targ)| allele == targ)
+            .count()
     })
     .build();
 

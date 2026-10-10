@@ -32,21 +32,18 @@ where
     fn mutate_chromosome(&mut self, chromosome: &mut C, ctx: &mut AlterContext) -> usize {
         let mut count = 0;
 
-        random_provider::with_rng(|rand| {
-            for gene in chromosome.iter_mut() {
-                if rand.bool(ctx.rate()) {
-                    // The reason we use the sampling min/max from the gene here instead of it's
-                    // 'bounds' is because this operation is essentially a form of 'local search'
-                    // and we want to ensure that the mutated value is not too far from the original value.
-                    let (min, max) = gene.init_range();
-                    let std_dev = (max - min) * F::from(0.25).unwrap();
-                    let gaussian = rand.gaussian(*gene.allele(), std_dev);
+        random_provider::bernoulli_indices(ctx.rate(), chromosome.len(), |idx| {
+            if let Some(gene) = chromosome.get_mut(idx) {
+                // The reason we use the sampling min/max from the gene here instead of it's
+                // 'bounds' is because this operation is essentially a form of 'local search'
+                // and we want to ensure that the mutated value is not too far from the original value.
+                let (min, max) = gene.init_range();
+                let std_dev = (max - min) * F::from(0.25).unwrap();
+                let gaussian = random_provider::gaussian(*gene.allele(), std_dev);
 
-                    // `set_allele` here safely clamps the value within the gene's bounds
-                    gene.set_allele(gaussian);
-
-                    count += 1;
-                }
+                // `set_allele` here safely clamps the value within the gene's bounds
+                gene.set_allele(gaussian);
+                count += 1;
             }
         });
 
