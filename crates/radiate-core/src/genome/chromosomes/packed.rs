@@ -327,3 +327,32 @@ impl ContiguousChromosome for PackedBitChromosome {
         &mut self.words
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn to_words_keeps_every_bit_and_clears_the_tail() {
+        // 64 and 128 have no tail, so a wrong mask there would drop real bits.
+        for num_bits in [1, 63, 64, 65, 128, 130] {
+            let mut chrom = random_provider::scoped_seed(num_bits as u64, || {
+                PackedBitChromosome::new(num_bits)
+            });
+
+            // Junk past `num_bits`, as generic word-level operators can leave behind.
+            let mask = chrom.tail_mask();
+            if let Some(last) = chrom.words.last_mut() {
+                last.0 |= !mask;
+            }
+
+            let words = chrom.to_words();
+            assert_eq!(words.len(), num_words(num_bits));
+            for i in 0..words.len() * WORD_SIZE {
+                let expected = i < num_bits && chrom.bit(i);
+                let actual = (words[i / WORD_SIZE] >> (i % WORD_SIZE)) & 1 != 0;
+                assert_eq!(actual, expected, "bit {i} of a {num_bits}-bit chromosome");
+            }
+        }
+    }
+}

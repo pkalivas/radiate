@@ -284,4 +284,63 @@ mod tests {
             0.008539915
         );
     }
+
+    #[test]
+    fn packed_hamming_matches_a_bit_by_bit_count() {
+        use crate::{Genotype, random_provider};
+
+        for num_bits in [1, 63, 64, 65, 130] {
+            let (mut one, mut two) = random_provider::scoped_seed(num_bits as u64, || {
+                (
+                    PackedBitChromosome::new(num_bits),
+                    PackedBitChromosome::new(num_bits),
+                )
+            });
+
+            // Guarantee at least one differing bit, which a 1-bit pair might not have.
+            two.set_bit(0, !one.bit(0));
+
+            // Tail bits that differ between the two must never be counted.
+            let mask = one.tail_mask();
+            if let Some(last) = one.as_mut_slice().last_mut() {
+                *last.get_mut() |= !mask;
+            }
+
+            let differing = (0..num_bits).filter(|&i| one.bit(i) != two.bit(i)).count() as f32;
+
+            let exact = PackedBitHammingDistance.calculate(
+                &Phenotype::from(Genotype::from(one.clone())),
+                &Phenotype::from(Genotype::from(two.clone())),
+            );
+            assert_eq!(exact, differing / num_bits as f32, "{num_bits} bits");
+
+            // Raw words are normalized by whole words; see the PackedBitHammingDistance docs.
+            let words = num_bits.div_ceil(WORD_SIZE);
+            let raw = PackedBitHammingDistance
+                .calculate(one.to_words().as_slice(), two.to_words().as_slice());
+            assert_eq!(
+                raw,
+                differing / (words * WORD_SIZE) as f32,
+                "{num_bits} bits"
+            );
+        }
+    }
+
+    #[test]
+    fn packed_hamming_compares_the_common_prefix_and_never_divides_by_zero() {
+        let empty: &[u64] = &[];
+        assert_eq!(PackedBitHammingDistance.calculate(empty, empty), 0.0);
+        assert_eq!(
+            PackedBitHammingDistance.calculate(empty, &[u64::MAX][..]),
+            0.0
+        );
+
+        // Only the first word is shared; the second word of `long` is ignored.
+        let short = [0b1011u64];
+        let long = [0b0001u64, u64::MAX];
+        assert_eq!(
+            PackedBitHammingDistance.calculate(&short[..], &long[..]),
+            2.0 / 64.0
+        );
+    }
 }
