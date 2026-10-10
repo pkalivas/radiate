@@ -1,9 +1,10 @@
-use crate::{ProjectExpr, stats::{MetricView, Tag, TagType, defaults, metric_fields}};
+use crate::{
+    ProjectExpr,
+    stats::{MetricView, Tag, TagType, defaults, metric_fields},
+};
 use radiate_error::{RadiateError, radiate_err};
 use radiate_expr::SelectOp;
-use radiate_utils::{
-    AnyValue, DataType, SmallStr, Statistic
-};
+use radiate_utils::{AnyValue, DataType, SmallStr, Statistic};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{hash::Hash, time::Duration};
@@ -22,7 +23,6 @@ macro_rules! metric {
     }};
     ($name:expr) => {{ $crate::Metric::new($name).upsert(1) }};
 }
-
 
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -145,7 +145,7 @@ impl Metric {
             statistic: &self.inner,
             samples: self.samples.as_deref(),
             mapper: |v| v,
-         })
+        })
     }
 
     #[inline(always)]
@@ -198,7 +198,6 @@ impl Metric {
             MetricUpdate::Bool(value) => {
                 self.update_statistic(if value { 1.0 } else { 0.0 });
             }
-
         }
     }
 
@@ -226,7 +225,7 @@ impl Metric {
     fn update_statistic_from_iter<I>(&mut self, values: I)
     where
         I: IntoIterator<Item = f32>,
-    {   
+    {
         let samples = self.samples.get_or_insert_with(Vec::new);
 
         samples.clear();
@@ -236,9 +235,9 @@ impl Metric {
             samples.push(val);
             self.inner.add(val);
         }
-        
+
         self.meta.update_count += self.inner.count() as usize;
-        
+
         self.add_tag(TagType::Distribution);
 
         if self.dtype == DTYPE_NULL {
@@ -249,7 +248,7 @@ impl Metric {
     pub fn clear_samples(&mut self) {
         self.samples = None;
     }
-        
+
     pub fn statistic(&self) -> &Statistic {
         &self.inner
     }
@@ -285,7 +284,7 @@ impl Metric {
     pub fn kurt(&self) -> f32 {
         self.inner.kurtosis().unwrap_or(0.0)
     }
-    
+
     pub fn min(&self) -> f32 {
         self.inner.min()
     }
@@ -319,31 +318,25 @@ impl<'a> ProjectExpr<'a> for Metric {
             _ => AnyValue::Null,
         };
 
-        let match_field = |metric: &Metric, field: &SmallStr| {
-            match field.as_str() {
-                f if f == metric_fields::LAST_VALUE => wrap(metric.last_value()),
-                f if f == metric_fields::MEAN => wrap(metric.mean()),
-                f if f == metric_fields::STDDEV => wrap(metric.stddev()),
-                f if f == metric_fields::MIN => wrap(metric.min()),
-                f if f == metric_fields::MAX => wrap(metric.max()),
-                f if f == metric_fields::SUM => wrap(metric.sum()),
-                f if f == metric_fields::VARIANCE => wrap(metric.var()),
-                f if f == metric_fields::SKEWNESS => wrap(metric.skew()),
-                f if f == metric_fields::KURTOSIS => wrap(metric.kurt()),
-                f if f == metric_fields::COUNT => AnyValue::UInt64(metric.count() as u64),
-                f if f == metric_fields::GENERATION => AnyValue::UInt64(metric.generation() as u64),
-                f if f == metric_fields::UPDATE_COUNT => AnyValue::UInt64(metric.update_count() as u64),
-                _ => AnyValue::Null,
-            }
+        let match_field = |metric: &Metric, field: &SmallStr| match field.as_str() {
+            f if f == metric_fields::LAST_VALUE => wrap(metric.last_value()),
+            f if f == metric_fields::MEAN => wrap(metric.mean()),
+            f if f == metric_fields::STDDEV => wrap(metric.stddev()),
+            f if f == metric_fields::MIN => wrap(metric.min()),
+            f if f == metric_fields::MAX => wrap(metric.max()),
+            f if f == metric_fields::SUM => wrap(metric.sum()),
+            f if f == metric_fields::VARIANCE => wrap(metric.var()),
+            f if f == metric_fields::SKEWNESS => wrap(metric.skew()),
+            f if f == metric_fields::KURTOSIS => wrap(metric.kurt()),
+            f if f == metric_fields::COUNT => AnyValue::UInt64(metric.count() as u64),
+            f if f == metric_fields::GENERATION => AnyValue::UInt64(metric.generation() as u64),
+            f if f == metric_fields::UPDATE_COUNT => AnyValue::UInt64(metric.update_count() as u64),
+            _ => AnyValue::Null,
         };
 
         match sel {
-            SelectOp::Field(field) => {
-                Ok(match_field(self, field))
-            }
-            SelectOp::Identity => {
-                Ok(AnyValue::from(self))
-            }
+            SelectOp::Field(field) => Ok(match_field(self, field)),
+            SelectOp::Identity => Ok(AnyValue::from(self)),
             _ => Ok(AnyValue::Null),
         }
     }
@@ -353,20 +346,59 @@ impl From<&Metric> for AnyValue<'_> {
     fn from(metric: &Metric) -> Self {
         use AnyValue::*;
 
-        AnyValue::Struct(metric.name().clone(), Vec::from([
-            (metric_fields::LAST_VALUE, DataType::Float32, Float32(metric.last_value())),
-            (metric_fields::MEAN, DataType::Float32, Float32(metric.mean())),
-            (metric_fields::STDDEV, DataType::Float32, Float32(metric.stddev())),
-            (metric_fields::MIN, DataType::Float32, Float32(metric.min())),
-            (metric_fields::MAX, DataType::Float32, Float32(metric.max())),
-            (metric_fields::SUM, DataType::Float32, Float32(metric.sum())),
-            (metric_fields::VARIANCE, DataType::Float32, Float32(metric.var())),
-            (metric_fields::SKEWNESS, DataType::Float32, Float32(metric.skew())),
-            (metric_fields::KURTOSIS, DataType::Float32, Float32(metric.kurt())),
-            (metric_fields::COUNT, DataType::UInt64, UInt64(metric.count() as u64)),
-            (metric_fields::GENERATION, DataType::UInt64, UInt64(metric.generation() as u64)),
-            (metric_fields::UPDATE_COUNT, DataType::UInt64, UInt64(metric.update_count() as u64)),
-        ]))
+        AnyValue::Struct(
+            metric.name().clone(),
+            Vec::from([
+                (
+                    metric_fields::LAST_VALUE,
+                    DataType::Float32,
+                    Float32(metric.last_value()),
+                ),
+                (
+                    metric_fields::MEAN,
+                    DataType::Float32,
+                    Float32(metric.mean()),
+                ),
+                (
+                    metric_fields::STDDEV,
+                    DataType::Float32,
+                    Float32(metric.stddev()),
+                ),
+                (metric_fields::MIN, DataType::Float32, Float32(metric.min())),
+                (metric_fields::MAX, DataType::Float32, Float32(metric.max())),
+                (metric_fields::SUM, DataType::Float32, Float32(metric.sum())),
+                (
+                    metric_fields::VARIANCE,
+                    DataType::Float32,
+                    Float32(metric.var()),
+                ),
+                (
+                    metric_fields::SKEWNESS,
+                    DataType::Float32,
+                    Float32(metric.skew()),
+                ),
+                (
+                    metric_fields::KURTOSIS,
+                    DataType::Float32,
+                    Float32(metric.kurt()),
+                ),
+                (
+                    metric_fields::COUNT,
+                    DataType::UInt64,
+                    UInt64(metric.count() as u64),
+                ),
+                (
+                    metric_fields::GENERATION,
+                    DataType::UInt64,
+                    UInt64(metric.generation() as u64),
+                ),
+                (
+                    metric_fields::UPDATE_COUNT,
+                    DataType::UInt64,
+                    UInt64(metric.update_count() as u64),
+                ),
+            ]),
+        )
     }
 }
 
@@ -378,7 +410,7 @@ impl Hash for Metric {
     }
 }
 
-#[derive( PartialEq, Debug)]
+#[derive(PartialEq, Debug)]
 pub enum MetricUpdate<'a> {
     Float(f32),
     Usize(usize),
@@ -494,8 +526,9 @@ impl<'a> TryFrom<AnyValue<'a>> for MetricUpdate<'a> {
                 Ok(MetricUpdate::OwnedDistribution(out))
             }
 
-
-            other => Err(radiate_err!(Metric: "cannot convert AnyValue of type `{}` into MetricUpdate", other.type_name())),
+            other => Err(
+                radiate_err!(Metric: "cannot convert AnyValue of type `{}` into MetricUpdate", other.type_name()),
+            ),
         }
     }
 }
@@ -505,7 +538,6 @@ impl std::fmt::Debug for Metric {
         write!(f, "Metric {{ name: {}, }}", self.name)
     }
 }
-
 
 #[cfg(test)]
 mod tests {
