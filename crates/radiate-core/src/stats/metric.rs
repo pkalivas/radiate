@@ -500,7 +500,7 @@ impl<'a> TryFrom<AnyValue<'a>> for MetricUpdate<'a> {
                     .map(|(index, v)| {
                         v.clone().extract::<f32>().ok_or(
                             radiate_err!(
-                                Metric: 
+                                Metric:
                                 "cannot convert AnyValue sequence into Vec<f32>: element at index {index} has non-numeric type `{}`", v.type_name()))
                             
                     })
@@ -517,7 +517,7 @@ impl<'a> TryFrom<AnyValue<'a>> for MetricUpdate<'a> {
                         let ty = v.type_name();
                         v.extract::<f32>()
                             .ok_or(radiate_err!(
-                                Metric: 
+                                Metric:
                                 "cannot convert AnyValue sequence into Vec<f32>: element at index {index} has non-numeric type `{ty}`"
                             ))
                     })
@@ -527,7 +527,7 @@ impl<'a> TryFrom<AnyValue<'a>> for MetricUpdate<'a> {
             }
 
             other => Err(
-                radiate_err!(Metric: "cannot convert AnyValue of type `{}` into MetricUpdate", other.type_name()),
+                radiate_err!(Metric:"cannot convert AnyValue of type `{}` into MetricUpdate", other.type_name()),
             ),
         }
     }
