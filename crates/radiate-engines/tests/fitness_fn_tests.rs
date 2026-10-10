@@ -112,7 +112,11 @@ mod fitness_fn_tests {
                 UniformCrossover::new(0.7),
                 GaussianMutator::new(0.2),
             ])
-            .fitness_fn(NoveltySearch::new(CosineDistance).k(10).threshold(0.03))
+            .fitness_fn(
+                NoveltySearch::new(|geno: &Vec<f32>| geno.clone(), EuclideanDistance)
+                    .k(10)
+                    .threshold(0.03),
+            )
             .build();
 
         let cloned_base_problem = base_problem.clone();
@@ -133,7 +137,9 @@ mod fitness_fn_tests {
                         0.7,
                     )
                     .add_weighted_fn(
-                        NoveltySearch::new(CosineDistance).k(10).threshold(0.03),
+                        NoveltySearch::new(|geno: &Vec<f32>| geno.clone(), EuclideanDistance)
+                            .k(10)
+                            .threshold(0.03),
                         0.3,
                     ),
             )

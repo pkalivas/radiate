@@ -1,7 +1,7 @@
 use crate::steps::EngineStep;
 use radiate_core::{
     Chromosome, Ecosystem, Executor, MetricSet, Objective, Phenotype, Population, RateSet, Species,
-    diversity::Diversity, math::distribution, metric_names, random_provider,
+    distance::Distance, math::distribution, metric_names, random_provider,
 };
 use radiate_error::Result;
 use std::sync::{Arc, Mutex, RwLock};
@@ -14,7 +14,7 @@ where
 {
     pub(crate) threshold: RateSet,
     pub(crate) objective: Objective,
-    pub(crate) distance: Arc<dyn Diversity<C>>,
+    pub(crate) distance: Arc<dyn Distance<Phenotype<C>>>,
     pub(crate) executor: Arc<Executor>,
     pub(crate) distances: Vec<f32>,
     pub(crate) assignments: Arc<Mutex<SpeciesAssignments>>,
@@ -24,7 +24,7 @@ impl<C: Chromosome> SpeciateStep<C> {
     pub fn new(
         threshold: impl Into<RateSet>,
         objective: Objective,
-        distance: Arc<dyn Diversity<C>>,
+        distance: Arc<dyn Distance<Phenotype<C>>>,
         executor: Arc<Executor>,
     ) -> Self {
         Self {
@@ -120,7 +120,7 @@ where
             let phenotype = ecosystem.get_phenotype(i).unwrap();
             let maybe_idx = ecosystem.species().and_then(|specs| {
                 for (species_idx, species) in specs.iter().enumerate() {
-                    let dist = self.distance.measure(phenotype, species.mascot());
+                    let dist = self.distance.calculate(phenotype, species.mascot());
 
                     best_dist = best_dist.min(dist);
 
@@ -172,7 +172,7 @@ where
         population: Arc<RwLock<Population<C>>>,
         species_mascots: Arc<Vec<Phenotype<C>>>,
         threshold: f32,
-        distance: Arc<dyn Diversity<C>>,
+        distance: Arc<dyn Distance<Phenotype<C>>>,
         assignments: Arc<Mutex<SpeciesAssignments>>,
         range: std::ops::Range<usize>,
     ) {
@@ -183,7 +183,7 @@ where
         for (idx, individual) in reader[range].iter().enumerate() {
             let mut assigned = None;
             for (spec_idx, sp) in species_mascots.iter().enumerate() {
-                let dist = distance.measure(individual, sp);
+                let dist = distance.calculate(individual, sp);
 
                 if dist < threshold {
                     assigned = Some((spec_idx, dist));

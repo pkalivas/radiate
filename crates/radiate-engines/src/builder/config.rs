@@ -5,9 +5,9 @@ use crate::genome::phenotype::Phenotype;
 use crate::objectives::Objective;
 use crate::{Front, Problem, ReplacementStrategy, Select};
 use crate::{Generation, events::EventStream};
-use radiate_core::ExprSet;
-use radiate_core::{Alterer, Diversity, Ecosystem, Evaluator, Executor, Genotype};
+use radiate_core::{Alterer, Ecosystem, Evaluator, Executor, Genotype};
 use radiate_core::{EcosystemFilter, ThreadSync};
+use radiate_core::{ExprSet, distance::Distance};
 use std::sync::{Arc, Mutex, RwLock};
 
 #[derive(Clone)]
@@ -19,7 +19,7 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     filters: Vec<Arc<Mutex<dyn EcosystemFilter<C>>>>,
     alterers: Vec<Alterer<C>>,
-    diversity: Option<Arc<dyn Diversity<C>>>,
+    distance: Option<Arc<dyn Distance<Phenotype<C>>>>,
     evaluator: Arc<dyn Evaluator<C, T>>,
     objective: Objective,
     max_age: usize,
@@ -66,8 +66,8 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         self.max_species_age
     }
 
-    pub fn diversity(&self) -> Option<Arc<dyn Diversity<C>>> {
-        self.diversity.clone()
+    pub fn distance(&self) -> Option<Arc<dyn Distance<Phenotype<C>>>> {
+        self.distance.clone()
     }
 
     pub fn front(&self) -> Arc<RwLock<Front<Phenotype<C>>>> {
@@ -148,7 +148,7 @@ where
             objective: params.optimization_params.objectives.clone(),
             max_age: params.population_params.max_age,
             max_species_age: params.species_params.max_species_age,
-            diversity: params.species_params.diversity.clone(),
+            distance: params.species_params.distance.clone(),
             front: Arc::new(RwLock::new(
                 params.optimization_params.front.clone().unwrap(),
             )),

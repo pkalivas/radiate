@@ -1,7 +1,4 @@
-use crate::{
-    BatchFitnessFunction, BatchedFn, CosineDistance, EuclideanDistance, FitnessFunction,
-    HammingDistance, diversity::Distance, math::knn::KNN,
-};
+use crate::{BatchFitnessFunction, BatchedFn, FitnessFunction, distance::Distance, math::knn::KNN};
 use radiate_utils::WindowBuffer;
 use std::sync::{Arc, RwLock};
 
@@ -9,56 +6,52 @@ const DEFAULT_ARCHIVE_SIZE: usize = 1000;
 const DEFAULT_K: usize = 15;
 const DEFAULT_THRESHOLD: f32 = 0.5;
 
-pub trait Novelty<T>: Send + Sync {
-    fn description(&self, member: &T) -> Vec<f32>;
+pub trait Novelty<T, D = Vec<f32>>: Send + Sync {
+    fn description(&self, member: &T) -> D;
 
-    /// Compute descriptors for a whole batch. Default fans out to `description`.
-    /// Override this on your own concrete `Novelty` impl if you can vectorise the
-    /// batch path (shared setup, SIMD, GPU, etc.) — the closure blanket impl
-    /// always takes the default.
-    fn batch_description(&self, members: &[T]) -> Vec<Vec<f32>> {
+    fn batch_description(&self, members: &[T]) -> Vec<D> {
         members.iter().map(|m| self.description(m)).collect()
     }
 }
 
-impl<T, F> Novelty<T> for F
+impl<T, D, F> Novelty<T, D> for F
 where
-    F: Fn(&T) -> Vec<f32> + Send + Sync,
+    F: Fn(&T) -> D + Send + Sync,
 {
-    fn description(&self, member: &T) -> Vec<f32> {
+    fn description(&self, member: &T) -> D {
         self(member)
     }
 }
 
-impl<T, F> Novelty<T> for BatchedFn<F>
+impl<T, D, F> Novelty<T, D> for BatchedFn<F>
 where
-    F: Fn(&[T]) -> Vec<Vec<f32>> + Send + Sync,
+    F: Fn(&[T]) -> Vec<D> + Send + Sync,
 {
-    fn description(&self, member: &T) -> Vec<f32> {
+    fn description(&self, member: &T) -> D {
         (self.0)(std::slice::from_ref(member))
             .into_iter()
             .next()
-            .unwrap_or_default()
+            .expect("novelty batch fn returned no descriptor for a single member")
     }
 
-    fn batch_description(&self, members: &[T]) -> Vec<Vec<f32>> {
+    fn batch_description(&self, members: &[T]) -> Vec<D> {
         (self.0)(members)
     }
 }
 
-#[derive(Clone)]
-pub struct NoveltySearch<T> {
-    pub behavior: Arc<dyn Novelty<T>>,
-    pub archive: Arc<RwLock<WindowBuffer<Vec<f32>>>>,
+pub struct NoveltySearch<T, D = Vec<f32>> {
+    pub behavior: Arc<dyn Novelty<T, D>>,
+    pub archive: Arc<RwLock<WindowBuffer<D>>>,
     pub k: usize,
     pub threshold: f32,
-    pub distance_fn: Arc<dyn Distance<Vec<f32>>>,
+    pub distance_fn: Arc<dyn Distance<D>>,
 }
 
-impl<T> NoveltySearch<T> {
-    pub fn new<N>(behavior: N) -> Self
+impl<T, D> NoveltySearch<T, D> {
+    pub fn new<N, M>(behavior: N, distance_fn: M) -> Self
     where
-        N: Novelty<T> + Send + Sync + 'static,
+        N: Novelty<T, D> + Send + Sync + 'static,
+        M: Distance<D> + Send + Sync + 'static,
     {
         NoveltySearch {
             behavior: Arc::new(behavior),
@@ -67,16 +60,17 @@ impl<T> NoveltySearch<T> {
             ))),
             k: DEFAULT_K,
             threshold: DEFAULT_THRESHOLD,
-            distance_fn: Arc::new(EuclideanDistance),
+            distance_fn: Arc::new(distance_fn),
         }
     }
 
-    pub fn from_batch_fn<F>(f: F) -> Self
+    pub fn from_batch_fn<F, M>(f: F, distance_fn: M) -> Self
     where
-        F: Fn(&[T]) -> Vec<Vec<f32>> + Send + Sync + 'static,
+        F: Fn(&[T]) -> Vec<D> + Send + Sync + 'static,
+        M: Distance<D> + Send + Sync + 'static,
         T: 'static,
     {
-        Self::new(BatchedFn(f))
+        Self::new(BatchedFn(f), distance_fn)
     }
 
     pub fn k(mut self, k: usize) -> Self {
@@ -94,22 +88,15 @@ impl<T> NoveltySearch<T> {
         self
     }
 
-    pub fn cosine_distance(mut self) -> Self {
-        self.distance_fn = Arc::new(CosineDistance);
+    pub fn distance_fn<M>(mut self, distance_fn: M) -> Self
+    where
+        M: Distance<D> + Send + Sync + 'static,
+    {
+        self.distance_fn = Arc::new(distance_fn);
         self
     }
 
-    pub fn euclidean_distance(mut self) -> Self {
-        self.distance_fn = Arc::new(EuclideanDistance);
-        self
-    }
-
-    pub fn hamming_distance(mut self) -> Self {
-        self.distance_fn = Arc::new(HammingDistance);
-        self
-    }
-
-    fn novelty_score(&self, descriptor: &Vec<f32>, archive: &WindowBuffer<Vec<f32>>) -> f32 {
+    fn novelty_score(&self, descriptor: &D, archive: &WindowBuffer<D>) -> f32 {
         let slice = archive.values();
         let mut knn = KNN::new(slice, Arc::clone(&self.distance_fn));
         let query = knn.query_point(descriptor, self.k);
@@ -174,27 +161,42 @@ impl<T> NoveltySearch<T> {
     }
 }
 
-impl<T> FitnessFunction<T, f32> for NoveltySearch<T>
+impl<T, D> Clone for NoveltySearch<T, D> {
+    fn clone(&self) -> Self {
+        Self {
+            behavior: Arc::clone(&self.behavior),
+            k: self.k,
+            threshold: self.threshold,
+            archive: Arc::clone(&self.archive),
+            distance_fn: Arc::clone(&self.distance_fn),
+        }
+    }
+}
+
+impl<T, D> FitnessFunction<T, f32> for NoveltySearch<T, D>
 where
     T: Send + Sync,
+    D: Send + Sync,
 {
     fn evaluate(&self, individual: T) -> f32 {
         self.evaluate_internal(&individual)
     }
 }
 
-impl<T> FitnessFunction<&T, f32> for NoveltySearch<T>
+impl<T, D> FitnessFunction<&T, f32> for NoveltySearch<T, D>
 where
     T: Send + Sync,
+    D: Send + Sync,
 {
     fn evaluate(&self, individual: &T) -> f32 {
         self.evaluate_internal(individual)
     }
 }
 
-impl<T> BatchFitnessFunction<T, f32> for NoveltySearch<T>
+impl<T, D> BatchFitnessFunction<T, f32> for NoveltySearch<T, D>
 where
     T: Send + Sync,
+    D: Send + Sync,
 {
     fn evaluate(&self, individuals: Vec<T>) -> Vec<f32> {
         self.evaluate_batch_internal(&individuals)
@@ -204,10 +206,10 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{BatchFitnessFunction, FitnessFunction};
+    use crate::{BatchFitnessFunction, CosineDistance, EuclideanDistance, FitnessFunction};
 
     fn make_ns(k: usize, threshold: f32) -> NoveltySearch<Vec<f32>> {
-        NoveltySearch::new(|v: &Vec<f32>| v.clone())
+        NoveltySearch::new(|v: &Vec<f32>| v.clone(), EuclideanDistance)
             .k(k)
             .threshold(threshold)
             .archive_size(100)
@@ -365,7 +367,7 @@ mod tests {
     #[test]
     fn archive_window_caps_at_configured_size() {
         // archive_size=5, threshold=-1 (always admit).
-        let ns = NoveltySearch::new(|v: &Vec<f32>| v.clone())
+        let ns = NoveltySearch::new(|v: &Vec<f32>| v.clone(), EuclideanDistance)
             .k(1)
             .threshold(-1.0)
             .archive_size(5);
@@ -444,11 +446,14 @@ mod tests {
         let ns: NoveltySearch<Vec<f32>> = {
             let batch_calls = Arc::clone(&batch_calls);
             let total_seen = Arc::clone(&total_seen);
-            NoveltySearch::from_batch_fn(move |members: &[Vec<f32>]| {
-                batch_calls.fetch_add(1, Ordering::Relaxed);
-                total_seen.fetch_add(members.len(), Ordering::Relaxed);
-                members.iter().map(|v| v.clone()).collect()
-            })
+            NoveltySearch::from_batch_fn(
+                move |members: &[Vec<f32>]| {
+                    batch_calls.fetch_add(1, Ordering::Relaxed);
+                    total_seen.fetch_add(members.len(), Ordering::Relaxed);
+                    members.to_vec()
+                },
+                EuclideanDistance,
+            )
             .k(3)
             .threshold(0.5)
             .archive_size(100)
@@ -480,11 +485,10 @@ mod tests {
 
     #[test]
     fn cosine_distance_identical_direction_scores_zero_in_degenerate_case() {
-        let ns = NoveltySearch::new(|v: &Vec<f32>| v.clone())
+        let ns = NoveltySearch::new(|v: &Vec<f32>| v.clone(), CosineDistance)
             .k(3)
             .threshold(0.99)
-            .archive_size(100)
-            .cosine_distance();
+            .archive_size(100);
         seed(&ns, [vec![1.0, 0.0]]);
 
         // Same direction, different magnitude → cosine distance 0 (clamped to 1e-12).
@@ -497,7 +501,7 @@ mod tests {
         use std::thread;
 
         let ns = Arc::new(
-            NoveltySearch::new(|v: &Vec<f32>| v.clone())
+            NoveltySearch::new(|v: &Vec<f32>| v.clone(), EuclideanDistance)
                 .k(5)
                 .threshold(0.3)
                 .archive_size(200),
@@ -522,5 +526,73 @@ mod tests {
         // 8 threads × 50 evals = 400 attempts; capped by archive_size=200.
         let archive = ns.archive.read().unwrap();
         assert!(archive.values().len() <= 200);
+    }
+
+    #[test]
+    fn packed_word_descriptors_score_the_same_as_unpacked_bits() {
+        use crate::{
+            HammingDistance, PackedBitChromosome, PackedBitHammingDistance, random_provider,
+        };
+
+        // Not a multiple of 64: packed distances are normalized by 128 bits and unpacked
+        // ones by 100, a constant factor the novelty score has to cancel out.
+        const NUM_BITS: usize = 100;
+
+        let bit_strings = random_provider::scoped_seed(7, || {
+            (0..12)
+                .map(|_| PackedBitChromosome::new(NUM_BITS))
+                .collect::<Vec<_>>()
+        });
+        let as_floats = |chrom: &PackedBitChromosome| {
+            chrom
+                .iter_bits()
+                .map(|bit| if bit { 1.0 } else { 0.0 })
+                .collect::<Vec<f32>>()
+        };
+
+        let packed = NoveltySearch::new(|words: &Vec<u64>| words.clone(), PackedBitHammingDistance)
+            .k(3)
+            .threshold(0.5)
+            .archive_size(100);
+        let unpacked = NoveltySearch::new(|bits: &Vec<f32>| bits.clone(), HammingDistance)
+            .k(3)
+            .threshold(0.5)
+            .archive_size(100);
+
+        let (archived, queries) = bit_strings.split_at(6);
+        for chrom in archived {
+            packed.archive.write().unwrap().push(chrom.to_words());
+            unpacked.archive.write().unwrap().push(as_floats(chrom));
+        }
+
+        // Same scores also mean the same admissions, so the archives stay in step.
+        let mut scores = Vec::new();
+        for chrom in queries {
+            let packed_score = <NoveltySearch<Vec<u64>, Vec<u64>> as FitnessFunction<
+                Vec<u64>,
+                f32,
+            >>::evaluate(&packed, chrom.to_words());
+            let unpacked_score =
+                <NoveltySearch<Vec<f32>> as FitnessFunction<Vec<f32>, f32>>::evaluate(
+                    &unpacked,
+                    as_floats(chrom),
+                );
+
+            assert!(
+                (packed_score - unpacked_score).abs() < 1e-6,
+                "packed {packed_score} vs unpacked {unpacked_score}"
+            );
+            scores.push(packed_score);
+        }
+
+        // Guard against a vacuous pass where every query hits a degenerate branch.
+        assert!(
+            scores.iter().any(|&s| s > 0.0 && s < 1.0 && s != 0.5),
+            "no informative scores: {scores:?}"
+        );
+        assert_eq!(
+            packed.archive.read().unwrap().values().len(),
+            unpacked.archive.read().unwrap().values().len()
+        );
     }
 }

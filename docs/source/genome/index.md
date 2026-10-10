@@ -292,7 +292,7 @@ The `Species` is an optional component of the genome system that contains a `Pop
 - Providing a way to manage diversity within the population
 - Sharing fitness information between individuals in the same species
 
-The `Species` is not required for the genome system to function, but it can be useful for certain types of problems where grouping similar individuals can help improve the evolution process. For different `Species` to be created, your `GeneticEngine` must contain a struct which implements the `Diversity` trait - this will allow the `GeneticEngine` to create and manage `Species` based on the diversity of the individuals in the population. More on this later.
+The `Species` is not required for the genome system to function, but it can be useful for certain types of problems where grouping similar individuals can help improve the evolution process. For different `Species` to be created, the engine must be given a distance measure for comparing individuals - this will allow it to create and manage `Species` based on how genetically similar the individuals in the population are. See [Diversity](../diversity/index.md) for more.
 
 ---
 ### Ecosystem

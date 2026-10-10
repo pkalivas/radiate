@@ -1,10 +1,9 @@
 use crate::{
-    BitChromosome, Chromosome, ContiguousChromosome, Gene, Valid, domain::bits, random_provider,
+    BitChromosome, Chromosome, ContiguousChromosome, Gene, Valid, bits::WORD_SIZE, domain::bits,
+    random_provider,
 };
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-
-const WORD_BITS: usize = 64;
 
 /// 64 bits of a [`PackedBitChromosome`]. Just a thin wrapper around a `u64` word.
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug)]
@@ -129,12 +128,12 @@ impl PackedBitChromosome {
     }
 
     pub fn bit(&self, i: usize) -> bool {
-        (self.words[i / WORD_BITS].0 >> (i % WORD_BITS)) & 1 != 0
+        (self.words[i / WORD_SIZE].0 >> (i % WORD_SIZE)) & 1 != 0
     }
 
     pub fn set_bit(&mut self, i: usize, value: bool) {
-        let mask = 1u64 << (i % WORD_BITS);
-        let word = &mut self.words[i / WORD_BITS].0;
+        let mask = 1u64 << (i % WORD_SIZE);
+        let word = &mut self.words[i / WORD_SIZE].0;
         if value {
             *word |= mask;
         } else {
@@ -143,7 +142,7 @@ impl PackedBitChromosome {
     }
 
     pub fn flip_bit(&mut self, i: usize) {
-        self.words[i / WORD_BITS].0 ^= 1u64 << (i % WORD_BITS);
+        self.words[i / WORD_SIZE].0 ^= 1u64 << (i % WORD_SIZE);
     }
 
     /// Tail-masked popcount.
@@ -173,8 +172,9 @@ impl PackedBitChromosome {
     /// Works a byte at a time through [`bits::TABLE`], so it's several times faster
     /// than collecting [`iter_bits`](Self::iter_bits). Use this when you need every bit
     /// at once, e.g. when handing the bit string to a fitness function.
+    #[inline]
     pub fn to_bools(&self) -> Vec<bool> {
-        let mut out = vec![false; self.words.len() * WORD_BITS];
+        let mut out = vec![false; self.words.len() * WORD_SIZE];
         let bytes = self.words.iter().flat_map(|word| word.0.to_le_bytes());
         for (chunk, byte) in out.as_chunks_mut::<8>().0.iter_mut().zip(bytes) {
             chunk.copy_from_slice(&bits::TABLE[byte as usize]);
@@ -184,7 +184,17 @@ impl PackedBitChromosome {
         out
     }
 
+    #[inline]
+    pub fn to_words(&self) -> Vec<u64> {
+        let mut words = self.words.iter().map(|w| w.0).collect::<Vec<_>>();
+        if let Some(last) = words.last_mut() {
+            *last &= self.tail_mask();
+        }
+        words
+    }
+
     /// Zero the unspecified bits past `num_bits`.
+    #[inline]
     pub fn clear_tail(&mut self) {
         let mask = self.tail_mask();
         if let Some(last) = self.words.last_mut() {
@@ -193,8 +203,9 @@ impl PackedBitChromosome {
     }
 
     /// Mask of the valid bits in the last word (`u64::MAX` when `num_bits % 64 == 0`).
+    #[inline]
     pub fn tail_mask(&self) -> u64 {
-        let tail_bits = self.num_bits % WORD_BITS;
+        let tail_bits = self.num_bits % WORD_SIZE;
         if tail_bits == 0 {
             u64::MAX
         } else {
@@ -204,7 +215,7 @@ impl PackedBitChromosome {
 }
 
 fn num_words(num_bits: usize) -> usize {
-    num_bits.div_ceil(WORD_BITS)
+    num_bits.div_ceil(WORD_SIZE)
 }
 
 impl FromIterator<bool> for PackedBitChromosome {
@@ -212,7 +223,7 @@ impl FromIterator<bool> for PackedBitChromosome {
         let mut words = Vec::new();
         let mut num_bits = 0;
         for bit in iter {
-            let bit_index = num_bits % WORD_BITS;
+            let bit_index = num_bits % WORD_SIZE;
             if bit_index == 0 {
                 words.push(BitWordGene(0));
             }
@@ -233,11 +244,23 @@ impl From<&BitChromosome> for PackedBitChromosome {
         let mut chromosome = PackedBitChromosome::zeros(bit_chromosome.len());
         for (i, gene) in bit_chromosome.iter().enumerate() {
             if *gene.allele() {
-                chromosome.words[i / WORD_BITS].0 |= 1u64 << (i % WORD_BITS);
+                chromosome.words[i / WORD_SIZE].0 |= 1u64 << (i % WORD_SIZE);
             }
         }
 
         chromosome
+    }
+}
+
+impl From<&PackedBitChromosome> for Vec<u64> {
+    fn from(packed: &PackedBitChromosome) -> Self {
+        packed.to_words()
+    }
+}
+
+impl From<&PackedBitChromosome> for Vec<bool> {
+    fn from(packed: &PackedBitChromosome) -> Self {
+        packed.to_bools()
     }
 }
 
@@ -248,12 +271,12 @@ impl PartialEq for PackedBitChromosome {
             return false;
         }
 
-        let full_words = self.num_bits / WORD_BITS;
+        let full_words = self.num_bits / WORD_SIZE;
         if self.words[..full_words] != other.words[..full_words] {
             return false;
         }
 
-        if !self.num_bits.is_multiple_of(WORD_BITS) {
+        if !self.num_bits.is_multiple_of(WORD_SIZE) {
             let mask = self.tail_mask();
             return (self.words[full_words].0 & mask) == (other.words[full_words].0 & mask);
         }
@@ -302,5 +325,34 @@ impl ContiguousChromosome for PackedBitChromosome {
 
     fn as_mut_slice(&mut self) -> &mut [BitWordGene] {
         &mut self.words
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn to_words_keeps_every_bit_and_clears_the_tail() {
+        // 64 and 128 have no tail, so a wrong mask there would drop real bits.
+        for num_bits in [1, 63, 64, 65, 128, 130] {
+            let mut chrom = random_provider::scoped_seed(num_bits as u64, || {
+                PackedBitChromosome::new(num_bits)
+            });
+
+            // Junk past `num_bits`, as generic word-level operators can leave behind.
+            let mask = chrom.tail_mask();
+            if let Some(last) = chrom.words.last_mut() {
+                last.0 |= !mask;
+            }
+
+            let words = chrom.to_words();
+            assert_eq!(words.len(), num_words(num_bits));
+            for i in 0..words.len() * WORD_SIZE {
+                let expected = i < num_bits && chrom.bit(i);
+                let actual = (words[i / WORD_SIZE] >> (i % WORD_SIZE)) & 1 != 0;
+                assert_eq!(actual, expected, "bit {i} of a {num_bits}-bit chromosome");
+            }
+        }
     }
 }

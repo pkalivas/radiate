@@ -17,7 +17,7 @@ use crate::{
 use crate::{PyGeneration, PySubscriber};
 use core::panic;
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
-use radiate::prelude::*;
+use radiate::{distance::Distance, prelude::*};
 use radiate_error::{ResultExt, radiate_py_bail, radiate_py_err};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -77,13 +77,15 @@ impl PyEngineBuilder {
     pub fn build<'py>(&mut self, py: Python<'py>) -> PyResult<PyEngine> {
         let mut inner = self.create_builder(py)?;
 
-        let mut accum = HashMap::<PyEngineInputType, Vec<PyEngineInput>>::new();
-        let input_groups = self.inputs.iter().fold(&mut accum, |acc, input| {
-            acc.entry(input.input_type())
-                .or_default()
-                .push(input.clone());
-            acc
-        });
+        let input_groups = self.inputs.iter().fold(
+            HashMap::<PyEngineInputType, Vec<PyEngineInput>>::new(),
+            |mut acc, input| {
+                acc.entry(input.input_type())
+                    .or_default()
+                    .push(input.clone());
+                acc
+            },
+        );
 
         for (input_type, inputs) in input_groups.iter() {
             inner = Self::process_inputs(inner, *input_type, inputs)?;
@@ -433,7 +435,7 @@ impl PyEngineBuilder {
             inputs,
             Self::process_single_typed(|typed_builder, input| {
                 let diversity =
-                    InputTransform::<RadiateResult<Box<dyn Diversity<_>>>>::transform(input)
+                    InputTransform::<RadiateResult<Box<dyn Distance<_>>>>::transform(input)
                         .context("Failed to transform diversity input")?;
 
                 Ok(typed_builder.boxed_diversity(Some(diversity)))

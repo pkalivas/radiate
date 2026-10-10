@@ -16,5 +16,6 @@ fn main() -> RadiateResult<()> {
     let result = engine.iter().logging().until_score(NUM_BITS).last()?;
 
     println!("{}", result.metrics().dashboard());
+
     Ok(())
 }

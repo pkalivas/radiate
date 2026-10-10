@@ -140,20 +140,21 @@ fn main() {
         }
     }
 
-    // Create novelty search fitness function
-    let novelty_fitness = NoveltySearch::new(MyModelBehaviorDescriptor)
+    // Create novelty search fitness function. The second argument is the distance used
+    // to compare descriptors - CosineDistance, EuclideanDistance, HammingDistance, or
+    // any type that implements Distance for the descriptor type.
+    let novelty_fitness = NoveltySearch::new(MyModelBehaviorDescriptor, CosineDistance)
         .k(10)
         .threshold(0.1)
-        .archive_size(1000) // Optional: set archive size - default is 1000
-        .cosine_distance(); // Optional set the distance parameter used
-    // .euclidean_distance() // euclidean_distance is the default
-    // .hamming_distance()
+        .archive_size(1000); // Optional: set archive size - default is 1000
 
-    // Novelty is also implemented for any F where F: Fn(&T) -> Vec<f32>. Meaning, you can
+    // Novelty is also implemented for any F where F: Fn(&T) -> D. Meaning, you can
     // just as easily feed a function to NoveltySearch as long as it takes a borrowed T (&T)
-    // and returns a Vec<f32>
-    let function_novelty_fitness =
-        NoveltySearch::new(|individual: &MyModel| individual.get_behavior_vector());
+    // and returns a descriptor the distance can compare
+    let function_novelty_fitness = NoveltySearch::new(
+        |individual: &MyModel| individual.get_behavior_vector(),
+        EuclideanDistance,
+    );
 
     let engine = GeneticEngine::builder()
         // The decoded genotype from your codec (my_model_codec in this case) will be fed

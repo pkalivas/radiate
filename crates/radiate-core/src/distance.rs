@@ -1,53 +1,31 @@
 use crate::{
     Chromosome, ContiguousChromosome, Gene, PackedBitChromosome, Phenotype,
+    bits::WORD_SIZE,
     chromosomes::{NumericAllele, gene::NumericGene},
-    fitness::Novelty,
     math::distance,
 };
-use std::sync::Arc;
 
-pub trait Distance<T>: Send + Sync {
-    fn calculate(&self, one: &T, two: &T) -> f32;
+pub trait Distance<I>: Send + Sync
+where
+    I: ?Sized,
+{
+    fn calculate(&self, one: &I, two: &I) -> f32;
 }
 
-/// Trait for measuring diversity between two [Genotype]s.
-/// Within radiate this is mostly used for speciation and determining how genetically
-/// similar two individuals are. Through this, the engine can determine
-/// whether two individuals belong to the same [Species](super::genome::species::Species) or not.
-pub trait Diversity<C: Chromosome>: Send + Sync {
-    fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32;
-}
-
-pub struct DistanceDiversityAdapter<C: Chromosome> {
-    diversity: Arc<dyn Diversity<C>>,
-}
-
-impl<C: Chromosome> DistanceDiversityAdapter<C> {
-    pub fn new(diversity: Arc<dyn Diversity<C>>) -> Self {
-        Self { diversity }
-    }
-}
-
-impl<C: Chromosome> Distance<Phenotype<C>> for DistanceDiversityAdapter<C> {
-    fn calculate(&self, one: &Phenotype<C>, two: &Phenotype<C>) -> f32 {
-        self.diversity.measure(one, two)
-    }
-}
-
-/// A concrete implementation of the [Diversity] trait that calculates the Hamming distance
-/// between two [Genotype]s. The Hamming distance is the number of positions at which the
+/// A concrete implementation of the [Distance] trait that calculates the Hamming distance
+/// between two [crate::Genotype]s. The Hamming distance is the number of positions at which the
 /// corresponding genes are different normalized by the total number of genes.
 #[derive(Clone)]
 pub struct HammingDistance;
 
-impl<G, C> Diversity<C> for HammingDistance
+impl<G, C> Distance<Phenotype<C>> for HammingDistance
 where
     C: Chromosome<Gene = G>,
     G: Gene,
     G::Allele: PartialEq,
 {
     #[inline]
-    fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
+    fn calculate(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
         let geno_one = geno_one.genotype();
         let geno_two = geno_two.genotype();
 
@@ -66,18 +44,15 @@ where
     }
 }
 
-impl<P: AsRef<[f32]>> Distance<P> for HammingDistance {
-    fn calculate(&self, one: &P, two: &P) -> f32 {
-        let vec_one = one.as_ref();
-        let vec_two = two.as_ref();
-
-        distance::hamming(vec_one, vec_two)
+impl Distance<[f32]> for HammingDistance {
+    fn calculate(&self, one: &[f32], two: &[f32]) -> f32 {
+        distance::hamming(one, two)
     }
 }
 
-impl Novelty<Vec<f32>> for HammingDistance {
-    fn description(&self, phenotype: &Vec<f32>) -> Vec<f32> {
-        phenotype.clone()
+impl Distance<Vec<f32>> for HammingDistance {
+    fn calculate(&self, one: &Vec<f32>, two: &Vec<f32>) -> f32 {
+        distance::hamming(one, two)
     }
 }
 
@@ -92,6 +67,14 @@ impl Novelty<Vec<f32>> for HammingDistance {
 /// Like [`HammingDistance`], chromosomes of different lengths are compared over their
 /// common prefix. The unspecified tail bits are never counted. Comparing zero bits
 /// gives a distance of `0.0`.
+///
+/// It also works on raw words (`[u64]` and `Vec<u64>`), such as the output of
+/// [`PackedBitCodec`](crate::PackedBitCodec), which is what novelty search compares.
+/// Raw words don't carry a bit count, so the distance is normalized by
+/// `words * 64` instead of the number of bits, and the tail bits past the end of
+/// the bit string are assumed to be zero. `PackedBitCodec` guarantees this, and
+/// with zeroed tails the result differs from the exact bit-level fraction only by a
+/// constant factor.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackedBitHammingDistance;
 
@@ -103,14 +86,14 @@ impl PackedBitHammingDistance {
         let num_bits = one.num_bits().min(two.num_bits());
         let (one, two) = (one.as_slice(), two.as_slice());
 
-        let full_words = num_bits / 64;
+        let full_words = num_bits / WORD_SIZE;
         let mut differing = one[..full_words]
             .iter()
             .zip(&two[..full_words])
             .map(|(a, b)| (a.get() ^ b.get()).count_ones() as usize)
             .sum::<usize>();
 
-        let tail_bits = num_bits % 64;
+        let tail_bits = num_bits % WORD_SIZE;
         if tail_bits != 0 {
             let mask = (1u64 << tail_bits) - 1;
             let diff = one[full_words].get() ^ two[full_words].get();
@@ -121,9 +104,9 @@ impl PackedBitHammingDistance {
     }
 }
 
-impl Diversity<PackedBitChromosome> for PackedBitHammingDistance {
+impl Distance<Phenotype<PackedBitChromosome>> for PackedBitHammingDistance {
     #[inline]
-    fn measure(
+    fn calculate(
         &self,
         geno_one: &Phenotype<PackedBitChromosome>,
         geno_two: &Phenotype<PackedBitChromosome>,
@@ -143,30 +126,34 @@ impl Diversity<PackedBitChromosome> for PackedBitHammingDistance {
     }
 }
 
-impl Distance<PackedBitChromosome> for PackedBitHammingDistance {
+impl Distance<[u64]> for PackedBitHammingDistance {
     #[inline]
-    fn calculate(&self, one: &PackedBitChromosome, two: &PackedBitChromosome) -> f32 {
-        match Self::count(one, two) {
-            (_, 0) => 0.0,
-            (differing, total_bits) => differing as f32 / total_bits as f32,
-        }
+    fn calculate(&self, one: &[u64], two: &[u64]) -> f32 {
+        distance::packed_hamming(one, two)
     }
 }
 
-/// Implementation of the [Diversity] trait that calculates the Euclidean distance
-/// between two [Genotype]s. The Euclidean distance is the square root of the sum of the
+impl Distance<Vec<u64>> for PackedBitHammingDistance {
+    #[inline]
+    fn calculate(&self, one: &Vec<u64>, two: &Vec<u64>) -> f32 {
+        <Self as Distance<[u64]>>::calculate(self, one, two)
+    }
+}
+
+/// Implementation of the [Distance] trait that calculates the Euclidean distance
+/// between two [crate::Genotype]s. The Euclidean distance is the square root of the sum of the
 /// squared differences between the corresponding genes' alleles, normalized by the number of genes.
 #[derive(Clone)]
 pub struct EuclideanDistance;
 
-impl<G, C> Diversity<C> for EuclideanDistance
+impl<G, C> Distance<Phenotype<C>> for EuclideanDistance
 where
     C: Chromosome<Gene = G>,
     G: NumericGene,
     G::Allele: NumericAllele,
 {
     #[inline]
-    fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
+    fn calculate(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
         let geno_one = geno_one.genotype();
         let geno_two = geno_two.genotype();
 
@@ -197,32 +184,29 @@ where
     }
 }
 
-impl<P: AsRef<[f32]>> Distance<P> for EuclideanDistance {
-    fn calculate(&self, one: &P, two: &P) -> f32 {
-        let vec_one = one.as_ref();
-        let vec_two = two.as_ref();
-
-        distance::euclidean(vec_one, vec_two)
+impl Distance<[f32]> for EuclideanDistance {
+    fn calculate(&self, one: &[f32], two: &[f32]) -> f32 {
+        distance::euclidean(one, two)
     }
 }
 
-impl Novelty<Vec<f32>> for EuclideanDistance {
-    fn description(&self, phenotype: &Vec<f32>) -> Vec<f32> {
-        phenotype.clone()
+impl Distance<Vec<f32>> for EuclideanDistance {
+    fn calculate(&self, one: &Vec<f32>, two: &Vec<f32>) -> f32 {
+        distance::euclidean(one, two)
     }
 }
 
 #[derive(Clone)]
 pub struct CosineDistance;
 
-impl<G, C> Diversity<C> for CosineDistance
+impl<G, C> Distance<Phenotype<C>> for CosineDistance
 where
     C: Chromosome<Gene = G>,
     G: NumericGene,
     G::Allele: NumericAllele,
 {
     #[inline]
-    fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
+    fn calculate(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
         let geno_one = geno_one.genotype();
         let geno_two = geno_two.genotype();
 
@@ -255,18 +239,15 @@ where
     }
 }
 
-impl<P: AsRef<[f32]>> Distance<P> for CosineDistance {
-    fn calculate(&self, one: &P, two: &P) -> f32 {
-        let vec_one = one.as_ref();
-        let vec_two = two.as_ref();
-
-        distance::cosine(vec_one, vec_two)
+impl Distance<[f32]> for CosineDistance {
+    fn calculate(&self, one: &[f32], two: &[f32]) -> f32 {
+        distance::cosine(one, two)
     }
 }
 
-impl Novelty<Vec<f32>> for CosineDistance {
-    fn description(&self, phenotype: &Vec<f32>) -> Vec<f32> {
-        phenotype.clone()
+impl Distance<Vec<f32>> for CosineDistance {
+    fn calculate(&self, one: &Vec<f32>, two: &Vec<f32>) -> f32 {
+        distance::cosine(one, two)
     }
 }
 
@@ -280,7 +261,7 @@ mod tests {
         let vec_one = vec![1.0, 2.0, 3.0];
         let vec_two = vec![1.0, 2.0, 4.0];
 
-        assert_eq!(distance.calculate(&vec_one, &vec_two), 1.0 / 3.0);
+        assert_eq!(distance.calculate(vec_one.as_slice(), &vec_two), 1.0 / 3.0);
     }
 
     #[test]
@@ -289,7 +270,7 @@ mod tests {
         let vec_one = vec![1.0, 2.0, 3.0];
         let vec_two = vec![1.0, 2.0, 4.0];
 
-        assert_eq!(distance.calculate(&vec_one, &vec_two), 1.0);
+        assert_eq!(distance.calculate(vec_one.as_slice(), &vec_two), 1.0);
     }
 
     #[test]
@@ -298,6 +279,68 @@ mod tests {
         let vec_one = vec![1.0, 2.0, 3.0];
         let vec_two = vec![1.0, 2.0, 4.0];
 
-        assert_eq!(distance.calculate(&vec_one, &vec_two), 0.008539915);
+        assert_eq!(
+            distance.calculate(vec_one.as_slice(), vec_two.as_slice()),
+            0.008539915
+        );
+    }
+
+    #[test]
+    fn packed_hamming_matches_a_bit_by_bit_count() {
+        use crate::{Genotype, random_provider};
+
+        for num_bits in [1, 63, 64, 65, 130] {
+            let (mut one, mut two) = random_provider::scoped_seed(num_bits as u64, || {
+                (
+                    PackedBitChromosome::new(num_bits),
+                    PackedBitChromosome::new(num_bits),
+                )
+            });
+
+            // Guarantee at least one differing bit, which a 1-bit pair might not have.
+            two.set_bit(0, !one.bit(0));
+
+            // Tail bits that differ between the two must never be counted.
+            let mask = one.tail_mask();
+            if let Some(last) = one.as_mut_slice().last_mut() {
+                *last.get_mut() |= !mask;
+            }
+
+            let differing = (0..num_bits).filter(|&i| one.bit(i) != two.bit(i)).count() as f32;
+
+            let exact = PackedBitHammingDistance.calculate(
+                &Phenotype::from(Genotype::from(one.clone())),
+                &Phenotype::from(Genotype::from(two.clone())),
+            );
+            assert_eq!(exact, differing / num_bits as f32, "{num_bits} bits");
+
+            // Raw words are normalized by whole words; see the PackedBitHammingDistance docs.
+            let words = num_bits.div_ceil(WORD_SIZE);
+            let raw = PackedBitHammingDistance
+                .calculate(one.to_words().as_slice(), two.to_words().as_slice());
+            assert_eq!(
+                raw,
+                differing / (words * WORD_SIZE) as f32,
+                "{num_bits} bits"
+            );
+        }
+    }
+
+    #[test]
+    fn packed_hamming_compares_the_common_prefix_and_never_divides_by_zero() {
+        let empty: &[u64] = &[];
+        assert_eq!(PackedBitHammingDistance.calculate(empty, empty), 0.0);
+        assert_eq!(
+            PackedBitHammingDistance.calculate(empty, &[u64::MAX][..]),
+            0.0
+        );
+
+        // Only the first word is shared; the second word of `long` is ignored.
+        let short = [0b1011u64];
+        let long = [0b0001u64, u64::MAX];
+        assert_eq!(
+            PackedBitHammingDistance.calculate(&short[..], &long[..]),
+            2.0 / 64.0
+        );
     }
 }
