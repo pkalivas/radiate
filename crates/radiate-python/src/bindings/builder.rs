@@ -435,10 +435,8 @@ impl PyEngineBuilder {
             inputs,
             Self::process_single_typed(|typed_builder, input| {
                 let diversity =
-                    InputTransform::<RadiateResult<Box<dyn Distance<_, Output = f32>>>>::transform(
-                        input,
-                    )
-                    .context("Failed to transform diversity input")?;
+                    InputTransform::<RadiateResult<Box<dyn Distance<_>>>>::transform(input)
+                        .context("Failed to transform diversity input")?;
 
                 Ok(typed_builder.boxed_diversity(Some(diversity)))
             })

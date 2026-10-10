@@ -9,12 +9,10 @@ use radiate_error::radiate_bail;
 use radiate_utils::{Float, Integer};
 
 impl<I: Integer + NumericAllele>
-    InputTransform<RadiateResult<Box<dyn Distance<Phenotype<IntChromosome<I>>, Output = f32>>>>
+    InputTransform<RadiateResult<Box<dyn Distance<Phenotype<IntChromosome<I>>>>>>
     for PyEngineInput
 {
-    fn transform(
-        &self,
-    ) -> RadiateResult<Box<dyn Distance<Phenotype<IntChromosome<I>>, Output = f32>>> {
+    fn transform(&self) -> RadiateResult<Box<dyn Distance<Phenotype<IntChromosome<I>>>>> {
         match self.component() {
             crate::constants::components::HAMMING_DISTANCE => Ok(Box::new(HammingDistance)),
             crate::constants::components::EUCLIDEAN_DISTANCE => Ok(Box::new(EuclideanDistance)),
@@ -25,12 +23,10 @@ impl<I: Integer + NumericAllele>
 }
 
 impl<F: Float + NumericAllele>
-    InputTransform<RadiateResult<Box<dyn Distance<Phenotype<FloatChromosome<F>>, Output = f32>>>>
+    InputTransform<RadiateResult<Box<dyn Distance<Phenotype<FloatChromosome<F>>>>>>
     for PyEngineInput
 {
-    fn transform(
-        &self,
-    ) -> RadiateResult<Box<dyn Distance<Phenotype<FloatChromosome<F>>, Output = f32>>> {
+    fn transform(&self) -> RadiateResult<Box<dyn Distance<Phenotype<FloatChromosome<F>>>>> {
         match self.component() {
             crate::constants::components::HAMMING_DISTANCE => Ok(Box::new(HammingDistance)),
             crate::constants::components::COSINE_DISTANCE => Ok(Box::new(CosineDistance)),
@@ -40,12 +36,8 @@ impl<F: Float + NumericAllele>
     }
 }
 
-impl InputTransform<RadiateResult<Box<dyn Distance<Phenotype<BitChromosome>, Output = f32>>>>
-    for PyEngineInput
-{
-    fn transform(
-        &self,
-    ) -> RadiateResult<Box<dyn Distance<Phenotype<BitChromosome>, Output = f32>>> {
+impl InputTransform<RadiateResult<Box<dyn Distance<Phenotype<BitChromosome>>>>> for PyEngineInput {
+    fn transform(&self) -> RadiateResult<Box<dyn Distance<Phenotype<BitChromosome>>>> {
         match self.component() {
             crate::constants::components::HAMMING_DISTANCE => Ok(Box::new(HammingDistance)),
             _ => radiate_bail!(Builder: "Unknown diversity measure: {}", self.component()),
@@ -53,12 +45,10 @@ impl InputTransform<RadiateResult<Box<dyn Distance<Phenotype<BitChromosome>, Out
     }
 }
 
-impl InputTransform<RadiateResult<Box<dyn Distance<Phenotype<PackedBitChromosome>, Output = f32>>>>
+impl InputTransform<RadiateResult<Box<dyn Distance<Phenotype<PackedBitChromosome>>>>>
     for PyEngineInput
 {
-    fn transform(
-        &self,
-    ) -> RadiateResult<Box<dyn Distance<Phenotype<PackedBitChromosome>, Output = f32>>> {
+    fn transform(&self) -> RadiateResult<Box<dyn Distance<Phenotype<PackedBitChromosome>>>> {
         match self.component() {
             crate::constants::components::HAMMING_DISTANCE => {
                 Ok(Box::new(PackedBitHammingDistance))
@@ -68,12 +58,8 @@ impl InputTransform<RadiateResult<Box<dyn Distance<Phenotype<PackedBitChromosome
     }
 }
 
-impl InputTransform<RadiateResult<Box<dyn Distance<Phenotype<CharChromosome>, Output = f32>>>>
-    for PyEngineInput
-{
-    fn transform(
-        &self,
-    ) -> RadiateResult<Box<dyn Distance<Phenotype<CharChromosome>, Output = f32>>> {
+impl InputTransform<RadiateResult<Box<dyn Distance<Phenotype<CharChromosome>>>>> for PyEngineInput {
+    fn transform(&self) -> RadiateResult<Box<dyn Distance<Phenotype<CharChromosome>>>> {
         match self.component() {
             crate::constants::components::HAMMING_DISTANCE => Ok(Box::new(HammingDistance)),
             _ => radiate_bail!(Builder: "Unknown diversity measure: {}", self.component()),
@@ -81,15 +67,12 @@ impl InputTransform<RadiateResult<Box<dyn Distance<Phenotype<CharChromosome>, Ou
     }
 }
 
-impl
-    InputTransform<
-        RadiateResult<Box<dyn Distance<Phenotype<PermutationChromosome<usize>>, Output = f32>>>,
-    > for PyEngineInput
+impl InputTransform<RadiateResult<Box<dyn Distance<Phenotype<PermutationChromosome<usize>>>>>>
+    for PyEngineInput
 {
     fn transform(
         &self,
-    ) -> RadiateResult<Box<dyn Distance<Phenotype<PermutationChromosome<usize>>, Output = f32>>>
-    {
+    ) -> RadiateResult<Box<dyn Distance<Phenotype<PermutationChromosome<usize>>>>> {
         match self.component() {
             crate::constants::components::HAMMING_DISTANCE => Ok(Box::new(HammingDistance)),
             _ => radiate_bail!(Builder: "Unknown diversity measure: {}", self.component()),
@@ -97,26 +80,19 @@ impl
     }
 }
 
-impl<F: OpFloat>
-    InputTransform<RadiateResult<Box<dyn Distance<Phenotype<TreeChromosome<Op<F>>>, Output = f32>>>>
+impl<F: OpFloat> InputTransform<RadiateResult<Box<dyn Distance<Phenotype<TreeChromosome<Op<F>>>>>>>
     for PyEngineInput
 {
-    fn transform(
-        &self,
-    ) -> RadiateResult<Box<dyn Distance<Phenotype<TreeChromosome<Op<F>>>, Output = f32>>> {
+    fn transform(&self) -> RadiateResult<Box<dyn Distance<Phenotype<TreeChromosome<Op<F>>>>>> {
         // There are currently no diversity measures implemented for tree chromosomes
         radiate_bail!(Builder: "No diversity measures implemented for tree chromosomes")
     }
 }
 
-impl<F: OpFloat>
-    InputTransform<
-        RadiateResult<Box<dyn Distance<Phenotype<GraphChromosome<Op<F>>>, Output = f32>>>,
-    > for PyEngineInput
+impl<F: OpFloat> InputTransform<RadiateResult<Box<dyn Distance<Phenotype<GraphChromosome<Op<F>>>>>>>
+    for PyEngineInput
 {
-    fn transform(
-        &self,
-    ) -> RadiateResult<Box<dyn Distance<Phenotype<GraphChromosome<Op<F>>>, Output = f32>>> {
+    fn transform(&self) -> RadiateResult<Box<dyn Distance<Phenotype<GraphChromosome<Op<F>>>>>> {
         match self.component() {
             crate::constants::components::NEAT_DISTANCE => {
                 let excess = self.extract::<f64>("excess")?;

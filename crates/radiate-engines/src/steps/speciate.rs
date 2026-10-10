@@ -14,7 +14,7 @@ where
 {
     pub(crate) threshold: RateSet,
     pub(crate) objective: Objective,
-    pub(crate) distance: Arc<dyn Distance<Phenotype<C>, Output = f32>>,
+    pub(crate) distance: Arc<dyn Distance<Phenotype<C>>>,
     pub(crate) executor: Arc<Executor>,
     pub(crate) distances: Vec<f32>,
     pub(crate) assignments: Arc<Mutex<SpeciesAssignments>>,
@@ -24,7 +24,7 @@ impl<C: Chromosome> SpeciateStep<C> {
     pub fn new(
         threshold: impl Into<RateSet>,
         objective: Objective,
-        distance: Arc<dyn Distance<Phenotype<C>, Output = f32>>,
+        distance: Arc<dyn Distance<Phenotype<C>>>,
         executor: Arc<Executor>,
     ) -> Self {
         Self {
@@ -172,7 +172,7 @@ where
         population: Arc<RwLock<Population<C>>>,
         species_mascots: Arc<Vec<Phenotype<C>>>,
         threshold: f32,
-        distance: Arc<dyn Distance<Phenotype<C>, Output = f32>>,
+        distance: Arc<dyn Distance<Phenotype<C>>>,
         assignments: Arc<Mutex<SpeciesAssignments>>,
         range: std::ops::Range<usize>,
     ) {

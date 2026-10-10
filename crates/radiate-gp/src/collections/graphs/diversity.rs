@@ -138,13 +138,11 @@ fn bump(id: InnovationId, cutoff: Option<InnovationId>, excess: &mut f32, disjoi
 }
 
 impl<F: Float> Distance<Phenotype<GraphChromosome<Op<F>>>> for NeatDistance {
-    type Output = f32;
-
     fn calculate(
         &self,
         one: &Phenotype<GraphChromosome<Op<F>>>,
         two: &Phenotype<GraphChromosome<Op<F>>>,
-    ) -> Self::Output {
+    ) -> f32 {
         one.genotype()
             .iter()
             .zip(two.genotype().iter())

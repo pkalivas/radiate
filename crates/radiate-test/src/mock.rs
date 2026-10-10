@@ -187,7 +187,7 @@ pub fn default_bit_alters() -> Vec<Alterer<BitChromosome>> {
 
 pub fn mock_speciate_step<C: Chromosome>(
     threshold: f32,
-    distance: impl Distance<Phenotype<C>, Output = f32> + 'static,
+    distance: impl Distance<Phenotype<C>> + 'static,
 ) -> SpeciateStep<C> {
     SpeciateStep::new(
         Expr::lit(threshold),

@@ -19,7 +19,7 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     filters: Vec<Arc<Mutex<dyn EcosystemFilter<C>>>>,
     alterers: Vec<Alterer<C>>,
-    distance: Option<Arc<dyn Distance<Phenotype<C>, Output = f32>>>,
+    distance: Option<Arc<dyn Distance<Phenotype<C>>>>,
     evaluator: Arc<dyn Evaluator<C, T>>,
     objective: Objective,
     max_age: usize,
@@ -66,7 +66,7 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         self.max_species_age
     }
 
-    pub fn distance(&self) -> Option<Arc<dyn Distance<Phenotype<C>, Output = f32>>> {
+    pub fn distance(&self) -> Option<Arc<dyn Distance<Phenotype<C>>>> {
         self.distance.clone()
     }
 

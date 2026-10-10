@@ -8,8 +8,7 @@ pub trait Distance<I>: Send + Sync
 where
     I: ?Sized,
 {
-    type Output;
-    fn calculate(&self, one: &I, two: &I) -> Self::Output;
+    fn calculate(&self, one: &I, two: &I) -> f32;
 }
 
 /// A concrete implementation of the [Distance] trait that calculates the Hamming distance
@@ -24,8 +23,6 @@ where
     G: Gene,
     G::Allele: PartialEq,
 {
-    type Output = f32;
-
     #[inline]
     fn calculate(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
         let geno_one = geno_one.genotype();
@@ -47,25 +44,13 @@ where
 }
 
 impl Distance<[f32]> for HammingDistance {
-    type Output = f32;
-
     fn calculate(&self, one: &[f32], two: &[f32]) -> f32 {
         distance::hamming(one, two)
     }
 }
 
 impl Distance<Vec<f32>> for HammingDistance {
-    type Output = f32;
-
     fn calculate(&self, one: &Vec<f32>, two: &Vec<f32>) -> f32 {
-        distance::hamming(one, two)
-    }
-}
-
-impl Distance<[u64]> for HammingDistance {
-    type Output = f32;
-
-    fn calculate(&self, one: &[u64], two: &[u64]) -> f32 {
         distance::hamming(one, two)
     }
 }
@@ -111,14 +96,12 @@ impl PackedBitHammingDistance {
 }
 
 impl Distance<Phenotype<PackedBitChromosome>> for PackedBitHammingDistance {
-    type Output = f32;
-
     #[inline]
     fn calculate(
         &self,
         geno_one: &Phenotype<PackedBitChromosome>,
         geno_two: &Phenotype<PackedBitChromosome>,
-    ) -> Self::Output {
+    ) -> f32 {
         let (mut differing, mut total_bits) = (0, 0);
         for (one, two) in geno_one.genotype().iter().zip(geno_two.genotype().iter()) {
             let (diff, bits) = Self::count(one, two);
@@ -134,17 +117,7 @@ impl Distance<Phenotype<PackedBitChromosome>> for PackedBitHammingDistance {
     }
 }
 
-// impl Distance<PackedBitChromosome> for PackedBitHammingDistance {
-//     #[inline]
-//     fn calculate(&self, one: &PackedBitChromosome, two: &PackedBitChromosome) -> f32 {
-//         match Self::count(one, two) {
-//             (_, 0) => 0.0,
-//             (differing, total_bits) => differing as f32 / total_bits as f32,
-//         }
-//     }
-// }
-
-/// Implementation of the [Diversity] trait that calculates the Euclidean distance
+/// Implementation of the [Distance] trait that calculates the Euclidean distance
 /// between two [Genotype]s. The Euclidean distance is the square root of the sum of the
 /// squared differences between the corresponding genes' alleles, normalized by the number of genes.
 #[derive(Clone)]
@@ -156,8 +129,6 @@ where
     G: NumericGene,
     G::Allele: NumericAllele,
 {
-    type Output = f32;
-
     #[inline]
     fn calculate(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
         let geno_one = geno_one.genotype();
@@ -191,26 +162,14 @@ where
 }
 
 impl Distance<[f32]> for EuclideanDistance {
-    type Output = f32;
-
-    fn calculate(&self, one: &[f32], two: &[f32]) -> Self::Output {
+    fn calculate(&self, one: &[f32], two: &[f32]) -> f32 {
         distance::euclidean(one, two)
     }
 }
 
 impl Distance<Vec<f32>> for EuclideanDistance {
-    type Output = f32;
-
-    fn calculate(&self, one: &Vec<f32>, two: &Vec<f32>) -> Self::Output {
+    fn calculate(&self, one: &Vec<f32>, two: &Vec<f32>) -> f32 {
         distance::euclidean(one, two)
-    }
-}
-
-impl Distance<[f64]> for EuclideanDistance {
-    type Output = f64;
-
-    fn calculate(&self, one: &[f64], two: &[f64]) -> Self::Output {
-        distance::euclidean(one, two) as f64
     }
 }
 
@@ -223,8 +182,6 @@ where
     G: NumericGene,
     G::Allele: NumericAllele,
 {
-    type Output = f32;
-
     #[inline]
     fn calculate(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
         let geno_one = geno_one.genotype();
@@ -260,25 +217,13 @@ where
 }
 
 impl Distance<[f32]> for CosineDistance {
-    type Output = f32;
-
-    fn calculate(&self, one: &[f32], two: &[f32]) -> Self::Output {
+    fn calculate(&self, one: &[f32], two: &[f32]) -> f32 {
         distance::cosine(one, two)
     }
 }
 
 impl Distance<Vec<f32>> for CosineDistance {
-    type Output = f32;
-
-    fn calculate(&self, one: &Vec<f32>, two: &Vec<f32>) -> Self::Output {
-        distance::cosine(one, two)
-    }
-}
-
-impl Distance<[f64]> for CosineDistance {
-    type Output = f64;
-
-    fn calculate(&self, one: &[f64], two: &[f64]) -> Self::Output {
+    fn calculate(&self, one: &Vec<f32>, two: &Vec<f32>) -> f32 {
         distance::cosine(one, two)
     }
 }
@@ -313,7 +258,7 @@ mod tests {
 
         assert_eq!(
             distance.calculate(vec_one.as_slice(), vec_two.as_slice()),
-            0.008539915_f64
+            0.008539915
         );
     }
 }

@@ -46,14 +46,14 @@ pub struct NoveltySearch<T, D = Vec<f32>> {
     pub archive: Arc<RwLock<WindowBuffer<D>>>,
     pub k: usize,
     pub threshold: f32,
-    pub distance_fn: Arc<dyn Distance<D, Output = f32>>,
+    pub distance_fn: Arc<dyn Distance<D>>,
 }
 
 impl<T, D> NoveltySearch<T, D> {
     pub fn new<N, M>(behavior: N, distance_fn: M) -> Self
     where
         N: Novelty<T, D> + Send + Sync + 'static,
-        M: Distance<D, Output = f32> + Send + Sync + 'static,
+        M: Distance<D> + Send + Sync + 'static,
     {
         NoveltySearch {
             behavior: Arc::new(behavior),
@@ -69,7 +69,7 @@ impl<T, D> NoveltySearch<T, D> {
     pub fn from_batch_fn<F, M>(f: F, distance_fn: M) -> Self
     where
         F: Fn(&[T]) -> Vec<D> + Send + Sync + 'static,
-        M: Distance<D, Output = f32> + Send + Sync + 'static,
+        M: Distance<D> + Send + Sync + 'static,
         T: 'static,
     {
         Self::new(BatchedFn(f), distance_fn)
@@ -92,7 +92,7 @@ impl<T, D> NoveltySearch<T, D> {
 
     pub fn distance_fn<M>(mut self, distance_fn: M) -> Self
     where
-        M: Distance<D, Output = f32> + Send + Sync + 'static,
+        M: Distance<D> + Send + Sync + 'static,
     {
         self.distance_fn = Arc::new(distance_fn);
         self
