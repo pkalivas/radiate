@@ -1,6 +1,4 @@
-use crate::{
-    BatchFitnessFunction, BatchedFn, FitnessFunction, diversity::Distance, math::knn::KNN,
-};
+use crate::{BatchFitnessFunction, BatchedFn, FitnessFunction, distance::Distance, math::knn::KNN};
 use radiate_utils::WindowBuffer;
 use std::sync::{Arc, RwLock};
 
@@ -452,7 +450,7 @@ mod tests {
                 move |members: &[Vec<f32>]| {
                     batch_calls.fetch_add(1, Ordering::Relaxed);
                     total_seen.fetch_add(members.len(), Ordering::Relaxed);
-                    members.iter().map(|v| v.clone()).collect()
+                    members.to_vec()
                 },
                 EuclideanDistance,
             )
@@ -528,5 +526,73 @@ mod tests {
         // 8 threads × 50 evals = 400 attempts; capped by archive_size=200.
         let archive = ns.archive.read().unwrap();
         assert!(archive.values().len() <= 200);
+    }
+
+    #[test]
+    fn packed_word_descriptors_score_the_same_as_unpacked_bits() {
+        use crate::{
+            HammingDistance, PackedBitChromosome, PackedBitHammingDistance, random_provider,
+        };
+
+        // Not a multiple of 64: packed distances are normalized by 128 bits and unpacked
+        // ones by 100, a constant factor the novelty score has to cancel out.
+        const NUM_BITS: usize = 100;
+
+        let bit_strings = random_provider::scoped_seed(7, || {
+            (0..12)
+                .map(|_| PackedBitChromosome::new(NUM_BITS))
+                .collect::<Vec<_>>()
+        });
+        let as_floats = |chrom: &PackedBitChromosome| {
+            chrom
+                .iter_bits()
+                .map(|bit| if bit { 1.0 } else { 0.0 })
+                .collect::<Vec<f32>>()
+        };
+
+        let packed = NoveltySearch::new(|words: &Vec<u64>| words.clone(), PackedBitHammingDistance)
+            .k(3)
+            .threshold(0.5)
+            .archive_size(100);
+        let unpacked = NoveltySearch::new(|bits: &Vec<f32>| bits.clone(), HammingDistance)
+            .k(3)
+            .threshold(0.5)
+            .archive_size(100);
+
+        let (archived, queries) = bit_strings.split_at(6);
+        for chrom in archived {
+            packed.archive.write().unwrap().push(chrom.to_words());
+            unpacked.archive.write().unwrap().push(as_floats(chrom));
+        }
+
+        // Same scores also mean the same admissions, so the archives stay in step.
+        let mut scores = Vec::new();
+        for chrom in queries {
+            let packed_score = <NoveltySearch<Vec<u64>, Vec<u64>> as FitnessFunction<
+                Vec<u64>,
+                f32,
+            >>::evaluate(&packed, chrom.to_words());
+            let unpacked_score =
+                <NoveltySearch<Vec<f32>> as FitnessFunction<Vec<f32>, f32>>::evaluate(
+                    &unpacked,
+                    as_floats(chrom),
+                );
+
+            assert!(
+                (packed_score - unpacked_score).abs() < 1e-6,
+                "packed {packed_score} vs unpacked {unpacked_score}"
+            );
+            scores.push(packed_score);
+        }
+
+        // Guard against a vacuous pass where every query hits a degenerate branch.
+        assert!(
+            scores.iter().any(|&s| s > 0.0 && s < 1.0 && s != 0.5),
+            "no informative scores: {scores:?}"
+        );
+        assert_eq!(
+            packed.archive.read().unwrap().values().len(),
+            unpacked.archive.read().unwrap().values().len()
+        );
     }
 }

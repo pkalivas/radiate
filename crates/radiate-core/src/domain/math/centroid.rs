@@ -1,4 +1,4 @@
-use crate::diversity::Distance;
+use crate::distance::Distance;
 use crate::math::knn::KNN;
 use std::sync::Arc;
 
@@ -83,7 +83,7 @@ mod tests {
         let metric = EuclideanDistance;
         let mut clusterer = CentroidClusterer::new(Arc::new(metric));
 
-        let points = vec![
+        let points: Vec<Vec<f32>> = vec![
             vec![1.0, 2.0],
             vec![1.5, 1.8],
             vec![5.0, 8.0],

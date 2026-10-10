@@ -1,4 +1,4 @@
-use crate::diversity::Distance;
+use crate::distance::Distance;
 use std::{cmp::Ordering, sync::Arc};
 
 const EPSILON: f32 = 1e-12;

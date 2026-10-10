@@ -17,7 +17,7 @@ use crate::{
 use crate::{PyGeneration, PySubscriber};
 use core::panic;
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
-use radiate::prelude::*;
+use radiate::{distance::Distance, prelude::*};
 use radiate_error::{ResultExt, radiate_py_bail, radiate_py_err};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -435,7 +435,7 @@ impl PyEngineBuilder {
             inputs,
             Self::process_single_typed(|typed_builder, input| {
                 let diversity =
-                    InputTransform::<RadiateResult<Box<dyn Diversity<_>>>>::transform(input)
+                    InputTransform::<RadiateResult<Box<dyn Distance<_>>>>::transform(input)
                         .context("Failed to transform diversity input")?;
 
                 Ok(typed_builder.boxed_diversity(Some(diversity)))

@@ -12,6 +12,8 @@
 //!
 //! To unpack, split each 64-bit word into its 8 bytes and look each one up.
 
+pub const WORD_SIZE: usize = 64;
+
 /// Maps every byte value to its 8 bits as bools, least-significant bit first.
 ///
 /// Computed at compile time.
