@@ -530,7 +530,7 @@ where
 
         let species_step = SpeciateStep {
             threshold: RateSet::new(threshold_expr),
-            distance: distance,
+            distance,
             executor: config.species_executor(),
             objective: config.objective(),
             distances: Vec::new(),
