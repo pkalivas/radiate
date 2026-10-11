@@ -116,6 +116,53 @@ pub struct KernelCache<V> {
     defaults: Vec<V>,
     scratch: Vec<V>,
     row_values: Vec<V>,
+    is_ready: bool,
+}
+
+impl<V> KernelCache<V>
+where
+    V: Default + Clone,
+{
+    pub fn new<T>(nodes: &[GraphNode<T>]) -> Self {
+        let mut cache = KernelCache::default();
+        cache.plan.compile(nodes);
+        cache.row_values.resize(cache.plan.slots(), V::default());
+        cache
+    }
+
+    pub fn slots(&self) -> usize {
+        self.plan.slots()
+    }
+}
+
+impl<V, G: AsRef<[GraphNode<V>]>> From<&G> for KernelCache<V>
+where
+    V: Default + Clone,
+{
+    fn from(graph: &G) -> Self {
+        let nodes = graph.as_ref();
+        let mut new_cache = KernelCache::default();
+
+        new_cache.plan.compile(nodes);
+        new_cache
+            .row_values
+            .resize(new_cache.plan.slots(), V::default());
+        new_cache
+    }
+}
+
+impl<V> From<(&[GraphNode<V>], KernelCache<V>)> for KernelCache<V>
+where
+    V: Default + Clone,
+{
+    fn from((nodes, cache): (&[GraphNode<V>], KernelCache<V>)) -> Self {
+        let mut new_cache = cache;
+        new_cache.plan.compile(nodes);
+        new_cache
+            .row_values
+            .resize(new_cache.plan.slots(), V::default());
+        new_cache
+    }
 }
 
 /// [GraphKernel] compiles a graph into a [GraphPlan] on creation and evaluates it through
@@ -144,12 +191,12 @@ impl<'a, T, V> GraphKernel<'a, T, V>
 where
     V: Default + Clone,
 {
-    /// Compiles `graph` into a new [GraphKernel].
     pub fn new<G>(graph: &'a G) -> Self
     where
         G: AsRef<[GraphNode<T>]>,
     {
-        GraphKernel::from((graph, KernelCache::default()))
+        let cache = KernelCache::new(graph.as_ref());
+        GraphKernel::from((graph, cache))
     }
 
     pub fn plan(&self) -> &GraphPlan {
@@ -174,9 +221,6 @@ where
     G: AsRef<[GraphNode<T>]>,
     V: Default + Clone,
 {
-    /// Compiles `graph` into `cache`'s plan, reusing its allocations, and starts row evaluation
-    /// from a fresh (default) state. Always recompiles: the cache may come from a different
-    /// graph, and compiling is cheap next to evaluating.
     fn from((graph, cache): (&'a G, KernelCache<V>)) -> Self {
         let nodes = graph.as_ref();
         GraphKernel {
