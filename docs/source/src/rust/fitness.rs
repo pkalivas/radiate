@@ -39,7 +39,7 @@ fn main() {
         .codec(IntChromosome::from((5, 0..100)))
         // Replace the original 'fitness_fn' call with 'batch_fitness_fn' to enable batch fitness.
         // This fitness function will receive a single batch containing all individuals which need evaluation
-        .batch_fitness_fn(|phenotypes: &[Vec<i32>]| {
+        .fitness_fn(|phenotypes: &[Vec<i32>]| {
             phenotypes
                 .iter()
                 .map(|geno| geno.iter().sum::<i32>())
@@ -52,7 +52,7 @@ fn main() {
         .codec(IntChromosome::from((5, 0..100)))
         // 'batch_fitness_fn' will receive 7 batches of individuals during each generation's evaluation
         .executor(Executor::FixedSizedWorkerPool(7))
-        .batch_fitness_fn(|phenotypes: &[Vec<i32>]| {
+        .fitness_fn(|phenotypes: &[Vec<i32>]| {
             phenotypes
                 .iter()
                 .map(|geno| geno.iter().sum::<i32>())
@@ -72,7 +72,7 @@ fn main() {
 
     let engine = GeneticEngine::builder()
         .codec(FloatCodec::vector(10, 0.0..1.0))
-        .raw_fitness_fn(my_fitness_fn)
+        .fitness_fn(my_fitness_fn)
         // or .raw_batch_fitness_fn(...) for batch raw fitness functions
         // ... other parameters ...
         .build();
@@ -101,23 +101,23 @@ fn main() {
 
     // Create weighted composite fitness function - this version computes a
     // weighted average of each function given to it
-    let composite_fitness = CompositeFitnessFn::new()
-        .add_weighted_fn(accuracy_objective, 0.6) // 60% weight on accuracy
-        .add_weighted_fn(complexity_objective, 0.25) // 25% weight on complexity
-        .add_weighted_fn(efficiency_objective, 0.15); // 15% weight on efficiency
+    // let composite_fitness = CompositeFitnessFn::new()
+    //     .add_weighted_fn(accuracy_objective, 0.6) // 60% weight on accuracy
+    //     .add_weighted_fn(complexity_objective, 0.25) // 25% weight on complexity
+    //     .add_weighted_fn(efficiency_objective, 0.15); // 15% weight on efficiency
 
-    // Create an equal weight composite fitness function with equal weights.
-    // Meaning these are all essentially just added together to create a single objective.
-    let composite_fitness = CompositeFitnessFn::new()
-        .add_fitness_fn(accuracy_objective)
-        .add_fitness_fn(complexity_objective)
-        .add_fitness_fn(efficiency_objective);
+    // // Create an equal weight composite fitness function with equal weights.
+    // // Meaning these are all essentially just added together to create a single objective.
+    // let composite_fitness = CompositeFitnessFn::new()
+    //     .add_fitness_fn(accuracy_objective)
+    //     .add_fitness_fn(complexity_objective)
+    //     .add_fitness_fn(efficiency_objective);
 
-    // Add it to the engine like any other fitness function
-    let engine = GeneticEngine::builder()
-        .codec(my_model_codec)
-        .fitness_fn(composite_fitness)
-        .build();
+    // // Add it to the engine like any other fitness function
+    // let engine = GeneticEngine::builder()
+    //     .codec(my_model_codec)
+    //     .fitness_fn(composite_fitness)
+    //     .build();
     // --8<-- [end:composite]
 
     // A codec whose decoded type is `MyModel` so the novelty descriptor below can read it.

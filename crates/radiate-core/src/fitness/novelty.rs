@@ -1,4 +1,4 @@
-use crate::{BatchFitnessFunction, BatchedFn, FitnessFunction, distance::Distance, math::knn::KNN};
+use crate::{BatchedFn, FitnessFunction, distance::Distance, math::knn::KNN};
 use radiate_utils::WindowBuffer;
 use std::sync::{Arc, RwLock};
 
@@ -129,36 +129,6 @@ impl<T, D> NoveltySearch<T, D> {
 
         novelty
     }
-
-    fn evaluate_batch_internal(&self, individuals: &[T]) -> Vec<f32> {
-        let descriptions = self.behavior.batch_description(individuals);
-        let mut archive = self.archive.write().unwrap();
-
-        if archive.is_empty() {
-            let result = vec![0.5; descriptions.len()];
-            for desc in descriptions {
-                archive.push(desc);
-            }
-
-            return result;
-        }
-
-        // Score every descriptor against the same pre-batch archive snapshot —
-        // no archive mutations happen during scoring, so individual-N's score
-        // does not depend on its position in the batch.
-        let mut scores = Vec::with_capacity(descriptions.len());
-        for desc in descriptions.into_iter() {
-            let score = self.novelty_score(&desc, &archive);
-
-            if score > self.threshold || archive.len() < self.k {
-                archive.push(desc);
-            }
-
-            scores.push(score);
-        }
-
-        scores
-    }
 }
 
 impl<T, D> Clone for NoveltySearch<T, D> {
@@ -193,20 +163,10 @@ where
     }
 }
 
-impl<T, D> BatchFitnessFunction<T, f32> for NoveltySearch<T, D>
-where
-    T: Send + Sync,
-    D: Send + Sync,
-{
-    fn evaluate(&self, individuals: Vec<T>) -> Vec<f32> {
-        self.evaluate_batch_internal(&individuals)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{BatchFitnessFunction, CosineDistance, EuclideanDistance, FitnessFunction};
+    use crate::{CosineDistance, EuclideanDistance, FitnessFunction};
 
     fn make_ns(k: usize, threshold: f32) -> NoveltySearch<Vec<f32>> {
         NoveltySearch::new(|v: &Vec<f32>| v.clone(), EuclideanDistance)
@@ -230,28 +190,12 @@ mod tests {
         <NoveltySearch<Vec<f32>> as FitnessFunction<Vec<f32>, f32>>::evaluate(ns, v)
     }
 
-    fn eval_batch(ns: &NoveltySearch<Vec<f32>>, vs: Vec<Vec<f32>>) -> Vec<f32> {
-        <NoveltySearch<Vec<f32>> as BatchFitnessFunction<Vec<f32>, f32>>::evaluate(ns, vs)
-    }
-
     #[test]
     fn empty_archive_single_eval_scores_half_and_seeds_one_entry() {
         let ns = make_ns(3, 0.5);
         let score = eval(&ns, vec![1.0, 0.0]);
         assert_eq!(score, 0.5);
         assert_eq!(archive_view_len(&ns), 1);
-    }
-
-    #[test]
-    fn empty_archive_batch_eval_scores_half_and_seeds_every_entry() {
-        let ns = make_ns(3, 0.5);
-        let scores = eval_batch(
-            &ns,
-            vec![vec![0.0], vec![1.0], vec![2.0], vec![3.0], vec![4.0]],
-        );
-
-        assert_eq!(scores, vec![0.5; 5]);
-        assert_eq!(archive_view_len(&ns), 5);
     }
 
     #[test]
@@ -394,82 +338,72 @@ mod tests {
         assert_eq!(archive_view_len(&ns), 1);
     }
 
-    #[test]
-    fn batch_eval_returns_one_score_per_individual() {
-        let ns = make_ns(3, 0.5);
-        let scores = eval_batch(&ns, vec![vec![0.0], vec![5.0], vec![10.0]]);
-        assert_eq!(scores.len(), 3);
-        for (i, &s) in scores.iter().enumerate() {
-            assert!((0.0..=1.0).contains(&s), "scores[{i}] = {s} out of [0,1]");
-        }
-    }
+    // #[test]
+    // fn batch_eval_admits_via_running_archive_size_for_bootstrap() {
+    //     // Scoring is against a frozen pre-batch snapshot, but the admission pass
+    //     // walks the batch with the live archive size so bootstrap (`archive.len()
+    //     // < k`) still works mid-batch when the pre-batch archive is undersized.
+    //     let ns = make_ns(2, -1.0); // threshold=-1 → score-based admission also passes.
+    //     seed(&ns, [vec![0.0], vec![10.0]]);
+    //     let initial = archive_view_len(&ns);
 
-    #[test]
-    fn batch_eval_admits_via_running_archive_size_for_bootstrap() {
-        // Scoring is against a frozen pre-batch snapshot, but the admission pass
-        // walks the batch with the live archive size so bootstrap (`archive.len()
-        // < k`) still works mid-batch when the pre-batch archive is undersized.
-        let ns = make_ns(2, -1.0); // threshold=-1 → score-based admission also passes.
-        seed(&ns, [vec![0.0], vec![10.0]]);
-        let initial = archive_view_len(&ns);
+    //     let scores = eval_batch(&ns, vec![vec![5.0], vec![20.0], vec![-5.0]]);
+    //     assert_eq!(scores.len(), 3);
+    //     assert_eq!(archive_view_len(&ns), initial + 3);
+    // }
 
-        let scores = eval_batch(&ns, vec![vec![5.0], vec![20.0], vec![-5.0]]);
-        assert_eq!(scores.len(), 3);
-        assert_eq!(archive_view_len(&ns), initial + 3);
-    }
+    // #[test]
+    // fn batch_eval_does_not_score_against_intra_batch_additions() {
+    //     // If the batch were "online" (admitting earlier members before scoring
+    //     // later ones), then a duplicate entry later in the batch would see its
+    //     // earlier copy as a near-zero-distance neighbour and score ~0.
+    //     // True batch should score the duplicate against only the pre-batch
+    //     // archive — yielding the same score as the original.
+    //     let ns = make_ns(2, -1.0);
+    //     seed(&ns, [vec![0.0], vec![10.0]]);
 
-    #[test]
-    fn batch_eval_does_not_score_against_intra_batch_additions() {
-        // If the batch were "online" (admitting earlier members before scoring
-        // later ones), then a duplicate entry later in the batch would see its
-        // earlier copy as a near-zero-distance neighbour and score ~0.
-        // True batch should score the duplicate against only the pre-batch
-        // archive — yielding the same score as the original.
-        let ns = make_ns(2, -1.0);
-        seed(&ns, [vec![0.0], vec![10.0]]);
+    //     let scores = eval_batch(&ns, vec![vec![5.0], vec![5.0]]);
+    //     assert_eq!(scores.len(), 2);
+    //     assert!(
+    //         (scores[0] - scores[1]).abs() < 1e-6,
+    //         "duplicate batch members should score identically: {scores:?}"
+    //     );
+    // }
 
-        let scores = eval_batch(&ns, vec![vec![5.0], vec![5.0]]);
-        assert_eq!(scores.len(), 2);
-        assert!(
-            (scores[0] - scores[1]).abs() < 1e-6,
-            "duplicate batch members should score identically: {scores:?}"
-        );
-    }
+    // #[test]
+    // fn from_batch_fn_routes_batch_through_user_closure_and_falls_back_per_item() {
+    //     use std::sync::atomic::{AtomicUsize, Ordering};
 
-    #[test]
-    fn from_batch_fn_routes_batch_through_user_closure_and_falls_back_per_item() {
-        use std::sync::atomic::{AtomicUsize, Ordering};
+    //     let batch_calls = Arc::new(AtomicUsize::new(0));
+    //     let total_seen = Arc::new(AtomicUsize::new(0));
 
-        let batch_calls = Arc::new(AtomicUsize::new(0));
-        let total_seen = Arc::new(AtomicUsize::new(0));
+    //     let ns: NoveltySearch<Vec<f32>> = {
+    //         let batch_calls = Arc::clone(&batch_calls);
+    //         let total_seen = Arc::clone(&total_seen);
+    //         NoveltySearch::from_batch_fn(
+    //             move |members: &[Vec<f32>]| {
+    //                 batch_calls.fetch_add(1, Ordering::Relaxed);
+    //                 total_seen.fetch_add(members.len(), Ordering::Relaxed);
+    //                 members.to_vec()
+    //             },
+    //             EuclideanDistance,
+    //         )
+    //         .k(3)
+    //         .threshold(0.5)
+    //         .archive_size(100)
+    //     };
 
-        let ns: NoveltySearch<Vec<f32>> = {
-            let batch_calls = Arc::clone(&batch_calls);
-            let total_seen = Arc::clone(&total_seen);
-            NoveltySearch::from_batch_fn(
-                move |members: &[Vec<f32>]| {
-                    batch_calls.fetch_add(1, Ordering::Relaxed);
-                    total_seen.fetch_add(members.len(), Ordering::Relaxed);
-                    members.to_vec()
-                },
-                EuclideanDistance,
-            )
-            .k(3)
-            .threshold(0.5)
-            .archive_size(100)
-        };
+    //     // Single-eval routes through the per-item fallback, which calls the
+    //     // batch closure with a 1-element slice.
+    //     let _ = eval(&ns, vec![1.0, 0.0]);
+    //     assert_eq!(batch_calls.load(Ordering::Relaxed), 1);
+    //     assert_eq!(total_seen.load(Ordering::Relaxed), 1);
 
-        // Single-eval routes through the per-item fallback, which calls the
-        // batch closure with a 1-element slice.
-        let _ = eval(&ns, vec![1.0, 0.0]);
-        assert_eq!(batch_calls.load(Ordering::Relaxed), 1);
-        assert_eq!(total_seen.load(Ordering::Relaxed), 1);
-
-        // Batch eval calls the closure once with the full slice — the fast path.
-        let _ = eval_batch(&ns, vec![vec![1.0], vec![2.0], vec![3.0], vec![4.0]]);
-        assert_eq!(batch_calls.load(Ordering::Relaxed), 2);
-        assert_eq!(total_seen.load(Ordering::Relaxed), 5);
-    }
+    //     // Batch eval calls the closure once with the full slice — the fast path.
+    //     let _ = eval_batch(&ns, vec![vec![1.0], vec![2.0], vec![3.0], vec![4.0]]);
+    //     assert_eq!(batch_calls.load(Ordering::Relaxed), 2);
+    //     assert_eq!(total_seen.load(Ordering::Relaxed), 5);
+    // }
 
     #[test]
     fn clone_shares_archive_with_original() {

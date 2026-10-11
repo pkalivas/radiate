@@ -14,7 +14,7 @@ fn main() {
 
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, store))
-        .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
+        .fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4.0))
         .alter(alters!(
