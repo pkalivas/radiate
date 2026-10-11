@@ -34,16 +34,6 @@ where
     /// used to evaluate the fitness of each individual in the population. This function should
     /// take a single argument of type T and return a [Score](radiate_core::Score). The [Score](radiate_core::Score) is used to
     /// evaluate or rank the fitness of the individual.
-    ///
-    /// This method is required and must be set before calling the `build` method.
-    // pub fn fitness_fn<S: Into<Score>>(
-    //     mut self,
-    //     fitness_func: impl FitnessFunction<T, S> + 'static,
-    // ) -> Self {
-    //     let other = move |x| fitness_func.evaluate(x).into();
-    //     self.params.problem_params.fitness_kind = Some(FitnessKind::Single(Arc::new(other)));
-    //     self
-    // }
     pub fn fitness_fn<M>(mut self, fitness_func: impl IntoFitness<C, T, M> + 'static) -> Self {
         let fitness_kind = fitness_func.into_fitness();
         self.params.problem_params.fitness_kind = Some(fitness_kind);
