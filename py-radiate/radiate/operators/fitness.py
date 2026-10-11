@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from enum import StrEnum
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Literal, Never, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Literal, Protocol, overload
 
 from radiate._typing import RdDataType, RdLossType
 
@@ -19,23 +19,29 @@ if TYPE_CHECKING:
 type NoveltyOutput = float | int | list[float] | list[int]
 
 
-T = TypeVar("T")
+class _BatchFitnessDecorator(Protocol):
+    """What `fitness(batch=True)` returns. A numpy batch arrives as one array, and
+    numpy engines decode to `np.ndarray`, so it is typed `Fitness[np.ndarray]`. A list
+    batch is typed by its element type."""
+
+    @overload
+    def __call__(self, func: Callable[[np.ndarray], Any], /) -> Fitness[np.ndarray]: ...
+    @overload
+    def __call__[U](self, func: Callable[[list[U]], Any], /) -> Fitness[U]: ...
 
 
 @overload
-def fitness(func: Callable[[T], Any], /) -> Fitness[T]: ...
+def fitness[U](func: Callable[[U], Any], /) -> Fitness[U]: ...
 
 
 @overload
-def fitness(
+def fitness[U](
     *, batch: Literal[False] = False
-) -> Callable[[Callable[[T], Any]], Fitness[T]]: ...
+) -> Callable[[Callable[[U], Any]], Fitness[U]]: ...
 
 
 @overload
-def fitness(
-    *, batch: Literal[True]
-) -> Callable[[Callable[[list[T]], Any] | Callable[[np.ndarray], Any]], Fitness[T]]: ...
+def fitness(*, batch: Literal[True]) -> _BatchFitnessDecorator: ...
 
 
 def fitness(
@@ -43,7 +49,7 @@ def fitness(
     *,
     batch: bool = False,
 ) -> Any:
-    def decorator(f: Callable[..., Any]) -> Fitness[Never]:
+    def decorator(f: Callable[..., Any]) -> Fitness[Any]:
         @wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             return f(*args, **kwargs)
@@ -57,15 +63,20 @@ def fitness(
     return decorator
 
 
-def novelty[T](
+class _NoveltyDecorator(Protocol):
+    """What `novelty(...)` returns. The decorated descriptor's parameter type is only
+    known when the decorator is applied, so it is bound here rather than on `novelty`."""
+
+    def __call__[U](self, func: Callable[[U], NoveltyOutput], /) -> Fitness[U]: ...
+
+
+def novelty(
     archive: int = 1000,
     k: int = 15,
     threshold: float = 0.03,
     distance: Dist = Dist.hamming(),
-):
-    def decorator(
-        func: Callable[[T], float | int | list[float] | list[int]],
-    ) -> Fitness[T]:
+) -> _NoveltyDecorator:
+    def decorator(func: Callable[[Any], NoveltyOutput]) -> Fitness[Any]:
         return Fitness.novelty(
             descriptor=func,
             archive_size=archive,
@@ -88,8 +99,28 @@ class Fitness[T](EngineInput):
         super().__init__(input_type=EngineInputType.FitnessFunction, **kwargs)
         self.fitness_type = fitness_type
 
+    @overload
     @staticmethod
-    def custom(fitness_fn: Callable[[T], object], is_batch: bool = False) -> Fitness:
+    def custom[U](
+        fitness_fn: Callable[[U], object], is_batch: Literal[False] = False
+    ) -> Fitness[U]: ...
+
+    @overload
+    @staticmethod
+    def custom(
+        fitness_fn: Callable[[np.ndarray], object], is_batch: Literal[True]
+    ) -> Fitness[np.ndarray]: ...
+
+    @overload
+    @staticmethod
+    def custom[U](
+        fitness_fn: Callable[[list[U]], object], is_batch: Literal[True]
+    ) -> Fitness[U]: ...
+
+    @staticmethod
+    def custom(
+        fitness_fn: Callable[..., object], is_batch: bool = False
+    ) -> Fitness[Any]:
         if not isinstance(fitness_fn, Callable):
             raise TypeError("fitness_fn must be a callable.")
         return Fitness(
@@ -105,7 +136,7 @@ class Fitness[T](EngineInput):
         threshold: float = 0.03,
         archive_size: int = 1000,
         is_batch: bool = False,
-    ) -> Fitness:
+    ) -> Fitness[Any]:
         _validate_inputs(descriptor, k, threshold, archive_size)
 
         descriptor = _setup_descriptor(descriptor, distance)
@@ -136,7 +167,7 @@ class Fitness[T](EngineInput):
         feature_cols: list[str] | None = None,
         loss: RdLossType = MSE,
         batch: bool = False,
-    ) -> Fitness:
+    ) -> Fitness[Any]:
         x, y = _normalize_regression_data(
             features,
             targets,

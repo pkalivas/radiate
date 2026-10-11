@@ -1,6 +1,9 @@
 use crate::{IntoPyAnyObject, PyAnyObject, PyFitnessInner, bindings::PyCodec};
-use numpy::{PyArrayDyn, PyArrayMethods};
-use pyo3::{Bound, Py, PyAny, Python, types::PyList};
+use numpy::{PyArrayDyn, PyArrayMethods, PyUntypedArray};
+use pyo3::{
+    Bound, Py, PyAny, Python,
+    types::{IntoPyDict, PyAnyMethods, PyList},
+};
 use radiate::{Chromosome, Codec, Genotype, Problem, RadiateResult, Score, error};
 
 pub struct PyProblem<C: Chromosome, T> {
@@ -61,6 +64,10 @@ impl<C: Chromosome, T> PyProblem<C, T> {
                 )
             })?;
 
+        if let Some(scores) = Self::batch_scores_from_numpy(any_value.bind(py)) {
+            return scores;
+        }
+
         if let Ok(vals) = any_value.extract::<Vec<f32>>(py) {
             return Ok(Self::scores_from_vec(vals));
         }
@@ -89,6 +96,37 @@ impl<C: Chromosome, T> PyProblem<C, T> {
         error::radiate_bail!(Fitness:
             "Fitness function did not return a valid list of scores."
         );
+    }
+
+    /// Reads a numpy array of batch scores in one pass: shape `(n,)` is one objective per
+    /// individual and `(n, k)` is `k` objectives. numpy converts any numeric dtype to
+    /// `float32` first, without copying when it already is one. Returns `None` when the
+    /// value isn't a numeric numpy array, so the caller falls back to list extraction.
+    fn batch_scores_from_numpy<'py>(
+        bound: &Bound<'py, PyAny>,
+    ) -> Option<RadiateResult<Vec<Score>>> {
+        bound.cast::<PyUntypedArray>().ok()?;
+        let kwargs = [("copy", false)].into_py_dict(bound.py()).ok()?;
+        let scores = bound
+            .call_method("astype", ("float32",), Some(&kwargs))
+            .ok()?
+            .cast_into::<PyArrayDyn<f32>>()
+            .ok()?;
+
+        let scores = scores.readonly();
+        let scores = scores.as_array();
+        Some(match scores.ndim() {
+            1 => Ok(scores.iter().map(|&score| Score::from(score)).collect()),
+            2 => Ok(scores
+                .rows()
+                .into_iter()
+                .map(|row| Score::from(row.to_vec()))
+                .collect()),
+            ndim => Err(error::radiate_err!(Fitness:
+                "Batch fitness function returned a {}-dimensional array; expected shape (n,) or (n, objectives)",
+                ndim
+            )),
+        })
     }
 
     fn score_from_numpy<'py>(bound: &Bound<'py, PyAny>) -> Option<RadiateResult<Score>> {
@@ -238,32 +276,6 @@ impl<C: Chromosome, T: IntoPyAnyObject> Problem<C, T> for PyProblem<C, T> {
             Ok(scores)
         })
     }
-
-    // fn eval_batch(&self, individuals: &[Genotype<C>]) -> RadiateResult<Vec<Score>> {
-    //     Python::attach(|py| {
-    //         if !self.is_batch {
-    //             individuals
-    //                 .iter()
-    //                 .map(|ind| {
-    //                     let phenotype = self.codec.decode_with_py(py, ind).into_py(py)?;
-    //                     self.call_fitness(py, phenotype)
-    //                 })
-    //                 .collect()
-    //         } else {
-    //             let phenotypes = PyList::new(
-    //                 py,
-    //                 individuals.iter().map(|ind| {
-    //                     match self.codec.decode_with_py(py, ind).into_py(py) {
-    //                         Ok(p) => p.inner,
-    //                         Err(_) => py.None(),
-    //                     }
-    //                 }),
-    //             )?;
-
-    //             self.call_batch_fitness(py, phenotypes.into())
-    //         }
-    //     })
-    // }
 }
 
 unsafe impl<C: Chromosome, T> Send for PyProblem<C, T> {}

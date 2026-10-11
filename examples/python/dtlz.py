@@ -39,9 +39,25 @@ def dtlz_1(val: np.ndarray) -> np.ndarray:
     return f
 
 
+@rd.fitness(batch=True)
+@jit(float64[:, :](float64[:, :]), nopython=True)
+def dtlz_1_batch(vals: np.ndarray) -> np.ndarray:
+    g_vals = vals[:, variables - k :] - 0.5
+    g = 100.0 * (k + np.sum(g_vals**2 - np.cos(20.0 * np.pi * g_vals), axis=1))
+
+    f = np.empty((vals.shape[0], objectives), dtype=np.float64)
+    for i in range(objectives):
+        f[:, i] = 0.5 * (1.0 + g)
+        for j in range(objectives - 1 - i):  # numba's np.prod has no axis argument
+            f[:, i] *= vals[:, j]
+        if i > 0:
+            f[:, i] *= 1.0 - vals[:, objectives - 1 - i]
+    return f
+
+
 engine = (
     rd.Engine.float(variables, use_numpy=True)
-    .fitness(dtlz_1)
+    .fitness(dtlz_1_batch)
     .objective(rd.MIN, rd.MIN, rd.MIN)
     .front_range(100, 150)
     # NSGA-III for 3+ objectives: crowded-comparison tournament for parents, reference-point
@@ -84,3 +100,9 @@ fig.update_layout(
     }
 )
 fig.show()
+
+
+# | time   | 217.81µs   | 186.71µs   | 7.08ms     | 2000   | 435.63ms     | 153.80µs   | -          | -
+
+
+# Hypervolume: 0.9711955785751343

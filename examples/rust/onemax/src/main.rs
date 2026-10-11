@@ -1,6 +1,6 @@
 use radiate::prelude::*;
 
-const NUM_BITS: usize = 10000;
+const NUM_BITS: usize = 1000;
 
 fn main() -> RadiateResult<()> {
     let engine = GeneticEngine::builder()
