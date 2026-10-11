@@ -605,9 +605,10 @@ impl PyEngineBuilder {
                     .codec(c)
                     .executor(executor)
                     .stream_executor(Executor::default())
-                    .replace_strategy(GraphReplacement);
+                    .replace_strategy(GraphReplacement)
+                    .fitness_fn(regression);
 
-                Ok(Graph32(base_engine.fitness_fn(regression)))
+                Ok(Graph32(base_engine))
             } else {
                 radiate_py_bail!("F64 GraphCodec not supported for F32 Regression Fitness.");
             }
@@ -616,8 +617,10 @@ impl PyEngineBuilder {
                 let base_engine = GeneticEngine::builder()
                     .codec(c)
                     .executor(executor)
-                    .stream_executor(Executor::default());
-                Ok(Tree32(base_engine.fitness_fn(regression)))
+                    .stream_executor(Executor::default())
+                    .fitness_fn(regression);
+
+                Ok(Tree32(base_engine))
             } else {
                 radiate_py_bail!("F64 TreeCodec not supported for F32 Regression Fitness.");
             }
@@ -644,8 +647,10 @@ impl PyEngineBuilder {
                     .codec(c)
                     .executor(executor)
                     .stream_executor(Executor::default())
-                    .replace_strategy(GraphReplacement);
-                Ok(Graph64(base_engine.fitness_fn(regression)))
+                    .replace_strategy(GraphReplacement)
+                    .fitness_fn(regression);
+
+                Ok(Graph64(base_engine))
             } else {
                 radiate_py_bail!("F32 GraphCodec not supported for F64 Regression Fitness.");
             }
@@ -654,9 +659,10 @@ impl PyEngineBuilder {
                 let base_engine = GeneticEngine::builder()
                     .codec(c)
                     .executor(executor)
-                    .stream_executor(Executor::default());
+                    .stream_executor(Executor::default())
+                    .fitness_fn(regression);
 
-                Ok(Tree64(base_engine.fitness_fn(regression)))
+                Ok(Tree64(base_engine))
             } else {
                 radiate_py_bail!("F32 TreeCodec not supported for F64 Regression Fitness.");
             }
