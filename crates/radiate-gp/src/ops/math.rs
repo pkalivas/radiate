@@ -825,12 +825,12 @@ impl<'a, F: OpFloat> EvalInto<[&'a [F]], [F]> for Op<F> {
             return;
         }
 
-        let mut stack = SmallVec::<[F; STACK_INPUTS]>::new();
+        let mut row = SmallVec::<[F; STACK_INPUTS]>::from_elem(F::ZERO, inputs.len());
         let row = if inputs.len() <= STACK_INPUTS {
-            &mut stack[..inputs.len()]
+            &mut row[..inputs.len()]
         } else {
-            stack.resize(inputs.len(), F::ZERO);
-            &mut stack
+            row.resize(inputs.len(), F::ZERO);
+            &mut row
         };
 
         for (r, out) in buffer.iter_mut().enumerate() {
