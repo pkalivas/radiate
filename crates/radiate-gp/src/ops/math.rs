@@ -6,6 +6,7 @@ use crate::{
 use radiate_core::random_provider;
 
 use super::OpFloat;
+use crate::{Eval, EvalInto};
 
 /// Clamp a value to the range [-MAX_VALUE, MAX_VALUE]. Without this, values can quickly
 /// become too large or too small to be useful.
@@ -762,16 +763,28 @@ fn activation_columns<F: OpFloat>(inputs: &[&[F]], out: &mut [F], f: impl Fn(F) 
     true
 }
 
-/// Column form of the built-in ops: computes `op` for every row at once, where `inputs[i]` is
-/// the column of the op's i-th input and `out` receives one value per row. Returns `false` when
-/// the op has no column kernel (or too few inputs), and the caller falls back to calling the op
-/// once per row.
+/// Column kernel for `op`: computes it for every sample at once, where `inputs[i]` is the
+/// column of the op's i-th input and `out` receives one value per sample. Returns `false` when
+/// the op has no kernel (or too few inputs); [Op]'s column [EvalInto] then falls back to calling
+/// the op once per sample.
 ///
 /// Ops are identified by name, the same convention deserialization uses (see `ops/serde.rs`),
 /// so a custom op that reuses a built-in name gets the built-in kernel. Every kernel computes
 /// through the same per-value helper as its scalar op, so results are bit-identical.
-pub(crate) fn column_kernel<F: OpFloat>(op: &Op<F>, inputs: &[&[F]], out: &mut [F]) -> bool {
+fn column_kernel<F: OpFloat>(op: &Op<F>, inputs: &[&[F]], out: &mut [F]) -> bool {
     match op {
+        // Same rules as the scalar ops: a var reads its input at `index`, a const ignores inputs.
+        Op::Var(_, index, _) => match inputs.get(*index) {
+            Some(x) => {
+                out.copy_from_slice(x);
+                true
+            }
+            None => false,
+        },
+        Op::Const(_, v) => {
+            out.fill(*v);
+            true
+        }
         Op::Value(op_names::WEIGHT, _, param, _) => {
             let Some(x) = inputs.first() else {
                 return false;
@@ -803,5 +816,43 @@ pub(crate) fn column_kernel<F: OpFloat>(op: &Op<F>, inputs: &[&[F]], out: &mut [
             _ => false,
         },
         _ => false,
+    }
+}
+
+/// Inputs gathered on the stack, per sample, up to this fan-in in the per-sample fallback.
+const STACK_INPUTS: usize = 8;
+
+/// Column evaluation of an [Op]: `inputs[i]` is the column of the op's i-th input (one value per
+/// sample) and `buffer` receives the op's value for every sample. The column counterpart of
+/// `Eval<[F], F> for Op<F>`, with the same meaning for every op, e.g. a var reads input
+/// `index` and a const ignores its inputs.
+///
+/// Uses the op's column kernel when it has one ([column_kernel]); otherwise calls the scalar op
+/// once per sample, gathering that sample's inputs out of the columns:
+///
+/// ```text
+///   sample r:   row = [ inputs[0][r], inputs[1][r], ... ]  →  buffer[r] = self.eval(row)
+/// ```
+impl<'a, F: OpFloat> EvalInto<[&'a [F]], [F]> for Op<F> {
+    fn eval_into(&self, inputs: &[&'a [F]], buffer: &mut [F]) {
+        if column_kernel(self, inputs, buffer) {
+            return;
+        }
+
+        let mut stack = [F::ZERO; STACK_INPUTS];
+        let mut heap = Vec::new();
+        let row: &mut [F] = if inputs.len() <= STACK_INPUTS {
+            &mut stack[..inputs.len()]
+        } else {
+            heap.resize(inputs.len(), F::ZERO);
+            &mut heap
+        };
+
+        for (r, out) in buffer.iter_mut().enumerate() {
+            for (value, column) in row.iter_mut().zip(inputs) {
+                *value = column[r];
+            }
+            *out = self.eval(row);
+        }
     }
 }

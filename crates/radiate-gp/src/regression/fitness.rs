@@ -1,10 +1,8 @@
 use super::{DataSet, Loss};
-use crate::graphs::compile::{
-    BatchMode::{self, Generic},
-    BatchState, BatchStats, GraphKernel,
+use crate::{
+    GraphChromosome, GraphKernel, Op, TreeChromosome, eval::EvalIntoMut, graphs::KernelCache,
+    ops::OpFloat,
 };
-use crate::{GraphChromosome, GraphEvaluator, Op, TreeChromosome, eval::EvalIntoMut, ops::OpFloat};
-use crate::{GraphNode, graphs::compile::BatchMode::Kernels};
 use radiate_core::{BatchFitnessFunction, Genotype, Score};
 use radiate_utils::Matrix;
 use std::sync::OnceLock;
@@ -13,8 +11,6 @@ use std::sync::OnceLock;
 pub struct Regression<F: OpFloat> {
     data_set: DataSet<F>,
     loss: Loss,
-    /// The features transposed to one row per feature, for column-wise graph evaluation.
-    /// Built on first use, so row-only evaluation never pays for the copy.
     feature_cols: OnceLock<Matrix<F>>,
 }
 
@@ -61,56 +57,26 @@ impl<'a, F> BatchFitnessFunction<&'a Genotype<GraphChromosome<Op<F>>>, F> for Re
 where
     F: OpFloat + Into<Score>,
 {
+    /// Evaluates each graph over the whole data set at once with a [GraphKernel], carrying one
+    /// [KernelCache] from graph to graph so the batch reuses its allocations.
     #[inline]
     fn evaluate(&self, inputs: &[&'a Genotype<GraphChromosome<Op<F>>>]) -> Vec<F> {
-        self.with_buff(move |buf| {
-            let mut results = Vec::with_capacity(inputs.len());
-            let mode = Some(Kernels);
-            let mut compiled = GraphKernel::default();
-            let mut state = BatchState::default();
-            let mut stats = BatchStats::default();
-            for input in inputs.iter() {
-                let nodes = input[0].as_ref();
-                results.push(self.graph_loss_buf(
-                    nodes,
-                    mode,
-                    buf,
-                    &mut compiled,
-                    &mut state,
-                    &mut stats,
-                ));
-            }
+        let features = self.feature_cols();
+        let labels = self.data_set.label_matrix();
 
-            results
-        })
-    }
-}
+        let mut cache = KernelCache::default();
+        let mut preds = Matrix::default();
+        let mut results = Vec::with_capacity(inputs.len());
+        for input in inputs.iter() {
+            let mut kernel = GraphKernel::from((&input[0], cache));
+            kernel.reset();
+            kernel.eval_into_mut(features, &mut preds);
+            cache = kernel.take_cache();
 
-impl<F: OpFloat> Regression<F> {
-    fn graph_loss_buf(
-        &self,
-        nodes: &[GraphNode<Op<F>>],
-        mode: Option<BatchMode>,
-        buf: &mut [F],
-        compiled: &mut GraphKernel,
-        state: &mut BatchState<F>,
-        stats: &mut BatchStats,
-    ) -> F {
-        if let Some(mode) = mode {
-            compiled.compile(nodes);
-            compiled.eval_batch(nodes, self.feature_cols(), state, mode, stats);
-            // println!("{:#?}", compiled);
-
-            // panic!("Compiled graph evaluation not implemented yet");
-            return self.loss.calculate_columns(
-                self.data_set.label_matrix(),
-                state.values(),
-                compiled.output_slots(),
-            );
+            results.push(self.loss.calculate_columns(labels, &preds));
         }
 
-        let mut evaluator = GraphEvaluator::new(&nodes);
-        self.calc_with_buf(&mut evaluator, buf)
+        results
     }
 }
 
@@ -130,15 +96,4 @@ where
             results
         })
     }
-}
-
-/// PROTOTYPE switch for graph evaluation, read once from the environment:
-/// `RADIATE_COL=0` (row evaluator, default) | `1` (column, generic) | `2` (column, kernels).
-pub fn col_mode() -> Option<BatchMode> {
-    static MODE: OnceLock<Option<BatchMode>> = OnceLock::new();
-    *MODE.get_or_init(|| match std::env::var("RADIATE_COL").as_deref() {
-        Ok("1") => Some(BatchMode::Generic),
-        Ok("2") => Some(BatchMode::Kernels),
-        _ => None,
-    })
 }

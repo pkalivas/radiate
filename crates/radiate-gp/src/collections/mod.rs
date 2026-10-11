@@ -10,9 +10,9 @@ pub use dot::ToDot;
 pub use eval::{Eval, EvalInto, EvalIntoMut, EvalMut};
 pub use factory::*;
 pub use graphs::{
-    Direction, Graph, GraphAggregate, GraphChromosome, GraphCodec, GraphCrossover, GraphEvaluator,
-    GraphIterator, GraphMutator, GraphNode, GraphNodeId, GraphReplacement, NeatDistance,
-    NodeBuilder, StatefulGraph,
+    Direction, Graph, GraphAggregate, GraphChromosome, GraphCodec, GraphCrossover, GraphIterator,
+    GraphKernel, GraphMutator, GraphNode, GraphNodeId, GraphReplacement, NeatDistance, NodeBuilder,
+    StatefulGraph,
 };
 pub use node::{Node, NodeType};
 pub use store::{NodeStore, NodeValue};

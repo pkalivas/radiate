@@ -43,42 +43,35 @@ impl Loss {
         for (input, target) in data_set.iter() {
             eval_into_buf(input, buffer);
             for (&t, &p) in target.iter().zip(buffer.iter()) {
-                sum = sum + self.term(t, p);
+                sum = sum + self.error(t, p);
             }
         }
 
         sum / n
     }
 
-    /// Loss over predictions already computed for every row, e.g. by column-wise graph
-    /// evaluation. `preds` has one row per evaluated slot, and output `j` for sample `r` is
-    /// `preds[(output_rows[j], r)]`. Terms are summed in the same order as [Loss::calculate]
-    /// (sample by sample, output by output), so the result is bit-identical.
+    /// Loss over predictions already computed for every sample, e.g. by a
+    /// [GraphKernel](crate::GraphKernel). `preds` is `outputs × samples`: output `j` for sample
+    /// `r` is `preds[(j, r)]`. Terms are summed in the same order as [Loss::calculate] (sample by
+    /// sample, output by output), so the result is bit-identical.
     ///
     /// ```text
-    ///   labels (samples × outputs)        preds (slots × samples)
+    ///   labels (samples × outputs)        preds (outputs × samples)
     ///          j=0  j=1  j=2                       sample →  0     1    ...
-    ///   r=0  [ 1    0    0  ]             slot 0  [ ...                  ]
-    ///   r=1  [ 0    1    0  ]             ...
-    ///   ...                               slot 37 [ 0.91  0.08  ...  ]  ◄─ output_rows[0]
-    ///                                     slot 38 [ 0.05  0.88  ...  ]  ◄─ output_rows[1]
-    ///                                     slot 39 [ 0.02  0.03  ...  ]  ◄─ output_rows[2]
+    ///   r=0  [ 1    0    0  ]             j=0     [ 0.91  0.08  ...  ]
+    ///   r=1  [ 0    1    0  ]             j=1     [ 0.05  0.88  ...  ]
+    ///   ...                               j=2     [ 0.02  0.03  ...  ]
     ///
-    ///   for r in samples:  for j in outputs:  sum += term(labels[(r, j)], preds[(output_rows[j], r)])
+    ///   for r in samples:  for j in outputs:  sum += term(labels[(r, j)], preds[(j, r)])
     /// ```
     #[inline]
-    pub fn calculate_columns<F: OpFloat>(
-        &self,
-        labels: &Matrix<F>,
-        preds: &Matrix<F>,
-        output_rows: &[u32],
-    ) -> F {
+    pub fn calculate_columns<F: OpFloat>(&self, labels: &Matrix<F>, preds: &Matrix<F>) -> F {
         let n = F::from(labels.rows()).unwrap();
         let mut sum = F::ZERO;
 
         for r in 0..labels.rows() {
-            for (&t, &row) in labels.row(r).iter().zip(output_rows) {
-                sum = sum + self.term(t, preds[(row as usize, r)]);
+            for (j, &t) in labels.row(r).iter().take(preds.rows()).enumerate() {
+                sum = sum + self.error(t, preds[(j, r)]);
             }
         }
 
@@ -87,7 +80,7 @@ impl Loss {
 
     /// One sample/output's contribution to the summed loss.
     #[inline(always)]
-    fn term<F: OpFloat>(&self, target: F, pred: F) -> F {
+    fn error<F: OpFloat>(&self, target: F, pred: F) -> F {
         match self {
             Loss::MSE => {
                 let d = target - pred;

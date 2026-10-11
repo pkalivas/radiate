@@ -1,6 +1,4 @@
-use crate::{
-    Eval, EvalIntoMut, EvalMut, Graph, GraphEvaluator, GraphIterator, graphs::GraphEvalCache,
-};
+use crate::{Eval, EvalMut, Graph, GraphIterator, GraphKernel, graphs::KernelCache};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -8,7 +6,7 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct StatefulGraph<T, V> {
     inner: Graph<T>,
-    state: Option<GraphEvalCache<V>>,
+    state: Option<KernelCache<V>>,
 }
 
 impl<T, V> StatefulGraph<T, V> {
@@ -45,35 +43,25 @@ impl<T, V> StatefulGraph<T, V> {
     }
 }
 
-impl<T, V> EvalIntoMut<[V], [V]> for StatefulGraph<T, V>
-where
-    T: Eval<[V], V>,
-    V: Copy + Default,
-{
-    fn eval_into_mut(&mut self, input: &[V], output: &mut [V]) {
-        let mut evaluator = match self.state.take() {
-            Some(c) => GraphEvaluator::from((&self.inner, c)),
-            None => GraphEvaluator::new(&self.inner),
-        };
-
-        evaluator.eval_into_mut(input, output);
-        self.state = Some(evaluator.take_cache());
-    }
-}
-
 impl<T, V> EvalMut<[V], Vec<V>> for StatefulGraph<T, V>
 where
     T: Eval<[V], V>,
     V: Copy + Default,
 {
     fn eval_mut(&mut self, input: &[V]) -> Vec<V> {
-        let mut evaluator = match self.state.take() {
-            Some(c) => GraphEvaluator::from((&self.inner, c)),
-            None => GraphEvaluator::new(&self.inner),
+        let mut kernel = match self.state.take() {
+            Some(c) => GraphKernel::from((&self.inner, c)),
+            None => GraphKernel::new(&self.inner),
         };
+        // let mut evaluator = match self.state.take() {
+        //     Some(c) => GraphEvaluator::from((&self.inner, c)),
+        //     None => GraphEvaluator::new(&self.inner),
+        // };
 
-        let result = evaluator.eval_mut(input);
-        self.state = Some(evaluator.take_cache());
+        // let result = evaluator.eval_mut(input);
+        // self.state = Some(evaluator.take_cache());
+        let result = kernel.eval_mut(input);
+        self.state = Some(kernel.take_cache());
         result
     }
 }
