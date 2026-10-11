@@ -1,4 +1,4 @@
-use crate::{Factory, GraphNode, NodeStore, graphs::KernelCache, node::Node};
+use crate::{Factory, GraphNode, NodeStore, graphs::GraphEvalCache, node::Node};
 use radiate_core::{Chromosome, Gene, Valid};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -99,11 +99,11 @@ impl<T> GraphChromosome<T> {
         self.max_nodes
     }
 
-    pub fn compile<K>(&self) -> KernelCache<K>
+    pub fn compile<K>(&self) -> GraphEvalCache<K>
     where
         K: Default + Clone,
     {
-        KernelCache::new(&self.nodes)
+        GraphEvalCache::new(&self.nodes)
     }
 
     //     pub fn compile_into<K>(&self, cache: &mut KernelCache<K>)

@@ -11,7 +11,7 @@ pub use eval::{Eval, EvalInto, EvalIntoMut, EvalMut};
 pub use factory::*;
 pub use graphs::{
     Direction, Graph, GraphAggregate, GraphChromosome, GraphCodec, GraphCrossover, GraphIterator,
-    GraphKernel, GraphMutator, GraphNode, GraphNodeId, GraphReplacement, NeatDistance, NodeBuilder,
+    GraphEvaluator, GraphMutator, GraphNode, GraphNodeId, GraphReplacement, NeatDistance, NodeBuilder,
     StatefulGraph,
 };
 pub use node::{Node, NodeType};

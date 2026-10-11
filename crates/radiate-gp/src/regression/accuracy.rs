@@ -1,5 +1,5 @@
 use super::{DataSet, Loss};
-use crate::{Eval, EvalMut, Graph, GraphKernel, Op, Tree, ops::OpFloat};
+use crate::{Eval, EvalMut, Graph, GraphEvaluator, Op, Tree, ops::OpFloat};
 use std::fmt::Debug;
 
 #[derive(Clone, Default)]
@@ -271,7 +271,7 @@ impl Debug for AccuracyResult {
 
 impl<T: OpFloat> Eval<Graph<Op<T>>, Option<AccuracyResult>> for Accuracy<'_, T> {
     fn eval(&self, graph: &Graph<Op<T>>) -> Option<AccuracyResult> {
-        let mut evaluator = GraphKernel::new(graph);
+        let mut evaluator = GraphEvaluator::new(graph);
         Some(self.calc(&mut evaluator))
     }
 }

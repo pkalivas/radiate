@@ -33,12 +33,8 @@ fn aggregate<F: OpFloat>(vals: &[F]) -> F {
     }
 }
 
-// Per-value helpers. Each op that has a column kernel (see [column_kernel]) computes its
-// result through one of these, in both its scalar form and its column form, so the two can't
-// drift apart and stay bit-identical.
-
 #[inline(always)]
-fn add1<F: OpFloat>(a: F, b: F) -> F {
+fn add<F: OpFloat>(a: F, b: F) -> F {
     clamp(a + b)
 }
 
@@ -85,11 +81,6 @@ fn relu1<F: OpFloat>(total: F) -> F {
 fn leaky_relu1<F: OpFloat>(total: F) -> F {
     let x = clamp(total);
     if x > F::ZERO { x } else { clamp(F::HALF * x) }
-}
-
-#[inline]
-fn add<F: OpFloat>(vals: &[F]) -> F {
-    add1(vals[0], vals[1])
 }
 
 #[inline]
@@ -368,7 +359,9 @@ impl<F: OpFloat> Op<F> {
     }
 
     pub fn add() -> Self {
-        Op::Fn(op_names::ADD, 2.into(), add::<F>)
+        Op::Fn(op_names::ADD, 2.into(), |inputs: &[F]| {
+            add(inputs[0], inputs[1])
+        })
     }
 
     pub fn sub() -> Self {
@@ -804,7 +797,7 @@ fn column_kernel<F: OpFloat>(op: &Op<F>, inputs: &[&[F]], out: &mut [F]) -> bool
                 }
                 None => false,
             },
-            op_names::ADD => binary_columns(inputs, out, add1),
+            op_names::ADD => binary_columns(inputs, out, add),
             op_names::SUB => binary_columns(inputs, out, sub1),
             op_names::MUL => binary_columns(inputs, out, mul1),
             op_names::DIV => binary_columns(inputs, out, div1),

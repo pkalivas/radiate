@@ -69,9 +69,9 @@ pub struct Input {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Step {
     /// A node not on a cycle, computed for every sample at once.
-    Column(u32),
+    Column(usize),
     /// The slots of one cycle, stepping through the samples together.
-    Cycle(Range<u32>),
+    Cycle(Range<usize>),
 }
 
 /// A graph compiled into a plan. Structure only: ops are read from the nodes when the plan
@@ -159,6 +159,10 @@ impl GraphPlan {
         self.steps.iter().any(|step| matches!(step, Step::Cycle(_)))
     }
 
+    pub fn step(&self, index: usize) -> &Step {
+        &self.steps[index]
+    }
+
     /// Compiles `nodes` into this plan in place, reusing its allocations:
     ///
     /// 1. Take the row evaluator's order from [GraphIterator::iter_topological]. Its position for
@@ -233,11 +237,11 @@ impl GraphPlan {
                 cycles.edges[es as usize..ee as usize].contains(&p)
             };
 
-            let first = self.node_of.len() as u32;
+            let first = self.node_of.len();
             self.node_of
                 .extend(members.iter().map(|&pos| order[pos as usize]));
             self.steps.push(if is_cycle {
-                Step::Cycle(first..self.node_of.len() as u32)
+                Step::Cycle(first..self.node_of.len())
             } else {
                 Step::Column(first)
             });

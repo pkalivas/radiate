@@ -1,6 +1,6 @@
 use super::{DataSet, Loss};
 use crate::{
-    GraphChromosome, GraphKernel, Op, TreeChromosome, eval::EvalIntoMut, graphs::KernelCache,
+    GraphChromosome, GraphEvaluator, Op, TreeChromosome, eval::EvalIntoMut, graphs::GraphEvalCache,
     ops::OpFloat,
 };
 use radiate_core::{BatchFitnessFunction, Genotype, Score};
@@ -64,11 +64,11 @@ where
         let features = self.feature_cols();
         let labels = self.data_set.label_matrix();
 
-        let mut cache = KernelCache::default();
+        let mut cache = GraphEvalCache::default();
         let mut preds = Matrix::default();
         let mut results = Vec::with_capacity(inputs.len());
         for input in inputs.iter() {
-            let mut kernel = GraphKernel::from((&input[0], cache));
+            let mut kernel = GraphEvaluator::from((&input[0], cache));
             kernel.eval_into_mut(features, &mut preds);
             cache = kernel.take_cache();
             cache.bump();

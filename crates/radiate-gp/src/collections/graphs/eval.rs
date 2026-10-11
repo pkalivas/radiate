@@ -98,6 +98,7 @@ use crate::{Eval, EvalInto, EvalIntoMut, EvalMut, Graph, Node};
 use radiate_utils::Matrix;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use smallvec::SmallVec;
 use std::ops::Range;
 
 /// Input columns are collected into a stack array up to this fan-in, so the common case doesn't
@@ -109,7 +110,7 @@ const STACK_INPUTS: usize = 8;
 /// avoid reallocating.
 #[derive(Default, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct KernelCache<V> {
+pub struct GraphEvalCache<V> {
     plan: GraphPlan,
     values: Matrix<V>,
     lagged: Vec<V>,
@@ -119,12 +120,12 @@ pub struct KernelCache<V> {
     is_ready: bool,
 }
 
-impl<V> KernelCache<V>
+impl<V> GraphEvalCache<V>
 where
     V: Default + Clone,
 {
     pub fn new<T>(nodes: &[GraphNode<T>]) -> Self {
-        let mut cache = KernelCache::default();
+        let mut cache = GraphEvalCache::default();
         cache.plan.compile(nodes);
         cache.row_values.resize(cache.plan.slots(), V::default());
         cache
@@ -156,12 +157,12 @@ where
 ///   let output = kernel.eval_mut(&sample);        // sample: [features]   → [outputs]
 ///   let outputs = kernel.eval_mut(&features);     // features × samples  → outputs × samples
 /// ```
-pub struct GraphKernel<'a, T, V> {
+pub struct GraphEvaluator<'a, T, V> {
     nodes: &'a [GraphNode<T>],
-    inner: KernelCache<V>,
+    inner: GraphEvalCache<V>,
 }
 
-impl<'a, T, V> GraphKernel<'a, T, V>
+impl<'a, T, V> GraphEvaluator<'a, T, V>
 where
     V: Default + Clone,
 {
@@ -169,15 +170,15 @@ where
     where
         G: AsRef<[GraphNode<T>]>,
     {
-        let cache = KernelCache::new(graph.as_ref());
-        GraphKernel::from((graph, cache))
+        let cache = GraphEvalCache::new(graph.as_ref());
+        GraphEvaluator::from((graph, cache))
     }
 
     pub fn plan(&self) -> &GraphPlan {
         &self.inner.plan
     }
 
-    pub fn take_cache(self) -> KernelCache<V> {
+    pub fn take_cache(self) -> GraphEvalCache<V> {
         self.inner
     }
 
@@ -190,12 +191,12 @@ where
     }
 }
 
-impl<'a, G, T, V> From<(&'a G, KernelCache<V>)> for GraphKernel<'a, T, V>
+impl<'a, G, T, V> From<(&'a G, GraphEvalCache<V>)> for GraphEvaluator<'a, T, V>
 where
     G: AsRef<[GraphNode<T>]>,
     V: Default + Clone,
 {
-    fn from((graph, mut cache): (&'a G, KernelCache<V>)) -> Self {
+    fn from((graph, mut cache): (&'a G, GraphEvalCache<V>)) -> Self {
         if !cache.is_ready {
             cache.plan.compile(graph.as_ref());
             cache.row_values.clear();
@@ -204,14 +205,14 @@ where
         }
 
         let nodes = graph.as_ref();
-        GraphKernel {
+        GraphEvaluator {
             nodes,
             inner: cache,
         }
     }
 }
 
-impl<T, V> EvalIntoMut<Matrix<V>, Matrix<V>> for GraphKernel<'_, T, V>
+impl<T, V> EvalIntoMut<Matrix<V>, Matrix<V>> for GraphEvaluator<'_, T, V>
 where
     T: Eval<[V], V> + for<'c> EvalInto<[&'c [V]], [V]>,
     V: Copy + Default,
@@ -220,49 +221,33 @@ where
     /// feature), and `outputs` is resized to `outputs × samples` (one row per output node).
     fn eval_into_mut(&mut self, features: &Matrix<V>, outputs: &mut Matrix<V>) {
         let n = features.cols();
-        let KernelCache {
-            plan,
-            values,
-            lagged,
-            defaults,
-            scratch,
-            ..
-        } = &mut self.inner;
-
         // One row per node (not just per evaluated slot), defaulted, so unreached trailing slots
         // read as default exactly like the row evaluator's untouched outputs.
-        values.reshape_and_fill(plan.slots(), n, V::default());
-        defaults.clear();
-        defaults.resize(n, V::default());
+        self.inner
+            .values
+            .reshape_and_fill(self.inner.plan.slots(), n, V::default());
+        self.inner.defaults.clear();
+        self.inner.defaults.resize(n, V::default());
 
-        // A node with no incoming edges reads the sample's features: every feature row.
-        let feature_columns: Vec<&[V]> = (0..features.rows()).map(|i| features.row(i)).collect();
-
-        for step in plan.steps() {
+        for i in 0..self.inner.plan.steps().len() {
+            let step = &self.inner.plan.step(i);
             match step {
-                Step::Column(slot) => eval_column(
-                    self.nodes,
-                    plan,
-                    *slot as usize,
-                    values,
-                    lagged,
-                    defaults,
-                    &feature_columns,
-                ),
-                Step::Cycle(slots) => eval_cycle(self.nodes, plan, slots.clone(), values, scratch),
+                Step::Column(slot) => eval_column(*slot, self.nodes, &mut self.inner, features),
+                Step::Cycle(slots) => eval_cycle(slots.clone(), self.nodes, &mut self.inner),
             }
         }
 
-        outputs.reshape_and_fill(plan.output_slots().len(), n, V::default());
-        for (j, &slot) in plan.output_slots().iter().enumerate() {
+        let output_slots = self.inner.plan.output_slots();
+        outputs.reshape_and_fill(output_slots.len(), n, V::default());
+        for (j, &slot) in output_slots.iter().enumerate() {
             outputs
                 .row_mut(j)
-                .copy_from_slice(values.row(slot as usize));
+                .copy_from_slice(self.inner.values.row(slot as usize));
         }
     }
 }
 
-impl<T, V> EvalIntoMut<[V], [V]> for GraphKernel<'_, T, V>
+impl<T, V> EvalIntoMut<[V], [V]> for GraphEvaluator<'_, T, V>
 where
     T: Eval<[V], V>,
     V: Copy + Default,
@@ -272,7 +257,7 @@ where
     /// otherwise the previous sample's (or default on the first call). `buffer` receives the
     /// output nodes' values, in output order.
     fn eval_into_mut(&mut self, input: &[V], buffer: &mut [V]) {
-        let KernelCache {
+        let GraphEvalCache {
             plan,
             row_values,
             scratch,
@@ -300,7 +285,7 @@ where
     }
 }
 
-impl<T, V> EvalMut<[V], Vec<V>> for GraphKernel<'_, T, V>
+impl<T, V> EvalMut<[V], Vec<V>> for GraphEvaluator<'_, T, V>
 where
     T: Eval<[V], V>,
     V: Copy + Default,
@@ -313,7 +298,7 @@ where
     }
 }
 
-impl<T, V> EvalMut<Matrix<V>, Matrix<V>> for GraphKernel<'_, T, V>
+impl<T, V> EvalMut<Matrix<V>, Matrix<V>> for GraphEvaluator<'_, T, V>
 where
     T: Eval<[V], V> + for<'c> EvalInto<[&'c [V]], [V]>,
     V: Copy + Default,
@@ -323,48 +308,6 @@ where
         let mut outputs = Matrix::default();
         self.eval_into_mut(features, &mut outputs);
         outputs
-    }
-}
-
-/// Steps a cycle's nodes through the samples together, exactly like the row evaluator but
-/// restricted to the cycle:
-///
-/// ```text
-///   for sample r in 0..N:
-///       for node in cycle (row evaluator order):
-///           Current input  → values[src][r]      (earlier this sample, or a finished column)
-///           Previous input → values[src][r - 1]  (default at r = 0)
-///           values[node][r] = node.eval(inputs)
-/// ```
-///
-/// Inputs from outside the cycle are complete columns by the time this runs, so the only
-/// sequential work is the cycle itself. A node on a cycle always has incoming edges, so it
-/// never reads the features directly.
-fn eval_cycle<T, V>(
-    nodes: &[GraphNode<T>],
-    plan: &GraphPlan,
-    slots: Range<u32>,
-    values: &mut Matrix<V>,
-    scratch: &mut Vec<V>,
-) where
-    T: Eval<[V], V>,
-    V: Copy + Default,
-{
-    for r in 0..values.cols() {
-        for slot in slots.start as usize..slots.end as usize {
-            let node = &nodes[plan.node_of(slot)];
-            let inputs = plan.inputs(slot);
-            debug_assert!(!inputs.is_empty(), "a node on a cycle has incoming edges");
-
-            scratch.clear();
-            scratch.extend(inputs.iter().map(|input| match input.at {
-                When::Current => values[(input.slot as usize, r)],
-                When::Previous if r > 0 => values[(input.slot as usize, r - 1)],
-                When::Previous | When::Never => V::default(),
-            }));
-
-            values[(slot, r)] = node.eval(scratch);
-        }
     }
 }
 
@@ -382,7 +325,7 @@ where
     /// * A `Vec<Vec<T>>` which is the output of the [Graph].
     #[inline]
     fn eval_into(&self, input: &[Vec<V>], buffer: &mut Vec<Vec<V>>) {
-        let mut evaluator = GraphKernel::new(self);
+        let mut evaluator = GraphEvaluator::new(self);
         for i in 0..input.len() {
             evaluator.eval_into_mut(&input[i], &mut buffer[i]);
         }
@@ -404,7 +347,7 @@ where
     /// * A `Vec<Vec<T>>` which is the output of the [Graph].
     #[inline]
     fn eval(&self, input: &[Vec<V>]) -> Vec<Vec<V>> {
-        let mut evaluator = GraphKernel::new(self);
+        let mut evaluator = GraphEvaluator::new(self);
         input
             .iter()
             .map(|input| evaluator.eval_mut(input))
@@ -441,38 +384,82 @@ where
     }
 }
 
+/// Steps a cycle's nodes through the samples together, exactly like the row evaluator but
+/// restricted to the cycle:
+///
+/// ```text
+///   for sample r in 0..N:
+///       for node in cycle (row evaluator order):
+///           Current input  → values[src][r]      (earlier this sample, or a finished column)
+///           Previous input → values[src][r - 1]  (default at r = 0)
+///           values[node][r] = node.eval(inputs)
+/// ```
+///
+/// Inputs from outside the cycle are complete columns by the time this runs, so the only
+/// sequential work is the cycle itself. A node on a cycle always has incoming edges, so it
+/// never reads the features directly.
+fn eval_cycle<T, V>(slots: Range<usize>, nodes: &[GraphNode<T>], inner: &mut GraphEvalCache<V>)
+where
+    T: Eval<[V], V>,
+    V: Copy + Default,
+{
+    let GraphEvalCache {
+        values,
+        plan,
+        scratch,
+        ..
+    } = inner;
+
+    for r in 0..values.cols() {
+        for slot in slots.start..slots.end {
+            let node = &nodes[plan.node_of(slot)];
+            let inputs = plan.inputs(slot);
+            debug_assert!(!inputs.is_empty(), "a node on a cycle has incoming edges");
+
+            scratch.clear();
+            scratch.extend(inputs.iter().map(|input| match input.at {
+                When::Current => values[(input.slot as usize, r)],
+                When::Previous if r > 0 => values[(input.slot as usize, r - 1)],
+                When::Previous | When::Never => V::default(),
+            }));
+
+            values[(slot, r)] = node.eval(scratch);
+        }
+    }
+}
+
 /// Computes one node's whole column (a node not on a cycle) via its column [EvalInto].
 fn eval_column<T, V>(
-    nodes: &[GraphNode<T>],
-    plan: &GraphPlan,
     slot: usize,
-    values: &mut Matrix<V>,
-    lagged: &mut Vec<V>,
-    defaults: &[V],
-    feature_columns: &[&[V]],
+    nodes: &[GraphNode<T>],
+    cache: &mut GraphEvalCache<V>,
+    // plan: &GraphPlan,
+    // values: &mut Matrix<V>,
+    // lagged: &mut Vec<V>,
+    // defaults: &[V],
+    features: &Matrix<V>,
 ) where
     T: for<'c> EvalInto<[&'c [V]], [V]>,
     V: Copy + Default,
 {
+    let GraphEvalCache {
+        plan,
+        values,
+        lagged,
+        defaults,
+        ..
+    } = cache;
+
     let n = values.cols();
     let node = &nodes[plan.node_of(slot)];
     let inputs = plan.inputs(slot);
-
-    // Split `values` at this slot's row. Rust won't let us read and write `values` at the same
-    // time, so `split_row_mut` hands back two non-overlapping views of the same memory, at no
-    // cost: the finished rows as a read-only `MatrixView`, and this slot's row mutably.
-    //
-    //   computing slot 3 (add) in the module-docs example:
-    //
-    //   values.data():  [ slot 0 | slot 1 | slot 2 ][ slot 3 | slot 4 ]
-    //                   └────────── prev ──────────┘└ out ─┘
-    //                    MatrixView (slot rows × N)   &mut [V], this slot's N samples
-    //
-    // Slots are assigned in plan order, so every source this node reads is in `prev`.
     let (prev, out) = values.split_row_mut(slot);
 
     if inputs.is_empty() {
-        node.eval_into(feature_columns, out);
+        let feature_columns = (0..features.rows())
+            .map(|i| features.row(i))
+            .collect::<Vec<&[V]>>();
+        node.eval_into(&feature_columns, out);
         return;
     }
 
@@ -489,14 +476,9 @@ fn eval_column<T, V>(
 
     // Gather the input columns: slices straight into `prev`, `lagged` or `defaults`, nothing
     // copied. Up to `STACK_INPUTS` live on the stack; wider nodes spill to a `Vec`.
-    //
-    //   inputs = [(1, Current), (2, Current)]  ──►  columns = [ prev.row(1), prev.row(2) ]
-    //                                                           &[V; N]      &[V; N]
-    let mut stack: [&[V]; STACK_INPUTS] = [&[]; STACK_INPUTS];
-    let mut heap: Vec<&[V]> = Vec::new();
-    let wide = inputs.len() > STACK_INPUTS;
+    let mut stack = SmallVec::<[&[V]; STACK_INPUTS]>::new();
     let mut k = 0;
-    for (j, input) in inputs.iter().enumerate() {
+    for input in inputs.iter() {
         let column = match input.at {
             When::Current => prev.row(input.slot as usize),
             When::Previous => {
@@ -505,15 +487,10 @@ fn eval_column<T, V>(
             }
             When::Never => defaults,
         };
-        if wide {
-            heap.push(column);
-        } else {
-            stack[j] = column;
-        }
+        stack.push(column);
     }
-    let columns: &[&[V]] = if wide { &heap } else { &stack[..inputs.len()] };
 
-    node.eval_into(columns, out);
+    node.eval_into(&stack, out);
 }
 
 // impl<'a, G, T, V> From<(&'a G, GraphEvalCache<V>)> for GraphEvaluator<'a, T, V>

@@ -53,7 +53,7 @@ fn display(
     result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>,
 ) {
     println!("{}", result.metrics().dashboard());
-    let mut reducer = GraphKernel::new(result.value());
+    let mut reducer = GraphEvaluator::new(result.value());
 
     let train_acc = Accuracy::default()
         .named("train")
