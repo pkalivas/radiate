@@ -16,6 +16,10 @@ pub struct MatrixView<'a, T> {
 }
 
 impl<'a, T> MatrixView<'a, T> {
+    pub fn new(data: &'a [T], rows: usize, cols: usize) -> Self {
+        Self { data, rows, cols }
+    }
+
     pub fn rows(&self) -> usize {
         self.rows
     }

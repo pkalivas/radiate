@@ -8,12 +8,39 @@ use radiate_utils::Matrix;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
+//  // Rows → columns: feature i becomes contiguous row i.
+//     let mut columns = std::mem::take(&mut self.columns);
+//     columns.reshape_and_fill(width, samples, V::default());
+//     for (r, sample) in features.iter().enumerate() {
+//         for (i, &x) in sample.iter().enumerate() {
+//             columns[(i, r)] = x;
+//         }
+//     }
+
+//     let mut predictions = std::mem::take(&mut self.predictions);
+//     self.eval_columns(nodes, &columns, &mut predictions);
+
+//     // Columns → rows.
+//     for (r, out) in outputs.iter_mut().enumerate() {
+//         for (j, o) in out.iter_mut().enumerate() {
+//             *o = predictions[(j, r)];
+//         }
+//     }
+
+//     self.columns = columns;
+//     self.predictions = predictions;
+// }
+
 /// Input columns are collected into a stack array up to this fan-in, so the common case doesn't
 /// allocate per node; wider nodes spill to the heap.
 const STACK_INPUTS: usize = 8;
 
 /// A [GraphEvaluator]'s reusable state: the compiled plan, each node's latest value, and the
 /// buffers it runs in.
+///
+/// The cache can evaluate its graph directly ([GraphEvalCache::eval_row],
+/// [GraphEvalCache::eval_batch]), so whatever owns a graph can own its cache too, compile once,
+/// and evaluate without holding a [GraphEvaluator] borrow (see `StatefulGraph`).
 ///
 /// - Keep one between calls on the *same* graph ([GraphEvaluator::take_cache],
 ///   `GraphEvaluator::from((&graph, cache))`) to carry recurrent state forward.
@@ -49,6 +76,15 @@ where
         self.outputs.resize(nodes.len(), V::default());
         self.inputs.clear();
         self.inputs.resize(self.plan.edges(), V::default());
+    }
+}
+impl<V> GraphEvalCache<V>
+where
+    V: Default + Clone,
+{
+    /// Clears recurrent state, keeping the compiled plan and buffers.
+    pub fn reset_state(&mut self) {
+        self.outputs.fill(V::default());
     }
 }
 
@@ -106,7 +142,7 @@ where
 
     /// Resets every node's state to default, as if no sample had been evaluated yet.
     pub fn reset(&mut self) {
-        self.inner.outputs.fill(V::default());
+        self.inner.reset_state();
     }
 }
 
@@ -128,38 +164,10 @@ where
     T: Eval<[V], V>,
     V: Copy + Default,
 {
-    /// Evaluates one sample. Runs the plan's [order](GraphPlan::order), each node reading
-    /// whatever its sources currently hold: this sample's value if the source already ran,
-    /// otherwise the previous sample's (or default on the first call). `buffer` receives the
-    /// output nodes' values, in output order.
+    /// Evaluates one sample; see [GraphEvalCache::eval_row].
     #[inline]
     fn eval_into_mut(&mut self, input: &[V], buffer: &mut [V]) {
-        let GraphEvalCache {
-            plan,
-            outputs,
-            inputs,
-            ..
-        } = &mut self.inner;
-
-        for &index in plan.order() {
-            let node = &self.nodes[index];
-            let incoming = node.incoming();
-
-            // No incoming edges means the node reads the sample's features directly.
-            outputs[index] = if incoming.is_empty() {
-                node.eval(input)
-            } else {
-                let buf = &mut inputs[plan.inputs(index)];
-                for (dst, &src) in buf.iter_mut().zip(incoming) {
-                    *dst = outputs[src];
-                }
-                node.eval(buf)
-            };
-        }
-
-        for (out, &index) in buffer.iter_mut().zip(plan.output_indices()) {
-            *out = outputs[index];
-        }
+        process_single_row_into(&mut self.inner, self.nodes, input, buffer);
     }
 }
 
@@ -181,59 +189,9 @@ where
     T: Eval<[V], V> + for<'c> EvalInto<[&'c [V]], [V]>,
     V: Copy + Default,
 {
-    /// Evaluates the graph over every sample: `features` is `features × samples` (one row per
-    /// feature), and `outputs` is resized to `outputs × samples` (one row per output node).
-    /// Builds the plan's column schedule on first use.
+    /// Evaluates every sample at once; see [GraphEvalCache::eval_batch].
     fn eval_into_mut(&mut self, features: &Matrix<V>, outputs: &mut Matrix<V>) {
-        let cols = features.cols();
-        let GraphEvalCache {
-            plan,
-            inputs,
-            values,
-            lagged,
-            defaults,
-            ..
-        } = &mut self.inner;
-
-        plan.schedule(self.nodes);
-        let plan = &*plan;
-
-        // One row per node, defaulted, so nodes that never run read as default exactly like
-        // their untouched state one sample at a time.
-        values.reshape_and_fill(self.nodes.len(), cols, V::default());
-        defaults.clear();
-        defaults.resize(cols, V::default());
-
-        // A node with no incoming edges reads the sample's features - ie: giving input
-        // nodes their inputs to vectorize over the samples.
-        // Features is transposed, so each row is the original dataset's feature vector for that feature.
-        // Hence why we can collect a SmallVec of slices
-        let feature_columns = (0..features.rows())
-            .map(|i| features.row(i))
-            .collect::<SmallVec<[&[V]; STACK_INPUTS]>>();
-
-        for step in plan.steps() {
-            match step {
-                Step::Column(index) => eval_column(
-                    *index,
-                    self.nodes,
-                    plan,
-                    values,
-                    lagged,
-                    defaults,
-                    &feature_columns,
-                ),
-                Step::Cycle(range) => {
-                    let cycle = plan.cycle_nodes(range.clone());
-                    eval_cycle(cycle, self.nodes, plan, values, inputs)
-                }
-            }
-        }
-
-        outputs.reshape_and_fill(plan.output_indices().len(), cols, V::default());
-        for (j, &index) in plan.output_indices().iter().enumerate() {
-            outputs.row_mut(j).copy_from_slice(values.row(index));
-        }
+        process_batch_column_major(&mut self.inner, self.nodes, features, outputs);
     }
 }
 
@@ -267,6 +225,110 @@ where
     }
 }
 
+/// Evaluates one sample of the graph this cache was compiled from. Runs the plan's
+/// [order](GraphPlan::order), each node reading whatever its sources currently hold: this
+/// sample's value if the source already ran, otherwise the previous sample's (or default on
+/// the first call). `buffer` receives the output nodes' values, in output order.
+///
+/// `nodes` must be the graph the cache was compiled from.
+#[inline]
+pub fn process_single_row_into<T, V>(
+    cache: &mut GraphEvalCache<V>,
+    nodes: &[GraphNode<T>],
+    input: &[V],
+    buffer: &mut [V],
+) where
+    T: Eval<[V], V>,
+    V: Copy + Default,
+{
+    let GraphEvalCache {
+        plan,
+        outputs,
+        inputs,
+        ..
+    } = cache;
+
+    for &index in plan.order() {
+        let node = &nodes[index];
+        let incoming = node.incoming();
+
+        // No incoming edges means the node reads the sample's features directly.
+        outputs[index] = if incoming.is_empty() {
+            node.eval(input)
+        } else {
+            let buf = &mut inputs[plan.inputs(index)];
+            for (dst, &src) in buf.iter_mut().zip(incoming) {
+                *dst = outputs[src];
+            }
+            node.eval(buf)
+        };
+    }
+
+    for (out, &index) in buffer.iter_mut().zip(plan.output_indices()) {
+        *out = outputs[index];
+    }
+}
+
+pub fn process_batch_column_major<T, V>(
+    cache: &mut GraphEvalCache<V>,
+    nodes: &[GraphNode<T>],
+    features: &Matrix<V>,
+    outputs: &mut Matrix<V>,
+) where
+    T: Eval<[V], V> + for<'c> EvalInto<[&'c [V]], [V]>,
+    V: Copy + Default,
+{
+    let cols = features.cols();
+    let GraphEvalCache {
+        plan,
+        inputs,
+        values,
+        lagged,
+        defaults,
+        ..
+    } = cache;
+
+    plan.schedule(nodes);
+    let plan = &*plan;
+
+    // One row per node, defaulted, so nodes that never run read as default exactly like
+    // their untouched state one sample at a time.
+    values.reshape_and_fill(nodes.len(), cols, V::default());
+    defaults.clear();
+    defaults.resize(cols, V::default());
+
+    // A node with no incoming edges reads the sample's features - ie: giving input
+    // nodes their inputs to vectorize over the samples.
+    // Features is transposed, so each row is the original dataset's feature vector for that feature.
+    // Hence why we can collect a SmallVec of slices
+    let feature_columns = (0..features.rows())
+        .map(|i| features.row(i))
+        .collect::<SmallVec<[&[V]; STACK_INPUTS]>>();
+
+    for step in plan.steps() {
+        match step {
+            Step::Column(index) => process_column_major(
+                *index,
+                nodes,
+                plan,
+                values,
+                lagged,
+                defaults,
+                &feature_columns,
+            ),
+            Step::Cycle(range) => {
+                let cycle = plan.cycle_nodes(range.clone());
+                process_cycle_column_major(cycle, nodes, plan, values, inputs)
+            }
+        }
+    }
+
+    outputs.reshape_and_fill(plan.output_indices().len(), cols, V::default());
+    for (j, &index) in plan.output_indices().iter().enumerate() {
+        outputs.row_mut(j).copy_from_slice(values.row(index));
+    }
+}
+
 /// Steps a cycle's nodes through the samples together, exactly like one-sample-at-a-time
 /// evaluation but restricted to the cycle:
 ///
@@ -280,9 +342,8 @@ where
 ///
 /// Inputs from outside the cycle are complete columns by the time this runs, so the only
 /// sequential work is the cycle itself. A node on a cycle always has incoming edges, so it
-/// never reads the features directly. One sample's inputs are gathered into the node's range
 /// of the edge-indexed `inputs` buffer, the same buffer one-sample-at-a-time evaluation uses.
-fn eval_cycle<T, V>(
+fn process_cycle_column_major<T, V>(
     cycle: &[usize],
     nodes: &[GraphNode<T>],
     plan: &GraphPlan,
@@ -295,25 +356,20 @@ fn eval_cycle<T, V>(
     for r in 0..values.cols() {
         for &index in cycle {
             let node = &nodes[index];
-            let incoming = node.incoming();
-            debug_assert!(!incoming.is_empty(), "a node on a cycle has incoming edges");
-
             let buf = &mut inputs[plan.inputs(index)];
-            for ((dst, &src), when) in buf.iter_mut().zip(incoming).zip(plan.when(index)) {
+            for ((dst, &src), when) in buf.iter_mut().zip(node.incoming()).zip(plan.when(index)) {
                 *dst = match when {
                     When::Current => values[(src, r)],
                     When::Previous if r > 0 => values[(src, r - 1)],
                     When::Previous | When::Never => V::default(),
                 };
             }
-
             values[(index, r)] = node.eval(buf);
         }
     }
 }
-
 /// Computes one node's whole column (a node not on a cycle) via its column [EvalInto].
-fn eval_column<T, V>(
+fn process_column_major<T, V>(
     index: usize,
     nodes: &[GraphNode<T>],
     plan: &GraphPlan,
