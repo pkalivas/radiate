@@ -101,23 +101,23 @@ fn main() {
 
     // Create weighted composite fitness function - this version computes a
     // weighted average of each function given to it
-    // let composite_fitness = CompositeFitnessFn::new()
-    //     .add_weighted_fn(accuracy_objective, 0.6) // 60% weight on accuracy
-    //     .add_weighted_fn(complexity_objective, 0.25) // 25% weight on complexity
-    //     .add_weighted_fn(efficiency_objective, 0.15); // 15% weight on efficiency
+    let composite_fitness = CompositeFitnessFn::new()
+        .add_weighted_fn(accuracy_objective, 0.6) // 60% weight on accuracy
+        .add_weighted_fn(complexity_objective, 0.25) // 25% weight on complexity
+        .add_weighted_fn(efficiency_objective, 0.15); // 15% weight on efficiency
 
-    // // Create an equal weight composite fitness function with equal weights.
-    // // Meaning these are all essentially just added together to create a single objective.
-    // let composite_fitness = CompositeFitnessFn::new()
-    //     .add_fitness_fn(accuracy_objective)
-    //     .add_fitness_fn(complexity_objective)
-    //     .add_fitness_fn(efficiency_objective);
+    // Create an equal weight composite fitness function with equal weights.
+    // Meaning these are all essentially just added together to create a single objective.
+    let composite_fitness = CompositeFitnessFn::new()
+        .add_fitness_fn(accuracy_objective)
+        .add_fitness_fn(complexity_objective)
+        .add_fitness_fn(efficiency_objective);
 
-    // // Add it to the engine like any other fitness function
-    // let engine = GeneticEngine::builder()
-    //     .codec(my_model_codec)
-    //     .fitness_fn(composite_fitness)
-    //     .build();
+    // Add it to the engine like any other fitness function
+    let engine = GeneticEngine::builder()
+        .codec(my_model_codec)
+        .fitness_fn(composite_fitness)
+        .build();
     // --8<-- [end:composite]
 
     // A codec whose decoded type is `MyModel` so the novelty descriptor below can read it.

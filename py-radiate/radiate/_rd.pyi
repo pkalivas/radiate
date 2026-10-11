@@ -154,5 +154,4 @@ class PyFitnessFn[T]:
         features: list[list[float]] | "np.ndarray",
         targets: list[list[float]] | "np.ndarray",
         loss: str,
-        is_batch: bool,
     ) -> PyFitnessFn: ...

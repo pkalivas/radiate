@@ -32,7 +32,7 @@ pub use engine::{Engine, EngineExt, EngineState, EngineStream};
 pub use evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
 pub use executor::Executor;
 pub use fitness::{
-    BatchFitnessFunction, BatchedFn, CompositeFitnessFn, FitnessFunction, Novelty, NoveltySearch,
+    BatchFitnessFunction, CompositeFitnessFn, FitnessFunction, Novelty, NoveltySearch,
 };
 pub use genome::*;
 pub use objectives::{Front, Objective, Optimize, Score, pareto};
@@ -66,8 +66,7 @@ pub mod prelude {
     pub use super::evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
     pub use super::executor::Executor;
     pub use super::fitness::{
-        BatchFitnessFunction, BatchedFn, CompositeFitnessFn, FitnessFunction, Novelty,
-        NoveltySearch,
+        BatchFitnessFunction, CompositeFitnessFn, FitnessFunction, Novelty, NoveltySearch,
     };
     pub use super::genome::{
         BitChromosome, BitGene, BitWordGene, BoundedGene, CharChromosome, CharGene, Chromosome,

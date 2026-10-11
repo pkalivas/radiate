@@ -4,38 +4,39 @@ mod novelty;
 use std::sync::Arc;
 
 use crate::{Chromosome, Genotype, Score, problem::FitnessKind};
-pub use composite::CompositeFitnessFn;
+pub use composite::{CompositeFitnessFn, IntoObjectiveFn};
 pub use novelty::{Novelty, NoveltySearch};
 
-/// Wraps a per-item closure (`Fn(T) -> S`) so it implements both
-/// [`FitnessFunction`] (its primary shape) and [`BatchFitnessFunction`]
-/// (via sequential fan-out). Use when a fitness fn lives most naturally as
-/// per-item but you want it to slot into a batch-aware call site.
-pub struct SingleFn<F>(pub F);
+/// Zero-sized types that tell the [IntoFitness] impls apart. Each impl is keyed by one of
+/// these, so the compiler can pick the impl that matches a fitness function's shape. They are
+/// always inferred and never constructed.
+#[doc(hidden)]
+pub mod marker {
+    use std::marker::PhantomData;
 
-/// Wraps a batch-shaped closure (`Fn(&[T]) -> Vec<S>`) so it implements both
-/// [`BatchFitnessFunction`] (its primary shape) and [`FitnessFunction`]
-/// (via slice-of-one fallback). Use when the fitness fn has shared setup
-/// that should be amortised across the batch.
-pub struct BatchedFn<F>(pub F);
-
-pub struct Raw<F>(pub F);
-
-pub struct RawBatch<F>(pub F);
-
-pub struct CustomSingleImpl<F>(pub F);
-
-pub struct CustomBatchImpl<F>(pub F);
-
-pub struct CustomRawSingleImpl<F>(pub F);
-
-pub struct CustomRawBatchImpl<F>(pub F);
+    /// A `Fn(T) -> S` closure.
+    pub struct Single<S>(PhantomData<S>);
+    /// A `Fn(&[T]) -> Vec<S>` closure.
+    pub struct Batch<S>(PhantomData<S>);
+    /// A `Fn(&Genotype<C>) -> S` closure.
+    pub struct Raw<S>(PhantomData<S>);
+    /// A `Fn(&[&Genotype<C>]) -> Vec<S>` closure.
+    pub struct RawBatch<S>(PhantomData<S>);
+    /// A type implementing `FitnessFunction<T, S>`.
+    pub struct CustomSingle<S>(PhantomData<S>);
+    /// A type implementing `BatchFitnessFunction<T, S>`.
+    pub struct CustomBatch<S>(PhantomData<S>);
+    /// A type implementing `for<'a> FitnessFunction<&'a Genotype<C>, S>`.
+    pub struct CustomRawSingle<S>(PhantomData<S>);
+    /// A type implementing `for<'a> BatchFitnessFunction<&'a Genotype<C>, S>`.
+    pub struct CustomRawBatch<S>(PhantomData<S>);
+}
 
 pub trait IntoFitness<C: Chromosome, T, M> {
     fn into_fitness(self) -> FitnessKind<C, T>;
 }
 
-impl<C, T, S, F> IntoFitness<C, T, SingleFn<S>> for F
+impl<C, T, S, F> IntoFitness<C, T, marker::Single<S>> for F
 where
     C: Chromosome,
     F: Fn(T) -> S + Send + Sync + 'static,
@@ -46,7 +47,7 @@ where
     }
 }
 
-impl<C, T, S, F> IntoFitness<C, T, BatchedFn<S>> for F
+impl<C, T, S, F> IntoFitness<C, T, marker::Batch<S>> for F
 where
     C: Chromosome,
     F: Fn(&[T]) -> Vec<S> + Send + Sync + 'static,
@@ -59,7 +60,7 @@ where
     }
 }
 
-impl<C, T, S, F> IntoFitness<C, T, Raw<S>> for F
+impl<C, T, S, F> IntoFitness<C, T, marker::Raw<S>> for F
 where
     C: Chromosome,
     F: Fn(&Genotype<C>) -> S + Send + Sync + 'static,
@@ -70,7 +71,7 @@ where
     }
 }
 
-impl<C, T, S, F> IntoFitness<C, T, RawBatch<S>> for F
+impl<C, T, S, F> IntoFitness<C, T, marker::RawBatch<S>> for F
 where
     C: Chromosome,
     F: Fn(&[&Genotype<C>]) -> Vec<S> + Send + Sync + 'static,
@@ -83,7 +84,7 @@ where
     }
 }
 
-impl<C, T, S, F> IntoFitness<C, T, CustomSingleImpl<S>> for F
+impl<C, T, S, F> IntoFitness<C, T, marker::CustomSingle<S>> for F
 where
     C: Chromosome,
     F: FitnessFunction<T, S> + Send + Sync + 'static,
@@ -94,7 +95,7 @@ where
     }
 }
 
-impl<C, T, S, F> IntoFitness<C, T, CustomBatchImpl<S>> for F
+impl<C, T, S, F> IntoFitness<C, T, marker::CustomBatch<S>> for F
 where
     C: Chromosome,
     F: BatchFitnessFunction<T, S> + Send + Sync + 'static,
@@ -107,7 +108,7 @@ where
     }
 }
 
-impl<C, T, S, F> IntoFitness<C, T, CustomRawSingleImpl<S>> for F
+impl<C, T, S, F> IntoFitness<C, T, marker::CustomRawSingle<S>> for F
 where
     C: Chromosome,
     F: for<'a> FitnessFunction<&'a Genotype<C>, S> + Send + Sync + 'static,
@@ -118,7 +119,7 @@ where
     }
 }
 
-impl<C, T, S, F> IntoFitness<C, T, CustomRawBatchImpl<S>> for F
+impl<C, T, S, F> IntoFitness<C, T, marker::CustomRawBatch<S>> for F
 where
     C: Chromosome,
     F: for<'a> BatchFitnessFunction<&'a Genotype<C>, S> + Send + Sync + 'static,

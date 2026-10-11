@@ -166,7 +166,6 @@ class Fitness[T](EngineInput):
         target_cols: str | list[str] | None = None,
         feature_cols: list[str] | None = None,
         loss: RdLossType = MSE,
-        batch: bool = False,
     ) -> Fitness[Any]:
         x, y = _normalize_regression_data(
             features,
@@ -184,7 +183,6 @@ class Fitness[T](EngineInput):
                 features=x,
                 targets=y,
                 loss=loss_str,
-                is_batch=batch,
             ),
         )
 
