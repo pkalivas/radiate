@@ -1,7 +1,7 @@
 use radiate::*;
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 
-const MIN_SCORE: f32 = 0.01;
+const MIN_SCORE: f32 = 0.1;
 const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
@@ -27,7 +27,7 @@ fn main() {
         .codec(codec)
         .minimizing()
         .fitness_fn(regression)
-        .parallel()
+        // .parallel()
         .offspring_fraction(0.92)
         .replace_strategy(GraphReplacement)
         .offspring_selector(BoltzmannSelector::new(4.0))
@@ -98,7 +98,7 @@ fn load_iris_dataset() -> DataSet<f32> {
         labels.push(row_labels);
     }
 
-    let unique_labels = labels.iter().collect::<HashSet<&String>>();
+    let unique_labels = labels.iter().collect::<BTreeSet<&String>>();
 
     let mut new_labels = Vec::new();
     for label in labels.iter() {
