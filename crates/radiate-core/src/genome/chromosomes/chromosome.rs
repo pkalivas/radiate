@@ -31,16 +31,6 @@ pub trait Chromosome: Valid {
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
-
-    // fn zip<'a>(&'a mut self, other: &'a mut Self) -> ZippedChromosome<'a, Self>
-    // where
-    //     Self: Sized,
-    // {
-    //     ZippedChromosome {
-    //         one: self,
-    //         two: other,
-    //     }
-    // }
 }
 
 pub trait ContiguousChromosome: Chromosome {
@@ -58,36 +48,3 @@ pub trait ContiguousChromosome: Chromosome {
         self.as_mut_slice().swap(i, j);
     }
 }
-
-// pub struct ZippedChromosome<'a, C: Chromosome> {
-//     one: &'a mut C,
-//     two: &'a mut C,
-// }
-
-// impl<'a, C: Chromosome> ZippedChromosome<'a, C> {
-//     pub fn new(one: &'a mut C, two: &'a mut C) -> Self {
-//         ZippedChromosome { one, two }
-//     }
-
-//     pub fn iter(&mut self) -> impl Iterator<Item = (&mut C::Gene, &mut C::Gene)> {
-//         self.one.iter_mut().zip(self.two.iter_mut())
-//     }
-
-//     pub fn swap(&mut self, i: usize)
-//     where
-//         C: ContiguousChromosome,
-//     {
-//         let one_gene = &mut self.one.as_mut_slice()[i];
-//         let two_gene = &mut self.two.as_mut_slice()[i];
-//         std::mem::swap(one_gene, two_gene);
-//     }
-
-//     pub fn for_each<F>(&mut self, mut f: F)
-//     where
-//         F: FnMut(&mut C::Gene, &mut C::Gene),
-//     {
-//         for (gene_one, gene_two) in self.one.iter_mut().zip(self.two.iter_mut()) {
-//             f(gene_one, gene_two);
-//         }
-//     }
-// }

@@ -16,4 +16,5 @@ radiate-core = { workspace = true }
 radiate-utils = { workspace = true }
 
 [dev-dependencies]
+rstest = "0.25.0"
 radiate-test = { workspace = true }
