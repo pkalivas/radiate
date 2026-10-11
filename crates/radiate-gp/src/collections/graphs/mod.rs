@@ -2,7 +2,7 @@ mod aggregate;
 mod builder;
 mod chromosome;
 mod codec;
-pub mod column;
+pub mod compile;
 mod crossover;
 mod distance;
 mod eval;

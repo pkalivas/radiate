@@ -1,5 +1,5 @@
 use radiate::*;
-use std::collections::{BTreeSet, HashSet};
+use std::collections::BTreeSet;
 
 const MIN_SCORE: f32 = 0.1;
 const MAX_SECONDS: f64 = 5.0;

@@ -23,6 +23,16 @@ impl<T> DataSet<T> {
         self.features.rows()
     }
 
+    /// The features as a row-major matrix: one row per sample.
+    pub fn feature_matrix(&self) -> &Matrix<T> {
+        &self.features
+    }
+
+    /// The labels as a row-major matrix: one row per sample.
+    pub fn label_matrix(&self) -> &Matrix<T> {
+        &self.labels
+    }
+
     pub fn is_empty(&self) -> bool {
         self.features.is_empty()
     }

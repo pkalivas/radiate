@@ -1,5 +1,6 @@
 use super::DataSet;
 use crate::{EvalMut, ops::OpFloat};
+use radiate_utils::Matrix;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Loss {
@@ -39,46 +40,62 @@ impl Loss {
         let n = F::from(data_set.len()).unwrap();
         let mut sum = F::ZERO;
 
-        match self {
-            Loss::MSE => {
-                for sample in data_set.iter() {
-                    eval_into_buf(sample.0, buffer);
-                    for (&target, &pred) in sample.1.iter().zip(buffer.iter()) {
-                        let d = target - pred;
-                        sum = sum + d * d;
-                    }
-                }
-            }
-            Loss::MAE => {
-                for sample in data_set.iter() {
-                    eval_into_buf(sample.0, buffer);
-                    let target = &sample.1;
-                    for (&t, &p) in target.iter().zip(buffer.iter()) {
-                        let d = t - p;
-                        sum = sum + d.abs();
-                    }
-                }
-            }
-            Loss::XEnt => {
-                for sample in data_set.iter() {
-                    eval_into_buf(sample.0, buffer);
-                    for (&target, &pred) in sample.1.iter().zip(buffer.iter()) {
-                        let q = pred.clamp(F::LOG_EPS, F::ONE);
-                        sum = sum - target * q.ln();
-                    }
-                }
-            }
-            Loss::Diff => {
-                for sample in data_set.iter() {
-                    eval_into_buf(sample.0, buffer);
-                    let target = &sample.1;
-                    for (&t, &p) in target.iter().zip(buffer.iter()) {
-                        sum = sum + (t - p);
-                    }
-                }
+        for (input, target) in data_set.iter() {
+            eval_into_buf(input, buffer);
+            for (&t, &p) in target.iter().zip(buffer.iter()) {
+                sum = sum + self.term(t, p);
             }
         }
 
         sum / n
+    }
+
+    /// Loss over predictions already computed for every row, e.g. by column-wise graph
+    /// evaluation. `preds` has one row per evaluated slot, and output `j` for sample `r` is
+    /// `preds[(output_rows[j], r)]`. Terms are summed in the same order as [Loss::calculate]
+    /// (sample by sample, output by output), so the result is bit-identical.
+    ///
+    /// ```text
+    ///   labels (samples × outputs)        preds (slots × samples)
+    ///          j=0  j=1  j=2                       sample →  0     1    ...
+    ///   r=0  [ 1    0    0  ]             slot 0  [ ...                  ]
+    ///   r=1  [ 0    1    0  ]             ...
+    ///   ...                               slot 37 [ 0.91  0.08  ...  ]  ◄─ output_rows[0]
+    ///                                     slot 38 [ 0.05  0.88  ...  ]  ◄─ output_rows[1]
+    ///                                     slot 39 [ 0.02  0.03  ...  ]  ◄─ output_rows[2]
+    ///
+    ///   for r in samples:  for j in outputs:  sum += term(labels[(r, j)], preds[(output_rows[j], r)])
+    /// ```
+    #[inline]
+    pub fn calculate_columns<F: OpFloat>(
+        &self,
+        labels: &Matrix<F>,
+        preds: &Matrix<F>,
+        output_rows: &[u32],
+    ) -> F {
+        let n = F::from(labels.rows()).unwrap();
+        let mut sum = F::ZERO;
+
+        for r in 0..labels.rows() {
+            for (&t, &row) in labels.row(r).iter().zip(output_rows) {
+                sum = sum + self.term(t, preds[(row as usize, r)]);
+            }
+        }
+
+        sum / n
+    }
+
+    /// One sample/output's contribution to the summed loss.
+    #[inline(always)]
+    fn term<F: OpFloat>(&self, target: F, pred: F) -> F {
+        match self {
+            Loss::MSE => {
+                let d = target - pred;
+                d * d
+            }
+            Loss::MAE => (target - pred).abs(),
+            Loss::XEnt => -(target * pred.clamp(F::LOG_EPS, F::ONE).ln()),
+            Loss::Diff => target - pred,
+        }
     }
 }

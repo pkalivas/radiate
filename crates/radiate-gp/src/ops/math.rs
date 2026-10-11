@@ -32,28 +32,78 @@ fn aggregate<F: OpFloat>(vals: &[F]) -> F {
     }
 }
 
+// Per-value helpers. Each op that has a column kernel (see [column_kernel]) computes its
+// result through one of these, in both its scalar form and its column form, so the two can't
+// drift apart and stay bit-identical.
+
+#[inline(always)]
+fn add1<F: OpFloat>(a: F, b: F) -> F {
+    clamp(a + b)
+}
+
+#[inline(always)]
+fn sub1<F: OpFloat>(a: F, b: F) -> F {
+    clamp(a - b)
+}
+
+#[inline(always)]
+fn mul1<F: OpFloat>(a: F, b: F) -> F {
+    clamp(a * b)
+}
+
+#[inline(always)]
+fn div1<F: OpFloat>(a: F, b: F) -> F {
+    if b.abs() < F::EPS {
+        F::ONE
+    } else {
+        clamp(a / b)
+    }
+}
+
+#[inline(always)]
+fn weight1<F: OpFloat>(x: F, w: F) -> F {
+    clamp(x * w)
+}
+
+#[inline(always)]
+fn sigmoid1<F: OpFloat>(total: F) -> F {
+    clamp(F::ONE / (F::ONE + (-total).exp()))
+}
+
+#[inline(always)]
+fn tanh1<F: OpFloat>(total: F) -> F {
+    clamp(total.tanh())
+}
+
+#[inline(always)]
+fn relu1<F: OpFloat>(total: F) -> F {
+    clamp(total.max(F::ZERO))
+}
+
+#[inline(always)]
+fn leaky_relu1<F: OpFloat>(total: F) -> F {
+    let x = clamp(total);
+    if x > F::ZERO { x } else { clamp(F::HALF * x) }
+}
+
 #[inline]
 fn add<F: OpFloat>(vals: &[F]) -> F {
-    clamp(vals[0] + vals[1])
+    add1(vals[0], vals[1])
 }
 
 #[inline]
 fn sub<F: OpFloat>(vals: &[F]) -> F {
-    clamp(vals[0] - vals[1])
+    sub1(vals[0], vals[1])
 }
 
 #[inline]
 fn mul<F: OpFloat>(vals: &[F]) -> F {
-    clamp(vals[0] * vals[1])
+    mul1(vals[0], vals[1])
 }
 
 #[inline]
 fn div<F: OpFloat>(vals: &[F]) -> F {
-    if vals[1].abs() < F::EPS {
-        F::ONE
-    } else {
-        clamp(vals[0] / vals[1])
-    }
+    div1(vals[0], vals[1])
 }
 
 #[inline]
@@ -227,19 +277,10 @@ impl ActivationOperation {
     #[inline]
     pub fn apply<F: OpFloat>(&self, inputs: &[F]) -> F {
         match self {
-            ActivationOperation::Sigmoid => {
-                let total = aggregate(inputs);
-                clamp(F::ONE / (F::ONE + (-total).exp()))
-            }
-            ActivationOperation::Tanh => {
-                let total = aggregate(inputs);
-                clamp(total.tanh())
-            }
-            ActivationOperation::ReLU => clamp(aggregate(inputs).max(F::ZERO)),
-            ActivationOperation::LeakyReLU => {
-                let x = clamp(aggregate(inputs));
-                if x > F::ZERO { x } else { clamp(F::HALF * x) }
-            }
+            ActivationOperation::Sigmoid => sigmoid1(aggregate(inputs)),
+            ActivationOperation::Tanh => tanh1(aggregate(inputs)),
+            ActivationOperation::ReLU => relu1(aggregate(inputs)),
+            ActivationOperation::LeakyReLU => leaky_relu1(aggregate(inputs)),
             ActivationOperation::ELU => {
                 let x = clamp(aggregate(inputs));
                 if x > F::ZERO {
@@ -274,7 +315,7 @@ impl<F: OpFloat> Op<F> {
     pub fn weight_with(value: F) -> Self {
         let supplier = || random_provider::range(-F::ONE..F::ONE);
 
-        let operation = |inputs: &[F], weight: &F| clamp(inputs[0] * *weight);
+        let operation = |inputs: &[F], weight: &F| weight1(inputs[0], *weight);
 
         let modifier = |current: &mut F| {
             let diff = random_provider::range(-F::ONE..F::ONE) * F::TENTH;
@@ -550,6 +591,56 @@ pub fn all_ops<F: OpFloat>() -> Vec<Op<F>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_column_kernels_match_scalar_ops() {
+        let ops = all_ops::<f32>().into_iter().chain([
+            Op::identity(),
+            Op::weight_with(-0.7),
+            Op::weight_with(0.3),
+        ]);
+
+        // Values around zero plus extremes, so clamp, -0.0 and the div EPS branch get hit.
+        let values = [
+            -3.0, -1.0, -0.5, -0.0, 0.0, 1e-9, 0.25, 0.5, 1.0, 2.5, 7.0, -40.0, 1e12, -1e12,
+        ];
+        let rows = 64;
+        let mut kernels = 0;
+
+        for op in ops {
+            for fan_in in 1..=7 {
+                let cols: Vec<Vec<f32>> = (0..fan_in)
+                    .map(|i| {
+                        (0..rows)
+                            .map(|r| values[(r * (i + 3) + i) % values.len()])
+                            .collect()
+                    })
+                    .collect();
+                let inputs: Vec<&[f32]> = cols.iter().map(|c| c.as_slice()).collect();
+
+                let mut out = vec![0.0; rows];
+                if !column_kernel(&op, &inputs, &mut out) {
+                    continue;
+                }
+                kernels += 1;
+
+                for r in 0..rows {
+                    let row: Vec<f32> = cols.iter().map(|c| c[r]).collect();
+                    let want = op.eval(&row);
+                    assert_eq!(
+                        out[r].to_bits(),
+                        want.to_bits(),
+                        "{} with {fan_in} inputs, row {r}: column {} vs scalar {}",
+                        op.name(),
+                        out[r],
+                        want
+                    );
+                }
+            }
+        }
+
+        assert!(kernels > 0);
+    }
     use crate::{Eval, ops::math};
 
     #[inline]
@@ -622,5 +713,95 @@ mod tests {
         let y = ActivationOperation::Softplus.apply(&[big]);
         assert!(y.is_finite());
         assert!(y > 1e8);
+    }
+}
+
+/// Sum of the input columns into `out`, one row at a time. Matches [aggregate] bit-for-bit:
+/// 1..=5 inputs sum left to right starting from the first input, more fold from zero.
+#[inline(always)]
+fn aggregate_columns<F: OpFloat>(inputs: &[&[F]], out: &mut [F]) {
+    let Some((first, rest)) = inputs.split_first() else {
+        out.fill(F::ZERO);
+        return;
+    };
+
+    if inputs.len() <= 5 {
+        out.copy_from_slice(first);
+    } else {
+        out.fill(F::ZERO);
+        for (o, &x) in out.iter_mut().zip(*first) {
+            *o = *o + x;
+        }
+    }
+
+    for col in rest {
+        for (o, &x) in out.iter_mut().zip(*col) {
+            *o = *o + x;
+        }
+    }
+}
+
+#[inline(always)]
+fn binary_columns<F: OpFloat>(inputs: &[&[F]], out: &mut [F], f: impl Fn(F, F) -> F) -> bool {
+    let [a, b, ..] = inputs else {
+        return false;
+    };
+
+    for ((o, &x), &y) in out.iter_mut().zip(*a).zip(*b) {
+        *o = f(x, y);
+    }
+    true
+}
+
+#[inline(always)]
+fn activation_columns<F: OpFloat>(inputs: &[&[F]], out: &mut [F], f: impl Fn(F) -> F) -> bool {
+    aggregate_columns(inputs, out);
+    for o in out.iter_mut() {
+        *o = f(*o);
+    }
+    true
+}
+
+/// Column form of the built-in ops: computes `op` for every row at once, where `inputs[i]` is
+/// the column of the op's i-th input and `out` receives one value per row. Returns `false` when
+/// the op has no column kernel (or too few inputs), and the caller falls back to calling the op
+/// once per row.
+///
+/// Ops are identified by name, the same convention deserialization uses (see `ops/serde.rs`),
+/// so a custom op that reuses a built-in name gets the built-in kernel. Every kernel computes
+/// through the same per-value helper as its scalar op, so results are bit-identical.
+pub(crate) fn column_kernel<F: OpFloat>(op: &Op<F>, inputs: &[&[F]], out: &mut [F]) -> bool {
+    match op {
+        Op::Value(op_names::WEIGHT, _, param, _) => {
+            let Some(x) = inputs.first() else {
+                return false;
+            };
+
+            let w = *param.data();
+            for (o, &x) in out.iter_mut().zip(*x) {
+                *o = weight1(x, w);
+            }
+            true
+        }
+        Op::Fn(name, _, _) => match *name {
+            op_names::IDENTITY => match inputs.first() {
+                Some(x) => {
+                    out.copy_from_slice(x);
+                    true
+                }
+                None => false,
+            },
+            op_names::ADD => binary_columns(inputs, out, add1),
+            op_names::SUB => binary_columns(inputs, out, sub1),
+            op_names::MUL => binary_columns(inputs, out, mul1),
+            op_names::DIV => binary_columns(inputs, out, div1),
+            op_names::SUM | op_names::LINEAR => activation_columns(inputs, out, clamp),
+            op_names::SIGMOID => activation_columns(inputs, out, sigmoid1),
+            op_names::TANH => activation_columns(inputs, out, tanh1),
+            op_names::RELU => activation_columns(inputs, out, relu1),
+            op_names::LEAKY_RELU => activation_columns(inputs, out, leaky_relu1),
+            _ => false,
+        },
+        _ => false,
     }
 }

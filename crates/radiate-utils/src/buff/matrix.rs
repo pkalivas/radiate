@@ -6,6 +6,42 @@ use std::{
     ops::{Index, IndexMut},
 };
 
+/// A borrowed, read-only view of a row-major [Matrix] (or a block of its rows), the way `&[T]` is
+/// a view of a `Vec<T>`. Created by [Matrix::view] and [Matrix::split_row_mut].
+#[derive(Clone, Copy)]
+pub struct MatrixView<'a, T> {
+    data: &'a [T],
+    rows: usize,
+    cols: usize,
+}
+
+impl<'a, T> MatrixView<'a, T> {
+    pub fn rows(&self) -> usize {
+        self.rows
+    }
+
+    pub fn cols(&self) -> usize {
+        self.cols
+    }
+
+    pub fn data(&self) -> &'a [T] {
+        self.data
+    }
+
+    pub fn row(&self, row: usize) -> &'a [T] {
+        let start = row * self.cols;
+        &self.data[start..start + self.cols]
+    }
+}
+
+impl<T> Index<(usize, usize)> for MatrixView<'_, T> {
+    type Output = T;
+
+    fn index(&self, (row, col): (usize, usize)) -> &Self::Output {
+        &self.data[row * self.cols + col]
+    }
+}
+
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Matrix<T> {
     data: Vec<T>,
@@ -79,6 +115,33 @@ impl<T> Matrix<T> {
 
     pub fn data(&self) -> &[T] {
         &self.data
+    }
+
+    /// A borrowed, read-only view of the whole matrix.
+    pub fn view(&self) -> MatrixView<'_, T> {
+        MatrixView {
+            data: &self.data,
+            rows: self.rows,
+            cols: self.cols,
+        }
+    }
+
+    /// Splits at `row`: the rows before it as a read-only [MatrixView], and `row` itself
+    /// mutably. Lets you write one row while reading the rows above it.
+    ///
+    /// ```text
+    ///   data:  [ row 0 | row 1 | ... | row-1 ][ row ][ row+1 | ... ]
+    ///          └──────── view ───────────────┘└ &mut ┘
+    /// ```
+    pub fn split_row_mut(&mut self, row: usize) -> (MatrixView<'_, T>, &mut [T]) {
+        let (before, rest) = self.data.split_at_mut(row * self.cols);
+        let view = MatrixView {
+            data: before,
+            rows: row,
+            cols: self.cols,
+        };
+
+        (view, &mut rest[..self.cols])
     }
 
     pub fn is_empty(&self) -> bool {
@@ -504,6 +567,22 @@ mod tests {
         assert_eq!(matrix.row(0), &[1, 2]);
         assert_eq!(matrix.row(1), &[3, 4]);
         assert_eq!(matrix.row(2), &[5, 6]);
+    }
+
+    #[test]
+    fn test_matrix_split_row_mut() {
+        let mut matrix = Matrix::new(vec![1, 2, 3, 4, 5, 6, 7, 8]).reshape(4, 2);
+        let (above, row) = matrix.split_row_mut(2);
+
+        assert_eq!(above.rows(), 2);
+        assert_eq!(above.cols(), 2);
+        assert_eq!(above.row(1), &[3, 4]);
+        assert_eq!(above[(0, 1)], 2);
+        assert_eq!(row, &[5, 6]);
+
+        row[0] = above[(1, 0)] + 10;
+        assert_eq!(matrix.row(2), &[13, 6]);
+        assert_eq!(matrix.view().row(3), &[7, 8]);
     }
 
     #[test]
