@@ -1,8 +1,10 @@
 mod composite;
+mod local;
 mod novelty;
 
 use crate::Score;
 pub use composite::CompositeFitnessFn;
+pub use local::LocalSearch;
 pub use novelty::{Novelty, NoveltySearch};
 
 pub trait FitnessFunction<T, S = f32>: Send + Sync
@@ -21,6 +23,18 @@ where
 {
     fn evaluate(&self, individuals: Vec<T>) -> Vec<S>;
 }
+
+/// Wraps a per-item closure (`Fn(T) -> S`) so it implements both
+/// [`FitnessFunction`] (its primary shape) and [`BatchFitnessFunction`]
+/// (via sequential fan-out). Use when a fitness fn lives most naturally as
+/// per-item but you want it to slot into a batch-aware call site.
+pub struct SingleFn<F>(pub F);
+
+/// Wraps a batch-shaped closure (`Fn(&[T]) -> Vec<S>`) so it implements both
+/// [`BatchFitnessFunction`] (its primary shape) and [`FitnessFunction`]
+/// (via slice-of-one fallback). Use when the fitness fn has shared setup
+/// that should be amortised across the batch.
+pub struct BatchedFn<F>(pub F);
 
 /// Blanket implement FitnessFunction for any function that takes a single argument.
 /// This covers the base case for any function supplied to an engine that takes a decoded phenotype.
@@ -45,18 +59,6 @@ where
         self(&individuals)
     }
 }
-
-/// Wraps a per-item closure (`Fn(T) -> S`) so it implements both
-/// [`FitnessFunction`] (its primary shape) and [`BatchFitnessFunction`]
-/// (via sequential fan-out). Use when a fitness fn lives most naturally as
-/// per-item but you want it to slot into a batch-aware call site.
-pub struct SingleFn<F>(pub F);
-
-/// Wraps a batch-shaped closure (`Fn(&[T]) -> Vec<S>`) so it implements both
-/// [`BatchFitnessFunction`] (its primary shape) and [`FitnessFunction`]
-/// (via slice-of-one fallback). Use when the fitness fn has shared setup
-/// that should be amortised across the batch.
-pub struct BatchedFn<F>(pub F);
 
 impl<T, S, F> FitnessFunction<T, S> for SingleFn<F>
 where

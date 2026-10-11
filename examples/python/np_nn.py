@@ -57,6 +57,33 @@ def fit(weights: list[np.ndarray]) -> float:
     return float(np.mean((yhat - Y) ** 2, dtype=np.float32))
 
 
+@rd.fitness(batch=True)
+def batch(weights: np.ndarray) -> np.ndarray:
+    # weights: (population_size, 88)
+
+    # Decode each layer's weights for every individual
+    W1 = weights[:, :16].reshape((-1, 8, 2))
+    W2 = weights[:, 16:80].reshape((-1, 8, 8))
+    W3 = weights[:, 80:88].reshape((-1, 1, 8))
+
+    # Forward pass
+    # Xb: (N, 2)
+    # W1: (P, 8, 2)
+    h1 = np.einsum("ni,poi->pno", Xb, W1)
+    h1 = np.maximum(0, h1)
+
+    # W2: (P, 8, 8)
+    h2 = np.einsum("pni,poi->pno", h1, W2)
+    h2 = np.tanh(h2)
+
+    # W3: (P, 1, 8)
+    yhat = np.einsum("pni,poi->pno", h2, W3)
+
+    # MSE per individual
+    errors = yhat[:, :, 0] - Y[:, 0]
+    return np.mean(errors**2, axis=1, dtype=np.float32)
+
+
 engine = (
     rd.Engine.float(
         # Create an engine that evolves genomes with 3 chromosomes, one for each
