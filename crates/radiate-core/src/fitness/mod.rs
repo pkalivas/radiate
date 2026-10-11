@@ -1,10 +1,8 @@
 mod composite;
-mod local;
 mod novelty;
 
 use crate::Score;
 pub use composite::CompositeFitnessFn;
-pub use local::LocalSearch;
 pub use novelty::{Novelty, NoveltySearch};
 
 pub trait FitnessFunction<T, S = f32>: Send + Sync
