@@ -51,7 +51,7 @@ impl Loss {
     }
 
     /// Loss over predictions already computed for every sample, e.g. by a
-    /// [GraphKernel](crate::GraphKernel). `preds` is `outputs × samples`: output `j` for sample
+    /// [GraphEvaluator](crate::GraphEvaluator). `preds` is `outputs × samples`: output `j` for sample
     /// `r` is `preds[(j, r)]`. Terms are summed in the same order as [Loss::calculate] (sample by
     /// sample, output by output), so the result is bit-identical.
     ///

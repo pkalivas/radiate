@@ -1,6 +1,6 @@
 use super::{DataSet, Loss};
 use crate::{
-    GraphChromosome, GraphKernel, Op, TreeChromosome, eval::EvalIntoMut, graphs::KernelCache,
+    GraphChromosome, GraphEvaluator, Op, TreeChromosome, eval::EvalIntoMut, graphs::GraphEvalCache,
     ops::OpFloat,
 };
 use radiate_core::{BatchFitnessFunction, Genotype, Score};
@@ -24,7 +24,7 @@ impl<F: OpFloat> Regression<F> {
     }
 
     #[inline]
-    fn feature_cols(&self) -> &Matrix<F> {
+    fn features_matrix_t(&self) -> &Matrix<F> {
         self.feature_cols
             .get_or_init(|| self.data_set.feature_matrix().transpose())
     }
@@ -57,26 +57,24 @@ impl<'a, F> BatchFitnessFunction<&'a Genotype<GraphChromosome<Op<F>>>, F> for Re
 where
     F: OpFloat + Into<Score>,
 {
-    /// Evaluates each graph over the whole data set at once with a [GraphKernel], carrying one
-    /// [KernelCache] from graph to graph so the batch reuses its allocations.
     #[inline]
-    fn evaluate(&self, inputs: &[&'a Genotype<GraphChromosome<Op<F>>>]) -> Vec<F> {
-        let features = self.feature_cols();
+    fn evaluate(&self, graphs: &[&'a Genotype<GraphChromosome<Op<F>>>]) -> Vec<F> {
+        let features = self.features_matrix_t();
         let labels = self.data_set.label_matrix();
 
-        let mut cache = KernelCache::default();
+        let mut cache = GraphEvalCache::default();
         let mut preds = Matrix::default();
-        let mut results = Vec::with_capacity(inputs.len());
-        for input in inputs.iter() {
-            let mut kernel = GraphKernel::from((&input[0], cache));
-            kernel.eval_into_mut(features, &mut preds);
-            cache = kernel.take_cache();
-            cache.bump();
+        let mut scores = Vec::with_capacity(graphs.len());
 
-            results.push(self.loss.calculate_columns(labels, &preds));
+        for graph in graphs.iter() {
+            let mut evaluator = GraphEvaluator::with_cache(&graph[0], cache);
+            evaluator.eval_into_mut(features, &mut preds);
+            cache = evaluator.take_cache();
+
+            scores.push(self.loss.calculate_columns(labels, &preds));
         }
 
-        results
+        scores
     }
 }
 

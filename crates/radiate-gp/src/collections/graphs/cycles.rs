@@ -24,7 +24,6 @@ pub(super) struct Sccs {
 impl Sccs {
     const UNVISITED: u32 = u32::MAX;
 
-    /// Finds the strongly connected components of nodes `0..n`.
     pub(super) fn find(&mut self, n: usize) {
         self.index.clear();
         self.index.resize(n, Self::UNVISITED);

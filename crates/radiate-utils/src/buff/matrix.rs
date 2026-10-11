@@ -126,22 +126,32 @@ impl<T> Matrix<T> {
         }
     }
 
-    /// Splits at `row`: the rows before it as a read-only [MatrixView], and `row` itself
-    /// mutably. Lets you write one row while reading the rows above it.
+    /// Splits around `row`: the rows before it and the rows after it as read-only
+    /// [MatrixView]s, and `row` itself mutably. Lets you write one row while reading any other.
     ///
     /// ```text
-    ///   data:  [ row 0 | row 1 | ... | row-1 ][ row ][ row+1 | ... ]
-    ///          └──────── view ───────────────┘└ &mut ┘
+    ///   data:  [ row 0 | ... | row-1 ][ row ][ row+1 | ... | last ]
+    ///          └────── above ────────┘└&mut ┘└─────── below ───────┘
+    ///   row r < row is above.row(r);  row r > row is below.row(r - row - 1)
     /// ```
-    pub fn split_row_mut(&mut self, row: usize) -> (MatrixView<'_, T>, &mut [T]) {
+    pub fn split_row_mut(
+        &mut self,
+        row: usize,
+    ) -> (MatrixView<'_, T>, &mut [T], MatrixView<'_, T>) {
         let (before, rest) = self.data.split_at_mut(row * self.cols);
-        let view = MatrixView {
+        let (current, after) = rest.split_at_mut(self.cols);
+        let above = MatrixView {
             data: before,
             rows: row,
             cols: self.cols,
         };
+        let below = MatrixView {
+            data: after,
+            rows: self.rows - row - 1,
+            cols: self.cols,
+        };
 
-        (view, &mut rest[..self.cols])
+        (above, current, below)
     }
 
     pub fn is_empty(&self) -> bool {
@@ -572,16 +582,18 @@ mod tests {
     #[test]
     fn test_matrix_split_row_mut() {
         let mut matrix = Matrix::new(vec![1, 2, 3, 4, 5, 6, 7, 8]).reshape(4, 2);
-        let (above, row) = matrix.split_row_mut(2);
+        let (above, row, below) = matrix.split_row_mut(2);
 
         assert_eq!(above.rows(), 2);
         assert_eq!(above.cols(), 2);
         assert_eq!(above.row(1), &[3, 4]);
         assert_eq!(above[(0, 1)], 2);
         assert_eq!(row, &[5, 6]);
+        assert_eq!(below.rows(), 1);
+        assert_eq!(below.row(0), &[7, 8]);
 
-        row[0] = above[(1, 0)] + 10;
-        assert_eq!(matrix.row(2), &[13, 6]);
+        row[0] = above[(1, 0)] + below[(0, 1)];
+        assert_eq!(matrix.row(2), &[11, 6]);
         assert_eq!(matrix.view().row(3), &[7, 8]);
     }
 

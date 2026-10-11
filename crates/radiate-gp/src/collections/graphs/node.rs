@@ -1,5 +1,5 @@
-use crate::node::Node;
-use crate::{Arity, NodeType};
+use crate::{Arity, EvalInto, NodeType};
+use crate::{Eval, node::Node};
 use radiate_core::{Gene, Valid};
 use radiate_utils::SortedBuffer;
 use radiate_utils::sentry_id;
@@ -390,6 +390,29 @@ impl<T> Valid for GraphNode<T> {
             }
             _ => false,
         }
+    }
+}
+
+impl<T, V> Eval<[V], V> for GraphNode<T>
+where
+    T: Eval<[V], V>,
+    V: Copy,
+{
+    #[inline]
+    fn eval(&self, inputs: &[V]) -> V {
+        self.value().eval(inputs)
+    }
+}
+
+impl<'a, T, V> EvalInto<[&'a [V]], [V]> for GraphNode<T>
+where
+    T: EvalInto<[&'a [V]], [V]>,
+{
+    /// Column form of [GraphNode]'s [Eval]: evaluates the node over every sample at once, where
+    /// `inputs[i]` is the column of its i-th input and `buffer` receives one value per sample.
+    #[inline]
+    fn eval_into(&self, inputs: &[&'a [V]], buffer: &mut [V]) {
+        self.value().eval_into(inputs, buffer)
     }
 }
 

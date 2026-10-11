@@ -27,7 +27,7 @@ fn main() {
         .codec(codec)
         .minimizing()
         .fitness_fn(regression)
-        // .parallel()
+        .parallel()
         .offspring_fraction(0.92)
         .replace_strategy(GraphReplacement)
         .offspring_selector(BoltzmannSelector::new(4.0))
@@ -53,7 +53,7 @@ fn display(
     result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>,
 ) {
     println!("{}", result.metrics().dashboard());
-    let mut reducer = GraphKernel::new(result.value());
+    let mut reducer = GraphEvaluator::new(result.value());
 
     let train_acc = Accuracy::default()
         .named("train")
