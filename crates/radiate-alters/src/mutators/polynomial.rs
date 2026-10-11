@@ -75,8 +75,9 @@ where
     #[inline]
     fn mutate_chromosome(&mut self, chromosome: &mut C, ctx: &mut AlterContext) -> usize {
         let mut count = 0;
-        for gene in chromosome.iter_mut() {
-            if random_provider::bool(ctx.rate()) {
+
+        random_provider::bernoulli_indices(ctx.rate(), chromosome.len(), |index| {
+            if let Some(gene) = chromosome.get_mut(index) {
                 let (lower, upper) = gene.bound_range();
                 let min = lower.extract::<f64>().unwrap();
                 let max = upper.extract::<f64>().unwrap();
@@ -88,7 +89,7 @@ where
 
                 count += 1;
             }
-        }
+        });
 
         count
     }

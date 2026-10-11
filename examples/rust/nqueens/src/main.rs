@@ -11,7 +11,7 @@ fn main() {
         .offspring_selector(BoltzmannSelector::new(4.0))
         .alter(alters!(
             MultiPointCrossover::new(0.75, 2),
-            UniformMutator::new(0.05)
+            UniformMutator::new(1.0 / N_QUEENS as f64)
         ))
         .fitness_fn(|queens: Vec<i8>| {
             let mut score = 0;

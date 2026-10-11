@@ -32,18 +32,21 @@ impl<C: ContiguousChromosome + Clone> Crossover<C> for ShuffleCrossover {
         let mut cross_count = 0;
 
         random_provider::with_rng(|rand| {
-            let mut indices = (0..length).collect::<Vec<usize>>();
-            rand.shuffle(&mut indices);
+            let indices = rand.shuffled_indices(0..length);
 
-            let mut zipped = chrom_one.zip(chrom_two);
             for (i, &index) in indices.iter().enumerate() {
                 if i % 2 == 0 {
                     if !rand.bool(ctx.rate()) {
                         continue;
                     }
 
-                    zipped.swap(index);
-                    cross_count += 1;
+                    let one_gene = chrom_one.get_mut(index);
+                    let two_gene = chrom_two.get_mut(index);
+
+                    if let Some((one, two)) = one_gene.zip(two_gene) {
+                        std::mem::swap(one, two);
+                        cross_count += 1;
+                    }
                 }
             }
         });
