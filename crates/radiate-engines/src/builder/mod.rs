@@ -39,7 +39,10 @@ use radiate_core::{Alterer, Ecosystem, Expr, FitnessEvaluator, Valid, metric_nam
 use radiate_core::{ExprSet, ThreadSync};
 use radiate_core::{RadiateError, radiate_err};
 use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
-use radiate_core::{expr, problem::EngineProblem};
+use radiate_core::{
+    expr,
+    problem::{EngineProblem, FitnessKind},
+};
 use radiate_utils::VersionedCounts;
 #[cfg(feature = "serde")]
 use serde::Deserialize;
@@ -228,7 +231,7 @@ where
 
         self.build_event_stream()?;
         self.build_problem()?;
-        self.build_evaluator()?;
+        self.build_evaluator();
         self.build_population()?;
         self.build_alterer()?;
         self.build_front()?;
@@ -267,66 +270,57 @@ where
         Ok(())
     }
 
-    /// Build the problem of the genetic engine. This will create a new problem
-    /// using the codec and fitness function if the problem is not set. If the
-    /// problem is already set, this function will do nothing. Else, if the fitness function is
-    /// a batch fitness function, it will create a new [BatchEngineProblem] and swap the evaluator
-    /// to use a [BatchFitnessEvaluator].
+    /// Build the problem of the genetic engine. If a problem is already set, this does
+    /// nothing. Otherwise it creates an [EngineProblem] from the codec and the fitness
+    /// function.
     fn build_problem(&mut self) -> Result<()> {
         if self.params.problem_params.problem.is_some() {
             return Ok(());
         }
 
-        if self.params.problem_params.codec.is_none() {
+        let Some(codec) = self.params.problem_params.codec.clone() else {
             return Err(radiate_err!(Builder: "Codec not set"));
-        }
+        };
 
-        let codec = self.params.problem_params.codec.clone().unwrap();
-        let objective = self.params.optimization_params.objectives.clone();
-        let fitness_kind = self.params.problem_params.fitness_kind.clone();
+        let Some(fitness_kind) = self.params.problem_params.fitness_kind.clone() else {
+            return Err(radiate_err!(Builder: "Fitness function not set"));
+        };
 
-        if let Some(fitness_kind) = fitness_kind {
-            let problem = Arc::new(EngineProblem {
-                objective,
-                codec,
-                fitness_kind,
-            });
+        self.params.problem_params.problem = Some(Arc::new(EngineProblem {
+            objective: self.params.optimization_params.objectives.clone(),
+            codec,
+            fitness_kind,
+        }));
 
-            self.params.problem_params.problem = Some(problem);
-
-            return Ok(());
-        } else {
-            Err(radiate_err!(Builder: "Fitness function not set"))
-        }
+        Ok(())
     }
 
-    fn build_evaluator(&mut self) -> Result<()> {
-        let fitness_kind = self.params.problem_params.fitness_kind.clone();
-        let evaluator = self.params.evaluation_params.evaluator.clone();
-
-        if evaluator.is_none() {
-            if let Some(fitness_kind) = fitness_kind
-                && fitness_kind.is_batch()
-            {
-                self.params.evaluation_params.evaluator =
-                    Some(Arc::new(BatchFitnessEvaluator::new(
-                        self.params
-                            .evaluation_params
-                            .fitness_executor
-                            .executor
-                            .clone(),
-                    )));
-            } else {
-                self.params.evaluation_params.evaluator = Some(Arc::new(FitnessEvaluator::new(
-                    self.params
-                        .evaluation_params
-                        .fitness_executor
-                        .executor
-                        .clone(),
-                )));
-            }
+    /// Build the evaluator of the genetic engine. If an evaluator is already set, this
+    /// does nothing. Otherwise it picks a [BatchFitnessEvaluator] for a batch fitness
+    /// function and a [FitnessEvaluator] for everything else, both on the fitness executor.
+    fn build_evaluator(&mut self) {
+        if self.params.evaluation_params.evaluator.is_some() {
+            return;
         }
-        Ok(())
+
+        let executor = self
+            .params
+            .evaluation_params
+            .fitness_executor
+            .executor
+            .clone();
+        let is_batch = self
+            .params
+            .problem_params
+            .fitness_kind
+            .as_ref()
+            .is_some_and(FitnessKind::is_batch);
+
+        self.params.evaluation_params.evaluator = Some(if is_batch {
+            Arc::new(BatchFitnessEvaluator::new(executor))
+        } else {
+            Arc::new(FitnessEvaluator::new(executor))
+        });
     }
 
     /// Build the population of the genetic engine. This will create a new population
@@ -448,10 +442,7 @@ where
         let eval_step = EvaluateStep {
             objective: config.objective(),
             problem: config.problem(),
-            evaluator: config
-                .evaluator()
-                .clone()
-                .expect("No Evaluator set - this shouldn't happen"),
+            evaluator: config.evaluator(),
         };
 
         Some(Box::new(eval_step))

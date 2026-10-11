@@ -48,7 +48,7 @@ impl<C: Chromosome, T> PyProblem<C, T> {
     fn call_batch_fitness<'py>(
         &self,
         py: Python<'py>,
-        phenotypes: Py<PyAny>,
+        phenotypes: Bound<'py, PyAny>,
     ) -> RadiateResult<Vec<Score>> {
         let any_value = self
             .fitness_func
@@ -204,28 +204,66 @@ impl<C: Chromosome, T: IntoPyAnyObject> Problem<C, T> for PyProblem<C, T> {
     fn eval_batch(&self, individuals: &[Genotype<C>]) -> RadiateResult<Vec<Score>> {
         Python::attach(|py| {
             if !self.is_batch {
-                individuals
+                return individuals
                     .iter()
                     .map(|ind| {
                         let phenotype = self.codec.decode_with_py(py, ind).into_py(py)?;
                         self.call_fitness(py, phenotype)
                     })
-                    .collect()
-            } else {
-                let phenotypes = PyList::new(
-                    py,
-                    individuals.iter().map(|ind| {
-                        match self.codec.decode_with_py(py, ind).into_py(py) {
-                            Ok(p) => p.inner,
-                            Err(_) => py.None(),
-                        }
-                    }),
-                )?;
-
-                self.call_batch_fitness(py, phenotypes.into())
+                    .collect();
             }
+
+            // One array for the whole batch when the codec supports it,
+            // otherwise a list with one decoded value per individual.
+            let phenotypes = match self.codec.decode_batch_with_py(py, individuals) {
+                Some(batch) => batch,
+                None => {
+                    let items = individuals
+                        .iter()
+                        .map(|ind| Ok(self.codec.decode_with_py(py, ind).into_py(py)?.inner))
+                        .collect::<RadiateResult<Vec<_>>>()?;
+                    PyList::new(py, items)?.into_any()
+                }
+            };
+
+            let scores = self.call_batch_fitness(py, phenotypes)?;
+            if scores.len() != individuals.len() {
+                error::radiate_bail!(Fitness:
+                    "Batch fitness function returned {} scores, but {} individuals were provided.",
+                    scores.len(),
+                    individuals.len()
+                );
+            }
+
+            Ok(scores)
         })
     }
+
+    // fn eval_batch(&self, individuals: &[Genotype<C>]) -> RadiateResult<Vec<Score>> {
+    //     Python::attach(|py| {
+    //         if !self.is_batch {
+    //             individuals
+    //                 .iter()
+    //                 .map(|ind| {
+    //                     let phenotype = self.codec.decode_with_py(py, ind).into_py(py)?;
+    //                     self.call_fitness(py, phenotype)
+    //                 })
+    //                 .collect()
+    //         } else {
+    //             let phenotypes = PyList::new(
+    //                 py,
+    //                 individuals.iter().map(|ind| {
+    //                     match self.codec.decode_with_py(py, ind).into_py(py) {
+    //                         Ok(p) => p.inner,
+    //                         Err(_) => py.None(),
+    //                     }
+    //                 }),
+    //             )?;
+
+    //             self.call_batch_fitness(py, phenotypes.into())
+    //         }
+    //     })
+    // }
 }
 
 unsafe impl<C: Chromosome, T> Send for PyProblem<C, T> {}

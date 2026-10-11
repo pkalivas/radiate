@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from enum import StrEnum
 from functools import wraps
-from typing import Any, Literal, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Literal, Never, TypeVar, overload
 
 from radiate._typing import RdDataType, RdLossType
 
@@ -13,6 +13,9 @@ from ..utils._normalize import _normalize_regression_data
 from .distance import Dist
 from .input import EngineInput, EngineInputType
 
+if TYPE_CHECKING:
+    from radiate._dependancies import numpy as np
+
 type NoveltyOutput = float | int | list[float] | list[int]
 
 
@@ -20,7 +23,7 @@ T = TypeVar("T")
 
 
 @overload
-def fitness(func: Callable[[T | list[T]], Any], /) -> Fitness[T]: ...
+def fitness(func: Callable[[T], Any], /) -> Fitness[T]: ...
 
 
 @overload
@@ -31,14 +34,16 @@ def fitness(
 
 @overload
 def fitness(
-    *, batch: Literal[True] = True
-) -> Callable[[Callable[[list[T]], Any]], Fitness[T]]: ...
+    *, batch: Literal[True]
+) -> Callable[[Callable[[list[T]], Any] | Callable[[np.ndarray], Any]], Fitness[T]]: ...
 
 
 def fitness(
-    func: Callable[[T | list[T]], Any] | None = None, *, batch: bool = False
+    func: Callable[..., Any] | None = None,
+    *,
+    batch: bool = False,
 ) -> Any:
-    def decorator(f: Callable[[T | list[T]], Any]) -> Fitness[T]:
+    def decorator(f: Callable[..., Any]) -> Fitness[Never]:
         @wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             return f(*args, **kwargs)

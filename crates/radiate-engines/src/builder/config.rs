@@ -20,7 +20,7 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     filters: Vec<Arc<Mutex<dyn EcosystemFilter<C>>>>,
     alterers: Vec<Alterer<C>>,
     distance: Option<Arc<dyn Distance<Phenotype<C>>>>,
-    evaluator: Option<Arc<dyn Evaluator<C, T>>>,
+    evaluator: Arc<dyn Evaluator<C, T>>,
     objective: Objective,
     max_age: usize,
     max_species_age: usize,
@@ -74,8 +74,8 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         Arc::clone(&self.front)
     }
 
-    pub fn evaluator(&self) -> Option<Arc<dyn Evaluator<C, T>>> {
-        self.evaluator.clone()
+    pub fn evaluator(&self) -> Arc<dyn Evaluator<C, T>> {
+        Arc::clone(&self.evaluator)
     }
 
     pub fn survivor_count(&self) -> usize {
@@ -153,7 +153,7 @@ where
                 params.optimization_params.front.clone().unwrap(),
             )),
             offspring_fraction: params.selection_params.offspring_fraction,
-            evaluator: params.evaluation_params.evaluator.clone(),
+            evaluator: params.evaluation_params.evaluator.clone().unwrap(),
             executor: params.evaluation_params.clone(),
             generation: params.generation.clone(),
             exprs: params.exprs.clone(),

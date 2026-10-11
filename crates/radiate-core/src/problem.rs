@@ -7,33 +7,34 @@
 //!
 //! The module provides both the trait definition and concrete implementations:
 //! - **Problem trait**: Core interface for genetic algorithm problems
-//! - **EngineProblem**: Standard implementation using individual fitness functions
-//! - **BatchEngineProblem**: Optimized implementation for batch fitness evaluation
+//! - **EngineProblem**: Standard implementation wrapping a codec and a [FitnessKind]
+//!   (single or batch, on decoded values or raw genotypes)
 
 use super::{Chromosome, Codec, Genotype, Score};
 use crate::{Objective, error::RadiateResult};
 use radiate_error::{RadiateError, radiate_err};
 use std::sync::Arc;
 
+pub type FitnessFn<T> = dyn Fn(T) -> Score + Send + Sync;
+pub type BatchFitnessFn<T> = dyn Fn(Vec<T>) -> Vec<Score> + Send + Sync;
+pub type RawFitnessFn<C> = dyn Fn(&Genotype<C>) -> Score + Send + Sync;
+pub type RawBatchFitnessFn<C> = dyn Fn(Vec<&Genotype<C>>) -> Vec<Score> + Send + Sync;
+
 #[derive(Clone)]
 pub enum FitnessKind<C, T>
 where
     C: Chromosome,
 {
-    Single(Arc<dyn Fn(T) -> Score + Send + Sync>),
-    Batch(Arc<dyn Fn(Vec<T>) -> Vec<Score> + Send + Sync>),
-    RawSingle(Arc<dyn Fn(&Genotype<C>) -> Score + Send + Sync>),
-    RawBatch(Arc<dyn Fn(Vec<&Genotype<C>>) -> Vec<Score> + Send + Sync>),
+    Single(Arc<FitnessFn<T>>),
+    Batch(Arc<BatchFitnessFn<T>>),
+    RawSingle(Arc<RawFitnessFn<C>>),
+    RawBatch(Arc<RawBatchFitnessFn<C>>),
 }
 
 impl<C, T> FitnessKind<C, T>
 where
     C: Chromosome,
 {
-    pub fn is_single(&self) -> bool {
-        matches!(self, FitnessKind::Single(_) | FitnessKind::RawSingle(_))
-    }
-
     pub fn is_batch(&self) -> bool {
         matches!(self, FitnessKind::Batch(_) | FitnessKind::RawBatch(_))
     }
@@ -215,7 +216,7 @@ impl<C: Chromosome, T> Problem<C, T> for EngineProblem<C, T> {
             }
             _ => {
                 return Err(radiate_err!(
-                    Fitness: "No batch fitness function defined for BatchEngineProblem"
+                    Fitness: "No batch fitness function defined for EngineProblem"
                 ));
             }
         };
@@ -322,5 +323,28 @@ mod tests {
         assert_eq!(scores.len(), 2);
         assert_eq!(scores[0].as_f32(), 3.0);
         assert_eq!(scores[1].as_f32(), 3.0);
+    }
+
+    #[test]
+    fn test_engine_problem_batch_rejects_wrong_score_count() {
+        // A wrong-length result used to be zipped against the batch, silently dropping
+        // the genotypes of unscored individuals.
+        for extra in [-1_isize, 1] {
+            let fitness_fn = Arc::new(move |phenotypes: Vec<MockPhenotype>| {
+                let len = (phenotypes.len() as isize + extra) as usize;
+                vec![Score::from(1.0); len]
+            });
+
+            let problem = EngineProblem {
+                objective: Objective::default(),
+                codec: Arc::new(MockCodec),
+                fitness_kind: FitnessKind::Batch(fitness_fn),
+            };
+
+            let genotypes = vec![problem.encode(), problem.encode()];
+            let err = problem.eval_batch(&genotypes).unwrap_err().to_string();
+            let expected = format!("expected 2, got {}", 2 + extra);
+            assert!(err.contains(&expected), "unexpected error: {err}");
+        }
     }
 }
