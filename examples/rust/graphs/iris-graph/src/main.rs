@@ -53,19 +53,18 @@ fn display(
     result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>,
 ) {
     println!("{}", result.metrics().dashboard());
-    let mut reducer = GraphEvaluator::new(result.value());
 
     let train_acc = Accuracy::default()
         .named("train")
         .on(train)
         .loss(Loss::MSE)
-        .calc(&mut reducer);
+        .eval(result.value());
 
     let test_acc = Accuracy::default()
         .named("test")
         .on(test)
         .loss(Loss::MSE)
-        .calc(&mut reducer);
+        .eval(result.value());
 
     println!("{:?}", result);
     println!("{:?}", train_acc);

@@ -1,5 +1,7 @@
 use super::transaction::TransactionResult;
-use crate::{Eval, EvalInto, EvalIntoMut, EvalMut, collections::graphs::GraphTransaction};
+use crate::{
+    Eval, EvalInto, EvalIntoMut, EvalMut, Op, StatefulGraph, collections::graphs::GraphTransaction,
+};
 use crate::{
     GraphEvaluator,
     collections::{Direction, GraphNode},
@@ -350,6 +352,12 @@ impl<T> Graph<T> {
             }
         }
         out
+    }
+}
+
+impl<T> Graph<Op<T>> {
+    pub fn compile(self) -> StatefulGraph<Op<T>, T> {
+        StatefulGraph::new(self)
     }
 }
 

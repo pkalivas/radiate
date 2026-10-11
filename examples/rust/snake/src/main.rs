@@ -84,7 +84,9 @@ fn run_graph_engine() {
             OperationMutator::new(0.04, 0.05),
             GraphMutator::new(0.01, 0.01)
         ))
-        .fitness_fn(|g: Graph<Op<f32>>| snake_fitness(&mut &mut SnakeAI::Graph(&g)))
+        .fitness_fn(|g: Graph<Op<f32>>| {
+            snake_fitness(&mut &mut SnakeAI::StateFull(&mut g.compile()))
+        })
         .build();
 
     engine

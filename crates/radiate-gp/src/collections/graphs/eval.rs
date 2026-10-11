@@ -38,8 +38,8 @@ const STACK_INPUTS: usize = 8;
 /// A [GraphEvaluator]'s reusable state: the compiled plan, each node's latest value, and the
 /// buffers it runs in.
 ///
-/// The cache can evaluate its graph directly ([GraphEvalCache::eval_row],
-/// [GraphEvalCache::eval_batch]), so whatever owns a graph can own its cache too, compile once,
+/// The cache can evaluate its graph directly (`process_single_row_into`,
+/// `process_batch_column_major`), so whatever owns a graph can own its cache too, compile once,
 /// and evaluate without holding a [GraphEvaluator] borrow (see `StatefulGraph`).
 ///
 /// - Keep one between calls on the *same* graph ([GraphEvaluator::take_cache],
@@ -91,7 +91,7 @@ where
 /// [GraphEvaluator] evaluates a [Graph] of [GraphNode]s through [EvalIntoMut] / [EvalMut], two
 /// ways:
 ///
-/// - **One sample at a time**, `[V]` in, `[V]` out: runs the nodes in the [GraphIterator]'s
+/// - **One sample at a time**, `[V]` in, `[V]` out: runs the nodes in the [GraphIterator](super::GraphIterator)'s
 ///   pseudo-topological order, keeping each node's last value between calls, so recurrent graphs
 ///   carry state from one sample to the next.
 /// - **A whole batch at once**, `features × samples` in, `outputs × samples` out: runs the plan's
@@ -164,7 +164,7 @@ where
     T: Eval<[V], V>,
     V: Copy + Default,
 {
-    /// Evaluates one sample; see [GraphEvalCache::eval_row].
+    /// Evaluates one sample; see `process_single_row_into`.
     #[inline]
     fn eval_into_mut(&mut self, input: &[V], buffer: &mut [V]) {
         process_single_row_into(&mut self.inner, self.nodes, input, buffer);
@@ -189,7 +189,7 @@ where
     T: Eval<[V], V> + for<'c> EvalInto<[&'c [V]], [V]>,
     V: Copy + Default,
 {
-    /// Evaluates every sample at once; see [GraphEvalCache::eval_batch].
+    /// Evaluates every sample at once; see `process_batch_column_major`.
     fn eval_into_mut(&mut self, features: &Matrix<V>, outputs: &mut Matrix<V>) {
         process_batch_column_major(&mut self.inner, self.nodes, features, outputs);
     }
