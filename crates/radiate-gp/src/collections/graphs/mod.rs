@@ -22,7 +22,7 @@ pub use codec::GraphCodec;
 pub use compile::GraphPlan;
 pub use crossover::GraphCrossover;
 pub use distance::NeatDistance;
-pub use eval::{GraphEvalCache, GraphEvaluator};
+pub use eval::{GraphKernel, KernelCache};
 pub use graph::Graph;
 pub use iter::GraphIterator;
 pub use mutation::GraphMutator;

@@ -1,4 +1,4 @@
-use crate::{Eval, EvalMut, Graph, GraphEvaluator, GraphIterator, graphs::GraphEvalCache};
+use crate::{Eval, EvalMut, Graph, GraphIterator, GraphKernel, graphs::KernelCache};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct StatefulGraph<T, V> {
     inner: Graph<T>,
-    state: Option<GraphEvalCache<V>>,
+    state: Option<KernelCache<V>>,
 }
 
 impl<T, V> StatefulGraph<T, V> {
@@ -50,8 +50,8 @@ where
 {
     fn eval_mut(&mut self, input: &[V]) -> Vec<V> {
         let mut kernel = match self.state.take() {
-            Some(c) => GraphEvaluator::from((&self.inner, c)),
-            None => GraphEvaluator::new(&self.inner),
+            Some(c) => GraphKernel::from((&self.inner, c)),
+            None => GraphKernel::new(&self.inner),
         };
         // let mut evaluator = match self.state.take() {
         //     Some(c) => GraphEvaluator::from((&self.inner, c)),

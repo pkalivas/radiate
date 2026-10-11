@@ -52,7 +52,7 @@ const FOOD_POSITIONS: LazyLock<[(i32, i32); 1000]> = LazyLock::new(|| {
 fn main() {
     let mut args = std::env::args();
     args.next();
-    let engine_type = args.next().unwrap_or_else(|| "n".to_string());
+    let engine_type = args.next().unwrap_or_else(|| "g".to_string());
 
     match engine_type.as_str() {
         "g" => run_graph_engine(),

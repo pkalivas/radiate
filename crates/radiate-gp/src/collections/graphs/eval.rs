@@ -94,7 +94,7 @@ use super::{
     GraphNode,
     compile::{GraphPlan, Step, When},
 };
-use crate::{Eval, EvalInto, EvalIntoMut, EvalMut, Graph, Node};
+use crate::{Eval, EvalInto, EvalIntoMut, EvalMut, Graph, GraphIterator, Node, NodeType};
 use radiate_utils::Matrix;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -110,7 +110,7 @@ const STACK_INPUTS: usize = 8;
 /// avoid reallocating.
 #[derive(Default, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct GraphEvalCache<V> {
+pub struct KernelCache<V> {
     plan: GraphPlan,
     values: Matrix<V>,
     lagged: Vec<V>,
@@ -120,12 +120,12 @@ pub struct GraphEvalCache<V> {
     is_ready: bool,
 }
 
-impl<V> GraphEvalCache<V>
+impl<V> KernelCache<V>
 where
     V: Default + Clone,
 {
     pub fn new<T>(nodes: &[GraphNode<T>]) -> Self {
-        let mut cache = GraphEvalCache::default();
+        let mut cache = KernelCache::default();
         cache.plan.compile(nodes);
         cache.row_values.resize(cache.plan.slots(), V::default());
         cache
@@ -157,12 +157,12 @@ where
 ///   let output = kernel.eval_mut(&sample);        // sample: [features]   → [outputs]
 ///   let outputs = kernel.eval_mut(&features);     // features × samples  → outputs × samples
 /// ```
-pub struct GraphEvaluator<'a, T, V> {
+pub struct GraphKernel<'a, T, V> {
     nodes: &'a [GraphNode<T>],
-    inner: GraphEvalCache<V>,
+    inner: KernelCache<V>,
 }
 
-impl<'a, T, V> GraphEvaluator<'a, T, V>
+impl<'a, T, V> GraphKernel<'a, T, V>
 where
     V: Default + Clone,
 {
@@ -170,15 +170,15 @@ where
     where
         G: AsRef<[GraphNode<T>]>,
     {
-        let cache = GraphEvalCache::new(graph.as_ref());
-        GraphEvaluator::from((graph, cache))
+        let cache = KernelCache::new(graph.as_ref());
+        GraphKernel::from((graph, cache))
     }
 
     pub fn plan(&self) -> &GraphPlan {
         &self.inner.plan
     }
 
-    pub fn take_cache(self) -> GraphEvalCache<V> {
+    pub fn take_cache(self) -> KernelCache<V> {
         self.inner
     }
 
@@ -191,12 +191,12 @@ where
     }
 }
 
-impl<'a, G, T, V> From<(&'a G, GraphEvalCache<V>)> for GraphEvaluator<'a, T, V>
+impl<'a, G, T, V> From<(&'a G, KernelCache<V>)> for GraphKernel<'a, T, V>
 where
     G: AsRef<[GraphNode<T>]>,
     V: Default + Clone,
 {
-    fn from((graph, mut cache): (&'a G, GraphEvalCache<V>)) -> Self {
+    fn from((graph, mut cache): (&'a G, KernelCache<V>)) -> Self {
         if !cache.is_ready {
             cache.plan.compile(graph.as_ref());
             cache.row_values.clear();
@@ -205,14 +205,14 @@ where
         }
 
         let nodes = graph.as_ref();
-        GraphEvaluator {
+        GraphKernel {
             nodes,
             inner: cache,
         }
     }
 }
 
-impl<T, V> EvalIntoMut<Matrix<V>, Matrix<V>> for GraphEvaluator<'_, T, V>
+impl<T, V> EvalIntoMut<Matrix<V>, Matrix<V>> for GraphKernel<'_, T, V>
 where
     T: Eval<[V], V> + for<'c> EvalInto<[&'c [V]], [V]>,
     V: Copy + Default,
@@ -247,7 +247,7 @@ where
     }
 }
 
-impl<T, V> EvalIntoMut<[V], [V]> for GraphEvaluator<'_, T, V>
+impl<T, V> EvalIntoMut<[V], [V]> for GraphKernel<'_, T, V>
 where
     T: Eval<[V], V>,
     V: Copy + Default,
@@ -257,7 +257,7 @@ where
     /// otherwise the previous sample's (or default on the first call). `buffer` receives the
     /// output nodes' values, in output order.
     fn eval_into_mut(&mut self, input: &[V], buffer: &mut [V]) {
-        let GraphEvalCache {
+        let KernelCache {
             plan,
             row_values,
             scratch,
@@ -285,7 +285,7 @@ where
     }
 }
 
-impl<T, V> EvalMut<[V], Vec<V>> for GraphEvaluator<'_, T, V>
+impl<T, V> EvalMut<[V], Vec<V>> for GraphKernel<'_, T, V>
 where
     T: Eval<[V], V>,
     V: Copy + Default,
@@ -298,7 +298,7 @@ where
     }
 }
 
-impl<T, V> EvalMut<Matrix<V>, Matrix<V>> for GraphEvaluator<'_, T, V>
+impl<T, V> EvalMut<Matrix<V>, Matrix<V>> for GraphKernel<'_, T, V>
 where
     T: Eval<[V], V> + for<'c> EvalInto<[&'c [V]], [V]>,
     V: Copy + Default,
@@ -325,7 +325,7 @@ where
     /// * A `Vec<Vec<T>>` which is the output of the [Graph].
     #[inline]
     fn eval_into(&self, input: &[Vec<V>], buffer: &mut Vec<Vec<V>>) {
-        let mut evaluator = GraphEvaluator::new(self);
+        let mut evaluator = GraphKernel::new(self);
         for i in 0..input.len() {
             evaluator.eval_into_mut(&input[i], &mut buffer[i]);
         }
@@ -398,12 +398,12 @@ where
 /// Inputs from outside the cycle are complete columns by the time this runs, so the only
 /// sequential work is the cycle itself. A node on a cycle always has incoming edges, so it
 /// never reads the features directly.
-fn eval_cycle<T, V>(slots: Range<usize>, nodes: &[GraphNode<T>], inner: &mut GraphEvalCache<V>)
+fn eval_cycle<T, V>(slots: Range<usize>, nodes: &[GraphNode<T>], inner: &mut KernelCache<V>)
 where
     T: Eval<[V], V>,
     V: Copy + Default,
 {
-    let GraphEvalCache {
+    let KernelCache {
         values,
         plan,
         scratch,
@@ -432,17 +432,13 @@ where
 fn eval_column<T, V>(
     slot: usize,
     nodes: &[GraphNode<T>],
-    cache: &mut GraphEvalCache<V>,
-    // plan: &GraphPlan,
-    // values: &mut Matrix<V>,
-    // lagged: &mut Vec<V>,
-    // defaults: &[V],
+    cache: &mut KernelCache<V>,
     features: &Matrix<V>,
 ) where
     T: for<'c> EvalInto<[&'c [V]], [V]>,
     V: Copy + Default,
 {
-    let GraphEvalCache {
+    let KernelCache {
         plan,
         values,
         lagged,
@@ -493,152 +489,152 @@ fn eval_column<T, V>(
     node.eval_into(&stack, out);
 }
 
-// impl<'a, G, T, V> From<(&'a G, GraphEvalCache<V>)> for GraphEvaluator<'a, T, V>
-// where
-//     G: AsRef<[GraphNode<T>]>,
-//     T: Eval<[V], V>,
-//     V: Default + Clone,
-// {
-//     fn from((graph, cache): (&'a G, GraphEvalCache<V>)) -> Self {
-//         if cache.eval_order.is_empty() || graph.as_ref().len() != cache.eval_order.len() {
-//             return GraphEvaluator::new(graph);
-//         }
+/// A cache for storing intermediate results during graph evaluation.
+///
+/// This cache is used to store the inputs and outputs of each node in the graph
+/// during evaluation, allowing for more efficient re-evaluation of nodes when
+/// their inputs change. If we want to save a graph's evaluation between different evals,
+/// we need to keep track of the inputs and outputs from previous runs incase of recurrent
+/// structures. This cache is the answer to that.
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct GraphEvalCache<V> {
+    eval_order: Vec<usize>,
+    outputs: Vec<V>,
+    inputs: Vec<V>,
+    input_ranges: Vec<(usize, usize)>,
+    output_indices: Vec<usize>,
+}
 
-//         GraphEvaluator {
-//             nodes: graph.as_ref(),
-//             inner: cache,
-//         }
-//     }
-// }
+/// [GraphEvaluator] is a struct that is used to evaluate a [Graph] of [GraphNode]'s. It uses the [GraphIterator]
+/// to traverse the [Graph] in a pseudo-topological order and evaluate the nodes in the correct order.
+pub struct GraphEvaluator<'a, T, V> {
+    nodes: &'a [GraphNode<T>],
+    inner: GraphEvalCache<V>,
+}
 
-// impl<'a, T, V> From<&'a Graph<T>> for GraphEvaluator<'a, T, V>
-// where
-//     T: Eval<[V], V>,
-//     V: Default + Clone,
-// {
-//     fn from(graph: &'a Graph<T>) -> Self {
-//         GraphEvaluator::new(graph)
-//     }
-// }
+impl<'a, T, V> GraphEvaluator<'a, T, V>
+where
+    T: Eval<[V], V>,
+    V: Default + Clone,
+{
+    /// Creates a new [GraphEvaluator] with the given [Graph]. We pre-allocate the necessary
+    /// storage for inputs and outputs based on the structure of the graph on creation.
+    /// This way, we can reuse the same evaluator for multiple evaluations of the same graph
+    /// without needing to reallocate memory each time.
+    ///
+    /// # Arguments
+    /// * graph - The [Graph] to reduce.
+    #[inline]
+    pub fn new<N>(graph: &'a N) -> Self
+    where
+        N: AsRef<[GraphNode<T>]>,
+    {
+        let nodes = graph.as_ref();
 
-// /// A cache for storing intermediate results during graph evaluation.
-// ///
-// /// This cache is used to store the inputs and outputs of each node in the graph
-// /// during evaluation, allowing for more efficient re-evaluation of nodes when
-// /// their inputs change. If we want to save a graph's evaluation between different evals,
-// /// we need to keep track of the inputs and outputs from previous runs incase of recurrent
-// /// structures. This cache is the answer to that.
-// #[derive(Clone, Debug, PartialEq)]
-// #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-// pub struct GraphEvalCache<V> {
-//     eval_order: Vec<usize>,
-//     outputs: Vec<V>,
-//     inputs: Vec<V>,
-//     input_ranges: Vec<(usize, usize)>,
-//     output_indices: Vec<usize>,
-// }
+        let mut total_inputs = 0;
+        let mut input_ranges = Vec::with_capacity(nodes.len());
 
-// /// [GraphEvaluator] is a struct that is used to evaluate a [Graph] of [GraphNode]'s. It uses the [GraphIterator]
-// /// to traverse the [Graph] in a pseudo-topological order and evaluate the nodes in the correct order.
-// pub struct GraphEvaluator<'a, T, V> {
-//     nodes: &'a [GraphNode<T>],
-//     inner: GraphEvalCache<V>,
-// }
+        for node in nodes {
+            let k = node.incoming().len();
+            input_ranges.push((total_inputs, total_inputs + k));
+            total_inputs += k;
+        }
 
-// impl<'a, T, V> GraphEvaluator<'a, T, V>
-// where
-//     T: Eval<[V], V>,
-//     V: Default + Clone,
-// {
-//     /// Creates a new [GraphEvaluator] with the given [Graph]. We pre-allocate the necessary
-//     /// storage for inputs and outputs based on the structure of the graph on creation.
-//     /// This way, we can reuse the same evaluator for multiple evaluations of the same graph
-//     /// without needing to reallocate memory each time.
-//     ///
-//     /// # Arguments
-//     /// * graph - The [Graph] to reduce.
-//     #[inline]
-//     pub fn new<N>(graph: &'a N) -> Self
-//     where
-//         N: AsRef<[GraphNode<T>]>,
-//     {
-//         let nodes = graph.as_ref();
+        let output_indices = graph
+            .get_nodes_of_type(NodeType::Output)
+            .map(|n| n.index())
+            .collect::<Vec<usize>>();
 
-//         let mut total_inputs = 0;
-//         let mut input_ranges = Vec::with_capacity(nodes.len());
+        GraphEvaluator {
+            nodes,
+            inner: GraphEvalCache {
+                inputs: vec![V::default(); total_inputs],
+                outputs: vec![V::default(); nodes.len()],
+                eval_order: nodes.iter_topological().map(|n| n.index()).collect(),
+                input_ranges,
+                output_indices,
+            },
+        }
+    }
 
-//         for node in nodes {
-//             let k = node.incoming().len();
-//             input_ranges.push((total_inputs, total_inputs + k));
-//             total_inputs += k;
-//         }
+    pub fn take_cache(self) -> GraphEvalCache<V> {
+        self.inner
+    }
+}
 
-//         let output_indices = graph
-//             .get_nodes_of_type(NodeType::Output)
-//             .map(|n| n.index())
-//             .collect::<Vec<usize>>();
+impl<T, V> EvalMut<[V], Vec<V>> for GraphEvaluator<'_, T, V>
+where
+    T: Eval<[V], V>,
+    V: Copy + Default,
+{
+    #[inline]
+    fn eval_mut(&mut self, input: &[V]) -> Vec<V> {
+        let out_len = self.inner.output_indices.len();
+        let mut buffer = vec![V::default(); out_len];
+        self.eval_into_mut(input, &mut buffer[..]);
+        buffer
+    }
+}
 
-//         GraphEvaluator {
-//             nodes,
-//             inner: GraphEvalCache {
-//                 inputs: vec![V::default(); total_inputs],
-//                 outputs: vec![V::default(); nodes.len()],
-//                 eval_order: nodes.iter_topological().map(|n| n.index()).collect(),
-//                 input_ranges,
-//                 output_indices,
-//             },
-//         }
-//     }
+impl<T, V> EvalIntoMut<[V], [V]> for GraphEvaluator<'_, T, V>
+where
+    T: Eval<[V], V>,
+    V: Copy + Default,
+{
+    #[inline]
+    fn eval_into_mut(&mut self, input: &[V], buffer: &mut [V]) {
+        for &index in self.inner.eval_order.iter() {
+            let node = &self.nodes[index];
+            let incoming = node.incoming();
 
-//     pub fn take_cache(self) -> GraphEvalCache<V> {
-//         self.inner
-//     }
-// }
+            if incoming.is_empty() {
+                self.inner.outputs[index] = node.eval(input);
+            } else {
+                let (start, end) = &self.inner.input_ranges[index];
+                let buf = &mut self.inner.inputs[*start..*end];
 
-// impl<T, V> EvalMut<[V], Vec<V>> for GraphEvaluator<'_, T, V>
-// where
-//     T: Eval<[V], V>,
-//     V: Copy + Default,
-// {
-//     #[inline]
-//     fn eval_mut(&mut self, input: &[V]) -> Vec<V> {
-//         let out_len = self.inner.output_indices.len();
-//         let mut buffer = vec![V::default(); out_len];
-//         self.eval_into_mut(input, &mut buffer[..]);
-//         buffer
-//     }
-// }
+                for (dst, &src_idx) in buf.iter_mut().zip(incoming.iter()) {
+                    *dst = self.inner.outputs[src_idx];
+                }
 
-// impl<T, V> EvalIntoMut<[V], [V]> for GraphEvaluator<'_, T, V>
-// where
-//     T: Eval<[V], V>,
-//     V: Copy + Default,
-// {
-//     #[inline]
-//     fn eval_into_mut(&mut self, input: &[V], buffer: &mut [V]) {
-//         for &index in self.inner.eval_order.iter() {
-//             let node = &self.nodes[index];
-//             let incoming = node.incoming();
+                self.inner.outputs[index] = node.eval(buf);
+            }
+        }
 
-//             if incoming.is_empty() {
-//                 self.inner.outputs[index] = node.eval(input);
-//             } else {
-//                 let (start, end) = &self.inner.input_ranges[index];
-//                 let buf = &mut self.inner.inputs[*start..*end];
+        for (count, &idx) in self.inner.output_indices.iter().enumerate() {
+            buffer[count] = self.inner.outputs[idx];
+        }
+    }
+}
 
-//                 for (dst, &src_idx) in buf.iter_mut().zip(incoming.iter()) {
-//                     *dst = self.inner.outputs[src_idx];
-//                 }
+impl<'a, G, T, V> From<(&'a G, GraphEvalCache<V>)> for GraphEvaluator<'a, T, V>
+where
+    G: AsRef<[GraphNode<T>]>,
+    T: Eval<[V], V>,
+    V: Default + Clone,
+{
+    fn from((graph, cache): (&'a G, GraphEvalCache<V>)) -> Self {
+        if cache.eval_order.is_empty() || graph.as_ref().len() != cache.eval_order.len() {
+            return GraphEvaluator::new(graph);
+        }
 
-//                 self.inner.outputs[index] = node.eval(buf);
-//             }
-//         }
+        GraphEvaluator {
+            nodes: graph.as_ref(),
+            inner: cache,
+        }
+    }
+}
 
-//         for (count, &idx) in self.inner.output_indices.iter().enumerate() {
-//             buffer[count] = self.inner.outputs[idx];
-//         }
-//     }
-// }
+impl<'a, T, V> From<&'a Graph<T>> for GraphEvaluator<'a, T, V>
+where
+    T: Eval<[V], V>,
+    V: Default + Clone,
+{
+    fn from(graph: &'a Graph<T>) -> Self {
+        GraphEvaluator::new(graph)
+    }
+}
 
 // #[cfg(test)]
 // mod tests {
