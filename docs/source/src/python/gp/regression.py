@@ -34,7 +34,7 @@ codec = rd.GraphCodec.directed(
 # The last argument is whether to use batch evaluation or not - the default is False. This has minimal impact on performance.
 loss = rd.MSE  # Options are: rd.MSE, rd.MAE, rd.XEnt (CrossEntropy), rd.Diff.
 dtype = rd.Float64
-fitness_func = rd.Fitness.regression(dtype, inputs, answers, loss=loss, batch=False)
+fitness_func = rd.Fitness.regression(dtype, inputs, answers, loss=loss)
 
 engine = (
     rd.Engine(codec)

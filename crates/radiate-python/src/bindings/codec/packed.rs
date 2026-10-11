@@ -28,7 +28,11 @@ impl PyPackedBitCodec {
     #[staticmethod]
     #[pyo3(signature = (num_bits, use_numpy=false, words=false))]
     pub fn vector(num_bits: usize, use_numpy: bool, words: bool) -> Self {
-        let codec = PyCodec::new().with_encoder(move || PackedBitChromosome::new(num_bits).into());
+        let codec = PyCodec::new()
+            .with_encoder(move || PackedBitChromosome::new(num_bits).into())
+            .with_batch_decoder(move |py, genos| {
+                super::decode_batch_to_array(py, genos, use_numpy)
+            });
 
         let codec = match (words, use_numpy) {
             (true, true) => codec.with_decoder(move |py, geno| PyAnyObject {
@@ -36,6 +40,7 @@ impl PyPackedBitCodec {
                     .unbind()
                     .into_any(),
             }),
+
             (true, false) => codec.with_decoder(move |py, geno| PyAnyObject {
                 inner: PyList::new(py, &geno[0].to_words())
                     .unwrap()

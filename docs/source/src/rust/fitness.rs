@@ -39,7 +39,7 @@ fn main() {
         .codec(IntChromosome::from((5, 0..100)))
         // Replace the original 'fitness_fn' call with 'batch_fitness_fn' to enable batch fitness.
         // This fitness function will receive a single batch containing all individuals which need evaluation
-        .batch_fitness_fn(|phenotypes: &[Vec<i32>]| {
+        .fitness_fn(|phenotypes: &[Vec<i32>]| {
             phenotypes
                 .iter()
                 .map(|geno| geno.iter().sum::<i32>())
@@ -52,7 +52,7 @@ fn main() {
         .codec(IntChromosome::from((5, 0..100)))
         // 'batch_fitness_fn' will receive 7 batches of individuals during each generation's evaluation
         .executor(Executor::FixedSizedWorkerPool(7))
-        .batch_fitness_fn(|phenotypes: &[Vec<i32>]| {
+        .fitness_fn(|phenotypes: &[Vec<i32>]| {
             phenotypes
                 .iter()
                 .map(|geno| geno.iter().sum::<i32>())
@@ -72,7 +72,7 @@ fn main() {
 
     let engine = GeneticEngine::builder()
         .codec(FloatCodec::vector(10, 0.0..1.0))
-        .raw_fitness_fn(my_fitness_fn)
+        .fitness_fn(my_fitness_fn)
         // or .raw_batch_fitness_fn(...) for batch raw fitness functions
         // ... other parameters ...
         .build();

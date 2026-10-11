@@ -6,6 +6,46 @@ use std::{
     ops::{Index, IndexMut},
 };
 
+/// A borrowed, read-only view of a row-major [Matrix] (or a block of its rows), the way `&[T]` is
+/// a view of a `Vec<T>`. Created by [Matrix::view] and [Matrix::split_row_mut].
+#[derive(Clone, Copy)]
+pub struct MatrixView<'a, T> {
+    data: &'a [T],
+    rows: usize,
+    cols: usize,
+}
+
+impl<'a, T> MatrixView<'a, T> {
+    pub fn new(data: &'a [T], rows: usize, cols: usize) -> Self {
+        Self { data, rows, cols }
+    }
+
+    pub fn rows(&self) -> usize {
+        self.rows
+    }
+
+    pub fn cols(&self) -> usize {
+        self.cols
+    }
+
+    pub fn data(&self) -> &'a [T] {
+        self.data
+    }
+
+    pub fn row(&self, row: usize) -> &'a [T] {
+        let start = row * self.cols;
+        &self.data[start..start + self.cols]
+    }
+}
+
+impl<T> Index<(usize, usize)> for MatrixView<'_, T> {
+    type Output = T;
+
+    fn index(&self, (row, col): (usize, usize)) -> &Self::Output {
+        &self.data[row * self.cols + col]
+    }
+}
+
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Matrix<T> {
     data: Vec<T>,
@@ -79,6 +119,43 @@ impl<T> Matrix<T> {
 
     pub fn data(&self) -> &[T] {
         &self.data
+    }
+
+    /// A borrowed, read-only view of the whole matrix.
+    pub fn view(&self) -> MatrixView<'_, T> {
+        MatrixView {
+            data: &self.data,
+            rows: self.rows,
+            cols: self.cols,
+        }
+    }
+
+    /// Splits around `row`: the rows before it and the rows after it as read-only
+    /// [MatrixView]s, and `row` itself mutably. Lets you write one row while reading any other.
+    ///
+    /// ```text
+    ///   data:  [ row 0 | ... | row-1 ][ row ][ row+1 | ... | last ]
+    ///          └────── above ────────┘└&mut ┘└─────── below ───────┘
+    ///   row r < row is above.row(r);  row r > row is below.row(r - row - 1)
+    /// ```
+    pub fn split_row_mut(
+        &mut self,
+        row: usize,
+    ) -> (MatrixView<'_, T>, &mut [T], MatrixView<'_, T>) {
+        let (before, rest) = self.data.split_at_mut(row * self.cols);
+        let (current, after) = rest.split_at_mut(self.cols);
+        let above = MatrixView {
+            data: before,
+            rows: row,
+            cols: self.cols,
+        };
+        let below = MatrixView {
+            data: after,
+            rows: self.rows - row - 1,
+            cols: self.cols,
+        };
+
+        (above, current, below)
     }
 
     pub fn is_empty(&self) -> bool {
@@ -504,6 +581,24 @@ mod tests {
         assert_eq!(matrix.row(0), &[1, 2]);
         assert_eq!(matrix.row(1), &[3, 4]);
         assert_eq!(matrix.row(2), &[5, 6]);
+    }
+
+    #[test]
+    fn test_matrix_split_row_mut() {
+        let mut matrix = Matrix::new(vec![1, 2, 3, 4, 5, 6, 7, 8]).reshape(4, 2);
+        let (above, row, below) = matrix.split_row_mut(2);
+
+        assert_eq!(above.rows(), 2);
+        assert_eq!(above.cols(), 2);
+        assert_eq!(above.row(1), &[3, 4]);
+        assert_eq!(above[(0, 1)], 2);
+        assert_eq!(row, &[5, 6]);
+        assert_eq!(below.rows(), 1);
+        assert_eq!(below.row(0), &[7, 8]);
+
+        row[0] = above[(1, 0)] + below[(0, 1)];
+        assert_eq!(matrix.row(2), &[11, 6]);
+        assert_eq!(matrix.view().row(3), &[7, 8]);
     }
 
     #[test]

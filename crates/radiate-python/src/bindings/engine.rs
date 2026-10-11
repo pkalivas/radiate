@@ -114,7 +114,11 @@ where
 {
     let ui_interval = get_ui_option(&options);
     if let Some(interval) = ui_interval {
-        iter_engine(radiate::ui((engine, interval)).iter(), limits, options)
+        iter_engine(
+            radiate::ui((engine, interval)).iter().listen(),
+            limits,
+            options,
+        )
     } else {
         iter_engine(engine.iter(), limits, options)
     }

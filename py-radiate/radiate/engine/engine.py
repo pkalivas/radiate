@@ -404,7 +404,6 @@ class Engine[G, T]:
         target_cols: str | list[str] | None = None,
         feature_cols: list[str] | None = None,
         loss: RdLossType = MSE,
-        batch: bool = False,
     ) -> Engine[G, T]:
         """
         Set the fitness function for regression problems.
@@ -497,7 +496,6 @@ class Engine[G, T]:
                 target_cols=target_cols,
                 feature_cols=feature_cols,
                 loss=loss,
-                batch=batch,
             )
         )
         self._builder.set_objective("min")

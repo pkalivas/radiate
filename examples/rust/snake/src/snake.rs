@@ -1,22 +1,23 @@
 use crate::INPUT_SIZE;
-use radiate::{Eval, Graph, Op};
+use radiate::{Eval, EvalMut, Graph, Op, StatefulGraph};
 use std::cmp::Ordering;
 
-#[derive(Clone)]
 pub enum SnakeAI<'a> {
     Graph(&'a Graph<Op<f32>>),
+    StateFull(&'a mut StatefulGraph<Op<f32>, f32>),
     NeuralNet(&'a [Vec<Vec<f32>>]),
 }
 
 impl<'a> SnakeAI<'a> {
-    pub fn predict(&self, state: &[f32; INPUT_SIZE]) -> usize {
+    pub fn predict(&mut self, state: &[f32; INPUT_SIZE]) -> usize {
         match self {
-            SnakeAI::Graph(graph) => self.predict_graph(graph, state),
-            SnakeAI::NeuralNet(net) => self.predict_neural_net(net, state),
+            SnakeAI::Graph(graph) => SnakeAI::predict_graph(graph, state),
+            SnakeAI::StateFull(graph) => SnakeAI::predict_stateful(*graph, state),
+            SnakeAI::NeuralNet(net) => SnakeAI::predict_neural_net(net, state),
         }
     }
 
-    fn predict_graph(&self, graph: &Graph<Op<f32>>, state: &[f32; INPUT_SIZE]) -> usize {
+    fn predict_graph(graph: &Graph<Op<f32>>, state: &[f32; INPUT_SIZE]) -> usize {
         // Graph.eval expects Vec<Vec<f32>>
         let input_vec = vec![state.to_vec()];
         let outputs = graph.eval(&input_vec); // Vec<Vec<f32>>
@@ -29,7 +30,22 @@ impl<'a> SnakeAI<'a> {
             .unwrap_or(0)
     }
 
-    fn predict_neural_net(&self, net: &[Vec<Vec<f32>>], state: &[f32; INPUT_SIZE]) -> usize {
+    fn predict_stateful(
+        graph: &mut StatefulGraph<Op<f32>, f32>,
+        state: &[f32; INPUT_SIZE],
+    ) -> usize {
+        // StatefulGraph.eval expects Vec<Vec<f32>>
+        let outputs = graph.eval_mut(state.as_slice()); // Vec<Vec<f32>>
+
+        outputs
+            .iter()
+            .enumerate()
+            .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Ordering::Equal))
+            .map(|(idx, _)| idx)
+            .unwrap_or(0)
+    }
+
+    fn predict_neural_net(net: &[Vec<Vec<f32>>], state: &[f32; INPUT_SIZE]) -> usize {
         let activations = SnakeAI::feed_forward(net.to_vec(), state.to_vec());
 
         activations

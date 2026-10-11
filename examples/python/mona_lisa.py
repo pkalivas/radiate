@@ -59,11 +59,13 @@ target_arr = np.asarray(target_img, dtype=np.float32)  # (H, W, 3)
 
 # --- render + fitness -------------------------------------------------------
 def render(genes: np.ndarray, w: int, h: int) -> Image.Image:
-    """genes: (POLYGONS, GENES_PER) in [0, 1] -> composited RGB image.
+    """genes: one individual's POLYGONS * GENES_PER values in [0, 1] -> composited RGB image.
 
+    Accepts the flat (POLYGONS * GENES_PER,) decode or (POLYGONS, GENES_PER).
     Layout per polygon mirrors the Rust example: [r, g, b, a, x0, y0, ...].
     White background + per-polygon alpha compositing.
     """
+    genes = np.asarray(genes, dtype=np.float32).reshape(POLYGONS, GENES_PER)
     canvas = Image.new("RGBA", (w, h), (255, 255, 255, 255))
     for poly in genes:
         color = (
@@ -79,10 +81,18 @@ def render(genes: np.ndarray, w: int, h: int) -> Image.Image:
     return canvas.convert("RGB")
 
 
-def fit(chromosomes: list[np.ndarray]) -> float:
-    genes = np.asarray(chromosomes, dtype=np.float32)  # (POLYGONS, GENES_PER)
-    candidate = np.asarray(render(genes, W, H), dtype=np.float32)
-    return float(np.sqrt(np.mean((candidate - target_arr) ** 2)))
+@rd.fitness(batch=True)
+def fit(population: np.ndarray) -> np.ndarray:
+    """population: (N, POLYGONS * GENES_PER) -- every individual awaiting evaluation, one row each.
+
+    Rendering is still one Pillow call per individual, but the batch crosses the
+    Rust-Python bridge once and the RMS error is computed for all N in a single
+    vectorized pass. Returns one score per individual, shape (N,), in input order.
+    """
+    candidates = np.stack(
+        [np.asarray(render(member, W, H), dtype=np.float32) for member in population]
+    )  # (N, H, W, 3)
+    return np.sqrt(np.mean((candidates - target_arr) ** 2, axis=(1, 2, 3)))
 
 
 class ImageWriter(rd.EventHandler):
@@ -102,7 +112,9 @@ class ImageWriter(rd.EventHandler):
 
 engine = (
     rd.Engine.float(
-        shape=[GENES_PER] * POLYGONS,  # one chromosome per polygon
+        shape=sum(
+            [GENES_PER] * POLYGONS
+        ),  # one flat chromosome, POLYGONS * GENES_PER genes
         init_range=(0.0, 1.0),
         bounds=(0.0, 1.0),  # coords + colors stay normalized
         use_numpy=True,

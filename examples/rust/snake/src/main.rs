@@ -52,7 +52,7 @@ const FOOD_POSITIONS: LazyLock<[(i32, i32); 1000]> = LazyLock::new(|| {
 fn main() {
     let mut args = std::env::args();
     args.next();
-    let engine_type = args.next().unwrap_or_else(|| "n".to_string());
+    let engine_type = args.next().unwrap_or_else(|| "g".to_string());
 
     match engine_type.as_str() {
         "g" => run_graph_engine(),
@@ -84,7 +84,9 @@ fn run_graph_engine() {
             OperationMutator::new(0.04, 0.05),
             GraphMutator::new(0.01, 0.01)
         ))
-        .fitness_fn(|g: Graph<Op<f32>>| snake_fitness(SnakeAI::Graph(&g)))
+        .fitness_fn(|g: Graph<Op<f32>>| {
+            snake_fitness(&mut &mut SnakeAI::StateFull(&mut g.compile()))
+        })
         .build();
 
     engine
@@ -110,7 +112,7 @@ fn run_neural_net_engine() {
             ArithmeticMutator::new(0.03),
             GaussianMutator::new(0.03)
         ))
-        .fitness_fn(|weights: Vec<Vec<Vec<f32>>>| snake_fitness(SnakeAI::NeuralNet(&weights)))
+        .fitness_fn(|weights: Vec<Vec<Vec<f32>>>| snake_fitness(&mut SnakeAI::NeuralNet(&weights)))
         .build();
 
     engine
@@ -128,17 +130,17 @@ fn run_neural_net_engine() {
         .unwrap();
 }
 
-fn snake_fitness<'a>(ai: SnakeAI<'a>) -> f32 {
+fn snake_fitness<'a>(ai: &mut SnakeAI<'a>) -> f32 {
     let mut total = 0.0;
 
     for _ in 0..NUM_GAMES {
-        total += episode_return(&ai);
+        total += episode_return(ai);
     }
 
     total / NUM_GAMES as f32
 }
 
-fn episode_return<'a>(ai: &SnakeAI<'a>) -> f32 {
+fn episode_return<'a>(ai: &mut SnakeAI<'a>) -> f32 {
     let mut game = SnakeGame::new(WIDTH, HEIGHT);
 
     let mut unique_cells = HashSet::new();
@@ -264,7 +266,7 @@ fn draw_ascii_frame(game: &SnakeGame, step: usize) {
     io::stdout().flush().unwrap();
 }
 
-fn ascii_snake<'a>(ai: SnakeAI<'a>) {
+fn ascii_snake<'a>(mut ai: SnakeAI<'a>) {
     let mut game = SnakeGame::new(WIDTH, HEIGHT);
 
     for step in 0..MAX_STEPS {

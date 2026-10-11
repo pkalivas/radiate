@@ -1,6 +1,11 @@
 use super::transaction::TransactionResult;
-use crate::collections::graphs::GraphTransaction;
-use crate::collections::{Direction, GraphNode};
+use crate::{
+    Eval, EvalInto, EvalIntoMut, EvalMut, Op, StatefulGraph, collections::graphs::GraphTransaction,
+};
+use crate::{
+    GraphEvaluator,
+    collections::{Direction, GraphNode},
+};
 use crate::{GraphIterator, NodeType};
 use radiate_core::Valid;
 #[cfg(feature = "serde")]
@@ -347,6 +352,47 @@ impl<T> Graph<T> {
             }
         }
         out
+    }
+}
+
+impl<T> Graph<Op<T>> {
+    pub fn compile(self) -> StatefulGraph<Op<T>, T> {
+        StatefulGraph::new(self)
+    }
+}
+
+impl<T, V> EvalInto<[Vec<V>], Vec<Vec<V>>> for Graph<T>
+where
+    T: Eval<[V], V>,
+    V: Copy + Default,
+{
+    /// Evaluates the [Graph] with the given input `Vec<Vec<T>>`, one sample at a time and in
+    /// order, into `buffer`.
+    ///
+    /// # Arguments
+    /// * `input` - A `Vec<Vec<T>>` to evaluate the [Graph] with.
+    /// * `buffer` - One output `Vec` per input, each sized to the number of output nodes.
+    #[inline]
+    fn eval_into(&self, input: &[Vec<V>], buffer: &mut Vec<Vec<V>>) {
+        let mut evaluator = GraphEvaluator::new(self);
+        for (input, output) in input.iter().zip(buffer.iter_mut()) {
+            evaluator.eval_into_mut(input, output);
+        }
+    }
+}
+
+impl<T, V> Eval<[Vec<V>], Vec<Vec<V>>> for Graph<T>
+where
+    T: Eval<[V], V>,
+    V: Copy + Default,
+{
+    #[inline]
+    fn eval(&self, input: &[Vec<V>]) -> Vec<Vec<V>> {
+        let mut evaluator = GraphEvaluator::new(self);
+        input
+            .iter()
+            .map(|input| evaluator.eval_mut(input))
+            .collect()
     }
 }
 

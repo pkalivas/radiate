@@ -1,7 +1,7 @@
 use radiate::*;
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
-const MIN_SCORE: f32 = 0.01;
+const MIN_SCORE: f32 = 0.1;
 const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
@@ -53,19 +53,18 @@ fn display(
     result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>,
 ) {
     println!("{}", result.metrics().dashboard());
-    let mut reducer = GraphEvaluator::new(result.value());
 
     let train_acc = Accuracy::default()
         .named("train")
         .on(train)
         .loss(Loss::MSE)
-        .calc(&mut reducer);
+        .eval(result.value());
 
     let test_acc = Accuracy::default()
         .named("test")
         .on(test)
         .loss(Loss::MSE)
-        .calc(&mut reducer);
+        .eval(result.value());
 
     println!("{:?}", result);
     println!("{:?}", train_acc);
@@ -98,7 +97,7 @@ fn load_iris_dataset() -> DataSet<f32> {
         labels.push(row_labels);
     }
 
-    let unique_labels = labels.iter().collect::<HashSet<&String>>();
+    let unique_labels = labels.iter().collect::<BTreeSet<&String>>();
 
     let mut new_labels = Vec::new();
     for label in labels.iter() {

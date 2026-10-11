@@ -37,31 +37,38 @@ Y = np.array(answers, dtype=np.float32)  # (N, 1)
 Xb = np.concatenate([X, np.ones((X.shape[0], 1), dtype=np.float32)], axis=1)
 
 
-def fit(weights: list[np.ndarray]) -> float:
-    # Decode weights
-    W1 = weights[0].reshape((8, 2))
-    W2 = weights[1].reshape((8, 8))
-    W3 = weights[2].reshape((1, 8))
+@rd.fitness(batch=True)
+def batch(weights: np.ndarray) -> np.ndarray:
+    # weights: (population_size, 88)
+
+    # Decode each layer's weights for every individual
+    W1 = weights[:, :16].reshape((-1, 8, 2))
+    W2 = weights[:, 16:80].reshape((-1, 8, 8))
+    W3 = weights[:, 80:88].reshape((-1, 1, 8))
 
     # Forward pass
-    # Xb: (N,2)
-    h1 = Xb @ W1.T  # (N,2) @ (2,8) => (N,8)
-    h1 = np.maximum(0, h1)  # ReLU activation
+    # Xb: (N, 2)
+    # W1: (P, 8, 2)
+    h1 = np.einsum("ni,poi->pno", Xb, W1)
+    h1 = np.maximum(0, h1)
 
-    h2 = h1 @ W2  # (N,8) @ (8,8) => (N,8)
-    h2 = np.tanh(h2)  # tanh activation
+    # W2: (P, 8, 8)
+    h2 = np.einsum("pni,poi->pno", h1, W2)
+    h2 = np.tanh(h2)
 
-    yhat = h2 @ W3.T  # (N,8) @ (8,1) => (N,1)
+    # W3: (P, 1, 8)
+    yhat = np.einsum("pni,poi->pno", h2, W3)
 
-    # MSE using np.float32 - note we are using dtype=rd.Float32 in the engine.
-    return float(np.mean((yhat - Y) ** 2, dtype=np.float32))
+    # MSE per individual
+    errors = yhat[:, :, 0] - Y[:, 0]
+    return np.mean(errors**2, axis=1, dtype=np.float32)
 
 
 engine = (
     rd.Engine.float(
         # Create an engine that evolves genomes with 3 chromosomes, one for each
         # layer's weights, 1 with 16 genes, 1 with 64 genes, and 1 with 8 genes
-        shape=[16, 64, 8],
+        shape=16 + 64 + 8,
         # Each gene is initialized randomly in the range [-1, 1]
         init_range=(-1.0, 1.0),
         # Genes aren't allowed to go outside the range [-3, 3] during evolution
@@ -72,7 +79,7 @@ engine = (
         # arrays will also be float32, so we avoid unnecessary up/down casting
         dtype=rd.Float32,
     )
-    .fitness(fit)
+    .fitness(batch)
     .minimizing()
     .select(rd.Select.boltzmann(temp=4.0))
     .alter(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))

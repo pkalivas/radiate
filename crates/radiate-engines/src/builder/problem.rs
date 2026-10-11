@@ -1,9 +1,5 @@
 use crate::GeneticEngineBuilder;
-use radiate_core::{
-    Chromosome, Codec, Genotype, Problem, Score,
-    fitness::{BatchFitnessFunction, FitnessFunction},
-    problem::FitnessKind,
-};
+use radiate_core::{Chromosome, Codec, Problem, fitness::IntoFitness, problem::FitnessKind};
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -36,61 +32,37 @@ where
 
     /// Set the fitness function of the genetic engine. This is the function that will be
     /// used to evaluate the fitness of each individual in the population. This function should
-    /// take a single argument of type T and return a [Score]. The [Score] is used to
+    /// take a single argument of type T and return a [Score](radiate_core::Score). The [Score](radiate_core::Score) is used to
     /// evaluate or rank the fitness of the individual.
-    ///
-    /// This method is required and must be set before calling the `build` method.
-    pub fn fitness_fn<S: Into<Score>>(
-        mut self,
-        fitness_func: impl FitnessFunction<T, S> + 'static,
-    ) -> Self {
-        let other = move |x| fitness_func.evaluate(x).into();
-        self.params.problem_params.fitness_kind = Some(FitnessKind::Single(Arc::new(other)));
+    pub fn fitness_fn<M>(mut self, fitness_func: impl IntoFitness<C, T, M> + 'static) -> Self {
+        let fitness_kind = fitness_func.into_fitness();
+        self.params.problem_params.fitness_kind = Some(fitness_kind);
         self
     }
 
-    /// Set the batch fitness function of the genetic engine. This function will be used to
-    /// evaluate the fitness of a batch of individuals in the population. This function should
-    /// take a slice of type `&[T]` and return a `Vec<Score>`. The Score is used to
-    /// evaluate or rank the fitness of the individuals.
-    ///
-    /// This method is optional and can be set after calling the `build` method.
-    pub fn batch_fitness_fn<S: Into<Score>>(
-        mut self,
-        batch_fitness_func: impl BatchFitnessFunction<T, S> + 'static,
-    ) -> Self {
-        let other = move |x: Vec<T>| {
-            batch_fitness_func
-                .evaluate(x)
-                .into_iter()
-                .map(|s| s.into())
-                .collect()
-        };
-        self.params.problem_params.fitness_kind = Some(FitnessKind::Batch(Arc::new(other)));
-        self
+    /// Set a batch fitness function. Deprecated: [fitness_fn](Self::fitness_fn) now infers
+    /// the fitness kind from the function's shape, so a `Fn(&[T]) -> Vec<S>` closure or a
+    /// [BatchFitnessFunction](radiate_core::BatchFitnessFunction) type passed there is evaluated as a batch.
+    #[deprecated(note = "Use `fitness_fn` instead", since = "1.4.0")]
+    pub fn batch_fitness_fn<M>(self, fitness_func: impl IntoFitness<C, T, M> + 'static) -> Self {
+        self.fitness_fn(fitness_func)
     }
 
-    pub fn raw_fitness_fn<S: Into<Score>>(
-        mut self,
-        raw_fitness_func: impl for<'a> FitnessFunction<&'a Genotype<C>, S> + 'static,
-    ) -> Self {
-        let other = move |x: &Genotype<C>| raw_fitness_func.evaluate(x).into();
-        self.params.problem_params.fitness_kind = Some(FitnessKind::RawSingle(Arc::new(other)));
-        self
+    /// Set a fitness function over the raw [Genotype](radiate_core::Genotype). Deprecated: a `Fn(&Genotype<C>) -> S`
+    /// closure passed to [fitness_fn](Self::fitness_fn) is evaluated on the genotype directly.
+    #[deprecated(note = "Use `fitness_fn` instead", since = "1.4.0")]
+    pub fn raw_fitness_fn<M>(self, fitness_func: impl IntoFitness<C, T, M> + 'static) -> Self {
+        self.fitness_fn(fitness_func)
     }
 
-    pub fn raw_batch_fitness_fn<S: Into<Score>>(
-        mut self,
-        raw_batch_fitness_func: impl for<'a> BatchFitnessFunction<&'a Genotype<C>, S> + 'static,
+    /// Set a batch fitness function over raw [Genotype](radiate_core::Genotype)s. Deprecated: a
+    /// `Fn(&[&Genotype<C>]) -> Vec<S>` closure passed to [fitness_fn](Self::fitness_fn) is
+    /// evaluated as a raw batch.
+    #[deprecated(note = "Use `fitness_fn` instead", since = "1.4.0")]
+    pub fn raw_batch_fitness_fn<M>(
+        self,
+        fitness_func: impl IntoFitness<C, T, M> + 'static,
     ) -> Self {
-        let other = move |x: Vec<&Genotype<C>>| {
-            raw_batch_fitness_func
-                .evaluate(x)
-                .into_iter()
-                .map(|s| s.into())
-                .collect()
-        };
-        self.params.problem_params.fitness_kind = Some(FitnessKind::RawBatch(Arc::new(other)));
-        self
+        self.fitness_fn(fitness_func)
     }
 }

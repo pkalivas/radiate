@@ -23,7 +23,7 @@ fn main() {
 
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, store))
-        .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
+        .fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .parallel()
         .metrics([

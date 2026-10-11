@@ -225,7 +225,7 @@ fn main() {
 
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, store))
-        .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
+        .fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .diversity(NeatDistance::new(1.0, 1.0, 3.0))
         .species_threshold(distance_signal)

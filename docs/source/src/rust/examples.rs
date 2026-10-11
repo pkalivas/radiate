@@ -205,14 +205,14 @@ fn graph_xor() {
         .expect("No result from engine run");
 
     fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
-        let mut reducer = GraphEvaluator::new(result.value());
-        for sample in get_dataset().iter() {
-            let output = &reducer.eval_mut(&sample.0)[0];
-            println!(
-                "{:?} -> expected: {:?}, actual: {:.3?}",
-                sample.0, sample.1, output
-            );
-        }
+        // let mut reducer = GraphEvaluator::new(result.value());
+        // for sample in get_dataset().iter() {
+        //     let output = &reducer.eval_mut(&sample.0)[0];
+        //     println!(
+        //         "{:?} -> expected: {:?}, actual: {:.3?}",
+        //         sample.0, sample.1, output
+        //     );
+        // }
 
         println!("{result:?}");
     }

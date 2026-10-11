@@ -1,5 +1,6 @@
 use crate::{
-    Eval, EvalIntoMut, EvalMut, Graph, GraphEvaluator, GraphIterator, graphs::GraphEvalCache,
+    Eval, EvalMut, Graph, GraphIterator,
+    graphs::{GraphEvalCache, eval},
 };
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -14,10 +15,6 @@ pub struct StatefulGraph<T, V> {
 impl<T, V> StatefulGraph<T, V> {
     pub fn new(inner: Graph<T>) -> Self {
         StatefulGraph { inner, state: None }
-    }
-
-    pub fn reset(&mut self) {
-        self.state = None;
     }
 
     pub fn input_dim(&self) -> usize {
@@ -45,19 +42,15 @@ impl<T, V> StatefulGraph<T, V> {
     }
 }
 
-impl<T, V> EvalIntoMut<[V], [V]> for StatefulGraph<T, V>
+impl<T, V> StatefulGraph<T, V>
 where
-    T: Eval<[V], V>,
-    V: Copy + Default,
+    V: Default + Clone,
 {
-    fn eval_into_mut(&mut self, input: &[V], output: &mut [V]) {
-        let mut evaluator = match self.state.take() {
-            Some(c) => GraphEvaluator::from((&self.inner, c)),
-            None => GraphEvaluator::new(&self.inner),
-        };
-
-        evaluator.eval_into_mut(input, output);
-        self.state = Some(evaluator.take_cache());
+    /// Resets every node's state to default, as if no sample had been evaluated yet.
+    pub fn reset(&mut self) {
+        if let Some(cache) = &mut self.state {
+            cache.reset_state();
+        }
     }
 }
 
@@ -67,14 +60,13 @@ where
     V: Copy + Default,
 {
     fn eval_mut(&mut self, input: &[V]) -> Vec<V> {
-        let mut evaluator = match self.state.take() {
-            Some(c) => GraphEvaluator::from((&self.inner, c)),
-            None => GraphEvaluator::new(&self.inner),
-        };
+        let cache = self
+            .state
+            .get_or_insert_with(|| GraphEvalCache::new(self.inner.as_ref()));
 
-        let result = evaluator.eval_mut(input);
-        self.state = Some(evaluator.take_cache());
-        result
+        let mut outputs = vec![V::default(); cache.plan().output_indices().len()];
+        eval::process_single_row_into(cache, self.inner.as_ref(), input, &mut outputs);
+        outputs
     }
 }
 
@@ -87,16 +79,9 @@ impl<T, V> AsRef<Graph<T>> for StatefulGraph<T, V> {
 impl<T, V> From<Graph<T>> for StatefulGraph<T, V>
 where
     T: Eval<[V], V>,
+    V: Default + Clone,
 {
     fn from(inner: Graph<T>) -> Self {
-        StatefulGraph { inner, state: None }
+        Self::new(inner)
     }
-}
-
-#[cfg(test)]
-mod tests {
-    // use super::*;
-
-    #[test]
-    fn test_stateful_graph() {}
 }

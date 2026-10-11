@@ -19,17 +19,21 @@
 //!   [`default_int_alters`], [`default_bit_alters`].
 //! - Reusable problems and engine builders: [`OneMax`], [`Sphere`],
 //!   [`sphere_engine`], [`onemax_engine`], etc.
+//! - Alterer harness and property assertions: [`run_alterer`],
+//!   [`assert_genes_in_bounds`], [`assert_alleles_permuted`], etc.
 //! - Convergence/invariant assertions: [`assert_within_budget`],
 //!   [`assert_population_integrity`], etc.
 
 #![allow(dead_code)]
 #![allow(unused_imports)]
 
+pub mod alters;
 pub mod assertions;
 pub mod fixtures;
 pub mod mock;
 pub mod problems;
 
+pub use alters::*;
 pub use assertions::*;
 pub use fixtures::*;
 pub use mock::*;

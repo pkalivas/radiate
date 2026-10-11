@@ -39,6 +39,7 @@ pub struct MetricStep {
     gini_names: Vec<SmallStr>,
     corr_names: Vec<SmallStr>,
     best_score_names: Vec<SmallStr>,
+    pct_unique_names: Vec<SmallStr>,
 
     stagnation_count: usize,
 }
@@ -205,6 +206,7 @@ impl MetricStep {
         self.gini_names = per_dim_names(&metric_names::SCORES_GINI, dims);
         self.corr_names = per_dim_names(&metric_names::SIZE_SCORE_CORR, dims);
         self.best_score_names = per_dim_names(&metric_names::BEST_SCORES, dims);
+        self.pct_unique_names = per_dim_names(&metric_names::SCORES_PCT_UNIQUE, dims);
     }
 }
 
@@ -282,14 +284,17 @@ impl<C: Chromosome> EngineStep<C> for MetricStep {
 
             let shape = distribution::shape(dim_scores);
 
+            let pct_unique = shape.unique as f32 / dim_scores.len() as f32;
             if is_single {
                 metrics.upsert(metric_names::UNIQUE_SCORES, shape.unique);
                 metrics.upsert(metric_names::SCORES_EVENNESS, shape.evenness);
                 metrics.upsert(metric_names::SCORES_GINI, shape.gini);
+                metrics.upsert(metric_names::SCORES_PCT_UNIQUE, pct_unique);
             } else {
                 metrics.upsert(&self.unique_score_names[i], shape.unique);
                 metrics.upsert(&self.evenness_names[i], shape.evenness);
                 metrics.upsert(&self.gini_names[i], shape.gini);
+                metrics.upsert(&self.pct_unique_names[i], pct_unique);
             }
         }
 

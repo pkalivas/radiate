@@ -4,8 +4,23 @@ use crate::{
     ops::{Param, op_names},
 };
 use radiate_core::random_provider;
+use smallvec::SmallVec;
 
 use super::OpFloat;
+use crate::{Eval, EvalInto};
+
+// Every math op is defined once, as a function of plain values below. An op's *shape* (how it
+// reads its inputs) then turns that one function into both of its forms:
+//
+//   shape     scalar form (one sample)        column form (every sample)
+//   ───────   ─────────────────────────────   ──────────────────────────────────────
+//   unary     f(x[0])                         out[r] = f(x0[r])
+//   binary    f(x[0], x[1])                   out[r] = f(x0[r], x1[r])
+//   summed    f(x[0] + x[1] + ...)            out = x0 + x1 + ...; out[r] = f(out[r])
+//   folded    clamp(seed ∘ x[0] ∘ x[1] ...)   out = seed; out[r] = out[r] ∘ xi[r]; clamp
+//
+// The scalar form goes into the op's `Op::Fn`, and the column form into `column_kernel`. Both
+// call the same function in the same order, so they stay bit-identical.
 
 /// Clamp a value to the range [-MAX_VALUE, MAX_VALUE]. Without this, values can quickly
 /// become too large or too small to be useful.
@@ -32,62 +47,75 @@ fn aggregate<F: OpFloat>(vals: &[F]) -> F {
     }
 }
 
-#[inline]
-fn add<F: OpFloat>(vals: &[F]) -> F {
-    clamp(vals[0] + vals[1])
+// Binary ops.
+
+#[inline(always)]
+fn add<F: OpFloat>(a: F, b: F) -> F {
+    clamp(a + b)
 }
 
-#[inline]
-fn sub<F: OpFloat>(vals: &[F]) -> F {
-    clamp(vals[0] - vals[1])
+#[inline(always)]
+fn sub<F: OpFloat>(a: F, b: F) -> F {
+    clamp(a - b)
 }
 
-#[inline]
-fn mul<F: OpFloat>(vals: &[F]) -> F {
-    clamp(vals[0] * vals[1])
+#[inline(always)]
+fn mul<F: OpFloat>(a: F, b: F) -> F {
+    clamp(a * b)
 }
 
-#[inline]
-fn div<F: OpFloat>(vals: &[F]) -> F {
-    if vals[1].abs() < F::EPS {
+#[inline(always)]
+fn div<F: OpFloat>(a: F, b: F) -> F {
+    if b.abs() < F::EPS {
         F::ONE
     } else {
-        clamp(vals[0] / vals[1])
+        clamp(a / b)
     }
 }
 
-#[inline]
-fn neg<F: OpFloat>(vals: &[F]) -> F {
-    clamp(-vals[0])
+#[inline(always)]
+fn pow<F: OpFloat>(a: F, b: F) -> F {
+    clamp(a.powf(b))
 }
 
-#[inline]
-fn abs<F: OpFloat>(vals: &[F]) -> F {
-    clamp(vals[0].abs())
+#[inline(always)]
+fn weight<F: OpFloat>(x: F, w: F) -> F {
+    clamp(x * w)
 }
 
-#[inline]
-fn ceil<F: OpFloat>(vals: &[F]) -> F {
-    clamp(vals[0].ceil())
+// Unary ops.
+
+#[inline(always)]
+fn neg<F: OpFloat>(x: F) -> F {
+    clamp(-x)
 }
 
-#[inline]
-fn floor<F: OpFloat>(vals: &[F]) -> F {
-    clamp(vals[0].floor())
+#[inline(always)]
+fn abs<F: OpFloat>(x: F) -> F {
+    clamp(x.abs())
 }
 
-#[inline]
-fn reciprocal<F: OpFloat>(vals: &[F]) -> F {
-    if vals[0].abs() < F::EPS {
+#[inline(always)]
+fn ceil<F: OpFloat>(x: F) -> F {
+    clamp(x.ceil())
+}
+
+#[inline(always)]
+fn floor<F: OpFloat>(x: F) -> F {
+    clamp(x.floor())
+}
+
+#[inline(always)]
+fn reciprocal<F: OpFloat>(x: F) -> F {
+    if x.abs() < F::EPS {
         F::ONE
     } else {
-        clamp(F::ONE / vals[0])
+        clamp(F::ONE / x)
     }
 }
 
-#[inline]
-fn sign<F: OpFloat>(vals: &[F]) -> F {
-    let x = vals[0];
+#[inline(always)]
+fn sign<F: OpFloat>(x: F) -> F {
     if x > F::ZERO {
         F::ONE
     } else if x < F::ZERO {
@@ -97,43 +125,117 @@ fn sign<F: OpFloat>(vals: &[F]) -> F {
     }
 }
 
-#[inline]
-fn pow<F: OpFloat>(vals: &[F]) -> F {
-    clamp(vals[0].powf(vals[1]))
+#[inline(always)]
+fn sqrt<F: OpFloat>(x: F) -> F {
+    clamp(x.sqrt())
 }
 
-#[inline]
-fn sqrt<F: OpFloat>(vals: &[F]) -> F {
-    clamp(vals[0].sqrt())
+#[inline(always)]
+fn exp<F: OpFloat>(x: F) -> F {
+    clamp(x.exp())
 }
 
-#[inline]
-fn exp<F: OpFloat>(vals: &[F]) -> F {
-    clamp(vals[0].exp())
+#[inline(always)]
+fn log<F: OpFloat>(x: F) -> F {
+    if x > F::ZERO { clamp(x.ln()) } else { F::ZERO }
 }
 
-#[inline]
-fn log<F: OpFloat>(vals: &[F]) -> F {
-    if vals[0] > F::ZERO {
-        clamp(vals[0].ln())
+#[inline(always)]
+fn sin<F: OpFloat>(x: F) -> F {
+    clamp(x.sin())
+}
+
+#[inline(always)]
+fn cos<F: OpFloat>(x: F) -> F {
+    clamp(x.cos())
+}
+
+#[inline(always)]
+fn tan<F: OpFloat>(x: F) -> F {
+    clamp(x.tan())
+}
+
+// Applied to the sum of the inputs (the summed shape): the activations, plus sum, gaussian and
+// tooth. `clamp` itself is sum and linear.
+
+#[inline(always)]
+fn sigmoid<F: OpFloat>(total: F) -> F {
+    clamp(F::ONE / (F::ONE + (-total).exp()))
+}
+
+#[inline(always)]
+fn tanh<F: OpFloat>(total: F) -> F {
+    clamp(total.tanh())
+}
+
+#[inline(always)]
+fn relu<F: OpFloat>(total: F) -> F {
+    clamp(total.max(F::ZERO))
+}
+
+#[inline(always)]
+fn leaky_relu<F: OpFloat>(total: F) -> F {
+    let x = clamp(total);
+    if x > F::ZERO { x } else { clamp(F::HALF * x) }
+}
+
+#[inline(always)]
+fn elu<F: OpFloat>(total: F) -> F {
+    let x = clamp(total);
+    if x > F::ZERO {
+        x
     } else {
-        F::ZERO
+        clamp(F::HALF * (x.exp() - F::ONE))
     }
 }
 
-#[inline]
-fn sin<F: OpFloat>(vals: &[F]) -> F {
-    clamp(vals[0].sin())
+#[inline(always)]
+fn mish<F: OpFloat>(total: F) -> F {
+    let x = clamp(total);
+    clamp(x * (x.exp().ln_1p().tanh()))
 }
 
-#[inline]
-fn cos<F: OpFloat>(vals: &[F]) -> F {
-    clamp(vals[0].cos())
+#[inline(always)]
+fn swish<F: OpFloat>(total: F) -> F {
+    let x = clamp(total);
+    clamp(x / (F::ONE + (-x).exp()))
 }
 
-#[inline]
-fn tan<F: OpFloat>(vals: &[F]) -> F {
-    clamp(vals[0].tan())
+#[inline(always)]
+fn softplus<F: OpFloat>(total: F) -> F {
+    let x = clamp(total);
+    let threshold = F::from(20.0).unwrap();
+    if x > threshold {
+        x
+    } else if x < -threshold {
+        x.exp()
+    } else {
+        (F::ONE + x.exp()).ln()
+    }
+}
+
+#[inline(always)]
+fn gaussian<F: OpFloat>(total: F) -> F {
+    let x = clamp(total);
+    clamp((-x * x).exp())
+}
+
+#[inline(always)]
+fn tooth<F: OpFloat>(total: F) -> F {
+    let x = clamp(total);
+    clamp(x % F::ONE)
+}
+
+// Folded ops: a running value combined with each input in turn.
+
+#[inline(always)]
+fn product<F: OpFloat>(acc: F, x: F) -> F {
+    acc * x
+}
+
+#[inline(always)]
+fn difference<F: OpFloat>(acc: F, x: F) -> F {
+    acc - x
 }
 
 #[inline]
@@ -154,17 +256,32 @@ fn logsumexp<F: OpFloat>(xs: &[F]) -> F {
     m + s.ln()
 }
 
-#[inline]
-fn softplus_stable<F: OpFloat>(x: F) -> F {
-    // x already clamped
-    let threshold = F::from(20.0).unwrap();
-    if x > threshold {
-        x
-    } else if x < -threshold {
-        x.exp()
-    } else {
-        (F::ONE + x.exp()).ln()
-    }
+// Shapes, scalar form: one sample's inputs in, one value out.
+
+#[inline(always)]
+fn unary<F: OpFloat>(vals: &[F], f: impl Fn(F) -> F) -> F {
+    f(vals[0])
+}
+
+#[inline(always)]
+fn binary<F: OpFloat>(vals: &[F], f: impl Fn(F, F) -> F) -> F {
+    f(vals[0], vals[1])
+}
+
+#[inline(always)]
+fn summed<F: OpFloat>(vals: &[F], f: impl Fn(F) -> F) -> F {
+    f(aggregate(vals))
+}
+
+/// `seed` starts the fold; `None` starts it from the first input instead (zero with no inputs).
+#[inline(always)]
+fn folded<F: OpFloat>(vals: &[F], seed: Option<F>, step: impl Fn(F, F) -> F) -> F {
+    let (seed, rest) = match (seed, vals.split_first()) {
+        (Some(seed), _) => (seed, vals),
+        (None, Some((first, rest))) => (*first, rest),
+        (None, None) => (F::ZERO, vals),
+    };
+    clamp(rest.iter().copied().fold(seed, step))
 }
 
 pub enum AggregateOperations {
@@ -183,26 +300,15 @@ pub enum AggregateOperations {
 impl AggregateOperations {
     pub fn apply<F: OpFloat>(&self, inputs: &[F]) -> F {
         match self {
-            AggregateOperations::Sum => clamp(aggregate(inputs)),
+            AggregateOperations::Sum => summed(inputs, clamp),
             // x1 - x2 - ... - xn: the first input minus every other input.
-            AggregateOperations::Diff => match inputs.split_first() {
-                Some((first, rest)) => clamp(rest.iter().copied().fold(*first, |acc, x| acc - x)),
-                None => F::ZERO,
-            },
-            AggregateOperations::Prod => {
-                clamp(inputs.iter().copied().fold(F::ONE, |acc, x| acc * x))
-            }
-            AggregateOperations::Max => clamp(inputs.iter().copied().fold(-F::MAX_VALUE, F::max)),
-            AggregateOperations::Min => clamp(inputs.iter().copied().fold(F::MAX_VALUE, F::min)),
+            AggregateOperations::Diff => folded(inputs, None, difference),
+            AggregateOperations::Prod => folded(inputs, Some(F::ONE), product),
+            AggregateOperations::Max => folded(inputs, Some(-F::MAX_VALUE), F::max),
+            AggregateOperations::Min => folded(inputs, Some(F::MAX_VALUE), F::min),
             AggregateOperations::LogSumExp => clamp(logsumexp(inputs)),
-            AggregateOperations::Gaussian => {
-                let x = clamp(aggregate(inputs));
-                clamp((-x * x).exp())
-            }
-            AggregateOperations::Tooth => {
-                let x = clamp(aggregate(inputs));
-                clamp(x % F::ONE)
-            }
+            AggregateOperations::Gaussian => summed(inputs, gaussian),
+            AggregateOperations::Tooth => summed(inputs, tooth),
         }
     }
 }
@@ -227,37 +333,15 @@ impl ActivationOperation {
     #[inline]
     pub fn apply<F: OpFloat>(&self, inputs: &[F]) -> F {
         match self {
-            ActivationOperation::Sigmoid => {
-                let total = aggregate(inputs);
-                clamp(F::ONE / (F::ONE + (-total).exp()))
-            }
-            ActivationOperation::Tanh => {
-                let total = aggregate(inputs);
-                clamp(total.tanh())
-            }
-            ActivationOperation::ReLU => clamp(aggregate(inputs).max(F::ZERO)),
-            ActivationOperation::LeakyReLU => {
-                let x = clamp(aggregate(inputs));
-                if x > F::ZERO { x } else { clamp(F::HALF * x) }
-            }
-            ActivationOperation::ELU => {
-                let x = clamp(aggregate(inputs));
-                if x > F::ZERO {
-                    x
-                } else {
-                    clamp(F::HALF * (x.exp() - F::ONE))
-                }
-            }
-            ActivationOperation::Linear => clamp(aggregate(inputs)),
-            ActivationOperation::Mish => {
-                let x = clamp(aggregate(inputs));
-                clamp(x * (x.exp().ln_1p().tanh()))
-            }
-            ActivationOperation::Swish => {
-                let x = clamp(aggregate(inputs));
-                clamp(x / (F::ONE + (-x).exp()))
-            }
-            ActivationOperation::Softplus => softplus_stable(clamp(aggregate(inputs))),
+            ActivationOperation::Sigmoid => summed(inputs, sigmoid),
+            ActivationOperation::Tanh => summed(inputs, tanh),
+            ActivationOperation::ReLU => summed(inputs, relu),
+            ActivationOperation::LeakyReLU => summed(inputs, leaky_relu),
+            ActivationOperation::ELU => summed(inputs, elu),
+            ActivationOperation::Linear => summed(inputs, clamp),
+            ActivationOperation::Mish => summed(inputs, mish),
+            ActivationOperation::Swish => summed(inputs, swish),
+            ActivationOperation::Softplus => summed(inputs, softplus),
         }
     }
 }
@@ -274,7 +358,7 @@ impl<F: OpFloat> Op<F> {
     pub fn weight_with(value: F) -> Self {
         let supplier = || random_provider::range(-F::ONE..F::ONE);
 
-        let operation = |inputs: &[F], weight: &F| clamp(inputs[0] * *weight);
+        let operation = |inputs: &[F], w: &F| weight(inputs[0], *w);
 
         let modifier = |current: &mut F| {
             let diff = random_provider::range(-F::ONE..F::ONE) * F::TENTH;
@@ -318,71 +402,75 @@ impl<F: OpFloat> Op<F> {
     }
 
     pub fn sign() -> Self {
-        Op::Fn(op_names::SIGN, 1.into(), sign::<F>)
+        Op::Fn(op_names::SIGN, 1.into(), |inputs: &[F]| unary(inputs, sign))
     }
 
     pub fn reciprocal() -> Self {
-        Op::Fn(op_names::RECIPROCAL, 1.into(), reciprocal::<F>)
+        Op::Fn(op_names::RECIPROCAL, 1.into(), |inputs: &[F]| {
+            unary(inputs, reciprocal)
+        })
     }
 
     pub fn add() -> Self {
-        Op::Fn(op_names::ADD, 2.into(), add::<F>)
+        Op::Fn(op_names::ADD, 2.into(), |inputs: &[F]| binary(inputs, add))
     }
 
     pub fn sub() -> Self {
-        Op::Fn(op_names::SUB, 2.into(), sub::<F>)
+        Op::Fn(op_names::SUB, 2.into(), |inputs: &[F]| binary(inputs, sub))
     }
 
     pub fn mul() -> Self {
-        Op::Fn(op_names::MUL, 2.into(), mul::<F>)
+        Op::Fn(op_names::MUL, 2.into(), |inputs: &[F]| binary(inputs, mul))
     }
 
     pub fn div() -> Self {
-        Op::Fn(op_names::DIV, 2.into(), div::<F>)
+        Op::Fn(op_names::DIV, 2.into(), |inputs: &[F]| binary(inputs, div))
     }
 
     pub fn neg() -> Self {
-        Op::Fn(op_names::NEG, 1.into(), neg::<F>)
+        Op::Fn(op_names::NEG, 1.into(), |inputs: &[F]| unary(inputs, neg))
     }
 
     pub fn pow() -> Self {
-        Op::Fn(op_names::POW, 2.into(), pow::<F>)
+        Op::Fn(op_names::POW, 2.into(), |inputs: &[F]| binary(inputs, pow))
     }
 
     pub fn sqrt() -> Self {
-        Op::Fn(op_names::SQRT, 1.into(), sqrt::<F>)
+        Op::Fn(op_names::SQRT, 1.into(), |inputs: &[F]| unary(inputs, sqrt))
     }
 
     pub fn abs() -> Self {
-        Op::Fn(op_names::ABS, 1.into(), abs::<F>)
+        Op::Fn(op_names::ABS, 1.into(), |inputs: &[F]| unary(inputs, abs))
     }
 
     pub fn exp() -> Self {
-        Op::Fn(op_names::EXP, 1.into(), exp::<F>)
+        Op::Fn(op_names::EXP, 1.into(), |inputs: &[F]| unary(inputs, exp))
     }
 
     pub fn log() -> Self {
-        Op::Fn(op_names::LOG, 1.into(), log::<F>)
+        Op::Fn(op_names::LOG, 1.into(), |inputs: &[F]| unary(inputs, log))
     }
 
     pub fn sin() -> Self {
-        Op::Fn(op_names::SIN, 1.into(), sin::<F>)
+        Op::Fn(op_names::SIN, 1.into(), |inputs: &[F]| unary(inputs, sin))
     }
 
     pub fn cos() -> Self {
-        Op::Fn(op_names::COS, 1.into(), cos::<F>)
+        Op::Fn(op_names::COS, 1.into(), |inputs: &[F]| unary(inputs, cos))
     }
 
     pub fn tan() -> Self {
-        Op::Fn(op_names::TAN, 1.into(), tan::<F>)
+        Op::Fn(op_names::TAN, 1.into(), |inputs: &[F]| unary(inputs, tan))
     }
 
     pub fn ceil() -> Self {
-        Op::Fn(op_names::CEIL, 1.into(), ceil::<F>)
+        Op::Fn(op_names::CEIL, 1.into(), |inputs: &[F]| unary(inputs, ceil))
     }
 
     pub fn floor() -> Self {
-        Op::Fn(op_names::FLOOR, 1.into(), floor::<F>)
+        Op::Fn(op_names::FLOOR, 1.into(), |inputs: &[F]| {
+            unary(inputs, floor)
+        })
     }
 
     pub fn tooth() -> Self {
@@ -547,9 +635,266 @@ pub fn all_ops<F: OpFloat>() -> Vec<Op<F>> {
         .collect()
 }
 
+// Shapes, column form: `inputs[i]` is the i-th input's column (one value per sample) and `out`
+// receives one value per sample. Each matches its scalar form above bit-for-bit, and returns
+// `false` when there are too few inputs, so the caller falls back to the scalar op (which
+// panics on the same inputs, just like row evaluation).
+
+#[inline(always)]
+fn unary_columns<F: OpFloat>(inputs: &[&[F]], out: &mut [F], f: impl Fn(F) -> F) -> bool {
+    let [x, ..] = inputs else {
+        return false;
+    };
+
+    for (o, &x) in out.iter_mut().zip(*x) {
+        *o = f(x);
+    }
+    true
+}
+
+#[inline(always)]
+fn binary_columns<F: OpFloat>(inputs: &[&[F]], out: &mut [F], f: impl Fn(F, F) -> F) -> bool {
+    let [a, b, ..] = inputs else {
+        return false;
+    };
+
+    for ((o, &x), &y) in out.iter_mut().zip(*a).zip(*b) {
+        *o = f(x, y);
+    }
+    true
+}
+
+/// Sums the input columns, then applies `f`. The sum matches [aggregate] bit-for-bit:
+/// 1..=5 inputs sum left to right starting from the first input, more fold from zero.
+#[inline(always)]
+fn summed_columns<F: OpFloat>(inputs: &[&[F]], out: &mut [F], f: impl Fn(F) -> F) -> bool {
+    match inputs.split_first() {
+        None => out.fill(F::ZERO),
+        Some((first, rest)) => {
+            if inputs.len() <= 5 {
+                out.copy_from_slice(first);
+            } else {
+                out.fill(F::ZERO);
+                for (o, &x) in out.iter_mut().zip(*first) {
+                    *o = *o + x;
+                }
+            }
+
+            for col in rest {
+                for (o, &x) in out.iter_mut().zip(*col) {
+                    *o = *o + x;
+                }
+            }
+        }
+    }
+
+    for o in out.iter_mut() {
+        *o = f(*o);
+    }
+    true
+}
+
+#[inline(always)]
+fn folded_columns<F: OpFloat>(
+    inputs: &[&[F]],
+    out: &mut [F],
+    seed: Option<F>,
+    step: impl Fn(F, F) -> F,
+) -> bool {
+    let rest = match (seed, inputs.split_first()) {
+        (Some(seed), _) => {
+            out.fill(seed);
+            inputs
+        }
+        (None, Some((first, rest))) => {
+            out.copy_from_slice(first);
+            rest
+        }
+        (None, None) => {
+            out.fill(F::ZERO);
+            inputs
+        }
+    };
+
+    for col in rest {
+        for (o, &x) in out.iter_mut().zip(*col) {
+            *o = step(*o, x);
+        }
+    }
+
+    for o in out.iter_mut() {
+        *o = clamp(*o);
+    }
+    true
+}
+
+/// Column kernel for `op`: computes it for every sample at once, where `inputs[i]` is the
+/// column of the op's i-th input and `out` receives one value per sample. Returns `false` when
+/// the op has no kernel (or too few inputs); [Op]'s column [EvalInto] then falls back to calling
+/// the op once per sample.
+///
+/// Ops are identified by name, the same convention deserialization uses (see `ops/serde.rs`),
+/// so a custom op that reuses a built-in name gets the built-in kernel. Each arm uses the same
+/// shape and function as the op's constructor, so results are bit-identical.
+fn column_kernel<F: OpFloat>(op: &Op<F>, inputs: &[&[F]], out: &mut [F]) -> bool {
+    match op {
+        // Same rules as the scalar ops: a var reads its input at `index`, a const ignores inputs.
+        Op::Var(_, index, _) => match inputs.get(*index) {
+            Some(x) => {
+                out.copy_from_slice(x);
+                true
+            }
+            None => false,
+        },
+        Op::Const(_, v) => {
+            out.fill(*v);
+            true
+        }
+        Op::Value(op_names::WEIGHT, _, param, _) => {
+            let w = *param.data();
+            unary_columns(inputs, out, |x| weight(x, w))
+        }
+        Op::Fn(name, _, _) => match *name {
+            op_names::IDENTITY => match inputs.first() {
+                Some(x) => {
+                    out.copy_from_slice(x);
+                    true
+                }
+                None => false,
+            },
+
+            op_names::ADD => binary_columns(inputs, out, add),
+            op_names::SUB => binary_columns(inputs, out, sub),
+            op_names::MUL => binary_columns(inputs, out, mul),
+            op_names::DIV => binary_columns(inputs, out, div),
+            op_names::POW => binary_columns(inputs, out, pow),
+
+            op_names::NEG => unary_columns(inputs, out, neg),
+            op_names::ABS => unary_columns(inputs, out, abs),
+            op_names::CEIL => unary_columns(inputs, out, ceil),
+            op_names::FLOOR => unary_columns(inputs, out, floor),
+            op_names::RECIPROCAL => unary_columns(inputs, out, reciprocal),
+            op_names::SIGN => unary_columns(inputs, out, sign),
+            op_names::SQRT => unary_columns(inputs, out, sqrt),
+            op_names::EXP => unary_columns(inputs, out, exp),
+            op_names::LOG => unary_columns(inputs, out, log),
+            op_names::SIN => unary_columns(inputs, out, sin),
+            op_names::COS => unary_columns(inputs, out, cos),
+            op_names::TAN => unary_columns(inputs, out, tan),
+
+            op_names::SUM | op_names::LINEAR => summed_columns(inputs, out, clamp),
+            op_names::SIGMOID => summed_columns(inputs, out, sigmoid),
+            op_names::TANH => summed_columns(inputs, out, tanh),
+            op_names::RELU => summed_columns(inputs, out, relu),
+            op_names::LEAKY_RELU => summed_columns(inputs, out, leaky_relu),
+            op_names::ELU => summed_columns(inputs, out, elu),
+            op_names::MISH => summed_columns(inputs, out, mish),
+            op_names::SWISH => summed_columns(inputs, out, swish),
+            op_names::SOFTPLUS => summed_columns(inputs, out, softplus),
+            op_names::GAUSSIAN => summed_columns(inputs, out, gaussian),
+            op_names::TOOTH => summed_columns(inputs, out, tooth),
+
+            op_names::DIFF => folded_columns(inputs, out, None, difference),
+            op_names::PROD => folded_columns(inputs, out, Some(F::ONE), product),
+            op_names::MAX => folded_columns(inputs, out, Some(-F::MAX_VALUE), F::max),
+            op_names::MIN => folded_columns(inputs, out, Some(F::MAX_VALUE), F::min),
+
+            _ => false,
+        },
+        _ => false,
+    }
+}
+
+/// Inputs gathered on the stack, per sample, up to this fan-in in the per-sample fallback.
+const STACK_INPUTS: usize = 8;
+
+/// Column evaluation of an [Op]: `inputs[i]` is the column of the op's i-th input (one value per
+/// sample) and `buffer` receives the op's value for every sample. The column counterpart of
+/// `Eval<[F], F> for Op<F>`, with the same meaning for every op, e.g. a var reads input
+/// `index` and a const ignores its inputs.
+///
+/// Uses the op's column kernel when it has one ([column_kernel]); otherwise calls the scalar op
+/// once per sample, gathering that sample's inputs out of the columns:
+///
+/// ```text
+///   sample r:   row = [ inputs[0][r], inputs[1][r], ... ]  →  buffer[r] = self.eval(row)
+/// ```
+impl<'a, F: OpFloat> EvalInto<[&'a [F]], [F]> for Op<F> {
+    fn eval_into(&self, inputs: &[&'a [F]], buffer: &mut [F]) {
+        if column_kernel(self, inputs, buffer) {
+            return;
+        }
+
+        let mut row = SmallVec::<[F; STACK_INPUTS]>::from_elem(F::ZERO, inputs.len());
+        let row = if inputs.len() <= STACK_INPUTS {
+            &mut row[..inputs.len()]
+        } else {
+            row.resize(inputs.len(), F::ZERO);
+            &mut row
+        };
+
+        for (r, out) in buffer.iter_mut().enumerate() {
+            for (value, column) in row.iter_mut().zip(inputs) {
+                *value = column[r];
+            }
+            *out = self.eval(row);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_column_kernels_match_scalar_ops() {
+        let ops = all_ops::<f32>().into_iter().chain([
+            Op::identity(),
+            Op::weight_with(-0.7),
+            Op::weight_with(0.3),
+        ]);
+
+        // Values around zero plus extremes, so clamp, -0.0 and the div EPS branch get hit.
+        let values = [
+            -3.0, -1.0, -0.5, -0.0, 0.0, 1e-9, 0.25, 0.5, 1.0, 2.5, 7.0, -40.0, 1e12, -1e12,
+        ];
+        let rows = 64;
+        let mut kernels = 0;
+
+        for op in ops {
+            for fan_in in 1..=7 {
+                let cols: Vec<Vec<f32>> = (0..fan_in)
+                    .map(|i| {
+                        (0..rows)
+                            .map(|r| values[(r * (i + 3) + i) % values.len()])
+                            .collect()
+                    })
+                    .collect();
+                let inputs: Vec<&[f32]> = cols.iter().map(|c| c.as_slice()).collect();
+
+                let mut out = vec![0.0; rows];
+                if !column_kernel(&op, &inputs, &mut out) {
+                    continue;
+                }
+                kernels += 1;
+
+                for r in 0..rows {
+                    let row: Vec<f32> = cols.iter().map(|c| c[r]).collect();
+                    let want = op.eval(&row);
+                    assert_eq!(
+                        out[r].to_bits(),
+                        want.to_bits(),
+                        "{} with {fan_in} inputs, row {r}: column {} vs scalar {}",
+                        op.name(),
+                        out[r],
+                        want
+                    );
+                }
+            }
+        }
+
+        assert!(kernels > 0);
+    }
     use crate::{Eval, ops::math};
 
     #[inline]

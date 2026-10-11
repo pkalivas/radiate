@@ -8,7 +8,7 @@ mod primitives;
 mod stats;
 mod str;
 
-pub use buff::{Matrix, SortedBuffer, VersionedCounts, WindowBuffer};
+pub use buff::{Matrix, MatrixView, SortedBuffer, VersionedCounts, WindowBuffer};
 pub use datatype::{
     AnyValue, DType, DataType, dedup_slice, dtype, dtype_names, pow_anyvalue, value,
 };

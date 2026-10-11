@@ -6,6 +6,7 @@ pytest-cov>=7.0.0
 pytest-xdist== 3.8.0
 PyYaml>=6.0.3
 jupyter>=1.1.1
+pillow>=12.3.0
 
 polars>=1.38.1 ; python_version >= '3.12' and python_version < '3.14'
 pandas>=2.1.0 ; python_version >= '3.12' and python_version < '3.14'

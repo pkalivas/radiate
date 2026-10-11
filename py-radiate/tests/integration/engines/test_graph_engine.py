@@ -171,6 +171,52 @@ def test_engine_graph_recurrent_class_acc(memory_dataset, random_seed):
 
 @pytest.mark.integration
 @pytest.mark.skipif(not rd._NUMPY_AVAILABLE, reason="numpy not installed")
+def test_engine_graph_recurrent_with_np(memory_dataset, random_seed):
+    """Test engine with graph codec and elitism for classification."""
+    # import numpy as np
+
+    inputs, outputs = memory_dataset
+
+    engine = (
+        rd.Engine.graph(
+            shape=(1, 1),
+            vertex=[
+                rd.Op.add(),
+                rd.Op.mul(),
+                rd.Op.linear(),
+                rd.Op.sub(),
+                rd.Op.sigmoid(),
+                rd.Op.tanh(),
+                rd.Op.relu(),
+            ],
+            edge=rd.Op.weight(),
+            output=rd.Op.sigmoid(),
+            graph_type=rd.GraphType.LSTM,
+        )
+        .regression(inputs, outputs, loss=rd.MSE)
+        .alter(
+            rd.Cross.graph(0.5, 0.5),
+            rd.Mutate.op(0.1, 0.05),
+            rd.Mutate.graph(0.05, 0.05, True),
+        )
+        .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
+    )
+
+    result = engine.run()
+
+    assert result.score()[0] < 0.01
+    assert result.index() <= 500
+    assert isinstance(result.value(), rd.Graph)
+
+    # np_inputs = np.array(inputs)
+    # np_outputs = np.array(outputs)
+    # acc = rd.accuracy(result.value(), np_inputs, np_outputs, loss=rd.MSE)
+
+    # result.value().reset()
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(not rd._NUMPY_AVAILABLE, reason="numpy not installed")
 def test_graph_eval_with_py_func(example_1x1_regression_dataset, random_seed):
     import numpy as np
 

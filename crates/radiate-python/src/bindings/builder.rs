@@ -595,7 +595,7 @@ impl PyEngineBuilder {
         use EngineBuilderHandle::*;
         use PyFitnessInner::Regression32;
 
-        let Regression32(regression, is_batch) = regression else {
+        let Regression32(regression) = regression else {
             radiate_py_bail!("init_regression_builder only supports Regression fitness functions")
         };
 
@@ -605,13 +605,10 @@ impl PyEngineBuilder {
                     .codec(c)
                     .executor(executor)
                     .stream_executor(Executor::default())
-                    .replace_strategy(GraphReplacement);
+                    .replace_strategy(GraphReplacement)
+                    .fitness_fn(regression);
 
-                if is_batch {
-                    Ok(Graph32(base_engine.raw_batch_fitness_fn(regression)))
-                } else {
-                    Ok(Graph32(base_engine.raw_fitness_fn(regression)))
-                }
+                Ok(Graph32(base_engine))
             } else {
                 radiate_py_bail!("F64 GraphCodec not supported for F32 Regression Fitness.");
             }
@@ -620,13 +617,10 @@ impl PyEngineBuilder {
                 let base_engine = GeneticEngine::builder()
                     .codec(c)
                     .executor(executor)
-                    .stream_executor(Executor::default());
+                    .stream_executor(Executor::default())
+                    .fitness_fn(regression);
 
-                if is_batch {
-                    Ok(Tree32(base_engine.raw_batch_fitness_fn(regression)))
-                } else {
-                    Ok(Tree32(base_engine.raw_fitness_fn(regression)))
-                }
+                Ok(Tree32(base_engine))
             } else {
                 radiate_py_bail!("F64 TreeCodec not supported for F32 Regression Fitness.");
             }
@@ -643,7 +637,7 @@ impl PyEngineBuilder {
         use EngineBuilderHandle::*;
         use PyFitnessInner::Regression64;
 
-        let Regression64(regression, is_batch) = regression else {
+        let Regression64(regression) = regression else {
             radiate_py_bail!("init_regression_builder64 only supports Regression fitness functions")
         };
 
@@ -653,13 +647,10 @@ impl PyEngineBuilder {
                     .codec(c)
                     .executor(executor)
                     .stream_executor(Executor::default())
-                    .replace_strategy(GraphReplacement);
+                    .replace_strategy(GraphReplacement)
+                    .fitness_fn(regression);
 
-                if is_batch {
-                    Ok(Graph64(base_engine.raw_batch_fitness_fn(regression)))
-                } else {
-                    Ok(Graph64(base_engine.raw_fitness_fn(regression)))
-                }
+                Ok(Graph64(base_engine))
             } else {
                 radiate_py_bail!("F32 GraphCodec not supported for F64 Regression Fitness.");
             }
@@ -668,13 +659,10 @@ impl PyEngineBuilder {
                 let base_engine = GeneticEngine::builder()
                     .codec(c)
                     .executor(executor)
-                    .stream_executor(Executor::default());
+                    .stream_executor(Executor::default())
+                    .fitness_fn(regression);
 
-                if is_batch {
-                    Ok(Tree64(base_engine.raw_batch_fitness_fn(regression)))
-                } else {
-                    Ok(Tree64(base_engine.raw_fitness_fn(regression)))
-                }
+                Ok(Tree64(base_engine))
             } else {
                 radiate_py_bail!("F32 TreeCodec not supported for F64 Regression Fitness.");
             }
@@ -844,7 +832,7 @@ impl PyEngineBuilder {
 
         if executor.is_parallel()
             && gil_enabled
-            && !matches!(problem.inner, Regression32(_, _) | Regression64(_, _))
+            && !matches!(problem.inner, Regression32(_) | Regression64(_))
         {
             radiate_py_bail!(
                 "Parallel execution is not supported for non-regression fitness functions
