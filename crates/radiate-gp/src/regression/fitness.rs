@@ -69,9 +69,9 @@ where
         let mut results = Vec::with_capacity(inputs.len());
         for input in inputs.iter() {
             let mut kernel = GraphKernel::from((&input[0], cache));
-            let mut cache = KernelCache::from((&input[0], cache));
             kernel.eval_into_mut(features, &mut preds);
             cache = kernel.take_cache();
+            cache.bump();
 
             results.push(self.loss.calculate_columns(labels, &preds));
         }

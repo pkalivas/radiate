@@ -133,35 +133,9 @@ where
     pub fn slots(&self) -> usize {
         self.plan.slots()
     }
-}
 
-impl<V, G: AsRef<[GraphNode<V>]>> From<&G> for KernelCache<V>
-where
-    V: Default + Clone,
-{
-    fn from(graph: &G) -> Self {
-        let nodes = graph.as_ref();
-        let mut new_cache = KernelCache::default();
-
-        new_cache.plan.compile(nodes);
-        new_cache
-            .row_values
-            .resize(new_cache.plan.slots(), V::default());
-        new_cache
-    }
-}
-
-impl<V> From<(&[GraphNode<V>], KernelCache<V>)> for KernelCache<V>
-where
-    V: Default + Clone,
-{
-    fn from((nodes, cache): (&[GraphNode<V>], KernelCache<V>)) -> Self {
-        let mut new_cache = cache;
-        new_cache.plan.compile(nodes);
-        new_cache
-            .row_values
-            .resize(new_cache.plan.slots(), V::default());
-        new_cache
+    pub fn bump(&mut self) {
+        self.is_ready = false;
     }
 }
 
@@ -221,7 +195,14 @@ where
     G: AsRef<[GraphNode<T>]>,
     V: Default + Clone,
 {
-    fn from((graph, cache): (&'a G, KernelCache<V>)) -> Self {
+    fn from((graph, mut cache): (&'a G, KernelCache<V>)) -> Self {
+        if !cache.is_ready {
+            cache.plan.compile(graph.as_ref());
+            cache.row_values.clear();
+            cache.row_values.resize(cache.plan.slots(), V::default());
+            cache.is_ready = true;
+        }
+
         let nodes = graph.as_ref();
         GraphKernel {
             nodes,
