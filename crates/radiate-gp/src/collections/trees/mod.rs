@@ -12,6 +12,7 @@ mod tree;
 pub use chromosome::TreeChromosome;
 pub use codec::TreeCodec;
 pub use crossover::TreeCrossover;
+pub use eval::TreeEvalCache;
 pub use format::Format;
 pub use iter::TreeIterator;
 pub use mutator::HoistMutator;

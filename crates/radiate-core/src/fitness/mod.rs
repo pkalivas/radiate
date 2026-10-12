@@ -46,7 +46,7 @@ pub trait BatchFitnessFunction<T, S = f32>: Send + Sync
 where
     S: Into<Score>,
 {
-    fn evaluate(&self, individuals: &[T]) -> Vec<S>;
+    fn evaluate(&self, individuals: Vec<T>) -> Vec<S>;
 }
 
 pub trait IntoFitness<C: Chromosome, T, M> {
@@ -120,7 +120,7 @@ where
 {
     fn into_fitness(self) -> FitnessKind<C, T> {
         FitnessKind::Batch(Arc::new(move |ts| {
-            self.evaluate(&ts).into_iter().map(Into::into).collect()
+            self.evaluate(ts).into_iter().map(Into::into).collect()
         }))
     }
 }
@@ -144,10 +144,7 @@ where
 {
     fn into_fitness(self) -> FitnessKind<C, T> {
         FitnessKind::RawBatch(Arc::new(move |gs| {
-            self.evaluate(gs.as_slice())
-                .into_iter()
-                .map(Into::into)
-                .collect()
+            self.evaluate(gs).into_iter().map(Into::into).collect()
         }))
     }
 }

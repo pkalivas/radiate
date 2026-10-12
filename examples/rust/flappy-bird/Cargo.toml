@@ -5,4 +5,4 @@ edition = "2024"
 
 [dependencies]
 radiate = { workspace = true, features = ["gp"] }
-bevy = "0.19"
+bevy = { version = "0.20" }

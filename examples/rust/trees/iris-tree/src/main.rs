@@ -1,8 +1,9 @@
 use radiate::*;
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
+const MIN_TREE_DEPTH: usize = 3;
 
 fn main() {
     random_provider::seed(1000);
@@ -11,30 +12,30 @@ fn main() {
 
     let store = vec![
         (NodeType::Root, vec![Op::sigmoid()]),
-        (NodeType::Vertex, ops::math_ops()),
+        (NodeType::Vertex, ops::all_ops()),
         (NodeType::Leaf, (0..4).map(Op::var).collect()),
     ];
 
-    let codec = TreeCodec::multi_root(3, 4, store).constraint(|node| node.size() < 40);
-    let regression = Regression::new(train.clone(), Loss::MSE);
+    let num_trees = train.shape().1;
 
     let engine = GeneticEngine::builder()
-        .codec(codec)
-        .fitness_fn(regression)
+        .codec(
+            TreeCodec::multi_root(MIN_TREE_DEPTH, num_trees, store)
+                .constraint(|node| node.size() < 40),
+        )
+        .fitness_fn(Regression::new(train.clone(), Loss::MSE))
         .minimizing()
-        .parallel()
         .crossover(TreeCrossover::new(0.5))
         .mutator(OperationMutator::new(0.03, 0.02))
         .build();
 
-    let result = engine
-        .run(|ctx| {
-            println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_f32());
-            ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
-        })
+    engine
+        .iter()
+        .logging()
+        .until(|epoch| epoch.score().as_f32() < MIN_SCORE || epoch.seconds() > MAX_SECONDS)
+        .last()
+        .inspect(|ctx| display(&train, &test, ctx))
         .unwrap();
-
-    display(&train, &test, &result);
 }
 
 fn display(
@@ -42,6 +43,7 @@ fn display(
     test: &DataSet<f32>,
     result: &Generation<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>,
 ) {
+    println!("{}", result.metrics().dashboard());
     let mut best = result.value().clone();
 
     let train_acc = Accuracy::default()
@@ -86,7 +88,7 @@ fn load_iris_dataset() -> DataSet<f32> {
         labels.push(row_labels);
     }
 
-    let unique_labels = labels.iter().collect::<HashSet<&String>>();
+    let unique_labels = labels.iter().collect::<BTreeSet<&String>>();
 
     let mut new_labels = Vec::new();
     for label in labels.iter() {

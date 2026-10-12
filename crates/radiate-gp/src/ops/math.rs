@@ -295,8 +295,6 @@ pub enum AggregateOperations {
     Tooth,
 }
 
-/// Implementations of the enum. These are the basic math operations.
-/// Each operation takes a slice of `F` values and returns a single `F` value.
 impl AggregateOperations {
     pub fn apply<F: OpFloat>(&self, inputs: &[F]) -> F {
         match self {
@@ -736,7 +734,7 @@ fn folded_columns<F: OpFloat>(
 /// Ops are identified by name, the same convention deserialization uses (see `ops/serde.rs`),
 /// so a custom op that reuses a built-in name gets the built-in kernel. Each arm uses the same
 /// shape and function as the op's constructor, so results are bit-identical.
-fn column_kernel<F: OpFloat>(op: &Op<F>, inputs: &[&[F]], out: &mut [F]) -> bool {
+fn process_op_vectorized<F: OpFloat>(op: &Op<F>, inputs: &[&[F]], out: &mut [F]) -> bool {
     match op {
         // Same rules as the scalar ops: a var reads its input at `index`, a const ignores inputs.
         Op::Var(_, index, _) => match inputs.get(*index) {
@@ -821,23 +819,16 @@ const STACK_INPUTS: usize = 8;
 /// ```
 impl<'a, F: OpFloat> EvalInto<[&'a [F]], [F]> for Op<F> {
     fn eval_into(&self, inputs: &[&'a [F]], buffer: &mut [F]) {
-        if column_kernel(self, inputs, buffer) {
+        if process_op_vectorized(self, inputs, buffer) {
             return;
         }
 
         let mut row = SmallVec::<[F; STACK_INPUTS]>::from_elem(F::ZERO, inputs.len());
-        let row = if inputs.len() <= STACK_INPUTS {
-            &mut row[..inputs.len()]
-        } else {
-            row.resize(inputs.len(), F::ZERO);
-            &mut row
-        };
-
         for (r, out) in buffer.iter_mut().enumerate() {
             for (value, column) in row.iter_mut().zip(inputs) {
                 *value = column[r];
             }
-            *out = self.eval(row);
+            *out = self.eval(&row[..inputs.len()]);
         }
     }
 }
@@ -873,7 +864,7 @@ mod tests {
                 let inputs: Vec<&[f32]> = cols.iter().map(|c| c.as_slice()).collect();
 
                 let mut out = vec![0.0; rows];
-                if !column_kernel(&op, &inputs, &mut out) {
+                if !process_op_vectorized(&op, &inputs, &mut out) {
                     continue;
                 }
                 kernels += 1;
