@@ -3,12 +3,12 @@ use radiate::prelude::*;
 const MIN_SCORE: f32 = 0.001;
 
 fn main() -> RadiateResult<()> {
-    random_provider::seed(24683579);
+    random_provider::seed(514);
 
     let store = node_set![
         Input => Op::var(0),
         Edge => Op::weight(),
-        Vertex => [Op::sub(), Op::mul(), Op::linear()],
+        Vertex => [Op::sub(), Op::mul(), Op::sum(), Op::dot()],
         Output => Op::linear()
     ];
 

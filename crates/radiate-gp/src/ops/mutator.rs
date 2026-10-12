@@ -32,58 +32,6 @@ impl OperationMutator {
             replace_rate: replace_rate.into(),
         }
     }
-
-    #[inline]
-    fn mutate_node<T>(
-        &self,
-        node: &mut impl Node<Value = Op<T>>,
-        store: &NodeSet<Op<T>>,
-        replace_rate: f32,
-        metrics: &mut OpMutateMetrics,
-    ) where
-        T: Clone + PartialEq + Default,
-    {
-        match node.value() {
-            Op::Value { .. } => {
-                if let Some(new_op) = self.mutate_value_op(node, replace_rate) {
-                    node.set_value(new_op);
-                    metrics.op_mutate += 1;
-                }
-            }
-            _ => {
-                let new_op: Op<T> = store.new_instance(node.node_type());
-                if let Some(op) = (new_op.arity() == node.value().arity()).then_some(new_op) {
-                    node.set_value(op);
-                    metrics.op_new_instance += 1;
-                }
-            }
-        }
-    }
-
-    #[inline]
-    fn mutate_value_op<T>(
-        &self,
-        node: &mut impl Node<Value = Op<T>>,
-        replace_rate: f32,
-    ) -> Option<Op<T>>
-    where
-        T: Clone + PartialEq + Default,
-    {
-        match node.value_mut() {
-            Op::Value(name, arity, params, operation) => {
-                let new_value = if random_provider::random::<f32>() < replace_rate {
-                    params.new_instance(())
-                } else {
-                    let modifier = params.modifier();
-                    modifier(params.data_mut());
-                    params.clone()
-                };
-
-                Some(Op::Value(name, *arity, new_value, *operation))
-            }
-            _ => None,
-        }
-    }
 }
 
 /// This implementation is for the `GraphChromosome<Op<T>>` type.
@@ -120,12 +68,12 @@ where
 
         for i in mutation_indexes.iter() {
             if let Some(node) = chromosome.get_mut(*i) {
-                if matches!(node.node_type(), NodeType::Input | NodeType::Output) {
+                if matches!(node.node_type(), NodeType::Output) {
                     continue;
                 }
 
                 if let Some(store) = store.as_ref() {
-                    self.mutate_node(node, store, replace_rate, &mut metrics);
+                    mutate_node(node, store, replace_rate, &mut metrics);
                 }
             }
         }
@@ -156,7 +104,7 @@ where
 
             for idx in random_provider::cond_indices(0..root.size(), ctx.rate()) {
                 if let Some(node) = root.get_mut(idx) {
-                    self.mutate_node(node, &store, replace_rate, &mut metrics);
+                    mutate_node(node, &store, replace_rate, &mut metrics);
                 }
             }
 
@@ -167,5 +115,67 @@ where
         }
 
         0
+    }
+}
+
+#[inline]
+fn mutate_node<T>(
+    node: &mut impl Node<Value = Op<T>>,
+    store: &NodeSet<Op<T>>,
+    replace_rate: f32,
+    metrics: &mut OpMutateMetrics,
+) where
+    T: Clone + PartialEq + Default,
+{
+    match node.value() {
+        Op::Value { .. } | Op::Pair { .. } => {
+            if let Some(new_op) = mutate_value_op(node, replace_rate) {
+                node.set_value(new_op);
+                metrics.op_mutate += 1;
+            }
+        }
+        _ => {
+            if node.node_type() == NodeType::Input {
+                return;
+            }
+
+            let new_op: Op<T> = store.new_instance(node.node_type());
+            if let Some(op) = (new_op.arity() == node.value().arity()).then_some(new_op) {
+                node.set_value(op);
+                metrics.op_new_instance += 1;
+            }
+        }
+    }
+}
+
+#[inline]
+fn mutate_value_op<T>(node: &mut impl Node<Value = Op<T>>, replace_rate: f32) -> Option<Op<T>>
+where
+    T: Clone + PartialEq + Default,
+{
+    match node.value_mut() {
+        Op::Value(name, arity, params, operation) => {
+            let new_value = if random_provider::random::<f32>() < replace_rate {
+                params.new_instance(())
+            } else {
+                let modifier = params.modifier();
+                modifier(params.data_mut());
+                params.clone()
+            };
+
+            Some(Op::Value(name, *arity, new_value, *operation))
+        }
+        Op::Pair(name, arity, params, operation) => {
+            let new_value = if random_provider::random::<f32>() < replace_rate {
+                params.new_instance(())
+            } else {
+                let modifier = params.modifier();
+                modifier(params.data_mut());
+                params.clone()
+            };
+
+            Some(Op::Pair(name, *arity, new_value, *operation))
+        }
+        _ => None,
     }
 }

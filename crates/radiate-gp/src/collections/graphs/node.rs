@@ -538,7 +538,7 @@ impl<T: Debug> Debug for GraphNode<T> {
             self.innovation.map(|id| id.0).unwrap_or(0),
             format!("{:?}", self.node_type())[..3].to_owned(),
             self.arity(),
-            format!("{:.4?}", self.value), // pre-format with precision → String
+            format!("{:.5?}", self.value), // pre-format with precision → String
             self.is_valid(),
             self.is_recurrent(),
             self.incoming.len(),

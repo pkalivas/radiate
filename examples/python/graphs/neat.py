@@ -1,37 +1,35 @@
 #!/usr/bin/env python3
 """
-NEAT evolution. This example shows how we can use radiate to evolve
-graphs using the NEAT algorithm. Notice the only real difference in the
-engine construction is the addition of the NEAT distance function and species
-threshold in the `.diversity(...)` method.
+NEAT evolution example using radiate.
 """
 
 import radiate as rd
 
 rd.random.seed(514)
 
-inputs, answers = rd.DataSet.cubic(dtype=rd.Float32).pair()
+data = rd.DataSet.koza1(dtype=rd.Float32)
+_, in_dim, out_dim = data.shape
+features, targets = data.pair()
 
 
 engine = (
     rd.Engine.graph(
         # specify the shape of the graph: (num_inputs, num_outputs)
-        shape=(1, 1),
+        shape=(in_dim, out_dim),
         # each vertex node will pick a random Op<T> from the below list.
-        vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+        vertex=[rd.Op.add(), rd.Op.mul()],
         # all edge nodes will use this operation - can be a list too
-        edge=rd.Op.weight(),
+        edge=rd.Op.identity(),
         # all output nodes will use this operation - can be a list too
-        output=rd.Op.linear(),
+        output=rd.Op.sum(),
         # specify the dtype of the underlying graph node's Op's dtype T (Op<T>) -
         # input data (inputs, outputs) must match this dtype
         dtype=rd.Float32,
     )
-    .select(rd.Select.boltzmann(temp=4.0))
-    .regression(inputs, answers, loss=rd.MSE)
+    .regression(features, targets, loss=rd.MSE)
     .diversity(
         rd.Dist.neat(excess=1.0, disjoint=1.0, weight_diff=3.0),
-        target=5,
+        target=4,
     )
     .alter(
         rd.Cross.graph(0.4, 0.5),
@@ -43,11 +41,11 @@ engine = (
 
 result = engine.run(ui=True)
 
-eval_results = result.value().eval(inputs)
-accuracy = rd.accuracy(result.value(), inputs, answers, loss=rd.MSE)
+eval_results = result.value().eval(features)
+accuracy = rd.accuracy(result.value(), features, targets, loss=rd.MSE)
 
 print(result)
 print(result.metrics().dashboard())
 print(accuracy)
 print(f"Graph Dtype: {result.value().dtype()}")
-print(result.metrics()["species.count"].mean())
+print("Species count mean:", result.metrics()["species.count"].mean())

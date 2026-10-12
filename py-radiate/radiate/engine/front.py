@@ -23,6 +23,7 @@ class FrontValue[T](RsObject):
             lambda: Genotype.from_rust(self.__backend__().genotype()),
         )
 
+    @property
     def score(self) -> list[float]:
         """
         Get the score of the front value.

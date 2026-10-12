@@ -636,6 +636,7 @@ pub fn arithmetic_ops<F: OpFloat>() -> Vec<Op<F>> {
         Op::reciprocal(),
         Op::gaussian(),
         Op::sign(),
+        Op::dot(),
     ]
 }
 

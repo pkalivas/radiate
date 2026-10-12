@@ -45,6 +45,8 @@ fn main() -> RadiateResult<()> {
 fn display(data: &DataSet<f32>, result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     let outputs = result.value().eval(&data.features());
 
+    println!("{}", result.metrics().dashboard());
+
     for (idx, row) in data.iter().enumerate() {
         let output = outputs[idx].clone();
         println!("{:?} -> expected: {:?}, actual: {output:.3?}", row.0, row.1,);

@@ -8,9 +8,9 @@ use crate::{
 };
 use crate::{GraphIterator, NodeType};
 use radiate_core::Valid;
+use radiate_utils::SortedBuffer;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::{Index, IndexMut};
@@ -288,7 +288,7 @@ impl<T> Graph<T> {
                     node.set_direction(Direction::Forward);
                 }
             } else {
-                for cycle in cycles {
+                for &cycle in cycles.iter() {
                     if let Some(node) = self.get_mut(cycle) {
                         node.set_direction(Direction::Backward);
                     }
@@ -302,7 +302,7 @@ impl<T> Graph<T> {
     /// # Arguments
     /// - index: The index of the node to get the cycles for.
     #[inline]
-    pub fn get_cycles(&self, from: usize) -> std::collections::HashSet<usize> {
+    pub fn get_cycles(&self, from: usize) -> SortedBuffer<usize> {
         let n = self.len();
         let mut on_stack = vec![false; n];
         let mut visited = vec![false; n];
@@ -345,10 +345,10 @@ impl<T> Graph<T> {
             &mut stack,
         );
 
-        let mut out = HashSet::with_capacity(stack.len());
+        let mut out = SortedBuffer::new();
         for (i, &c) in cycles.iter().enumerate() {
             if c {
-                out.insert(i);
+                SortedBuffer::insert_sorted_unique(&mut out, i);
             }
         }
         out

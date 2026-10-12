@@ -291,7 +291,7 @@ impl<'a, T> GraphTransaction<'a, T> {
             if node_cycles.is_empty() {
                 self.change_direction(idx, Direction::Forward);
             } else {
-                for cycle_idx in node_cycles {
+                for &cycle_idx in node_cycles.iter() {
                     self.change_direction(cycle_idx, Direction::Backward);
                 }
             }

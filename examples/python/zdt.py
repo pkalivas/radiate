@@ -49,8 +49,8 @@ print()
 # hypervolume is ≈ 1.332.
 print(f"Hypervolume: {hypervolume}")
 
-x = [member.score()[0] for member in front]
-y = [member.score()[1] for member in front]
+x = [member.score[0] for member in front]
+y = [member.score[1] for member in front]
 
 fig = go.Figure(go.Scatter(x=x, y=y, mode="markers"))
 fig.show()

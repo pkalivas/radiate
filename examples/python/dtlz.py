@@ -19,29 +19,9 @@ objectives = 3
 k = variables - objectives + 1
 
 
-@jit(float64[:](float64[:]), nopython=True)
-def dtlz_1(val: np.ndarray) -> np.ndarray:
-    g_vals = val[variables - k :] - 0.5
-    g = 100.0 * (k + np.sum(g_vals**2 - np.cos(20.0 * np.pi * g_vals)))
-
-    base = 0.5 * (1.0 + g)
-
-    f = np.full(objectives, base, dtype=np.float64)
-
-    for i in range(objectives):
-        prod_end = objectives - 1 - i
-        if prod_end > 0:
-            f[i] *= np.prod(val[:prod_end])
-
-        if i > 0:
-            f[i] *= 1.0 - val[objectives - 1 - i]
-
-    return f
-
-
 @rd.fitness(batch=True)
 @jit(float64[:, :](float64[:, :]), nopython=True)
-def dtlz_1_batch(vals: np.ndarray) -> np.ndarray:
+def fit(vals: np.ndarray) -> np.ndarray:
     g_vals = vals[:, variables - k :] - 0.5
     g = 100.0 * (k + np.sum(g_vals**2 - np.cos(20.0 * np.pi * g_vals), axis=1))
 
@@ -57,7 +37,7 @@ def dtlz_1_batch(vals: np.ndarray) -> np.ndarray:
 
 engine = (
     rd.Engine.float(variables, use_numpy=True)
-    .fitness(dtlz_1_batch)
+    .fitness(fit)
     .objective(rd.MIN, rd.MIN, rd.MIN)
     .front_range(200, 250)
     # NSGA-III for 3+ objectives: crowded-comparison tournament for parents, reference-point
@@ -84,26 +64,15 @@ hypervolume = front.hypervolume([1.0, 1.0, 1.0])
 
 print(result.metrics().dashboard())
 print()
-# DTLZ1's Pareto front is the plane f1 + f2 + f3 = 0.5, so with a reference point of
-# 1.0 in every objective the best achievable hypervolume is 1 - 0.5³/6 ≈ 0.9792.
 print(f"Hypervolume: {hypervolume}")
 
-x = [member.score()[0] for member in front]
-y = [member.score()[1] for member in front]
-z = [member.score()[2] for member in front]
+x = [member.score[0] for member in front]
+y = [member.score[1] for member in front]
+z = [member.score[2] for member in front]
 
-fig = go.Figure(go.Scatter3d(x=x, y=y, z=z, mode="markers"))
+axis = {"range": [-0.025, 0.525]}
+fig = go.Figure(go.Scatter3d(x=x, y=y, z=z, mode="markers", marker={"size": 4}))
 fig.update_layout(
-    scene={
-        "xaxis": {"range": [0.0, 0.5]},
-        "yaxis": {"range": [0.0, 0.5]},
-        "zaxis": {"range": [0.0, 0.5]},
-    }
+    scene={"xaxis": axis, "yaxis": axis, "zaxis": axis, "aspectmode": "cube"}
 )
 fig.show()
-
-
-# | time   | 217.81µs   | 186.71µs   | 7.08ms     | 2000   | 435.63ms     | 153.80µs   | -          | -
-
-
-# Hypervolume: 0.9711955785751343

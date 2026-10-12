@@ -67,7 +67,7 @@ def test_front_can_max():
 
     add_result = front.add(rank0 + rank1 + rank2 + rank3 + rank4)
     first_front = front.fronts()[0]
-    first_front_scores = set(tuple(member.score()) for member in first_front.values())
+    first_front_scores = set(tuple(member.score) for member in first_front.values())
     rank0_scores = set(tuple(member.score()) for member in rank0)
 
     assert len(first_front) == add_result["added"]
@@ -87,7 +87,7 @@ def test_front_can_min():
 
     add_result = front.add(rank0 + rank1 + rank2 + rank3 + rank4)
     first_front = front.fronts()[0]
-    first_front_scores = set(tuple(member.score()) for member in first_front.values())
+    first_front_scores = set(tuple(member.score) for member in first_front.values())
     rank0_scores = set(tuple(member.score()) for member in rank0)
 
     assert len(first_front) == add_result["added"]

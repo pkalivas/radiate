@@ -13,9 +13,7 @@ import radiate as rd
 rd.random.seed(500)
 
 
-dataset = rd.DataSet.cubic(dtype=rd.Float32)
-inputs = dataset.features
-answers = dataset.labels
+features, labels = rd.DataSet.cubic(dtype=rd.Float32).pair()
 
 engine = (
     rd.Engine.tree(
@@ -24,16 +22,16 @@ engine = (
         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.add(), rd.Op.dot()],
         root=rd.Op.linear(),
     )
-    .regression(inputs, answers)
+    .regression(features, labels)
     .alter(rd.Cross.tree(0.7), rd.Mutate.op())
     .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
 )
 
 
 result = engine.run(log=True)
-eval_results = result.value().eval(inputs)
+eval_results = result.value().eval(features)
 accuracy = np.mean(
-    np.abs(np.array(eval_results).flatten() - np.array(answers).flatten()) < 0.1
+    np.abs(np.array(eval_results).flatten() - np.array(labels).flatten()) < 0.1
 )
 
 print(result)
