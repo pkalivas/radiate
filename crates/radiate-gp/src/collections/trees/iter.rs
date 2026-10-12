@@ -241,13 +241,13 @@ mod tests {
         //     2   3
         //    /
         //   4
-        let leaf = Op::constant(4.0);
-        let node2 = TreeNode::with_children(Op::constant(2.0), vec![TreeNode::new(leaf)]);
+        let leaf = Op::constant("four", 4.0);
+        let node2 = TreeNode::with_children(Op::constant("two", 2.0), vec![TreeNode::new(leaf)]);
 
-        let node3 = TreeNode::new(Op::constant(3.0));
+        let node3 = TreeNode::new(Op::constant("three", 3.0));
 
         let root = Tree::new(TreeNode::with_children(
-            Op::constant(1.0),
+            Op::constant("one", 1.0),
             vec![node2, node3],
         ));
 

@@ -1,6 +1,6 @@
-use crate::DataSet;
 use crate::Float;
 use crate::random_provider;
+use crate::{DataSet, Primitive};
 use std::f64::consts::PI;
 use std::ops::Range;
 
@@ -13,18 +13,18 @@ const PAGIE_GRID: usize = 26;
 /// follow `random_provider::seed` and `RADIATE_SEED`.
 impl<F: Float> DataSet<F> {
     pub fn cubic() -> DataSet<F> {
-        fn compute(x: f64) -> f64 {
-            4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x
-        }
-
         let mut inputs = Vec::new();
         let mut answers = Vec::new();
 
         let mut input = -1.0;
         for _ in -10..10 {
             input += 0.1;
-            inputs.push(vec![F::from(input).unwrap()]);
-            answers.push(vec![F::from(compute(input)).unwrap()]);
+            let input_as_f = input.extract::<F>().unwrap();
+            let computed = F::FOUR * input_as_f.powf(F::THREE) - F::THREE * input_as_f.powf(F::TWO)
+                + input_as_f;
+
+            inputs.push(vec![input_as_f]);
+            answers.push(vec![computed]);
         }
 
         DataSet::new(inputs, answers)

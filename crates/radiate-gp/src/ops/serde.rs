@@ -240,7 +240,7 @@ mod tests {
 
     #[test]
     fn test_serialize_deserialize_const() {
-        let op = Op::constant(42.0);
+        let op = Op::constant("42.0", 42.0);
         let serialized = serde_json::to_string(&op).unwrap();
         let deserialized: Op<f32> = serde_json::from_str(&serialized).unwrap();
         assert_eq!(op.name(), deserialized.name());

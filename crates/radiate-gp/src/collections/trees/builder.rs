@@ -127,9 +127,9 @@ mod tests {
     fn test_tree_builder_depth_two() {
         let store = vec![
             (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
-            (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+            (NodeType::Leaf, vec![Op::one(), Op::two()]),
         ];
-        let tree = Tree::with_depth(2, store);
+        let tree = Tree::<Op<f32>>::with_depth(2, store);
 
         assert!(tree.root().is_some());
         assert_eq!(tree.root().unwrap().children().unwrap().len(), 2);
@@ -153,9 +153,9 @@ mod tests {
         // The above test should be good enough, but just for peace of mind.
         let store = vec![
             (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
-            (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+            (NodeType::Leaf, vec![Op::one(), Op::two()]),
         ];
-        let tree = Tree::with_depth(3, store);
+        let tree = Tree::<Op<f32>>::with_depth(3, store);
 
         assert!(tree.root().is_some());
         assert_eq!(tree.root().unwrap().children().unwrap().len(), 2);
@@ -175,14 +175,14 @@ mod tests {
 
     #[test]
     fn test_vertex_with_any_arity_builds_correct_depth() {
-        let tree = Tree::with_depth(
+        let tree = Tree::<Op<f32>>::with_depth(
             2,
             vec![
                 (
                     NodeType::Vertex,
                     vec![Op::sigmoid(), Op::relu(), Op::tanh()],
                 ),
-                (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+                (NodeType::Leaf, vec![Op::one(), Op::two()]),
             ],
         );
 

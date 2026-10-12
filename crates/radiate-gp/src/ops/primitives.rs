@@ -1,5 +1,5 @@
 use crate::{Op, ops::op_names};
-use std::{fmt::Display, ops::Range};
+use std::ops::Range;
 
 impl<T> Op<T> {
     pub fn var(index: usize) -> Self {
@@ -23,15 +23,7 @@ impl<T> Op<T> {
         Op::Var(name, index, Some(k))
     }
 
-    pub fn constant(value: T) -> Self
-    where
-        T: Display,
-    {
-        let name = radiate_utils::intern!(format!("{}", value));
-        Op::Const(name, value)
-    }
-
-    pub fn named_constant(name: &'static str, value: T) -> Self {
+    pub fn constant(name: &'static str, value: T) -> Self {
         Op::Const(name, value)
     }
 

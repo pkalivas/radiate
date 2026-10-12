@@ -519,7 +519,7 @@ mod test {
 
         let mut graph_two = Graph::new(vec![
             GraphNode::new(0, NodeType::Input, Op::var(0)),
-            GraphNode::new(1, NodeType::Input, Op::constant(5.0)),
+            GraphNode::new(1, NodeType::Input, Op::constant("five", 5.0)),
             GraphNode::with_arity(2, NodeType::Vertex, Op::add(), Arity::Exact(2)),
             GraphNode::new(3, NodeType::Output, Op::linear()),
         ]);
@@ -862,7 +862,7 @@ mod test {
         let mut graph = Graph::<Op<f32>>::default();
 
         let idx_one = graph.insert(NodeType::Input, Op::var(0));
-        let idx_two = graph.insert(NodeType::Input, Op::constant(5_f32));
+        let idx_two = graph.insert(NodeType::Input, Op::constant("five", 5_f32));
         let idx_three = graph.insert(NodeType::Vertex, Op::add());
         let idx_four = graph.insert(NodeType::Output, Op::linear());
 

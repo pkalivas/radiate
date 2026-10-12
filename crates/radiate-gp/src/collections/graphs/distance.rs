@@ -128,12 +128,18 @@ impl NeatDistance {
     }
 }
 
-#[inline]
-fn bump(id: InnovationId, cutoff: Option<InnovationId>, excess: &mut f32, disjoint: &mut f32) {
-    if cutoff.is_some_and(|c| id > c) {
-        *excess += 1.0;
-    } else {
-        *disjoint += 1.0;
+impl Default for NeatDistance {
+    /// Returns the default NEAT distance parameters given in the original NEAT paper.
+    ///
+    /// Excess: 1.0,
+    /// Disjoint: 1.0,
+    /// Weight difference: 3.0
+    fn default() -> Self {
+        Self {
+            excess: 1.0,
+            disjoint: 1.0,
+            weight_diff: 3.0,
+        }
     }
 }
 
@@ -158,6 +164,15 @@ impl<G: AsRef<[GraphNode<Op<f32>>]>> Novelty<G, Vec<f32>> for NeatDistance {
             .iter()
             .map(|n| n.innovation().map_or(0.0, |id| id.get() as f32))
             .collect()
+    }
+}
+
+#[inline]
+fn bump(id: InnovationId, cutoff: Option<InnovationId>, excess: &mut f32, disjoint: &mut f32) {
+    if cutoff.is_some_and(|c| id > c) {
+        *excess += 1.0;
+    } else {
+        *disjoint += 1.0;
     }
 }
 

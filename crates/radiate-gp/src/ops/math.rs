@@ -83,6 +83,11 @@ fn weight<F: OpFloat>(x: F, w: F) -> F {
     clamp(x * w)
 }
 
+#[inline(always)]
+fn dot<F: OpFloat>(x1: F, x2: F, w1: F, w2: F) -> F {
+    clamp(x1 * w1 + x2 * w2)
+}
+
 // Unary ops.
 
 #[inline(always)]
@@ -349,10 +354,6 @@ impl<F: OpFloat> Op<F> {
         Self::weight_with(random_provider::range(-F::ONE..F::ONE))
     }
 
-    pub fn dot() -> Self {
-        Self::dot_with((F::ONE, F::ONE))
-    }
-
     pub fn weight_with(value: F) -> Self {
         let supplier = || random_provider::range(-F::ONE..F::ONE);
 
@@ -371,6 +372,10 @@ impl<F: OpFloat> Op<F> {
         )
     }
 
+    pub fn dot() -> Self {
+        Self::dot_with((F::ONE, F::ONE))
+    }
+
     pub fn dot_with((a, b): (F, F)) -> Self {
         let supplier = || {
             let a = random_provider::range(-F::ONE..F::ONE);
@@ -379,7 +384,7 @@ impl<F: OpFloat> Op<F> {
         };
 
         let operation =
-            |inputs: &[F], weight: &(F, F)| clamp(inputs[0] * weight.0 + inputs[1] * weight.1);
+            |inputs: &[F], weight: &(F, F)| dot(inputs[0], inputs[1], weight.0, weight.1);
 
         let modifier = |current: &mut (F, F)| {
             let side = random_provider::bool(0.5);
@@ -414,6 +419,18 @@ impl<F: OpFloat> Op<F> {
             Param::new(clamp(supplier()), supplier, modifier),
             |_: &[F], w: &F| *w,
         )
+    }
+
+    pub fn one() -> Self {
+        Op::constant("one", F::ONE)
+    }
+
+    pub fn two() -> Self {
+        Op::constant("two", F::TWO)
+    }
+
+    pub fn three() -> Self {
+        Op::constant("three", F::THREE)
     }
 
     pub fn sign() -> Self {
@@ -592,7 +609,7 @@ impl<F: OpFloat> Op<F> {
 }
 
 /// Get a list of all the math operations.
-pub fn math_ops<F: OpFloat>() -> Vec<Op<F>> {
+pub fn arithmetic_ops<F: OpFloat>() -> Vec<Op<F>> {
     vec![
         Op::add(),
         Op::sub(),
@@ -647,7 +664,7 @@ pub fn input_ops<F: OpFloat>() -> Vec<Op<F>> {
 
 /// Get a list of all the operations.
 pub fn all_ops<F: OpFloat>() -> Vec<Op<F>> {
-    math_ops()
+    arithmetic_ops()
         .into_iter()
         .chain(activation_ops())
         .chain(edge_ops())
@@ -748,7 +765,7 @@ fn folded_columns<F: OpFloat>(
     true
 }
 
-/// Column kernel for `op`: computes it for every sample at once, where `inputs[i]` is the
+/// Column kernel for `op`: computes it for every sample at once, where `columns[i]` is the
 /// column of the op's i-th input and `out` receives one value per sample. Returns `false` when
 /// the op has no kernel (or too few inputs); [Op]'s column [EvalInto] then falls back to calling
 /// the op once per sample.
@@ -756,10 +773,10 @@ fn folded_columns<F: OpFloat>(
 /// Ops are identified by name, the same convention deserialization uses (see `ops/serde.rs`),
 /// so a custom op that reuses a built-in name gets the built-in kernel. Each arm uses the same
 /// shape and function as the op's constructor, so results are bit-identical.
-fn process_op_vectorized<F: OpFloat>(op: &Op<F>, inputs: &[&[F]], out: &mut [F]) -> bool {
+fn process_op_vectorized<F: OpFloat>(op: &Op<F>, columns: &[&[F]], out: &mut [F]) -> bool {
     match op {
         // Same rules as the scalar ops: a var reads its input at `index`, a const ignores inputs.
-        Op::Var(_, index, _) => match inputs.get(*index) {
+        Op::Var(_, index, _) => match columns.get(*index) {
             Some(x) => {
                 out.copy_from_slice(x);
                 true
@@ -773,7 +790,7 @@ fn process_op_vectorized<F: OpFloat>(op: &Op<F>, inputs: &[&[F]], out: &mut [F])
         Op::Value(name, _, param, _) => match *name {
             op_names::WEIGHT => {
                 let w = *param.data();
-                unary_columns(inputs, out, |x| weight(x, w))
+                unary_columns(columns, out, |x| weight(x, w))
             }
             op_names::ERC => {
                 let w = *param.data();
@@ -783,7 +800,7 @@ fn process_op_vectorized<F: OpFloat>(op: &Op<F>, inputs: &[&[F]], out: &mut [F])
             _ => false,
         },
         Op::Fn(name, _, _) => match *name {
-            op_names::IDENTITY => match inputs.first() {
+            op_names::IDENTITY => match columns.first() {
                 Some(x) => {
                     out.copy_from_slice(x);
                     true
@@ -791,45 +808,51 @@ fn process_op_vectorized<F: OpFloat>(op: &Op<F>, inputs: &[&[F]], out: &mut [F])
                 None => false,
             },
 
-            op_names::ADD => binary_columns(inputs, out, add),
-            op_names::SUB => binary_columns(inputs, out, sub),
-            op_names::MUL => binary_columns(inputs, out, mul),
-            op_names::DIV => binary_columns(inputs, out, div),
-            op_names::POW => binary_columns(inputs, out, pow),
+            op_names::ADD => binary_columns(columns, out, add),
+            op_names::SUB => binary_columns(columns, out, sub),
+            op_names::MUL => binary_columns(columns, out, mul),
+            op_names::DIV => binary_columns(columns, out, div),
+            op_names::POW => binary_columns(columns, out, pow),
 
-            op_names::NEG => unary_columns(inputs, out, neg),
-            op_names::ABS => unary_columns(inputs, out, abs),
-            op_names::CEIL => unary_columns(inputs, out, ceil),
-            op_names::FLOOR => unary_columns(inputs, out, floor),
-            op_names::RECIPROCAL => unary_columns(inputs, out, reciprocal),
-            op_names::SIGN => unary_columns(inputs, out, sign),
-            op_names::SQRT => unary_columns(inputs, out, sqrt),
-            op_names::EXP => unary_columns(inputs, out, exp),
-            op_names::LOG => unary_columns(inputs, out, log),
-            op_names::SIN => unary_columns(inputs, out, sin),
-            op_names::COS => unary_columns(inputs, out, cos),
-            op_names::TAN => unary_columns(inputs, out, tan),
+            op_names::NEG => unary_columns(columns, out, neg),
+            op_names::ABS => unary_columns(columns, out, abs),
+            op_names::CEIL => unary_columns(columns, out, ceil),
+            op_names::FLOOR => unary_columns(columns, out, floor),
+            op_names::RECIPROCAL => unary_columns(columns, out, reciprocal),
+            op_names::SIGN => unary_columns(columns, out, sign),
+            op_names::SQRT => unary_columns(columns, out, sqrt),
+            op_names::EXP => unary_columns(columns, out, exp),
+            op_names::LOG => unary_columns(columns, out, log),
+            op_names::SIN => unary_columns(columns, out, sin),
+            op_names::COS => unary_columns(columns, out, cos),
+            op_names::TAN => unary_columns(columns, out, tan),
 
-            op_names::SUM | op_names::LINEAR => summed_columns(inputs, out, clamp),
-            op_names::SIGMOID => summed_columns(inputs, out, sigmoid),
-            op_names::TANH => summed_columns(inputs, out, tanh),
-            op_names::RELU => summed_columns(inputs, out, relu),
-            op_names::LEAKY_RELU => summed_columns(inputs, out, leaky_relu),
-            op_names::ELU => summed_columns(inputs, out, elu),
-            op_names::MISH => summed_columns(inputs, out, mish),
-            op_names::SWISH => summed_columns(inputs, out, swish),
-            op_names::SOFTPLUS => summed_columns(inputs, out, softplus),
-            op_names::GAUSSIAN => summed_columns(inputs, out, gaussian),
-            op_names::TOOTH => summed_columns(inputs, out, tooth),
+            op_names::SUM | op_names::LINEAR => summed_columns(columns, out, clamp),
+            op_names::SIGMOID => summed_columns(columns, out, sigmoid),
+            op_names::TANH => summed_columns(columns, out, tanh),
+            op_names::RELU => summed_columns(columns, out, relu),
+            op_names::LEAKY_RELU => summed_columns(columns, out, leaky_relu),
+            op_names::ELU => summed_columns(columns, out, elu),
+            op_names::MISH => summed_columns(columns, out, mish),
+            op_names::SWISH => summed_columns(columns, out, swish),
+            op_names::SOFTPLUS => summed_columns(columns, out, softplus),
+            op_names::GAUSSIAN => summed_columns(columns, out, gaussian),
+            op_names::TOOTH => summed_columns(columns, out, tooth),
 
-            op_names::DIFF => folded_columns(inputs, out, None, difference),
-            op_names::PROD => folded_columns(inputs, out, Some(F::ONE), product),
-            op_names::MAX => folded_columns(inputs, out, Some(-F::MAX_VALUE), F::max),
-            op_names::MIN => folded_columns(inputs, out, Some(F::MAX_VALUE), F::min),
+            op_names::DIFF => folded_columns(columns, out, None, difference),
+            op_names::PROD => folded_columns(columns, out, Some(F::ONE), product),
+            op_names::MAX => folded_columns(columns, out, Some(-F::MAX_VALUE), F::max),
+            op_names::MIN => folded_columns(columns, out, Some(F::MAX_VALUE), F::min),
 
             _ => false,
         },
-        _ => false,
+        Op::Pair(name, _, params, _) => match *name {
+            op_names::DOT => {
+                let (w1, w2) = params.data();
+                binary_columns(columns, out, |x, y| dot(x, y, *w1, *w2))
+            }
+            _ => false,
+        },
     }
 }
 

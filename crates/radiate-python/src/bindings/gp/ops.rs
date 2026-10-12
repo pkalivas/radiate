@@ -158,13 +158,17 @@ where
 {
     let op = match name {
         "constant" => {
-            let value = params
-                .ok_or_else(|| PyValueError::new_err("Missing parameters for constant Op"))?
-                .bind(py)
-                .get_item("value")?
-                .extract::<F>()
-                .map_err(|_| PyValueError::new_err("Invalid value for constant Op"))?;
-            Op::constant(value)
+            if let Some(params) = params {
+                let value = params
+                    .bind(py)
+                    .get_item("value")?
+                    .extract::<F>()
+                    .map_err(|_| PyValueError::new_err("Invalid value for constant Op"))?;
+                let name = params.bind(py).get_item("name")?.extract::<String>()?;
+                Op::constant(radiate_utils::intern!(name), value)
+            } else {
+                radiate_py_bail!("Missing parameters for constant Op")
+            }
         }
         "var" => {
             let index = params

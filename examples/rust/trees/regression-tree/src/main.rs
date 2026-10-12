@@ -1,42 +1,36 @@
-use radiate::*;
+use radiate::prelude::*;
 
 const MIN_SCORE: f32 = 0.001;
 
-fn main() {
+fn main() -> RadiateResult<()> {
     random_provider::seed(40);
 
-    let store = vec![
-        (
-            NodeType::Vertex,
-            vec![Op::add(), Op::sub(), Op::mul(), Op::linear()],
-        ),
-        (NodeType::Leaf, vec![Op::var(0)]),
+    let data = DataSet::cubic();
+
+    let set = node_set![
+        Vertex => [Op::add(), Op::sub(), Op::mul(), Op::linear()],
+        Leaf => Op::var(0)
     ];
 
-    let tree_codec = TreeCodec::single(3, store).constraint(|root| root.size() < 30);
-    let problem = Regression::new(get_dataset(), Loss::MSE);
-
     let engine = GeneticEngine::builder()
-        .codec(tree_codec)
-        .fitness_fn(problem)
+        .codec(TreeCodec::single(3, set).constraint(|root| root.size() < 30))
+        .fitness_fn(Regression::new(data, Loss::MSE))
         .minimizing()
         .mutator(HoistMutator::new(0.01))
         .crossover(TreeCrossover::new(0.7))
         .build();
 
-    engine
-        .iter()
-        .logging()
-        .until_score(MIN_SCORE)
-        .last()
-        .inspect(display)
-        .unwrap();
+    let result = engine.iter().logging().until_score(MIN_SCORE).last()?;
+
+    display(&result);
+
+    Ok(())
 }
 
 fn display(result: &Generation<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
     Accuracy::default()
         .named("Regression Tree")
-        .on(&get_dataset())
+        .on(&DataSet::cubic())
         .loss(Loss::MSE)
         .eval(result.value())
         .inspect(|acc| {
@@ -44,22 +38,4 @@ fn display(result: &Generation<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
             println!("Best Tree: {}", result.value().format());
             println!("{:?}", acc);
         });
-}
-
-fn get_dataset() -> DataSet<f32> {
-    let mut inputs = Vec::new();
-    let mut answers = Vec::new();
-
-    let mut input = -1.0;
-    for _ in -10..10 {
-        input += 0.1;
-        inputs.push(vec![input]);
-        answers.push(vec![compute(input)]);
-    }
-
-    DataSet::new(inputs, answers)
-}
-
-fn compute(x: f32) -> f32 {
-    4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x
 }

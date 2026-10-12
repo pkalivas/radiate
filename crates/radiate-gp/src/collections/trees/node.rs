@@ -553,13 +553,13 @@ mod tests {
     #[test]
     fn test_node_evaluation() {
         // Test simple arithmetic expression: (1 + 2) * 3
-        let node = TreeNode::new(Op::mul())
+        let node = TreeNode::<Op<f32>>::new(Op::mul())
             .attach(
                 TreeNode::new(Op::add())
-                    .attach(TreeNode::new(Op::constant(1.0)))
-                    .attach(TreeNode::new(Op::constant(2.0))),
+                    .attach(TreeNode::new(Op::one()))
+                    .attach(TreeNode::new(Op::two())),
             )
-            .attach(TreeNode::new(Op::constant(3.0)));
+            .attach(TreeNode::new(Op::three()));
 
         let result = node.eval(&[]);
         assert_eq!(result, 9.0);
@@ -569,9 +569,9 @@ mod tests {
             .attach(
                 TreeNode::new(Op::add())
                     .attach(TreeNode::new(Op::var(0)))
-                    .attach(TreeNode::new(Op::constant(2.0))),
+                    .attach(TreeNode::new(Op::two())),
             )
-            .attach(TreeNode::new(Op::constant(3.0)));
+            .attach(TreeNode::new(Op::three()));
 
         assert_eq!(node.eval(&[1.0]), 9.0);
         assert_eq!(node.eval(&[2.0]), 12.0);

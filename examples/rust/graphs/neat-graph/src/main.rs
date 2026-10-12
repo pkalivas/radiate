@@ -1,28 +1,26 @@
 use radiate::prelude::*;
 
-const MIN_SCORE: f32 = 0.001;
+const MIN_SCORE: f32 = 1e-5;
 const TARGET_SPECIES: usize = 4;
 
 fn main() -> RadiateResult<()> {
     random_provider::seed(90);
 
+    let data = DataSet::koza1();
+    let (_, in_dim, out_dim) = data.shape();
+
     let store = node_set! {
-        Input => Op::var(0),
-        Edge => Op::weight(),
-        Vertex => [Op::sub(), Op::mul(), Op::linear()],
-        Output => Op::linear()
+        Input => Op::vars(0..in_dim),
+        Edge => Op::identity(),
+        Vertex => [Op::add(), Op::mul()],
+        Output => Op::sum()
     };
 
     let engine = GeneticEngine::builder()
-        .codec(GraphCodec::directed(1, 1, store))
-        .fitness_fn(Regression::new(DataSet::cubic(), Loss::MSE))
+        .codec(GraphCodec::directed(in_dim, out_dim, store))
+        .fitness_fn(Regression::new(data.clone(), Loss::MSE))
         .minimizing()
-        .parallel()
-        .metrics([
-            expr::score_cv_signal(10).alias("cv"),
-            expr::score_trend_signal(10).alias("trend"),
-        ])
-        .diversity(NeatDistance::new(1.0, 1.0, 3.0))
+        .diversity(NeatDistance::default())
         .target_species(TARGET_SPECIES)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
@@ -37,15 +35,15 @@ fn main() -> RadiateResult<()> {
         .until_score(MIN_SCORE)
         .last()?;
 
-    display(&result);
+    display(&data, &result);
 
     Ok(())
 }
 
-fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
+fn display(data: &DataSet<f32>, result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     Accuracy::default()
         .named("Regression Graph")
-        .on(&DataSet::cubic())
+        .on(&data)
         .loss(Loss::MSE)
         .eval(result.value())
         .inspect(|acc| {

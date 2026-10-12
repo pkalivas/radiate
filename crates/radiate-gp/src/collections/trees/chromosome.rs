@@ -306,19 +306,16 @@ mod tests {
         use crate::Op;
         let mut store = NodeSet::new();
         store.insert(NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]);
-        store.insert(NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]);
+        store.insert(NodeType::Leaf, vec![Op::one(), Op::two()]);
 
         let root = TreeNode::with_children(
             Op::add(),
             vec![
                 TreeNode::with_children(
                     Op::mul(),
-                    vec![
-                        TreeNode::new(Op::constant(1.0)),
-                        TreeNode::new(Op::constant(2.0)),
-                    ],
+                    vec![TreeNode::new(Op::one()), TreeNode::new(Op::two())],
                 ),
-                TreeNode::new(Op::constant(3.0)),
+                TreeNode::new(Op::three()),
             ],
         );
 

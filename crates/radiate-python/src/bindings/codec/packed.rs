@@ -42,7 +42,7 @@ impl PyPackedBitCodec {
             }),
 
             (true, false) => codec.with_decoder(move |py, geno| PyAnyObject {
-                inner: PyList::new(py, &geno[0].to_words())
+                inner: PyList::new(py, geno[0].to_words())
                     .unwrap()
                     .unbind()
                     .into_any(),

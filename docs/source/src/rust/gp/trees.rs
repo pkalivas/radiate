@@ -35,12 +35,12 @@ fn main() {
     let root = TreeNode::new(Op::add())
         .attach(
             TreeNode::new(Op::mul())
-                .attach(TreeNode::new(Op::constant(2.0)))
-                .attach(TreeNode::new(Op::constant(3.0))),
+                .attach(TreeNode::new(Op::constant("two", 2.0)))
+                .attach(TreeNode::new(Op::constant("three", 3.0))),
         )
         .attach(
             TreeNode::new(Op::add())
-                .attach(TreeNode::new(Op::constant(2.0)))
+                .attach(TreeNode::new(Op::constant("two", 2.0)))
                 .attach(TreeNode::new(Op::var(0))),
         );
 
@@ -50,10 +50,10 @@ fn main() {
     // --8<-- [end:build_tree]
 
     // --8<-- [start:tree_codec]
-    let store = vec![
-        (NodeType::Root, vec![Op::add(), Op::sub()]),
-        (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
-        (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+    let store = node_set![
+       Root => [Op::add(), Op::sub()],
+       Vertex => [Op::add(), Op::sub(), Op::mul()],
+       Leaf => [Op::constant("one", 1.0), Op::constant("two", 2.0)]
     ];
 
     // Create a single rooted tree codec with a starting (minimum) depth of 3

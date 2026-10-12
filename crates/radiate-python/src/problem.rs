@@ -34,18 +34,16 @@ impl<C: Chromosome, T> PyProblem<C, T> {
         let bound = any_value.bind(py);
 
         if let Some(score) = Self::score_from_numpy(bound) {
-            return score;
+            score
+        } else if let Some(score) = Self::score_from_scalar(&any_value, py) {
+            Ok(score)
+        } else if let Some(score) = Self::score_from_vec(&any_value, py) {
+            score
+        } else {
+            error::radiate_bail!(Fitness:
+                "Failed to extract fitness score from Python function call. Ensure the function returns a valid score type."
+            );
         }
-        if let Some(score) = Self::score_from_scalar(&any_value, py) {
-            return Ok(score);
-        }
-        if let Some(score) = Self::score_from_vec(&any_value, py) {
-            return score;
-        }
-
-        error::radiate_bail!(Fitness:
-            "Failed to extract fitness score from Python function call. Ensure the function returns a valid score type."
-        );
     }
 
     fn call_batch_fitness<'py>(
@@ -65,37 +63,66 @@ impl<C: Chromosome, T> PyProblem<C, T> {
             })?;
 
         if let Some(scores) = Self::batch_scores_from_numpy(any_value.bind(py)) {
-            return scores;
+            scores
+        } else if let Ok(vals) = any_value.extract::<Vec<f32>>(py) {
+            Ok(Self::scores_from_vec(vals))
+        } else if let Ok(vals) = any_value.extract::<Vec<i32>>(py) {
+            Ok(Self::scores_from_vec(vals))
+        } else if let Ok(vals) = any_value.extract::<Vec<f64>>(py) {
+            Ok(Self::scores_from_vec(vals))
+        } else if let Ok(vals) = any_value.extract::<Vec<i64>>(py) {
+            Ok(Self::scores_from_vec(vals))
+        } else if let Ok(vals) = any_value.extract::<Vec<Vec<f32>>>(py) {
+            Ok(Self::scores_from_vec(vals))
+        } else if let Ok(vals) = any_value.extract::<Vec<Vec<i32>>>(py) {
+            Ok(Self::scores_from_vec(vals))
+        } else if let Ok(vals) = any_value.extract::<Vec<Vec<f64>>>(py) {
+            Ok(Self::scores_from_vec(vals))
+        } else if let Ok(vals) = any_value.extract::<Vec<Vec<i64>>>(py) {
+            Ok(Self::scores_from_vec(vals))
+        } else {
+            error::radiate_bail!(Fitness:
+                "Fitness function did not return a valid list of scores."
+            );
         }
+    }
 
+    fn score_from_numpy<'py>(bound: &Bound<'py, PyAny>) -> Option<RadiateResult<Score>> {
+        if let Ok(array) = bound.cast::<PyArrayDyn<f32>>() {
+            Some(Self::numpy_f32_score(array))
+        } else if let Ok(array) = bound.cast::<PyArrayDyn<f64>>() {
+            Some(Self::numpy_f64_score(array))
+        } else {
+            None
+        }
+    }
+
+    fn score_from_scalar(any_value: &Py<PyAny>, py: Python) -> Option<Score> {
+        if let Ok(parsed) = any_value.extract::<f32>(py) {
+            Some(Score::from(parsed))
+        } else if let Ok(parsed) = any_value.extract::<i32>(py) {
+            Some(Score::from(parsed))
+        } else if let Ok(parsed) = any_value.extract::<f64>(py) {
+            Some(Score::from(parsed))
+        } else if let Ok(parsed) = any_value.extract::<i64>(py) {
+            Some(Score::from(parsed))
+        } else {
+            None
+        }
+    }
+
+    fn score_from_vec(any_value: &Py<PyAny>, py: Python) -> Option<RadiateResult<Score>> {
         if let Ok(vals) = any_value.extract::<Vec<f32>>(py) {
-            return Ok(Self::scores_from_vec(vals));
+            Some(Self::vec_to_score(vals))
+        } else if let Ok(vals) = any_value.extract::<Vec<f64>>(py) {
+            Some(Self::vec_to_score(vals))
+        } else if let Ok(vals) = any_value.extract::<Vec<i32>>(py) {
+            Some(Self::vec_to_score(vals))
+        } else if let Ok(vals) = any_value.extract::<Vec<i64>>(py) {
+            Some(Self::vec_to_score(vals))
+        } else {
+            None
         }
-        if let Ok(vals) = any_value.extract::<Vec<i32>>(py) {
-            return Ok(Self::scores_from_vec(vals));
-        }
-        if let Ok(vals) = any_value.extract::<Vec<f64>>(py) {
-            return Ok(Self::scores_from_vec(vals));
-        }
-        if let Ok(vals) = any_value.extract::<Vec<i64>>(py) {
-            return Ok(Self::scores_from_vec(vals));
-        }
-        if let Ok(vals) = any_value.extract::<Vec<Vec<f32>>>(py) {
-            return Ok(Self::scores_from_vec(vals));
-        }
-        if let Ok(vals) = any_value.extract::<Vec<Vec<i32>>>(py) {
-            return Ok(Self::scores_from_vec(vals));
-        }
-        if let Ok(vals) = any_value.extract::<Vec<Vec<f64>>>(py) {
-            return Ok(Self::scores_from_vec(vals));
-        }
-        if let Ok(vals) = any_value.extract::<Vec<Vec<i64>>>(py) {
-            return Ok(Self::scores_from_vec(vals));
-        }
-
-        error::radiate_bail!(Fitness:
-            "Fitness function did not return a valid list of scores."
-        );
     }
 
     /// Reads a numpy array of batch scores in one pass: shape `(n,)` is one objective per
@@ -129,16 +156,6 @@ impl<C: Chromosome, T> PyProblem<C, T> {
         })
     }
 
-    fn score_from_numpy<'py>(bound: &Bound<'py, PyAny>) -> Option<RadiateResult<Score>> {
-        if let Ok(array) = bound.cast::<PyArrayDyn<f32>>() {
-            return Some(Self::numpy_f32_score(array));
-        }
-        if let Ok(array) = bound.cast::<PyArrayDyn<f64>>() {
-            return Some(Self::numpy_f64_score(array));
-        }
-        None
-    }
-
     fn numpy_f32_score(array: &Bound<PyArrayDyn<f32>>) -> RadiateResult<Score> {
         let readonly_view = array.readonly();
         let slice = readonly_view.as_slice().map_err(|e| {
@@ -146,6 +163,7 @@ impl<C: Chromosome, T> PyProblem<C, T> {
                 "Fitness function returned a non-contiguous numpy array: {}", e
             )
         })?;
+
         if slice.is_empty() {
             error::radiate_bail!(Fitness:
                 "Fitness function returned an empty score array."
@@ -161,6 +179,7 @@ impl<C: Chromosome, T> PyProblem<C, T> {
                 "Fitness function returned a non-contiguous numpy array: {}", e
             )
         })?;
+
         if slice.is_empty() {
             error::radiate_bail!(Fitness:
                 "Fitness function returned an empty score array."
@@ -169,38 +188,6 @@ impl<C: Chromosome, T> PyProblem<C, T> {
         Ok(Score::from(
             slice.iter().map(|&x| x as f32).collect::<Vec<f32>>(),
         ))
-    }
-
-    fn score_from_scalar(any_value: &Py<PyAny>, py: Python) -> Option<Score> {
-        if let Ok(parsed) = any_value.extract::<f32>(py) {
-            return Some(Score::from(parsed));
-        }
-        if let Ok(parsed) = any_value.extract::<i32>(py) {
-            return Some(Score::from(parsed));
-        }
-        if let Ok(parsed) = any_value.extract::<f64>(py) {
-            return Some(Score::from(parsed));
-        }
-        if let Ok(parsed) = any_value.extract::<i64>(py) {
-            return Some(Score::from(parsed));
-        }
-        None
-    }
-
-    fn score_from_vec(any_value: &Py<PyAny>, py: Python) -> Option<RadiateResult<Score>> {
-        if let Ok(vals) = any_value.extract::<Vec<f32>>(py) {
-            return Some(Self::vec_to_score(vals));
-        }
-        if let Ok(vals) = any_value.extract::<Vec<f64>>(py) {
-            return Some(Self::vec_to_score(vals));
-        }
-        if let Ok(vals) = any_value.extract::<Vec<i32>>(py) {
-            return Some(Self::vec_to_score(vals));
-        }
-        if let Ok(vals) = any_value.extract::<Vec<i64>>(py) {
-            return Some(Self::vec_to_score(vals));
-        }
-        None
     }
 
     fn vec_to_score<V>(values: Vec<V>) -> RadiateResult<Score>

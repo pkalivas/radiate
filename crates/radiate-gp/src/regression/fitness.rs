@@ -30,7 +30,7 @@ impl<F: OpFloat> Regression<F> {
     }
 }
 
-impl<'a, F> BatchFitnessFunction<&'a Genotype<GraphChromosome<Op<F>>>, F> for Regression<F>
+impl<F> BatchFitnessFunction<&Genotype<GraphChromosome<Op<F>>>, F> for Regression<F>
 where
     F: OpFloat + Into<Score>,
 {
@@ -55,7 +55,7 @@ where
     }
 }
 
-impl<'a, F> BatchFitnessFunction<&'a Genotype<TreeChromosome<Op<F>>>, F> for Regression<F>
+impl<F> BatchFitnessFunction<&Genotype<TreeChromosome<Op<F>>>, F> for Regression<F>
 where
     F: OpFloat + Into<Score>,
 {

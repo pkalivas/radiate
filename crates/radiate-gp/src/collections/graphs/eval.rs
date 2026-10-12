@@ -468,7 +468,7 @@ mod tests {
         let mut graph = Graph::<Op<f32>>::default();
 
         let idx_one = graph.insert(NodeType::Input, Op::var(0));
-        let idx_two = graph.insert(NodeType::Input, Op::constant(5_f32));
+        let idx_two = graph.insert(NodeType::Input, Op::constant("five", 5_f32));
         let idx_three = graph.insert(NodeType::Vertex, Op::add());
         let idx_four = graph.insert(NodeType::Output, Op::linear());
 

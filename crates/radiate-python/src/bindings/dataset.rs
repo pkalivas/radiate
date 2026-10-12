@@ -17,7 +17,7 @@ impl PyDataSet {
     #[staticmethod]
     #[pyo3(signature = (dtype=None))]
     pub fn cubic(dtype: Option<&str>) -> Self {
-        let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
+        let dtype = dtype::dtype_from_str(dtype.unwrap_or(dtype_names::FLOAT64));
 
         PyDataSet {
             inner: match dtype {
@@ -30,7 +30,7 @@ impl PyDataSet {
     #[staticmethod]
     #[pyo3(signature = (dtype=None))]
     pub fn iris(dtype: Option<&str>) -> Self {
-        let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
+        let dtype = dtype::dtype_from_str(dtype.unwrap_or(dtype_names::FLOAT64));
 
         PyDataSet {
             inner: match dtype {
@@ -43,7 +43,7 @@ impl PyDataSet {
     #[staticmethod]
     #[pyo3(signature = (n=10, dtype=None))]
     pub fn simple_memory(n: usize, dtype: Option<&str>) -> Self {
-        let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
+        let dtype = dtype::dtype_from_str(dtype.unwrap_or(dtype_names::FLOAT64));
 
         PyDataSet {
             inner: match dtype {
@@ -56,7 +56,7 @@ impl PyDataSet {
     #[staticmethod]
     #[pyo3(signature = (bits=3, dtype=None))]
     pub fn parity(bits: usize, dtype: Option<&str>) -> Self {
-        let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
+        let dtype = dtype::dtype_from_str(dtype.unwrap_or(dtype_names::FLOAT64));
 
         PyDataSet {
             inner: match dtype {
@@ -69,7 +69,7 @@ impl PyDataSet {
     #[staticmethod]
     #[pyo3(signature = (dtype=None))]
     pub fn xor(dtype: Option<&str>) -> Self {
-        let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
+        let dtype = dtype::dtype_from_str(dtype.unwrap_or(dtype_names::FLOAT64));
 
         PyDataSet {
             inner: match dtype {
@@ -82,7 +82,7 @@ impl PyDataSet {
     #[staticmethod]
     #[pyo3(signature = (dtype=None))]
     pub fn koza1(dtype: Option<&str>) -> Self {
-        let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
+        let dtype = dtype::dtype_from_str(dtype.unwrap_or(dtype_names::FLOAT64));
 
         PyDataSet {
             inner: match dtype {
@@ -95,7 +95,7 @@ impl PyDataSet {
     #[staticmethod]
     #[pyo3(signature = (dtype=None))]
     pub fn nguyen7(dtype: Option<&str>) -> Self {
-        let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
+        let dtype = dtype::dtype_from_str(dtype.unwrap_or(dtype_names::FLOAT64));
 
         PyDataSet {
             inner: match dtype {
@@ -108,7 +108,7 @@ impl PyDataSet {
     #[staticmethod]
     #[pyo3(signature = (dtype=None))]
     pub fn pagie1(dtype: Option<&str>) -> Self {
-        let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
+        let dtype = dtype::dtype_from_str(dtype.unwrap_or(dtype_names::FLOAT64));
 
         PyDataSet {
             inner: match dtype {
@@ -121,7 +121,7 @@ impl PyDataSet {
     #[staticmethod]
     #[pyo3(signature = (n=100, noise=0.1, dtype=None))]
     pub fn moons(n: usize, noise: f64, dtype: Option<&str>) -> PyResult<Self> {
-        let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
+        let dtype = dtype::dtype_from_str(dtype.unwrap_or(dtype_names::FLOAT64));
 
         if !(0.0..=1.0).contains(&noise) {
             return Err(pyo3::exceptions::PyValueError::new_err(
@@ -140,7 +140,7 @@ impl PyDataSet {
     #[staticmethod]
     #[pyo3(signature = (n=100, noise=0.1, dtype=None))]
     pub fn circles(n: usize, noise: f64, dtype: Option<&str>) -> PyResult<Self> {
-        let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
+        let dtype = dtype::dtype_from_str(dtype.unwrap_or(dtype_names::FLOAT64));
 
         if !(0.0..=1.0).contains(&noise) {
             return Err(pyo3::exceptions::PyValueError::new_err(
@@ -159,7 +159,7 @@ impl PyDataSet {
     #[staticmethod]
     #[pyo3(signature = (n=100, noise=0.1, dtype=None))]
     pub fn spirals(n: usize, noise: f64, dtype: Option<&str>) -> PyResult<Self> {
-        let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
+        let dtype = dtype::dtype_from_str(dtype.unwrap_or(dtype_names::FLOAT64));
 
         if !(0.0..=1.0).contains(&noise) {
             return Err(pyo3::exceptions::PyValueError::new_err(

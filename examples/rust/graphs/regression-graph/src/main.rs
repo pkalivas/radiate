@@ -3,13 +3,13 @@ use radiate::prelude::*;
 const MIN_SCORE: f32 = 0.001;
 
 fn main() -> RadiateResult<()> {
-    random_provider::seed(518);
+    random_provider::seed(24683579);
 
-    let store = vec![
-        (NodeType::Input, vec![Op::var(0)]),
-        (NodeType::Edge, vec![Op::weight()]),
-        (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::linear()]),
-        (NodeType::Output, vec![Op::linear()]),
+    let store = node_set![
+        Input => Op::var(0),
+        Edge => Op::weight(),
+        Vertex => [Op::sub(), Op::mul(), Op::linear()],
+        Output => Op::linear()
     ];
 
     let engine = GeneticEngine::builder()

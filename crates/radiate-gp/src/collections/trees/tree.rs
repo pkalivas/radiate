@@ -27,8 +27,8 @@ use std::{fmt::Debug, hash::Hash};
 ///     TreeNode::new(Op::mul())
 ///         .attach(
 ///             TreeNode::new(Op::add())
-///                 .attach(TreeNode::new(Op::constant(1.0)))
-///                 .attach(TreeNode::new(Op::constant(2.0)))
+///                 .attach(TreeNode::new(Op::constant("one", 1.0)))
+///                 .attach(TreeNode::new(Op::constant("two", 2.0)))
 ///         )
 ///         .attach(TreeNode::new(Op::constant(3.0)))
 /// );
@@ -65,7 +65,7 @@ use std::{fmt::Debug, hash::Hash};
 ///
 /// let store = vec![
 ///     (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
-///     (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+///     (NodeType::Leaf, vec![Op::constant("one", 1.0), Op::constant("two", 2.0)]),
 /// ];
 ///
 /// // Create a tree of depth 3
@@ -81,7 +81,7 @@ use std::{fmt::Debug, hash::Hash};
 /// let tree = Tree::new(
 ///     TreeNode::new(Op::add())
 ///         .attach(TreeNode::new(Op::var(0)))
-///         .attach(TreeNode::new(Op::constant(2.0)))
+///         .attach(TreeNode::new(Op::constant("two", 2.0)))
 /// );
 ///
 /// assert_eq!(tree.eval(&[1.0]), 3.0);
@@ -184,14 +184,14 @@ mod test {
     fn test_swap_subtrees() {
         let mut tree_one = Tree::new(
             TreeNode::new(Op::add())
-                .attach(TreeNode::new(Op::constant(1.0)))
-                .attach(TreeNode::new(Op::constant(2.0))),
+                .attach(TreeNode::new(Op::constant("one", 1.0)))
+                .attach(TreeNode::new(Op::constant("two", 2.0))),
         );
 
         let mut tree_two = Tree::new(
             TreeNode::new(Op::mul())
-                .attach(TreeNode::new(Op::constant(3.0)))
-                .attach(TreeNode::new(Op::constant(4.0))),
+                .attach(TreeNode::new(Op::constant("three", 3.0)))
+                .attach(TreeNode::new(Op::constant("four", 4.0))),
         );
 
         let copy_one = tree_one.clone();
@@ -215,8 +215,8 @@ mod test {
     fn test_size() {
         let tree = Tree::new(
             TreeNode::new(Op::add())
-                .attach(TreeNode::from(Op::constant(1.0)))
-                .attach(TreeNode::from(Op::constant(2.0))),
+                .attach(TreeNode::from(Op::constant("one", 1.0)))
+                .attach(TreeNode::from(Op::constant("two", 2.0))),
         );
 
         assert_eq!(tree.size(), 3);
@@ -226,7 +226,10 @@ mod test {
     fn test_depth() {
         let store = vec![
             (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
-            (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+            (
+                NodeType::Leaf,
+                vec![Op::constant("one", 1.0), Op::constant("two", 2.0)],
+            ),
         ];
 
         let tree = Tree::with_depth(5, store);
@@ -239,12 +242,12 @@ mod test {
             (
                 NodeType::Vertex,
                 vec![
-                    Op::add(),         // Binary operator
-                    Op::constant(1.0), // Constant
-                    Op::sigmoid(),     // Unary operator - gets treated as arity 2
+                    Op::add(),                // Binary operator
+                    Op::constant("one", 1.0), // Constant
+                    Op::sigmoid(),            // Unary operator - gets treated as arity 2
                 ],
             ),
-            (NodeType::Leaf, vec![Op::constant(2.0)]),
+            (NodeType::Leaf, vec![Op::constant("two", 2.0)]),
         ];
         let tree = Tree::with_depth(3, store);
 
@@ -269,8 +272,8 @@ mod test {
     #[test]
     fn test_tree_with_zero_arity() {
         let store = vec![
-            (NodeType::Vertex, vec![Op::constant(1.0)]), // Constants have zero arity
-            (NodeType::Leaf, vec![Op::constant(2.0)]),
+            (NodeType::Vertex, vec![Op::constant("one", 1.0)]), // Constants have zero arity
+            (NodeType::Leaf, vec![Op::constant("two", 2.0)]),
         ];
         let tree = Tree::with_depth(2, store);
 
@@ -290,7 +293,10 @@ mod test {
     fn test_tree_with_exact_arity() {
         let store = vec![
             (NodeType::Vertex, vec![Op::add(), Op::sub()]), // Binary operators
-            (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+            (
+                NodeType::Leaf,
+                vec![Op::constant("one", 1.0), Op::constant("two", 2.0)],
+            ),
         ];
         let tree = Tree::with_depth(2, store);
 
@@ -305,7 +311,10 @@ mod test {
 
     #[test]
     fn test_tree_with_only_leaf_nodes() {
-        let store = vec![(NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)])];
+        let store = vec![(
+            NodeType::Leaf,
+            vec![Op::constant("one", 1.0), Op::constant("two", 2.0)],
+        )];
         let tree = Tree::with_depth(3, store);
         assert!(tree.root().is_none());
         assert_eq!(tree.size(), 0);
@@ -327,8 +336,8 @@ mod test {
     fn test_tree_debug() {
         let tree = Tree::new(
             TreeNode::new(Op::add())
-                .attach(TreeNode::new(Op::constant(1.0)))
-                .attach(TreeNode::new(Op::constant(2.0))),
+                .attach(TreeNode::new(Op::constant("one", 1.0)))
+                .attach(TreeNode::new(Op::constant("two", 2.0))),
         );
 
         let debug_str = format!("{:?}", tree);
@@ -341,8 +350,8 @@ mod test {
     fn test_tree_as_ref_as_mut() {
         let mut tree = Tree::new(
             TreeNode::new(Op::add())
-                .attach(TreeNode::new(Op::constant(1.0)))
-                .attach(TreeNode::new(Op::constant(2.0))),
+                .attach(TreeNode::new(Op::constant("one", 1.0)))
+                .attach(TreeNode::new(Op::constant("two", 2.0))),
         );
 
         // Test AsRef
@@ -357,7 +366,7 @@ mod test {
         root_mut
             .children_mut()
             .unwrap()
-            .push(TreeNode::new(Op::constant(3.0))); // Add a new child
+            .push(TreeNode::new(Op::constant("three", 3.0))); // Add a new child
         assert_eq!(root_mut.children().unwrap().len(), 3); // Now should have 3 children
         // assert!(!tree.as_ref().is_valid()); // Invalid since we added a child without updating size
     }
@@ -373,8 +382,8 @@ mod test {
         // Test root operations on non-empty tree
         let tree = Tree::new(
             TreeNode::new(Op::add())
-                .attach(TreeNode::new(Op::constant(1.0)))
-                .attach(TreeNode::new(Op::constant(2.0))),
+                .attach(TreeNode::new(Op::constant("one", 1.0)))
+                .attach(TreeNode::new(Op::constant("two", 2.0))),
         );
 
         // Test root()
@@ -406,7 +415,11 @@ mod test {
             ),
             (
                 NodeType::Leaf,
-                vec![Op::constant(1.0), Op::constant(2.0), Op::var(0)],
+                vec![
+                    Op::constant("one", 1.0),
+                    Op::constant("two", 2.0),
+                    Op::var(0),
+                ],
             ),
         ];
 

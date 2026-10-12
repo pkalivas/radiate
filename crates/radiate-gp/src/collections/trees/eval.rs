@@ -132,8 +132,7 @@ where
     #[inline]
     fn eval_mut(&mut self, input: &[V]) -> Vec<V> {
         self.iter_mut()
-            .map(|tree| tree.root().and_then(|root| Some(root.eval(input))))
-            .flatten()
+            .filter_map(|tree| tree.root().map(|root| root.eval(input)))
             .collect::<Vec<V>>()
     }
 }
@@ -215,7 +214,7 @@ mod tests {
                 NodeType::Leaf,
                 (0..3)
                     .map(Op::var)
-                    .chain([Op::constant(0.5), Op::constant(-2.0)])
+                    .chain([Op::constant("half", 0.5), Op::constant("minus_two", -2.0)])
                     .collect(),
             ),
         ];
@@ -283,8 +282,8 @@ mod tests {
     fn test_tree_reduce_simple() {
         let mut root = TreeNode::new(Op::add());
 
-        root.add_child(TreeNode::new(Op::constant(1.0)));
-        root.add_child(TreeNode::new(Op::constant(2.0)));
+        root.add_child(TreeNode::new(Op::constant("one", 1.0)));
+        root.add_child(TreeNode::new(Op::constant("two", 2.0)));
 
         let result = root.eval(&[]);
 
@@ -296,12 +295,12 @@ mod tests {
         let node = TreeNode::new(Op::add())
             .attach(
                 TreeNode::new(Op::mul())
-                    .attach(TreeNode::new(Op::constant(2.0)))
-                    .attach(TreeNode::new(Op::constant(3.0))),
+                    .attach(TreeNode::new(Op::constant("two", 2.0)))
+                    .attach(TreeNode::new(Op::constant("three", 3.0))),
             )
             .attach(
                 TreeNode::new(Op::add())
-                    .attach(TreeNode::new(Op::constant(2.0)))
+                    .attach(TreeNode::new(Op::constant("two", 2.0)))
                     .attach(TreeNode::new(Op::var(0))),
             );
 

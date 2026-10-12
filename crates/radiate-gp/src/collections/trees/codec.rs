@@ -133,9 +133,9 @@ mod tests {
         let store = vec![
             (NodeType::Root, vec![Op::add(), Op::sub()]),
             (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
-            (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+            (NodeType::Leaf, vec![Op::one(), Op::two()]),
         ];
-        let codec = TreeCodec::single(3, store);
+        let codec = TreeCodec::<Op<f32>>::single(3, store);
 
         let genotype = codec.encode();
         let tree = codec.decode(&genotype);
@@ -149,9 +149,9 @@ mod tests {
         let store = vec![
             (NodeType::Root, vec![Op::add(), Op::sub()]),
             (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
-            (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+            (NodeType::Leaf, vec![Op::one(), Op::two()]),
         ];
-        let codec = TreeCodec::multi_root(3, 2, store);
+        let codec = TreeCodec::<Op<f32>>::multi_root(3, 2, store);
 
         let genotype = codec.encode();
         let trees = codec.decode(&genotype);

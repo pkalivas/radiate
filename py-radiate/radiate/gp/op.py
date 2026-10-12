@@ -61,8 +61,8 @@ class Op(LazyRsObject):
         return Op("var", dtype=dtype, index=idx)
 
     @staticmethod
-    def const(value: float, dtype: RdDataType | None = None) -> Op:
-        return Op("constant", dtype=dtype, value=value)
+    def const(name: str, value: float, dtype: RdDataType | None = None) -> Op:
+        return Op(name, dtype=dtype, value=value)
 
     add = _op_factory("add")
     sub = _op_factory("sub")

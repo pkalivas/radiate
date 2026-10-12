@@ -3,7 +3,7 @@ pub mod ops;
 pub mod regression;
 
 pub use collections::*;
-pub use ops::{Op, OperationMutator, activation_ops, all_ops, bool_ops, math_ops};
+pub use ops::{Op, OperationMutator, activation_ops, all_ops, arithmetic_ops, bool_ops};
 pub use regression::{Accuracy, AccuracyResult, Loss, Regression};
 
 #[cfg(feature = "serde")]

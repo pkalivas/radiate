@@ -11,7 +11,7 @@ use radiate_utils::Float;
 use std::cell::RefCell;
 
 pub use bool::bool_ops;
-pub use math::{activation_ops, all_ops, math_ops};
+pub use math::{activation_ops, all_ops, arithmetic_ops};
 pub use mutator::OperationMutator;
 pub use operation::*;
 pub use param::Param;
