@@ -59,18 +59,19 @@ engine = (
     rd.Engine.float(variables, use_numpy=True)
     .fitness(dtlz_1_batch)
     .objective(rd.MIN, rd.MIN, rd.MIN)
-    .front_range(100, 150)
+    .front_range(200, 250)
     # NSGA-III for 3+ objectives: crowded-comparison tournament for parents, reference-point
+    # rd.Select.nsga3(points=12),
     # NSGA-II also works honestly just fine for this example
     # niching for survivors. A lower offspring fraction keeps more of the evaluated front.
     .select(
         rd.Select.tournament_nsga2(),
-        # rd.Select.nsga3(points=12),
         rd.Select.nsga2(),
         frac=0.5,
     )
     .alter(
         rd.Cross.sbx(0.8, 20.0),
+        rd.Cross.differential(rate=0.8, weight=0.8, crossover_rate=0.9),
         rd.Mutate.polynomial(0.1, 20.0),
     )
     .limit(rd.Limit.generations(2000))

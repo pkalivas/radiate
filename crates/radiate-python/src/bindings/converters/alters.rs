@@ -145,6 +145,7 @@ where
         crate::constants::components::INTERMEDIATE_CROSSOVER       => convert_intermediate_crossover,
         crate::constants::components::BLEND_CROSSOVER              => convert_blend_crossover,
         crate::constants::components::SIMULATED_BINARY_CROSSOVER   => convert_simulated_binary_crossover,
+        crate::constants::components::DIFFERENTIAL_CROSSOVER       => convert_differential_crossover,
 
         crate::constants::components::GAUSSIAN_MUTATOR             => convert_gaussian_mutator,
         crate::constants::components::ARITHMETIC_MUTATOR           => convert_arithmetic_mutator,
@@ -197,12 +198,7 @@ fn packed_bit_registry() -> AlterRegistry<PackedBitChromosome> {
     AlterRegistry::new(alter_table! {
         crate::constants::components::MULTI_POINT_CROSSOVER   => convert_packed_bit_multi_point_crossover,
         crate::constants::components::UNIFORM_CROSSOVER       => convert_packed_bit_uniform_crossover,
-        // crate::constants::components::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
 
-        // crate::constants::components::SWAP_MUTATOR            => convert_swap_mutator,
-        // crate::constants::components::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
-        // crate::constants::components::UNIFORM_MUTATOR         => convert_uniform_mutator,
-        // crate::constants::components::INVERSION_MUTATOR       => convert_inversion_mutator,
         crate::constants::components::BIT_FLIP_MUTATOR        => convert_bit_flip_mutator,
     })
 }
@@ -285,6 +281,18 @@ fn convert_subtree_mutator(input: &PyEngineInput) -> RadiateResult<SubtreeMutato
     } else {
         Ok(SubtreeMutator::new(rate))
     }
+}
+
+fn convert_differential_crossover(input: &PyEngineInput) -> RadiateResult<DifferentialCrossover> {
+    let rate = input.extract::<PyExpr>("rate")?.inner;
+    let weight = input.extract::<f64>("weight")?;
+    let crossover_rate = input.extract::<f64>("crossover_rate")?;
+
+    Ok(DifferentialCrossover::new(
+        rate,
+        weight as f32,
+        crossover_rate as f32,
+    ))
 }
 
 fn convert_jitter_mutator(input: &PyEngineInput) -> RadiateResult<JitterMutator> {

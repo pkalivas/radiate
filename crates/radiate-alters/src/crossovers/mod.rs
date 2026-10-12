@@ -1,4 +1,5 @@
 pub mod blend;
+pub mod differential;
 pub mod edge_recombine;
 pub mod intermediate;
 pub mod mean;
@@ -10,6 +11,7 @@ pub mod uniform;
 pub mod word;
 
 pub use blend::BlendCrossover;
+pub use differential::DifferentialCrossover;
 pub use edge_recombine::EdgeRecombinationCrossover;
 pub use intermediate::IntermediateCrossover;
 pub use mean::MeanCrossover;

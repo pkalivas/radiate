@@ -60,6 +60,7 @@ pub mod components {
         POLYNOMIAL_MUTATOR = "PolynomialMutator";
         JITTER_MUTATOR = "JitterMutator";
         BIT_FLIP_MUTATOR = "BitFlipMutator";
+        DIFFERENTIAL_CROSSOVER = "DifferentialCrossover";
 
         UNIQUE_SCORE_FILTER = "UniqueScoreFilter";
 

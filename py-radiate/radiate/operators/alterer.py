@@ -196,6 +196,40 @@ class Cross(AlterBase):
         )
 
     @staticmethod
+    def differential(
+        rate: OperatorRate = 0.1, weight: float = 0.8, crossover_rate: float = 0.9
+    ) -> Cross:
+        """
+        The `DifferentialCrossover` operator is a crossover mechanism used in genetic algorithms,
+        particularly for real-valued genes. It generates offspring by combining the weighted difference
+        between two parent chromosomes with a third parent, introducing variation while preserving
+        the overall structure of the parents.
+
+        1. Inputs:
+            * Three parent chromosomes (Parent 1, Parent 2, and Parent 3) composed of real-valued genes.
+            * A crossover `rate`, determining the probability of applying the operation for each gene.
+            * A `weight` parameter controlling the influence of the differential component.
+            * A `crossover_rate` determining the likelihood of gene exchange.
+        2. Differential Combination:
+            * For each gene position:
+            * Generate a random value between 0 and 1.
+            * If the random value is less than the crossover rate, compute the new gene as:
+                new_gene = gene_parent3 + weight * (gene_parent1 - gene_parent2)
+            * Otherwise, retain the gene from Parent 3.
+
+        :param rate: The probability of applying the crossover to a pair of parents.
+        :param weight: The weight of the differential component.
+        :param crossover_rate: The probability of exchanging genes.
+        """
+        return Cross(
+            components.DIFFERENTIAL_CROSSOVER,
+            rate=_get_rate(rate),
+            weight=weight,
+            crossover_rate=crossover_rate,
+            allowed_genes=GeneType.FLOAT,
+        )
+
+    @staticmethod
     def shuffle(rate: OperatorRate = 0.1) -> Cross:
         """
         The `ShuffleCrossover` is a crossover operator used in genetic algorithms,

@@ -1,9 +1,64 @@
-use super::{Tree, TreeChromosome, TreeIterator, TreeNode};
+use super::{Tree, TreeChromosome, TreeNode};
 use radiate_core::{AlterContext, Expr, Mutate, RateSet, SmallStr, Valid, random_provider};
 
 const DEFAULT_MAX_DEPTH: usize = 2;
 const SUBTREE_REJECTED: SmallStr = SmallStr::from_static("mutator.subtree.rejected");
-const SHRINK_REJECTED: SmallStr = SmallStr::from_static("mutator.shrink.rejected");
+
+#[derive(Clone, Debug)]
+pub struct HoistMutator {
+    rate: Expr,
+}
+
+impl HoistMutator {
+    pub fn new(rate: impl Into<Expr>) -> Self {
+        HoistMutator { rate: rate.into() }
+    }
+}
+
+impl<T> Mutate<TreeChromosome<T>> for HoistMutator
+where
+    T: Clone + PartialEq,
+{
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
+    }
+
+    fn mutate_chromosome(
+        &mut self,
+        chromosome: &mut TreeChromosome<T>,
+        ctx: &mut AlterContext,
+    ) -> usize {
+        if !random_provider::bool(ctx.rate()) {
+            return 0;
+        }
+
+        let root = chromosome.root_mut();
+        let root_size = root.size();
+        let rand_index = random_provider::range(0..root_size);
+
+        if rand_index < 1 {
+            return 0;
+        }
+
+        if let Some(rand_node) = root.get_mut(rand_index) {
+            if rand_node.children().is_none() {
+                return 0;
+            }
+
+            let child_idx = random_provider::range(0..rand_node.children().map_or(0, |c| c.len()));
+            let mut child = rand_node.detach(child_idx);
+
+            return if let Some(child) = child.as_mut() {
+                std::mem::swap(rand_node, child);
+                1
+            } else {
+                0
+            };
+        }
+
+        0
+    }
+}
 
 /// Koza-style subtree mutation: replaces a random subtree with a newly grown one.
 ///
@@ -71,74 +126,6 @@ where
     }
 }
 
-/// Shrink mutation: replaces a random subtree with a single new leaf.
-///
-/// With probability `rate` per chromosome, picks a random internal (non-leaf) node other than
-/// the root and replaces it, and everything below it, with a leaf from the chromosome's
-/// [NodeSet](crate::NodeSet). The counterweight to [SubtreeMutator]: one grows trees, this cuts
-/// them back, in one step instead of one level at a time like [HoistMutator].
-///
-/// ```text
-///   add(mul(x0, log(x1)), x2)    pick mul(x0, log(x1))    add(x1, x2)
-/// ```
-///
-/// The root is never replaced. If the new tree breaks the chromosome's constraint, the old
-/// subtree is put back and the mutation counts as rejected.
-#[derive(Clone, Debug)]
-pub struct ShrinkMutator {
-    rate: Expr,
-}
-
-impl ShrinkMutator {
-    pub fn new(rate: impl Into<Expr>) -> Self {
-        ShrinkMutator { rate: rate.into() }
-    }
-}
-
-impl<T> Mutate<TreeChromosome<T>> for ShrinkMutator
-where
-    T: Clone + PartialEq + Default,
-{
-    fn rates(&self) -> RateSet {
-        RateSet::new(self.rate.clone())
-    }
-
-    fn mutate_chromosome(
-        &mut self,
-        chromosome: &mut TreeChromosome<T>,
-        ctx: &mut AlterContext,
-    ) -> usize {
-        if !random_provider::bool(ctx.rate()) {
-            return 0;
-        }
-
-        let Some(store) = chromosome.get_store() else {
-            return 0;
-        };
-
-        // Pre-order positions, the same numbering `get_mut` uses.
-        let internal = chromosome
-            .root()
-            .iter_pre_order()
-            .enumerate()
-            .skip(1)
-            .filter(|(_, node)| !node.is_leaf())
-            .map(|(index, _)| index)
-            .collect::<Vec<usize>>();
-
-        if internal.is_empty() {
-            return 0;
-        }
-
-        let index = *random_provider::choose(&internal);
-        let Some(leaf) = Tree::grow(0, &store) else {
-            return 0;
-        };
-
-        replace_or_rollback(chromosome, index, leaf, ctx, SHRINK_REJECTED)
-    }
-}
-
 /// Replaces the node at pre-order `index` with `replacement`. If the chromosome is no longer
 /// valid (e.g. it broke a size constraint), puts the old node back and records `rejected`.
 /// Returns 1 if the replacement stuck, 0 otherwise.
@@ -166,62 +153,6 @@ fn replace_or_rollback<T>(
     ctx.upsert(rejected, 1);
 
     0
-}
-
-#[derive(Clone, Debug)]
-pub struct HoistMutator {
-    rate: Expr,
-}
-
-impl HoistMutator {
-    pub fn new(rate: impl Into<Expr>) -> Self {
-        HoistMutator { rate: rate.into() }
-    }
-}
-
-impl<T> Mutate<TreeChromosome<T>> for HoistMutator
-where
-    T: Clone + PartialEq,
-{
-    fn rates(&self) -> RateSet {
-        RateSet::new(self.rate.clone())
-    }
-
-    fn mutate_chromosome(
-        &mut self,
-        chromosome: &mut TreeChromosome<T>,
-        ctx: &mut AlterContext,
-    ) -> usize {
-        if !random_provider::bool(ctx.rate()) {
-            return 0;
-        }
-
-        let root = chromosome.root_mut();
-        let root_size = root.size();
-        let rand_index = random_provider::range(0..root_size);
-
-        if rand_index < 1 {
-            return 0;
-        }
-
-        if let Some(rand_node) = root.get_mut(rand_index) {
-            if rand_node.children().is_none() {
-                return 0;
-            }
-
-            let child_idx = random_provider::range(0..rand_node.children().map_or(0, |c| c.len()));
-            let mut child = rand_node.detach(child_idx);
-
-            return if let Some(child) = child.as_mut() {
-                std::mem::swap(rand_node, child);
-                1
-            } else {
-                0
-            };
-        }
-
-        0
-    }
 }
 
 #[cfg(test)]
@@ -323,46 +254,6 @@ mod tests {
                 TreeChromosome::new(vec![TreeNode::new(Op::var(0))], Some(store()), None);
             assert_eq!(mutate(&mut mutator, &mut single, 1.0, 50), (0, 50));
             assert_eq!(single.root().size(), 1);
-        });
-    }
-
-    #[test]
-    fn test_shrink_cuts_internal_nodes_down_to_leaves() {
-        random_provider::scoped_seed(11, || {
-            let mut chromosome = chromosome(4, None);
-            let root = chromosome.root().value().clone();
-            let mut mutator = ShrinkMutator::new(1.0);
-
-            // Every successful shrink removes at least one node, until only the root's direct
-            // children are left and they are all leaves.
-            let mut size = chromosome.root().size();
-            loop {
-                let (applied, _) = mutate(&mut mutator, &mut chromosome, 1.0, 1);
-                if applied == 0 {
-                    break;
-                }
-
-                let new_size = chromosome.root().size();
-                assert!(new_size < size);
-                assert_eq!(chromosome.root().value(), &root);
-                assert!(chromosome.is_valid());
-                size = new_size;
-            }
-
-            let children = chromosome.root().children().unwrap();
-            assert!(children.iter().all(|child| child.is_leaf()));
-        });
-    }
-
-    #[test]
-    fn test_shrink_zero_rate_is_untouched() {
-        random_provider::scoped_seed(13, || {
-            let mut chromosome = chromosome(3, None);
-            let before = chromosome.root().clone();
-
-            let mut mutator = ShrinkMutator::new(1.0);
-            assert_eq!(mutate(&mut mutator, &mut chromosome, 0.0, 50), (0, 50));
-            assert!(chromosome.root() == &before);
         });
     }
 }

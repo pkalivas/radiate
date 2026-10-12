@@ -27,7 +27,7 @@ fn main() {
         .codec(codec.clone())
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .alter(alters!(
-            IntermediateCrossover::new(0.75, 0.1),
+            DifferentialCrossover::new(0.75, 0.8, 0.9),
             ArithmeticMutator::new(0.03),
             GaussianMutator::new(0.03)
         ))

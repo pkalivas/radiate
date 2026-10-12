@@ -15,6 +15,6 @@ pub use crossover::TreeCrossover;
 pub use eval::TreeEvalCache;
 pub use format::Format;
 pub use iter::TreeIterator;
-pub use mutator::{HoistMutator, ShrinkMutator, SubtreeMutator};
+pub use mutator::{HoistMutator, SubtreeMutator};
 pub use node::TreeNode;
 pub use tree::Tree;
