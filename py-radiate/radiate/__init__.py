@@ -98,6 +98,7 @@ from .operators.fitness import Fitness, fitness, novelty
 from .operators.limit import Limit
 from .operators.selector import Select
 from .random import RandomProvider as random
+from .utils import DataSet
 
 MIN = "min"
 MAX = "max"
@@ -115,6 +116,8 @@ __all__ = [
     "_NUMPY_AVAILABLE",
     # Random
     "random",
+    # Utils
+    "DataSet",
     # Expressions
     "Expr",
     # Codecs

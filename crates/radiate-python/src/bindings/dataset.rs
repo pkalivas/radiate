@@ -1,8 +1,6 @@
-use numpy::ndarray::Array1;
+use crate::{Wrap, bindings::datatype, dtype};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{DataSet, DataType, dtype_names};
-
-use crate::{Wrap, dtype};
 
 enum DataSetInner {
     F32(DataSet<f32>),
@@ -23,8 +21,8 @@ impl PyDataSet {
 
         PyDataSet {
             inner: match dtype {
-                DataType::Float64 => DataSetInner::F64(DataSet::cubic()),
-                _ => DataSetInner::F32(DataSet::cubic()),
+                DataType::Float32 => DataSetInner::F32(DataSet::cubic()),
+                _ => DataSetInner::F64(DataSet::cubic()),
             },
         }
     }
@@ -36,8 +34,8 @@ impl PyDataSet {
 
         PyDataSet {
             inner: match dtype {
-                DataType::Float64 => DataSetInner::F64(DataSet::iris()),
-                _ => DataSetInner::F32(DataSet::iris()),
+                DataType::Float32 => DataSetInner::F32(DataSet::iris()),
+                _ => DataSetInner::F64(DataSet::iris()),
             },
         }
     }
@@ -49,8 +47,8 @@ impl PyDataSet {
 
         PyDataSet {
             inner: match dtype {
-                DataType::Float64 => DataSetInner::F64(DataSet::simple_memory(n)),
-                _ => DataSetInner::F32(DataSet::simple_memory(n)),
+                DataType::Float32 => DataSetInner::F32(DataSet::simple_memory(n)),
+                _ => DataSetInner::F64(DataSet::simple_memory(n)),
             },
         }
     }
@@ -62,8 +60,8 @@ impl PyDataSet {
 
         PyDataSet {
             inner: match dtype {
-                DataType::Float64 => DataSetInner::F64(DataSet::parity(bits)),
-                _ => DataSetInner::F32(DataSet::parity(bits)),
+                DataType::Float32 => DataSetInner::F32(DataSet::parity(bits)),
+                _ => DataSetInner::F64(DataSet::parity(bits)),
             },
         }
     }
@@ -75,8 +73,8 @@ impl PyDataSet {
 
         PyDataSet {
             inner: match dtype {
-                DataType::Float64 => DataSetInner::F64(DataSet::xor()),
-                _ => DataSetInner::F32(DataSet::xor()),
+                DataType::Float32 => DataSetInner::F32(DataSet::xor()),
+                _ => DataSetInner::F64(DataSet::xor()),
             },
         }
     }
@@ -88,8 +86,8 @@ impl PyDataSet {
 
         PyDataSet {
             inner: match dtype {
-                DataType::Float64 => DataSetInner::F64(DataSet::koza1()),
-                _ => DataSetInner::F32(DataSet::koza1()),
+                DataType::Float32 => DataSetInner::F32(DataSet::koza1()),
+                _ => DataSetInner::F64(DataSet::koza1()),
             },
         }
     }
@@ -101,8 +99,8 @@ impl PyDataSet {
 
         PyDataSet {
             inner: match dtype {
-                DataType::Float64 => DataSetInner::F64(DataSet::nguyen7()),
-                _ => DataSetInner::F32(DataSet::nguyen7()),
+                DataType::Float32 => DataSetInner::F32(DataSet::nguyen7()),
+                _ => DataSetInner::F64(DataSet::nguyen7()),
             },
         }
     }
@@ -114,8 +112,8 @@ impl PyDataSet {
 
         PyDataSet {
             inner: match dtype {
-                DataType::Float64 => DataSetInner::F64(DataSet::pagie1()),
-                _ => DataSetInner::F32(DataSet::pagie1()),
+                DataType::Float32 => DataSetInner::F32(DataSet::pagie1()),
+                _ => DataSetInner::F64(DataSet::pagie1()),
             },
         }
     }
@@ -133,8 +131,8 @@ impl PyDataSet {
 
         Ok(PyDataSet {
             inner: match dtype {
-                DataType::Float64 => DataSetInner::F64(DataSet::moons(n, noise)),
-                _ => DataSetInner::F32(DataSet::moons(n, noise)),
+                DataType::Float32 => DataSetInner::F32(DataSet::moons(n, noise)),
+                _ => DataSetInner::F64(DataSet::moons(n, noise)),
             },
         })
     }
@@ -152,8 +150,8 @@ impl PyDataSet {
 
         Ok(PyDataSet {
             inner: match dtype {
-                DataType::Float64 => DataSetInner::F64(DataSet::circles(n, noise)),
-                _ => DataSetInner::F32(DataSet::circles(n, noise)),
+                DataType::Float32 => DataSetInner::F32(DataSet::circles(n, noise)),
+                _ => DataSetInner::F64(DataSet::circles(n, noise)),
             },
         })
     }
@@ -171,16 +169,23 @@ impl PyDataSet {
 
         Ok(PyDataSet {
             inner: match dtype {
-                DataType::Float64 => DataSetInner::F64(DataSet::spirals(n, noise)),
-                _ => DataSetInner::F32(DataSet::spirals(n, noise)),
+                DataType::Float32 => DataSetInner::F32(DataSet::spirals(n, noise)),
+                _ => DataSetInner::F64(DataSet::spirals(n, noise)),
             },
         })
     }
 
-    pub fn features(&self) -> PyResult<Array1<f64>> {
+    pub fn features<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         match &self.inner {
-            DataSetInner::F64(inner) => Ok(inner.features()),
-            DataSetInner::F32(inner) => Ok(inner.features()),
+            DataSetInner::F64(inner) => datatype::matrix_to_numpy(py, inner.feature_matrix()),
+            DataSetInner::F32(inner) => datatype::matrix_to_numpy(py, inner.feature_matrix()),
+        }
+    }
+
+    pub fn labels<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        match &self.inner {
+            DataSetInner::F64(inner) => datatype::matrix_to_numpy(py, inner.label_matrix()),
+            DataSetInner::F32(inner) => datatype::matrix_to_numpy(py, inner.label_matrix()),
         }
     }
 

@@ -1,4 +1,4 @@
-use numpy::{PyArrayDyn, PyArrayMethods, PyUntypedArrayMethods, ndarray::s};
+use numpy::{Element, PyArray1, PyArrayDyn, PyArrayMethods, PyUntypedArrayMethods, ndarray::s};
 use pyo3::{
     Bound, PyAny, PyResult, Python,
     prelude::FromPyObjectOwned,
@@ -100,4 +100,13 @@ where
         "Input must be either a 2D NumPy array or a list of lists but found: {:?}",
         obj
     )))
+}
+
+pub(crate) fn matrix_to_numpy<'py, T: Element>(
+    py: Python<'py>,
+    matrix: &Matrix<T>,
+) -> PyResult<Bound<'py, PyAny>> {
+    Ok(PyArray1::from_slice(py, matrix.data())
+        .reshape([matrix.rows(), matrix.cols()])?
+        .into_any())
 }

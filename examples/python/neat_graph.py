@@ -6,27 +6,12 @@ engine construction is the addition of the NEAT distance function and species
 threshold in the `.diversity(...)` method.
 """
 
-import numpy as np
 import radiate as rd
 
 rd.random.seed(514)
 
+inputs, answers = rd.DataSet.cubic(dtype=rd.Float32).pair()
 
-def compute(x: float) -> float:
-    return 4.0 * x**3 - 3.0 * x**2 + x
-
-
-inputs = []
-answers = []
-
-input = -1.0
-for _ in range(-10, 10):
-    input += 0.1
-    inputs.append([input])
-    answers.append([compute(input)])
-
-inputs = np.array(inputs, dtype=np.float32)  # (N, 1)
-answers = np.array(answers, dtype=np.float32)  # (N, 1)
 
 engine = (
     rd.Engine.graph(

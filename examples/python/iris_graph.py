@@ -1,80 +1,67 @@
 #!/usr/bin/env python3
-import polars as pl  # type: ignore
 import radiate as rd
 
 rd.random.seed(500)
 
-url = "https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data"
+use_graph = True
 
-numeric_cols = [
-    "sl",
-    "sw",
-    "pl",
-    "pw",
-]
-
-df = pl.read_csv(
-    url,
-    has_header=False,
-    new_columns=[
-        "sl",
-        "sw",
-        "pl",
-        "pw",
-        "species",
-    ],
-)
-
-# Filter out rows with missing or empty species values.
-df = df.filter(pl.col("species").is_not_null() & (pl.col("species") != ""))
-
-# Standardize numeric columns.
-df = df.with_columns(
-    [
-        ((pl.col(col) - pl.col(col).mean()) / pl.col(col).std()).alias(col)
-        for col in numeric_cols
-    ]
-)
-
-# One-hot encode species.
-df = df.to_dummies(columns=["species"])
-species_cols = df[[c for c in df.columns if c.startswith("species_")]].columns
-
-# Shuffle rows.
-df = df.sample(fraction=1.0, shuffle=True, seed=42)
-
-# Split into training and testing sets.
-training = df.head(int(len(df) * 0.8))
-testing = df.tail(int(len(df) * 0.2))
-
-# Separate features and targets.
-train_features = training[numeric_cols]
-train_targets = training[species_cols]
-test_features = testing[numeric_cols]
-test_targets = testing[species_cols]
+dataset = rd.DataSet.iris()
+train, test = dataset.split(0.75)
+train = train.standardize()
+test = test.standardize()
 
 
-engine = (
-    rd.Engine.graph(
-        shape=(4, 3),
-        vertex=rd.Op.all_ops(),
-        edge=rd.Op.weight(),
-        output=rd.Op.sigmoid(),
+train_features, train_targets = train.features, train.labels
+test_features, test_targets = test.features, test.labels
+
+
+def graph_engine() -> rd.Engine:
+    return (
+        rd.Engine.graph(
+            shape=(4, 3),
+            vertex=rd.Op.all_ops(),
+            edge=rd.Op.weight(),
+            output=rd.Op.sigmoid(),
+        )
+        .regression(train_features, train_targets, loss=rd.MSE)
+        .alter(
+            rd.Cross.graph(0.5, 0.5),
+            rd.Mutate.op(0.02, 0.05),
+            rd.Mutate.graph(0.008, 0.002, False),
+        )
+        .limit(rd.Limit.score(0.1), rd.Limit.seconds(5))
     )
-    .regression(features=train_features, targets=train_targets, loss=rd.MSE)
-    .alter(
-        rd.Cross.graph(0.5, 0.5),
-        rd.Mutate.op(0.02, 0.05),
-        rd.Mutate.graph(0.008, 0.002, False),
-    )
-    .limit(rd.Limit.score(0.01), rd.Limit.seconds(1))
-)
 
+
+def tree_engine() -> rd.Engine:
+    return (
+        rd.Engine.tree(
+            shape=(4, 3),
+            root=rd.Op.sigmoid(),
+            vertex=[
+                rd.Op.sigmoid(),
+                rd.Op.add(),
+                rd.Op.mul(),
+                rd.Op.sub(),
+                rd.Op.dot(),
+            ],
+            leaf=[rd.Op.var(i) for i in range(train_features.shape[1])] + [rd.Op.erc()],
+        )
+        .regression(train_features, train_targets, loss=rd.MSE)
+        .alter(
+            rd.Cross.tree(0.7),
+            rd.Mutate.op(0.01, 0.08),
+        )
+        .limit(rd.Limit.score(0.1), rd.Limit.seconds(5))
+    )
+
+
+engine = graph_engine() if use_graph else tree_engine()
 result = engine.run(log=True)
 
 
 print(result.metrics().dashboard())
-print(result.value())
+print(result)
 print(
     rd.accuracy(
         result.value(),
@@ -93,15 +80,3 @@ print(
         loss=rd.MSE,
     )
 )
-
-
-outputs = []
-targs = test_targets.to_numpy().tolist()
-evaled = result.value().eval(test_features)
-for i, row in enumerate(test_features.to_numpy().tolist()):
-    output = evaled[i]
-    outputs.append(output)
-    max_idx = output.index(max(output))
-    target_max_idx = targs[i].index(max(targs[i]))
-
-    print(f"Predicted Class: {max_idx}, Target Class: {target_max_idx}")

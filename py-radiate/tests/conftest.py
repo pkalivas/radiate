@@ -36,9 +36,8 @@ Data sets
 @pytest.fixture
 def xor_dataset():
     """Create XOR dataset for testing."""
-    inputs = [[1.0, 1.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]]
-    outputs = [[0.0], [1.0], [1.0], [0.0]]
-    return inputs, outputs
+    dataset = rd.DataSet.xor()
+    return dataset.features, dataset.labels
 
 
 @pytest.fixture
@@ -60,26 +59,8 @@ def complex_regression_dataset():
 @pytest.fixture
 def memory_dataset():
     """Create a dataset for testing memory-based fitness functions."""
-    inputs = [
-        [0.0],
-        [0.0],
-        [0.0],
-        [1.0],
-        [0.0],
-        [0.0],
-        [0.0],
-    ]
-    outputs = [
-        [0.0],
-        [0.0],
-        [1.0],
-        [0.0],
-        [0.0],
-        [0.0],
-        [1.0],
-    ]
-
-    return inputs, outputs
+    dataset = rd.DataSet.simple_memory(7, dtype=rd.Float32)
+    return dataset.features, dataset.labels
 
 
 @pytest.fixture

@@ -1,55 +1,46 @@
-import numpy as np
 import radiate as rd
 
 rd.random.seed(42)
 
-# packed = rd.PackedBitCodec(65, use_numpy=False)
-
-# encoded = packed.encode()
-
-# print(encoded)
-
-# decoded = packed.decode(encoded)
-# print(type(decoded))
-# print(decoded)
-
-TARGET_NUM = 1000
-
-
-def fit(val: np.ndarray) -> int:
-    return np.bitwise_count(val).sum()
-
+x, y = rd.DataSet.pagie1().shuffle().pair()
 
 engine = (
-    rd.Engine.packed_bit(TARGET_NUM, use_numpy=True, words=True)
-    .fitness(fit)
-    .alter(rd.Cross.multipoint(0.7, 2), rd.Mutate.bit_flip(0.02 / TARGET_NUM))
-    .limit(rd.Limit.score(TARGET_NUM))
+    rd.Engine.graph(
+        shape=(2, 1),
+        vertex=[
+            rd.Op.abs(),
+            rd.Op.log(),
+            rd.Op.sigmoid(),
+            rd.Op.tanh(),
+            rd.Op.sin(),
+            rd.Op.mul(),
+            rd.Op.add(),
+            rd.Op.div(),
+        ],
+        edge=rd.Op.weight(),
+        output=rd.Op.linear(),
+    )
+    .regression(x, y, loss=rd.MSE)
+    .select(rd.Select.boltzmann(temp=4.0))
+    .alter(
+        rd.Cross.graph(0.4, 0.5),
+        rd.Mutate.op(0.07, 0.05),
+        rd.Mutate.graph(0.06, 0.06, False),
+    )
+    .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))
 )
+result = engine.run(log=True)
 
-print(engine.run())
+print(result)
+print(result.metrics().dashboard())
 
-print(rd.Chromosome.float(length=1, init_range=(0.0, 1.0)))
-print(rd.Chromosome.int(length=1, init_range=(0, 10)))
-print(rd.Chromosome.bit(length=1))
+import plotly as pl
 
-print(rd.Chromosome.char(length=1, char_set=set("abcdefghijklmnopqrstuvwxyz")))
-
-
-# def fit(x: list[list[bool]]) -> int:
-#     sum_one = sum(1 for bit in x[0] if bit)
-#     sum_two = sum(1 for bit in x[1] if not bit)
-#     return sum_one + sum_two
-
-
-# engine = (
-#     rd.Engine.bit([20, 20])
-#     .fitness(fit)
-#     .minimizing()
-#     .alter(rd.Mutate.bit_flip(0.01), rd.Cross.uniform())
-#     .limit(rd.Limit.score(0), rd.Limit.generations(200))
-# )
-
-# result = engine.run()
-
-# print(result)
+x, y = rd.DataSet.pagie1().pair()
+preds = result.value().eval(x)
+fig = pl.graph_objects.Figure()
+fig.add_trace(pl.graph_objects.Scatter(y=y.flatten(), mode="markers", name="True"))
+fig.add_trace(
+    pl.graph_objects.Scatter(y=preds.flatten(), mode="markers", name="Predicted")
+)
+fig.show(renderer="browser")

@@ -1,11 +1,11 @@
 use pyo3::{prelude::*, wrap_pymodule};
 use radiate_python::{
     _activation_ops, _all_ops, _create_op, _edge_ops, _get_dtype_max, _get_dtype_min, PyAccuracy,
-    PyBitCodec, PyCharCodec, PyChromosome, PyEcosystem, PyEngine, PyEngineBuilder, PyEngineInput,
-    PyEngineInputType, PyEngineRunOption, PyExpr, PyFitnessFn, PyFloatCodec, PyFront, PyFrontValue,
-    PyGene, PyGeneType, PyGeneration, PyGenotype, PyGraph, PyGraphCodec, PyIntCodec, PyMetric,
-    PyMetricSet, PyOp, PyPackedBitCodec, PyPermutationCodec, PyPhenotype, PyPopulation,
-    PyRandomProvider, PySpecies, PySubscriber, PyTree, PyTreeCodec, components,
+    PyBitCodec, PyCharCodec, PyChromosome, PyDataSet, PyEcosystem, PyEngine, PyEngineBuilder,
+    PyEngineInput, PyEngineInputType, PyEngineRunOption, PyExpr, PyFitnessFn, PyFloatCodec,
+    PyFront, PyFrontValue, PyGene, PyGeneType, PyGeneration, PyGenotype, PyGraph, PyGraphCodec,
+    PyIntCodec, PyMetric, PyMetricSet, PyOp, PyPackedBitCodec, PyPermutationCodec, PyPhenotype,
+    PyPopulation, PyRandomProvider, PySpecies, PySubscriber, PyTree, PyTreeCodec, components,
     constants::event_types, loss_functions, py_accuracy, py_alter, py_select,
 };
 
@@ -71,6 +71,8 @@ fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyMetric>()?;
 
     m.add_class::<PyExpr>()?;
+
+    m.add_class::<PyDataSet>()?;
 
     m.add_wrapped(wrap_pymodule!(_constants))?;
     Ok(())
