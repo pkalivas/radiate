@@ -41,6 +41,7 @@ class _Components:
     PARTIALLY_MAPPED_CROSSOVER: Final[str]
     EDGE_RECOMBINE_CROSSOVER: Final[str]
     DIFFERENTIAL_CROSSOVER: Final[str]
+    ORDER_CROSSOVER: Final[str]
 
     UNIFORM_MUTATOR: Final[str]
     SCRAMBLE_MUTATOR: Final[str]
@@ -126,7 +127,6 @@ class PyEngineInput:
         self,
         input_type: PyEngineInputType,
         component: str | None,
-        allowed_genes: set[str],
         args: dict[str, object] | None = None,
     ): ...
 

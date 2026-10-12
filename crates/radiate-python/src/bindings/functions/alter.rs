@@ -5,7 +5,6 @@ use radiate_error::radiate_py_err;
 
 #[pyfunction]
 pub fn py_alter(
-    gene_type: PyGeneType,
     alterer: PyEngineInput,
     population: PyPopulation,
     generation: usize,
@@ -17,15 +16,7 @@ pub fn py_alter(
         )));
     }
 
-    if !alterer.allowed_genes.contains(&gene_type) {
-        return Err(radiate_py_err!(format!(
-            "Alterer {} does not allow gene type {:?}",
-            alterer.component(),
-            gene_type
-        )));
-    }
-
-    match gene_type {
+    match population.gene_type() {
         PyGeneType::Float => {
             let alterer =
                 InputTransform::<RadiateResult<Vec<Alterer<FloatChromosome<f64>>>>>::transform(
@@ -83,7 +74,7 @@ pub fn py_alter(
         }
         PyGeneType::GraphNode => {
             let alterer =
-                InputTransform::<RadiateResult<Vec<Alterer<GraphChromosome<Op<f32>>>>>>::transform(
+                InputTransform::<RadiateResult<Vec<Alterer<GraphChromosome<Op<f64>>>>>>::transform(
                     &alterer,
                 )?;
 
@@ -95,7 +86,7 @@ pub fn py_alter(
         }
         PyGeneType::TreeNode => {
             let alterer =
-                InputTransform::<RadiateResult<Vec<Alterer<TreeChromosome<Op<f32>>>>>>::transform(
+                InputTransform::<RadiateResult<Vec<Alterer<TreeChromosome<Op<f64>>>>>>::transform(
                     &alterer,
                 )?;
 
@@ -107,7 +98,7 @@ pub fn py_alter(
         }
         _ => Err(radiate_py_err!(format!(
             "Gene type {:?} not supported for alteration",
-            gene_type
+            population.gene_type()
         ))),
     }
 }

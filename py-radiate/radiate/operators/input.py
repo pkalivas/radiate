@@ -5,7 +5,6 @@ from typing import override
 
 from .._bridge import RsObject
 from .._rd import PyEngineInput, PyEngineInputType
-from ..genome import GENE_TYPE_MAPPING, GeneType
 
 
 class EngineInputType(StrEnum):
@@ -66,19 +65,16 @@ input_type_mapping = {
 class EngineInput(RsObject):
     _input_type: EngineInputType
     _component: str | None
-    _allowed_genes: set[GeneType] | list[GeneType] | GeneType | None
     _args: dict[str, object] | None
 
     def __init__(
         self,
         input_type: EngineInputType,
         component: str | None = None,
-        allowed_genes: set[GeneType] | list[GeneType] | GeneType | None = None,
         **kwargs,
     ):
         self._input_type = input_type
         self._component = component
-        self._allowed_genes = allowed_genes
         self._args = {**kwargs} if kwargs else None
 
     @property
@@ -92,17 +88,6 @@ class EngineInput(RsObject):
         return self._input_type
 
     @property
-    def allowed_genes(self) -> set[GeneType]:
-        if isinstance(self._allowed_genes, GeneType):
-            return {self._allowed_genes}
-        elif isinstance(self._allowed_genes, list):
-            return set(self._allowed_genes)
-        elif isinstance(self._allowed_genes, set):
-            return self._allowed_genes
-        else:
-            return GeneType.all()
-
-    @property
     def args(self) -> dict[str, object]:
         return self._args if self._args is not None else {}
 
@@ -111,9 +96,6 @@ class EngineInput(RsObject):
         return PyEngineInput(
             input_type=input_type_mapping[self._input_type],
             component=self._component,
-            allowed_genes=set(
-                GENE_TYPE_MAPPING["rs"][gene_type] for gene_type in self.allowed_genes
-            ),
             args={
                 name: value.__backend__() if isinstance(value, RsObject) else value
                 for name, value in self.args.items()

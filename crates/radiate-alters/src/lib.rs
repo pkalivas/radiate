@@ -3,7 +3,7 @@ pub mod mutators;
 
 pub use crossovers::{
     BlendCrossover, DifferentialCrossover, EdgeRecombinationCrossover, IntermediateCrossover,
-    MeanCrossover, MultiPointCrossover, PMXCrossover, PackedBitCrossover,
+    MeanCrossover, MultiPointCrossover, OrderCrossover, PMXCrossover, PackedBitCrossover,
     PackedBitMultiPointCrossover, ShuffleCrossover, SimulatedBinaryCrossover, UniformCrossover,
 };
 pub use mutators::{

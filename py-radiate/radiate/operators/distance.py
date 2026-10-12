@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from .._rd import components
-from ..genome import GeneType
 from .input import EngineInput, EngineInputType
 
 
@@ -21,7 +20,7 @@ class Dist(EngineInput):
         The distance is calculated using the formula:
         """
         return Dist(
-            component=components.EUCLIDEAN_DISTANCE, allowed_genes=GeneType.FLOAT
+            component=components.EUCLIDEAN_DISTANCE,
         )
 
     @staticmethod
@@ -32,7 +31,7 @@ class Dist(EngineInput):
         D(u, v) = 1 - (u . v) / (||u|| * ||v||)
         where u and v are the two vectors, and ||u|| and ||v|| are their magnitudes.
         """
-        return Dist(component=components.COSINE_DISTANCE, allowed_genes=GeneType.FLOAT)
+        return Dist(component=components.COSINE_DISTANCE)
 
     @staticmethod
     def neat(
@@ -52,7 +51,6 @@ class Dist(EngineInput):
             excess=excess,
             disjoint=disjoint,
             weight_diff=weight_diff,
-            allowed_genes={GeneType.GRAPH},
         )
 
     @staticmethod
@@ -69,7 +67,6 @@ class Dist(EngineInput):
         return Dist(
             component=components.TREE_DISTANCE,
             k=k,
-            allowed_genes={GeneType.TREE},
         )
 
     @staticmethod

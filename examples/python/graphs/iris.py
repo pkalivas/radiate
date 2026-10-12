@@ -4,14 +4,17 @@ import radiate as rd
 rd.random.seed(500)
 
 
-train, test = rd.DataSet.iris().split(0.75)
+data = rd.DataSet.iris()
+_, in_dims, out_dims = data.shape
+
+train, test = data.split(0.75)
 train_features, train_targets = train.standardize().pair()
 test_features, test_targets = test.standardize().pair()
 
 
 engine = (
     rd.Engine.graph(
-        shape=(4, 3),
+        shape=(in_dims, out_dims),
         vertex=rd.Op.all_ops(),
         edge=rd.Op.weight(),
         output=rd.Op.sigmoid(),
@@ -22,7 +25,7 @@ engine = (
         rd.Mutate.op(0.02, 0.05),
         rd.Mutate.graph(0.008, 0.002, False),
     )
-    .limit(rd.Limit.score(0.1), rd.Limit.seconds(5))
+    .limit(rd.Limit.score(0.1), rd.Limit.seconds(1))
 )
 
 

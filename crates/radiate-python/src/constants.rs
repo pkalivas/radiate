@@ -46,6 +46,8 @@ pub mod components {
         GRAPH_CROSSOVER = "GraphCrossover";
         PARTIALLY_MAPPED_CROSSOVER = "PartiallyMappedCrossover";
         EDGE_RECOMBINE_CROSSOVER = "EdgeRecombinationCrossover";
+        DIFFERENTIAL_CROSSOVER = "DifferentialCrossover";
+        ORDER_CROSSOVER = "OrderCrossover";
 
         UNIFORM_MUTATOR = "UniformMutator";
         SCRAMBLE_MUTATOR = "ScrambleMutator";
@@ -61,7 +63,6 @@ pub mod components {
         POLYNOMIAL_MUTATOR = "PolynomialMutator";
         JITTER_MUTATOR = "JitterMutator";
         BIT_FLIP_MUTATOR = "BitFlipMutator";
-        DIFFERENTIAL_CROSSOVER = "DifferentialCrossover";
 
         UNIQUE_SCORE_FILTER = "UniqueScoreFilter";
 

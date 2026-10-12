@@ -3,7 +3,6 @@ from __future__ import annotations
 from .._rd import components
 from .._typing import OperatorRate
 from ..dsl.expr import Expr
-from ..genome.gene import GeneType
 from ..genome.population import Population
 from .input import EngineInput, EngineInputType
 
@@ -40,7 +39,6 @@ class AlterBase(EngineInput):
 
         return Population.from_rust(
             py_alter(
-                population.__backend__().gene_type(),
                 self.__backend__(),
                 population.__backend__(),
                 generation,
@@ -70,7 +68,6 @@ class Cross(AlterBase):
             components.SIMULATED_BINARY_CROSSOVER,
             rate=_get_rate(rate),
             contiguity=contiguity,
-            allowed_genes=GeneType.FLOAT,
         )
 
     @staticmethod
@@ -96,7 +93,33 @@ class Cross(AlterBase):
         return Cross(
             components.PARTIALLY_MAPPED_CROSSOVER,
             rate=_get_rate(rate),
-            allowed_genes=GeneType.PERMUTATION,
+        )
+
+    @staticmethod
+    def order(rate: OperatorRate = 0.1) -> Cross:
+        """
+        Order Crossover (OX1, Davis 1985) for permutations.
+
+        Each child keeps a random segment of its own parent in place, then fills the remaining
+        positions - starting just after the segment and wrapping around with the missing genes
+        in the order they appear in the other parent, also read from just after the segment.
+
+        Where PMX preserves *absolute positions* and edge recombination preserves *adjacency*,
+        OX preserves *relative order*: the operator of choice for scheduling and sequencing
+        problems where "a comes before b" matters more than where either one sits.
+
+        Example: parents `[1,2,3,4,5,6,7,8,9]` and `[4,5,2,1,8,7,6,9,3]`, segment `3..=6`
+
+        ```text
+        child one: [2,1,8 | 4,5,6,7 | 9,3]
+        child two: [3,4,5 | 1,8,7,6 | 9,2]
+        ```
+
+        :param rate: The probability of applying the crossover to a pair of parents.
+        """
+        return Cross(
+            components.ORDER_CROSSOVER,
+            rate=_get_rate(rate),
         )
 
     @staticmethod
@@ -129,7 +152,6 @@ class Cross(AlterBase):
         return Cross(
             components.MEAN_CROSSOVER,
             rate=_get_rate(rate),
-            allowed_genes={GeneType.FLOAT, GeneType.INT},
         )
 
     @staticmethod
@@ -144,7 +166,6 @@ class Cross(AlterBase):
         return Cross(
             components.UNIFORM_CROSSOVER,
             rate=_get_rate(rate),
-            allowed_genes=GeneType.core(),
         )
 
     @staticmethod
@@ -162,7 +183,6 @@ class Cross(AlterBase):
             components.BLEND_CROSSOVER,
             rate=_get_rate(rate),
             alpha=alpha,
-            allowed_genes=GeneType.FLOAT,
         )
 
     @staticmethod
@@ -192,7 +212,6 @@ class Cross(AlterBase):
             components.INTERMEDIATE_CROSSOVER,
             rate=_get_rate(rate),
             alpha=alpha,
-            allowed_genes=GeneType.FLOAT,
         )
 
     @staticmethod
@@ -226,7 +245,6 @@ class Cross(AlterBase):
             rate=_get_rate(rate),
             weight=weight,
             crossover_rate=crossover_rate,
-            allowed_genes=GeneType.FLOAT,
         )
 
     @staticmethod
@@ -251,7 +269,6 @@ class Cross(AlterBase):
         return Cross(
             components.SHUFFLE_CROSSOVER,
             rate=_get_rate(rate),
-            allowed_genes=GeneType.core(),
         )
 
     @staticmethod
@@ -276,7 +293,6 @@ class Cross(AlterBase):
         return Cross(
             components.EDGE_RECOMBINE_CROSSOVER,
             rate=_get_rate(rate),
-            allowed_genes=GeneType.PERMUTATION,
         )
 
     @staticmethod
@@ -296,7 +312,6 @@ class Cross(AlterBase):
             components.GRAPH_CROSSOVER,
             rate=_get_rate(rate),
             parent_node_rate=_get_rate(parent_node_rate),
-            allowed_genes=GeneType.GRAPH,
         )
 
     @staticmethod
@@ -312,7 +327,6 @@ class Cross(AlterBase):
             components.TREE_CROSSOVER,
             rate=_get_rate(rate),
             max_size=max_size,
-            allowed_genes=GeneType.TREE,
         )
 
 
@@ -333,7 +347,6 @@ class Mutate(AlterBase):
         return Mutate(
             components.UNIFORM_MUTATOR,
             rate=_get_rate(rate),
-            allowed_genes=GeneType.core(),
         )
 
     @staticmethod
@@ -349,7 +362,6 @@ class Mutate(AlterBase):
         return Mutate(
             components.GAUSSIAN_MUTATOR,
             rate=_get_rate(rate),
-            allowed_genes=GeneType.FLOAT,
         )
 
     @staticmethod
@@ -362,7 +374,6 @@ class Mutate(AlterBase):
         return Mutate(
             components.BIT_FLIP_MUTATOR,
             rate=_get_rate(rate),
-            allowed_genes=GeneType.BIT,
         )
 
     @staticmethod
@@ -378,7 +389,6 @@ class Mutate(AlterBase):
             components.OPERATION_MUTATOR,
             rate=_get_rate(rate),
             replace_rate=_get_rate(replace_rate),
-            allowed_genes={GeneType.GRAPH, GeneType.TREE},
         )
 
     @staticmethod
@@ -403,7 +413,6 @@ class Mutate(AlterBase):
             edge_rate=_get_rate(edge_rate),
             allow_recurrent=allow_recurrent,
             target_size=target_size,
-            allowed_genes=GeneType.GRAPH,
         )
 
     @staticmethod
@@ -416,7 +425,6 @@ class Mutate(AlterBase):
         return Mutate(
             components.SCRAMBLE_MUTATOR,
             rate=_get_rate(rate),
-            allowed_genes=GeneType.core(),
         )
 
     @staticmethod
@@ -432,7 +440,6 @@ class Mutate(AlterBase):
         return Mutate(
             components.SWAP_MUTATOR,
             rate=_get_rate(rate),
-            allowed_genes=GeneType.core(),
         )
 
     @staticmethod
@@ -447,7 +454,6 @@ class Mutate(AlterBase):
         return Mutate(
             components.HOIST_MUTATOR,
             rate=_get_rate(rate),
-            allowed_genes=GeneType.TREE,
         )
 
     @staticmethod
@@ -462,7 +468,6 @@ class Mutate(AlterBase):
             components.SUBTREE_MUTATOR,
             rate=_get_rate(rate),
             max_depth=max_depth,
-            allowed_genes=GeneType.TREE,
         )
 
     @staticmethod
@@ -476,7 +481,6 @@ class Mutate(AlterBase):
         return Mutate(
             components.INVERSION_MUTATOR,
             rate=_get_rate(rate),
-            allowed_genes=GeneType.core(),
         )
 
     @staticmethod
@@ -498,7 +502,6 @@ class Mutate(AlterBase):
             components.POLYNOMIAL_MUTATOR,
             rate=_get_rate(rate),
             eta=eta,
-            allowed_genes=GeneType.FLOAT,
         )
 
     @staticmethod
@@ -517,7 +520,6 @@ class Mutate(AlterBase):
             components.JITTER_MUTATOR,
             rate=_get_rate(rate),
             magnitude=magnitude,
-            allowed_genes=GeneType.FLOAT,
         )
 
     @staticmethod
@@ -537,5 +539,4 @@ class Mutate(AlterBase):
         return Mutate(
             components.ARITHMETIC_MUTATOR,
             rate=_get_rate(rate),
-            allowed_genes={GeneType.FLOAT, GeneType.INT},
         )

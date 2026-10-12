@@ -53,10 +53,18 @@ def test_gp_graph_eval():
 
 
 @pytest.mark.integration
-def test_graph_from_json(graph_simple_2x1):
+def test_graph_from_json():
     """Test GP Graph creation from JSON."""
-    initial_eval = graph_simple_2x1.eval(np.array([[1.0, 2.0]]))
-    json_data = graph_simple_2x1.to_json()
+    codec = rd.GraphCodec.directed(
+        shape=(2, 1),
+        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+        edge=rd.Op.weight(),
+        output=rd.Op.linear(),
+    )
+
+    graph = codec.decode(codec.encode())
+    initial_eval = graph.eval(np.array([[1.0, 2.0]]))
+    json_data = graph.to_json()
 
     graph = rd.Graph.from_json(json_data)
     post_eval = graph.eval([[1.0, 2.0]])

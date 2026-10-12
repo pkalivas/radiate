@@ -238,19 +238,9 @@ class EngineBuilder[G, T]:
             )
 
     def set_survivor_selector(self, selector: Select):
-        if self._gene_type not in selector.allowed_genes:
-            raise ValueError(
-                f"Selector {selector.component} does not support gene type {self._gene_type}"
-            )
-
         self._inputs.append(selector.to_survivor_selector())
 
     def set_offspring_selector(self, selector: Select):
-        if self._gene_type not in selector.allowed_genes:
-            raise ValueError(
-                f"Selector {selector.component} does not support gene type {self._gene_type}"
-            )
-
         self._inputs.append(selector.to_offspring_selector())
 
     def set_alters(self, alters: AlterBase | list[AlterBase] | None):
@@ -271,11 +261,6 @@ class EngineBuilder[G, T]:
     ):
         if diversity is None:
             return
-
-        if self._gene_type not in diversity.allowed_genes:
-            raise ValueError(
-                f"Diversity {diversity.component} does not support gene type {self._gene_type}"
-            )
 
         self._inputs.append(diversity)
 

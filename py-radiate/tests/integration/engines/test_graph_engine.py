@@ -33,11 +33,9 @@ def test_engine_graph_xor(xor_dataset, random_seed):
 
 
 @pytest.mark.integration
-def test_engine_graph_regression_with_speciation(
-    simple_regression_dataset, random_seed
-):
+def test_engine_graph_regression_with_speciation(squared_dataset, random_seed):
     """Test engine with graph codec and speciation for regression."""
-    inputs, outputs = simple_regression_dataset
+    inputs, outputs = squared_dataset
 
     codec = rd.GraphCodec.directed(
         shape=(1, 1),
@@ -218,10 +216,10 @@ def test_engine_graph_recurrent_with_np(memory_dataset, random_seed):
 
 @pytest.mark.integration
 @pytest.mark.skipif(not rd._NUMPY_AVAILABLE, reason="numpy not installed")
-def test_graph_eval_with_py_func(example_1x1_regression_dataset, random_seed):
+def test_graph_eval_with_py_func(cubic_dataset, random_seed):
     import numpy as np
 
-    inputs, outputs = example_1x1_regression_dataset
+    inputs, outputs = cubic_dataset
 
     x = np.array(inputs, dtype=np.float32)
     y = np.array(outputs, dtype=np.float32)
@@ -261,8 +259,8 @@ def test_graph_eval_with_py_func(example_1x1_regression_dataset, random_seed):
 
 
 @pytest.mark.integration
-def test_graph_engine_species_targeting(example_1x1_regression_dataset, random_seed):
-    inputs, answers = example_1x1_regression_dataset
+def test_graph_engine_species_targeting(cubic_dataset, random_seed):
+    inputs, answers = cubic_dataset
 
     engine = (
         rd.Engine.graph(

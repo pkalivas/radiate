@@ -3,8 +3,6 @@ from __future__ import annotations
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-from radiate.radiate import PyGeneType as gt
-
 
 class GeneType(Enum):
     FLOAT = "FloatGene"
@@ -62,30 +60,6 @@ class GeneType(Enum):
                 return GeneType.TREE
             case _:
                 raise ValueError(f"Invalid gene type: {gene_type}")
-
-
-GENE_TYPE_MAPPING = {
-    "py": {
-        gt.Float: GeneType.FLOAT,
-        gt.Int: GeneType.INT,
-        gt.Bit: GeneType.BIT,
-        gt.PackedBit: GeneType.PACKED_BIT,
-        gt.Char: GeneType.CHAR,
-        gt.GraphNode: GeneType.GRAPH,
-        gt.TreeNode: GeneType.TREE,
-        gt.Permutation: GeneType.PERMUTATION,
-    },
-    "rs": {
-        GeneType.FLOAT: gt.Float,
-        GeneType.INT: gt.Int,
-        GeneType.BIT: gt.Bit,
-        GeneType.PACKED_BIT: gt.PackedBit,
-        GeneType.CHAR: gt.Char,
-        GeneType.GRAPH: gt.GraphNode,
-        GeneType.TREE: gt.TreeNode,
-        GeneType.PERMUTATION: gt.Permutation,
-    },
-}
 
 
 __all__ = [

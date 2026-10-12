@@ -36,12 +36,11 @@ Data sets
 @pytest.fixture
 def xor_dataset():
     """Create XOR dataset for testing."""
-    dataset = rd.DataSet.xor()
-    return dataset.features, dataset.labels
+    return rd.DataSet.xor().pair()
 
 
 @pytest.fixture
-def simple_regression_dataset():
+def squared_dataset():
     """Create a simple regression dataset for testing."""
     inputs = [[0.0], [1.0], [2.0], [3.0], [4.0]]
     outputs = [[0.0], [2.0], [4.0], [6.0], [8.0]]
@@ -49,104 +48,14 @@ def simple_regression_dataset():
 
 
 @pytest.fixture
-def complex_regression_dataset():
-    """Create a more complex regression dataset for testing."""
-    inputs = [[i] for i in range(-10, 11)]
-    outputs = [[3 * i**2 + 2 * i + 1] for i in range(-10, 11)]
-    return inputs, outputs
-
-
-@pytest.fixture
 def memory_dataset():
     """Create a dataset for testing memory-based fitness functions."""
-    dataset = rd.DataSet.simple_memory(7)
-    return dataset.features, dataset.labels
+    return rd.DataSet.simple_memory(7).pair()
 
 
 @pytest.fixture
-def example_1x1_regression_dataset():
-    def compute(x: float) -> float:
-        return 4.0 * x**3 - 3.0 * x**2 + x
-
-    inputs = []
-    answers = []
-
-    x = -1.0
-    for _ in range(20):
-        x += 0.1
-        inputs.append([x])
-        answers.append([compute(x)])
-
-    return inputs, answers
-
-
-"""
-Graph Fixtures
-"""
-
-
-@pytest.fixture
-def graph_simple_1x1():
-    """Create a simple graph codec for testing."""
-    codec = rd.GraphCodec.directed(
-        shape=(1, 1),
-        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
-        edge=rd.Op.weight(),
-        output=rd.Op.linear(),
-    )
-
-    return codec.decode(codec.encode())
-
-
-@pytest.fixture
-def graph_codec_simple_2x1():
-    """Create a simple graph codec for testing."""
-    return rd.GraphCodec.directed(
-        shape=(2, 1),
-        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
-        edge=rd.Op.weight(),
-        output=rd.Op.linear(),
-    )
-
-
-@pytest.fixture
-def graph_simple_2x1():
-    """Create a simple graph structure for testing."""
-    codec = rd.GraphCodec.directed(
-        shape=(2, 1),
-        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
-        edge=rd.Op.weight(),
-        output=rd.Op.linear(),
-    )
-    return codec.decode(codec.encode())
-
-
-"""
-Tree Fixtures
-"""
-
-
-@pytest.fixture
-def tree_codec_simple_2x1():
-    """Create a simple tree codec for testing."""
-    return rd.TreeCodec(
-        shape=(2, 1),
-        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sub()],
-        leaf=[rd.Op.var(0), rd.Op.var(1)],
-        root=rd.Op.linear(),
-    )
-
-
-@pytest.fixture
-def tree_simple_2x1():
-    """Create a simple tree structure for testing."""
-    codec = rd.TreeCodec(
-        shape=(2, 1),
-        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sub()],
-        leaf=[rd.Op.var(0), rd.Op.var(1)],
-        root=rd.Op.linear(),
-    )
-    return codec.decode(codec.encode())
+def cubic_dataset():
+    return rd.DataSet.cubic().pair()
 
 
 """

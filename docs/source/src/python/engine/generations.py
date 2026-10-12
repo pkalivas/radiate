@@ -80,6 +80,6 @@ value_at_index_0: rd.FrontValue[float] = front[0]  # FrontValue object
 all_values: list[rd.FrontValue[float]] = front.values()  # list[FrontValue]
 
 # Get the members of the Pareto front:
-score: list[float] = all_values[0].score()  # list[float] - multi-objective score
+score: list[float] = all_values[0].score  # list[float] - multi-objective score
 genotype: rd.Genotype[float] = all_values[0].genotype()  # Genotype object
 # --8<-- [end:multi_objective]

@@ -4,9 +4,9 @@ import radiate as rd
 
 
 @pytest.mark.integration
-def test_engine_tree_regression(simple_regression_dataset, random_seed):
+def test_engine_tree_regression(squared_dataset, random_seed):
     """Test engine with tree codec for regression."""
-    inputs, outputs = simple_regression_dataset
+    inputs, outputs = squared_dataset
 
     engine = (
         rd.Engine.tree(

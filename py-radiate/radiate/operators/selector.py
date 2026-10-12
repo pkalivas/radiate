@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from .._rd import components
-from ..genome import GENE_TYPE_MAPPING
 from ..genome.population import Population
 from .input import EngineInput, EngineInputType
 
@@ -26,8 +25,6 @@ class Select(EngineInput):
         """
         from radiate.radiate import py_select
 
-        gene_type = population.gene_type()
-
         objectives = objective if isinstance(objective, list) else [objective]
 
         objective_input = EngineInput(
@@ -37,7 +34,6 @@ class Select(EngineInput):
 
         return Population.from_rust(
             py_select(
-                gene_type=GENE_TYPE_MAPPING["rs"][gene_type],
                 selector=self.to_offspring_selector().__backend__(),
                 objective=objective_input,
                 population=population.__backend__(),

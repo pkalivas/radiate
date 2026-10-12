@@ -62,14 +62,14 @@ class Op(LazyRsObject):
 
     @staticmethod
     def const(name: str, value: float, dtype: RdDataType | None = None) -> Op:
-        return Op(name, dtype=dtype, value=value)
+        return Op("constant", dtype=dtype, title=name, value=value)
 
     add = _op_factory("add")
     sub = _op_factory("sub")
     mul = _op_factory("mul")
     div = _op_factory("div")
     sigmoid = _op_factory("sigmoid")
-    weight = _op_factory("weight")
+    weight = _op_factory("w")
     relu = _op_factory("relu")
     tanh = _op_factory("tanh")
     linear = _op_factory("linear")

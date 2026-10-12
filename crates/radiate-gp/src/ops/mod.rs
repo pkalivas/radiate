@@ -42,7 +42,11 @@ macro_rules! impl_op_float {
 impl_op_float!(f32, 1e10_f32, 1e-7_f32);
 impl_op_float!(f64, 1e10_f64, 1e-7_f64);
 
-pub(crate) mod op_names {
+pub mod op_names {
+    /// Primitive operation names
+    pub const CONSTANT: &str = "constant";
+    pub const VAR: &str = "var";
+
     /// Mathematical operation names
     pub const ADD: &str = "add";
     pub const SUB: &str = "sub";

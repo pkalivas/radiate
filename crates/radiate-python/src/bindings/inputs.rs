@@ -1,13 +1,10 @@
-use crate::{PyAnyObject, PyGeneType};
+use crate::PyAnyObject;
 use pyo3::{
     Py, PyAny, PyResult, Python, exceptions::PyKeyError, prelude::FromPyObjectOwned, pyclass,
     pymethods,
 };
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::{HashMap, HashSet},
-    fmt::Debug,
-};
+use std::{collections::HashMap, fmt::Debug};
 
 #[pyclass(from_py_object)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Copy, Serialize, Deserialize)]
@@ -44,7 +41,6 @@ pub enum PyEngineInputType {
 pub struct PyEngineInput {
     pub component: Option<String>,
     pub input_type: PyEngineInputType,
-    pub allowed_genes: HashSet<PyGeneType>,
     pub args: HashMap<String, PyAnyObject>,
 }
 
@@ -54,13 +50,11 @@ impl PyEngineInput {
     pub fn new(
         input_type: PyEngineInputType,
         component: Option<String>,
-        allowed_genes: HashSet<PyGeneType>,
         args: HashMap<String, Py<PyAny>>,
     ) -> Self {
         PyEngineInput {
             component,
             input_type,
-            allowed_genes,
             args: args
                 .into_iter()
                 .map(|(k, v)| (k, PyAnyObject { inner: v }))
@@ -119,8 +113,8 @@ impl Debug for PyEngineInput {
         }
         write!(
             f,
-            "PyEngineInput {{ \n\tcomponent: {:?}, \n\tinput_type: {:?}, \n\tallowed_genes: {:?}, \n\targs: {{{}}} \n}}",
-            self.component, self.input_type, self.allowed_genes, args
+            "PyEngineInput {{ \n\tcomponent: {:?}, \n\tinput_type: {:?}, \n\targs: {{{}}} \n}}",
+            self.component, self.input_type, args
         )
     }
 }

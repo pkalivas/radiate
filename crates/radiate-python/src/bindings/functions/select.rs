@@ -5,7 +5,6 @@ use radiate_error::{radiate_py_bail, radiate_py_err};
 
 #[pyfunction]
 pub fn py_select(
-    gene_type: PyGeneType,
     selector: PyEngineInput,
     objective: PyEngineInput,
     count: usize,
@@ -18,14 +17,6 @@ pub fn py_select(
         return Err(radiate_py_err!(format!(
             "Input type {:?} not a selector",
             selector.input_type
-        )));
-    }
-
-    if !selector.allowed_genes.contains(&gene_type) {
-        return Err(radiate_py_err!(format!(
-            "Selector {} does not allow gene type {:?}",
-            selector.component(),
-            gene_type
         )));
     }
 
@@ -47,7 +38,7 @@ pub fn py_select(
         radiate_py_bail!("No objectives provided - I'm not even sure this is possible");
     };
 
-    match gene_type {
+    match population.gene_type() {
         PyGeneType::Float => {
             let selector =
                 InputTransform::<RadiateResult<Box<dyn Select<FloatChromosome<f64>>>>>::transform(
@@ -122,35 +113,35 @@ pub fn py_select(
         }
         PyGeneType::GraphNode => {
             let selector = InputTransform::<
-                RadiateResult<Box<dyn Select<GraphChromosome<Op<f32>>>>>,
+                RadiateResult<Box<dyn Select<GraphChromosome<Op<f64>>>>>,
             >::transform(&selector)?;
-            let population: Population<GraphChromosome<Op<f32>>> = population.into();
+            let population: Population<GraphChromosome<Op<f64>>> = population.into();
 
             Ok(selector
                 .select(population.as_ref(), &obj, count)
                 .iter()
                 .map(|pop| population[*pop].clone())
-                .collect::<Population<GraphChromosome<Op<f32>>>>())
+                .collect::<Population<GraphChromosome<Op<f64>>>>())
             .map(|pop| PyPopulation::from(&pop))
         }
         PyGeneType::TreeNode => {
             let selector =
-                InputTransform::<RadiateResult<Box<dyn Select<TreeChromosome<Op<f32>>>>>>::transform(
+                InputTransform::<RadiateResult<Box<dyn Select<TreeChromosome<Op<f64>>>>>>::transform(
                     &selector,
                 )?;
-            let population: Population<TreeChromosome<Op<f32>>> = population.into();
+            let population: Population<TreeChromosome<Op<f64>>> = population.into();
 
             Ok(selector
                 .select(population.as_ref(), &obj, count)
                 .iter()
                 .map(|pop| population[*pop].clone())
-                .collect::<Population<TreeChromosome<Op<f32>>>>())
+                .collect::<Population<TreeChromosome<Op<f64>>>>())
             .map(|pop| PyPopulation::from(&pop))
         }
 
         _ => Err(radiate_py_err!(format!(
             "Gene type {:?} not supported for selection",
-            gene_type
+            population.gene_type()
         ))),
     }
 }

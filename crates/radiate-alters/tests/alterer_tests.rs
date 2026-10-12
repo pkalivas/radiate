@@ -120,6 +120,7 @@ fn bit_alterer_properties(#[case] make: Make<BitChromosome>) {
 #[case::scramble(|r| ScrambleMutator::new(r).into_alterer())]
 #[case::inversion(|r| InversionMutator::new(r).into_alterer())]
 #[case::pmx(|r| PMXCrossover::new(r).into_alterer())]
+#[case::order(|r| OrderCrossover::new(r).into_alterer())]
 #[case::edge_recombination(|r| EdgeRecombinationCrossover::new(r).into_alterer())]
 fn permutation_alterers_preserve_alleles(#[case] make: Make<PermutationChromosome<usize>>) {
     let population = permutation_population();

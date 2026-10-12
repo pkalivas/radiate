@@ -3,7 +3,9 @@ import radiate as rd
 
 rd.random.seed(42)
 
-x, y = rd.DataSet.pagie1().shuffle().pair()
+data = rd.DataSet.pagie1()
+x, y = data.shuffle().pair()
+_, in_dim, out_dim = data.shape
 
 vertex_ops = [
     rd.Op.abs(),
@@ -18,7 +20,7 @@ vertex_ops = [
 
 engine = (
     rd.Engine.tree(
-        shape=(2, 1),
+        shape=(in_dim, out_dim),
         vertex=vertex_ops,
         root=rd.Op.sum(),
         leaf=[rd.Op.var(0), rd.Op.var(1), rd.Op.erc()],

@@ -3,14 +3,16 @@ import radiate as rd
 
 rd.random.seed(500)
 
-train, test = rd.DataSet.iris().split(0.75)
+data = rd.DataSet.iris()
+train, test = data.split(0.75)
 train_features, train_targets = train.standardize().pair()
 test_features, test_targets = test.standardize().pair()
+_, in_dim, out_dim = data.shape
 
 
 engine = (
     rd.Engine.tree(
-        shape=(4, 3),
+        shape=(in_dim, out_dim),
         root=rd.Op.sigmoid(),
         vertex=[
             rd.Op.sigmoid(),
@@ -19,7 +21,7 @@ engine = (
             rd.Op.sub(),
             rd.Op.dot(),
         ],
-        leaf=[rd.Op.var(i) for i in range(train_features.shape[1])] + [rd.Op.erc()],
+        leaf=[rd.Op.var(i) for i in range(in_dim)] + [rd.Op.erc()],
     )
     .regression(train_features, train_targets, loss=rd.MSE)
     .alter(

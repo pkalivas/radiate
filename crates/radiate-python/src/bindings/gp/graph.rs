@@ -8,7 +8,7 @@ use pyo3::{
     BoundObject,
     types::{PyBytes, PyBytesMethods},
 };
-use radiate::{DataType, Eval, EvalInto, EvalMut, Graph, Op, RadiateResult, StatefulGraph, ToDot};
+use radiate::{DataType, Eval, EvalMut, Graph, Op, RadiateResult, StatefulGraph, ToDot};
 use radiate_utils::Float;
 use serde::{Deserialize, Serialize};
 
@@ -36,7 +36,7 @@ fn eval_graph<'py, F>(
 ) -> PyResult<Bound<'py, PyArrayDyn<F>>>
 where
     F: Float + numpy::Element + FromPyObjectOwned<'py>,
-    Op<F>: Eval<[F], F> + for<'a> EvalInto<[&'a [F]], [F]>,
+    Op<F>: Eval<[F], F>,
 {
     super::generic_eval_runner(py, output_len, inputs, |slice| graph.eval_mut(slice))
 }

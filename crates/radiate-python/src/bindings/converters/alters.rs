@@ -210,6 +210,7 @@ fn perm_registry() -> AlterRegistry<PermutationChromosome<usize>> {
     AlterRegistry::new(alter_table! {
         crate::constants::components::PARTIALLY_MAPPED_CROSSOVER => convert_partially_mapped_crossover,
         crate::constants::components::EDGE_RECOMBINE_CROSSOVER   => convert_edge_recombine_crossover,
+        crate::constants::components::ORDER_CROSSOVER            => convert_order_crossover,
 
         crate::constants::components::SWAP_MUTATOR               => convert_swap_mutator,
         crate::constants::components::SCRAMBLE_MUTATOR           => convert_scramble_mutator,
@@ -293,6 +294,11 @@ fn convert_differential_crossover(input: &PyEngineInput) -> RadiateResult<Differ
         weight as f32,
         crossover_rate as f32,
     ))
+}
+
+fn convert_order_crossover(input: &PyEngineInput) -> RadiateResult<OrderCrossover> {
+    let rate = input.extract::<PyExpr>("rate")?.inner;
+    Ok(OrderCrossover::new(rate))
 }
 
 fn convert_jitter_mutator(input: &PyEngineInput) -> RadiateResult<JitterMutator> {

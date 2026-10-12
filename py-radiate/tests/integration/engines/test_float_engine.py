@@ -70,11 +70,9 @@ def test_engine_float_matrix_minimization(random_seed):
 
 
 @pytest.mark.integration
-def test_engine_float_simple_neural_network(
-    random_seed, example_1x1_regression_dataset
-):
+def test_engine_float_simple_neural_network(random_seed, cubic_dataset):
     """Test engine with float codec for evolving a simple neural network."""
-    inputs, answers = example_1x1_regression_dataset
+    inputs, answers = cubic_dataset
 
     X = np.array(inputs, dtype=np.float32)  # (N, 1)
     Y = np.array(answers, dtype=np.float32)  # (N, 1)

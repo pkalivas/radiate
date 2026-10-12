@@ -109,7 +109,7 @@ def test_engine_multi_objective_front(simple_multi_objective_engine, random_seed
     """Test multi-objective engine with Pareto front."""
     result = simple_multi_objective_engine.limit(rd.Limit.generations(100)).run()
 
-    fitness_values = list(set(map(lambda x: tuple(x.score()), result.front())))
+    fitness_values = list(set(map(lambda x: tuple(x.score), result.front())))
 
     assert result.objective() == [rd.MIN, rd.MIN], (
         "Should be minimizing both objectives"
