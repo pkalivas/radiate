@@ -2,7 +2,7 @@ use radiate::prelude::*;
 
 const MIN_SCORE: f32 = 0.001;
 
-fn main() {
+fn main() -> RadiateResult<()> {
     random_provider::seed(518);
 
     let store = vec![
@@ -14,7 +14,7 @@ fn main() {
 
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, store))
-        .fitness_fn(Regression::new(dataset(), Loss::MSE))
+        .fitness_fn(Regression::new(DataSet::cubic(), Loss::MSE))
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4.0))
         .alter(alters!(
@@ -24,40 +24,20 @@ fn main() {
         ))
         .build();
 
-    engine
-        .iter()
-        .logging()
-        .until_score(MIN_SCORE)
-        .last()
-        .inspect(display)
-        .unwrap();
+    let result = engine.iter().logging().until_score(MIN_SCORE).last()?;
+
+    display(&result);
+
+    Ok(())
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     Accuracy::default()
         .named("Regression Graph")
-        .on(&dataset().into())
+        .on(&DataSet::cubic())
         .loss(Loss::MSE)
         .eval(result.value())
         .inspect(|acc| {
             println!("{result:?}\n{acc:?}\n{}", result.metrics().dashboard());
         });
-}
-
-fn dataset() -> impl Into<DataSet<f32>> {
-    let mut inputs = Vec::new();
-    let mut answers = Vec::new();
-
-    let mut input = -1.0;
-    for _ in -10..10 {
-        input += 0.1;
-        inputs.push(vec![input]);
-        answers.push(vec![compute(input)]);
-    }
-
-    (inputs, answers)
-}
-
-fn compute(x: f32) -> f32 {
-    4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x
 }

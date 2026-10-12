@@ -1,5 +1,6 @@
-use super::{DataSet, Loss};
+use super::Loss;
 use crate::{Eval, EvalMut, Graph, GraphEvaluator, Op, Tree, ops::OpFloat};
+use radiate_utils::DataSet;
 use std::fmt::Debug;
 
 #[derive(Clone, Default)]

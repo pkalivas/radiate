@@ -1,10 +1,10 @@
-use super::{DataSet, Loss};
+use super::Loss;
 use crate::{
     GraphChromosome, GraphEvaluator, Op, TreeChromosome, eval::EvalIntoMut, graphs::GraphEvalCache,
     ops::OpFloat, trees::TreeEvalCache,
 };
 use radiate_core::{BatchFitnessFunction, Genotype, Score};
-use radiate_utils::Matrix;
+use radiate_utils::{DataSet, Matrix};
 use std::sync::OnceLock;
 
 #[derive(Clone)]

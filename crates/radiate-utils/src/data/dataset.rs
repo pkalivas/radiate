@@ -1,5 +1,5 @@
+use crate::random_provider;
 use crate::{Float, Matrix};
-use radiate_core::random_provider;
 
 #[derive(Default, Clone)]
 pub struct DataSet<T> {
@@ -106,12 +106,12 @@ impl<T: Clone> DataSet<T> {
 }
 
 impl<F: Float> DataSet<F> {
-    pub fn standardize(mut self) -> Self {
+    pub fn standardize(&mut self) -> &mut Self {
         self.features.standardize();
         self
     }
 
-    pub fn normalize(mut self) -> Self {
+    pub fn normalize(&mut self) -> &mut Self {
         self.features.normalize();
         self
     }

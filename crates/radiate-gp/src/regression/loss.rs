@@ -1,6 +1,5 @@
-use super::DataSet;
 use crate::{EvalMut, ops::OpFloat};
-use radiate_utils::Matrix;
+use radiate_utils::{DataSet, Matrix};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Loss {

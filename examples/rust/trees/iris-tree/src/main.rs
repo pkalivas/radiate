@@ -1,5 +1,4 @@
-use radiate::*;
-use std::collections::BTreeSet;
+use radiate::prelude::*;
 
 const MIN_SCORE: f32 = 0.1;
 const MAX_SECONDS: f64 = 5.0;
@@ -8,8 +7,11 @@ const MIN_TREE_DEPTH: usize = 3;
 fn main() {
     random_provider::seed(1000);
 
-    let (train, test) = load_iris_dataset().shuffle().standardize().split(0.75);
-    let input_size = train.shape().1;
+    let (mut train, mut test) = DataSet::iris().split(0.75);
+    train.standardize();
+    test.standardize();
+
+    let (_, in_dim, out_dim) = train.shape();
 
     let store = vec![
         (NodeType::Root, vec![Op::sigmoid()]),
@@ -19,7 +21,7 @@ fn main() {
         ),
         (
             NodeType::Leaf,
-            (0..input_size)
+            (0..in_dim)
                 .map(Op::var)
                 .chain(std::iter::once(Op::erc()))
                 .collect(),
@@ -28,7 +30,7 @@ fn main() {
 
     let engine = GeneticEngine::builder()
         .codec(
-            TreeCodec::multi_root(MIN_TREE_DEPTH, input_size, store)
+            TreeCodec::multi_root(MIN_TREE_DEPTH, out_dim, store)
                 .constraint(|node| node.size() < 40),
         )
         .fitness_fn(Regression::new(train.clone(), Loss::MSE))
@@ -70,43 +72,4 @@ fn display(
     println!("{:?}", result);
     println!("{:?}", train_acc);
     println!("{:?}", test_acc);
-}
-
-fn load_iris_dataset() -> DataSet<f32> {
-    let file = include_str!("../iris.csv")
-        .split("\n")
-        .collect::<Vec<&str>>();
-
-    let mut features = Vec::new();
-    let mut labels = Vec::new();
-
-    for line in file.iter() {
-        let row = line
-            .split(",")
-            .map(|value| value.to_string())
-            .collect::<Vec<String>>();
-
-        let row_features = row
-            .iter()
-            .take(4)
-            .map(|value| value.parse::<f32>().expect("Failed to parse value"))
-            .collect::<Vec<f32>>();
-
-        let row_labels = row.iter().last().unwrap().clone();
-
-        features.push(row_features);
-        labels.push(row_labels);
-    }
-
-    let unique_labels = labels.iter().collect::<BTreeSet<&String>>();
-
-    let mut new_labels = Vec::new();
-    for label in labels.iter() {
-        let mut new_label = vec![0.0; unique_labels.len()];
-        let index = unique_labels.iter().position(|x| *x == label).unwrap();
-        new_label[index] = 1.0;
-        new_labels.push(new_label);
-    }
-
-    DataSet::new(features, new_labels)
 }

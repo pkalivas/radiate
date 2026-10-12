@@ -7,9 +7,9 @@ use pyo3::{
     Bound, IntoPyObject, Py, PyAny, PyResult, Python, intern, pyclass, pyfunction, pymethods,
     types::PyAnyMethods,
 };
-use radiate::{Accuracy, AccuracyResult, DataSet, EvalMut, Loss, ops::OpFloat};
+use radiate::{Accuracy, AccuracyResult, EvalMut, Loss, ops::OpFloat};
 use radiate_error::radiate_py_bail;
-use radiate_utils::Matrix;
+use radiate_utils::{DataSet, Matrix};
 
 #[pyclass]
 pub struct PyAccuracy {

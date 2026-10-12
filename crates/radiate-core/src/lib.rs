@@ -17,6 +17,7 @@ pub mod stats;
 use radiate_error::Result;
 pub use radiate_error::{RadiateError, ensure, radiate_err};
 pub use radiate_expr::*;
+pub use radiate_utils::{DataSet, Matrix};
 
 pub use alter::{AlterContext, Alterer, Crossover, Mutate};
 pub use codecs::{
@@ -52,6 +53,8 @@ pub mod prelude {
     pub use radiate_error::*;
     pub use radiate_expr::*;
 
+    pub use super::DataSet;
+    pub use super::Matrix;
     pub use super::alter::{AlterContext, Alterer, Crossover, Mutate};
     pub use super::codecs::{
         BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PackedBitCodec,

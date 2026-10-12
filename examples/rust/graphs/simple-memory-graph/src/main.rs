@@ -15,7 +15,10 @@ fn main() {
 
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::lstm(1, 1, values))
-        .fitness_fn(Regression::new(dataset(), Loss::MSE))
+        .fitness_fn(Regression::new(
+            DataSet::<f32>::simple_memory(10),
+            Loss::MSE,
+        ))
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .survivor_selector(TournamentSelector::new(4))
@@ -38,7 +41,7 @@ fn main() {
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
-    let dataset = dataset();
+    let dataset = DataSet::<f32>::simple_memory(10);
     let outputs = result.value().eval(&dataset.features());
 
     for (idx, row) in dataset.iter().enumerate() {
@@ -47,15 +50,4 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     }
 
     println!("{result:?}");
-}
-
-fn dataset() -> DataSet<f32> {
-    DataSet::default()
-        .append(vec![0.0], vec![0.0])
-        .append(vec![0.0], vec![0.0])
-        .append(vec![0.0], vec![1.0])
-        .append(vec![1.0], vec![0.0])
-        .append(vec![0.0], vec![0.0])
-        .append(vec![0.0], vec![0.0])
-        .append(vec![0.0], vec![1.0])
 }

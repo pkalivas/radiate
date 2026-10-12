@@ -1,16 +1,18 @@
 mod buff;
 mod data;
 mod datatype;
+pub mod env_vars;
 mod fmt;
 mod id;
 mod intern;
 mod lru;
 mod primitives;
+pub mod random_provider;
 mod stats;
 mod str;
 
 pub use buff::{Matrix, MatrixView, SortedBuffer, VersionedCounts, WindowBuffer};
-pub use data::Dataset;
+pub use data::DataSet;
 pub use datatype::{
     AnyValue, DType, DataType, dedup_slice, dtype, dtype_names, pow_anyvalue, value,
 };

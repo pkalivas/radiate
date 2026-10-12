@@ -13,22 +13,13 @@ pub use novelty::{Novelty, NoveltySearch};
 #[doc(hidden)]
 pub mod marker {
     use std::marker::PhantomData;
-
-    /// A `Fn(T) -> S` closure.
     pub struct Single<S>(PhantomData<S>);
-    /// A `Fn(&[T]) -> Vec<S>` closure.
     pub struct Batch<S>(PhantomData<S>);
-    /// A `Fn(&Genotype<C>) -> S` closure.
     pub struct Raw<S>(PhantomData<S>);
-    /// A `Fn(&[&Genotype<C>]) -> Vec<S>` closure.
     pub struct RawBatch<S>(PhantomData<S>);
-    /// A type implementing `FitnessFunction<T, S>`.
     pub struct CustomSingle<S>(PhantomData<S>);
-    /// A type implementing `BatchFitnessFunction<T, S>`.
     pub struct CustomBatch<S>(PhantomData<S>);
-    /// A type implementing `for<'a> FitnessFunction<&'a Genotype<C>, S>`.
     pub struct CustomRawSingle<S>(PhantomData<S>);
-    /// A type implementing `for<'a> BatchFitnessFunction<&'a Genotype<C>, S>`.
     pub struct CustomRawBatch<S>(PhantomData<S>);
 }
 
