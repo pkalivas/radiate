@@ -28,7 +28,7 @@ fn main() {
         .minimizing()
         .fitness_fn(regression)
         .parallel()
-        .offspring_fraction(0.92)
+        .offspring_fraction(0.9)
         .replace_strategy(GraphReplacement)
         .offspring_selector(BoltzmannSelector::new(4.0))
         .alter(alters!(

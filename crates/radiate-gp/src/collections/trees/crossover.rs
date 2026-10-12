@@ -3,7 +3,7 @@ use crate::TreeNode;
 use radiate_core::{AlterContext, Crossover, Expr, RateSet, random_provider};
 use radiate_core::{SmallStr, genome::*};
 
-const DEFAULT_MAX_SIZE: usize = 30;
+const DEFAULT_MAX_SIZE: usize = 500;
 const MAX_ATTEMPTS: usize = 3;
 const TN_X_ATTEMPTS: SmallStr = SmallStr::from_static("tn_x_att");
 

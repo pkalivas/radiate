@@ -1,7 +1,7 @@
 use radiate::*;
 use std::collections::BTreeSet;
 
-const MIN_SCORE: f32 = 0.01;
+const MIN_SCORE: f32 = 0.1;
 const MAX_SECONDS: f64 = 5.0;
 const MIN_TREE_DEPTH: usize = 3;
 
@@ -9,24 +9,34 @@ fn main() {
     random_provider::seed(1000);
 
     let (train, test) = load_iris_dataset().shuffle().standardize().split(0.75);
+    let input_size = train.shape().1;
 
     let store = vec![
         (NodeType::Root, vec![Op::sigmoid()]),
-        (NodeType::Vertex, ops::all_ops()),
-        (NodeType::Leaf, (0..4).map(Op::var).collect()),
+        (
+            NodeType::Vertex,
+            vec![Op::sigmoid(), Op::add(), Op::mul(), Op::sub(), Op::dot()],
+        ),
+        (
+            NodeType::Leaf,
+            (0..input_size)
+                .map(Op::var)
+                .chain(std::iter::once(Op::erc()))
+                .collect(),
+        ),
     ];
-
-    let num_trees = train.shape().1;
 
     let engine = GeneticEngine::builder()
         .codec(
-            TreeCodec::multi_root(MIN_TREE_DEPTH, num_trees, store)
+            TreeCodec::multi_root(MIN_TREE_DEPTH, input_size, store)
                 .constraint(|node| node.size() < 40),
         )
         .fitness_fn(Regression::new(train.clone(), Loss::MSE))
         .minimizing()
-        .crossover(TreeCrossover::new(0.5))
-        .mutator(OperationMutator::new(0.03, 0.02))
+        .alter(alters!(
+            TreeCrossover::new(0.7),
+            OperationMutator::new(0.01, 0.08),
+        ))
         .build();
 
     engine

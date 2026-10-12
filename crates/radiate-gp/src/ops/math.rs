@@ -349,8 +349,8 @@ impl<F: OpFloat> Op<F> {
         Self::weight_with(random_provider::range(-F::ONE..F::ONE))
     }
 
-    pub fn weight2() -> Self {
-        Self::weight2_with((F::ONE, F::ONE))
+    pub fn dot() -> Self {
+        Self::dot_with((F::ONE, F::ONE))
     }
 
     pub fn weight_with(value: F) -> Self {
@@ -371,7 +371,7 @@ impl<F: OpFloat> Op<F> {
         )
     }
 
-    pub fn weight2_with((a, b): (F, F)) -> Self {
+    pub fn dot_with((a, b): (F, F)) -> Self {
         let supplier = || {
             let a = random_provider::range(-F::ONE..F::ONE);
             let b = random_provider::range(-F::ONE..F::ONE);
@@ -392,10 +392,27 @@ impl<F: OpFloat> Op<F> {
         };
 
         Op::Pair(
-            op_names::WEIGHT2,
+            op_names::DOT,
             2.into(),
             Param::new((clamp(a), clamp(b)), supplier, modifier),
             operation,
+        )
+    }
+
+    /// Ephemeral Random Constant (ERC).
+    pub fn erc() -> Self {
+        let supplier = || random_provider::range(-F::ONE..F::ONE);
+
+        let modifier = |current: &mut F| {
+            let diff = random_provider::range(-F::ONE..F::ONE) * F::TENTH;
+            *current = clamp(*current + diff);
+        };
+
+        Op::Value(
+            op_names::ERC,
+            0.into(),
+            Param::new(clamp(supplier()), supplier, modifier),
+            |_: &[F], w: &F| *w,
         )
     }
 
@@ -624,12 +641,17 @@ pub fn edge_ops<F: OpFloat>() -> Vec<Op<F>> {
     vec![Op::weight(), Op::identity()]
 }
 
+pub fn input_ops<F: OpFloat>() -> Vec<Op<F>> {
+    vec![Op::erc()]
+}
+
 /// Get a list of all the operations.
 pub fn all_ops<F: OpFloat>() -> Vec<Op<F>> {
     math_ops()
         .into_iter()
         .chain(activation_ops())
         .chain(edge_ops())
+        .chain(input_ops())
         .collect()
 }
 
@@ -748,10 +770,18 @@ fn process_op_vectorized<F: OpFloat>(op: &Op<F>, inputs: &[&[F]], out: &mut [F])
             out.fill(*v);
             true
         }
-        Op::Value(op_names::WEIGHT, _, param, _) => {
-            let w = *param.data();
-            unary_columns(inputs, out, |x| weight(x, w))
-        }
+        Op::Value(name, _, param, _) => match *name {
+            op_names::WEIGHT => {
+                let w = *param.data();
+                unary_columns(inputs, out, |x| weight(x, w))
+            }
+            op_names::ERC => {
+                let w = *param.data();
+                out.fill(w);
+                true
+            }
+            _ => false,
+        },
         Op::Fn(name, _, _) => match *name {
             op_names::IDENTITY => match inputs.first() {
                 Some(x) => {

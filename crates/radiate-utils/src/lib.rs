@@ -1,4 +1,5 @@
 mod buff;
+mod data;
 mod datatype;
 mod fmt;
 mod id;
@@ -9,6 +10,7 @@ mod stats;
 mod str;
 
 pub use buff::{Matrix, MatrixView, SortedBuffer, VersionedCounts, WindowBuffer};
+pub use data::Dataset;
 pub use datatype::{
     AnyValue, DType, DataType, dedup_slice, dtype, dtype_names, pow_anyvalue, value,
 };

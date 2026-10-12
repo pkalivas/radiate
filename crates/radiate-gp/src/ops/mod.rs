@@ -79,7 +79,8 @@ pub(crate) mod op_names {
     pub const RECIPROCAL: &str = "reciprocal";
     pub const GAUSSIAN: &str = "gaussian";
     pub const WEIGHT: &str = "w";
-    pub const WEIGHT2: &str = "w2";
+    pub const DOT: &str = "dot";
+    pub const ERC: &str = "erc";
 
     /// Boolean operation names
     pub const AND: &str = "and";

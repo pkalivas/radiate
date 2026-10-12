@@ -1,5 +1,5 @@
+use crate::{Float, Matrix};
 use radiate_core::random_provider;
-use radiate_utils::{Float, Matrix};
 
 #[derive(Default, Clone)]
 pub struct DataSet<T> {

@@ -29,14 +29,12 @@ for _ in range(-10, 10):
 engine = (
     rd.Engine.tree(
         shape=(1, 1),
-        vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.add()],
+        leaf=[rd.Op.var(0), rd.Op.erc()],
+        vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.add(), rd.Op.dot()],
         root=rd.Op.linear(),
     )
     .regression(inputs, answers)
-    .alter(
-        rd.Cross.tree(0.7),
-        rd.Mutate.hoist(0.01),
-    )
+    .alter(rd.Cross.tree(0.7), rd.Mutate.op())
     .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
 )
 

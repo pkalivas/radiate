@@ -35,6 +35,15 @@ impl<T> Op<T> {
         Op::Const(name, value)
     }
 
+    pub fn empherical_weight() -> Self
+    where
+        T: Display,
+    {
+        panic!("empherical_weight is not implemented");
+        // let name = radiate_utils::intern!(format!("w"));
+        // Op::Const(name, 1.0.into())
+    }
+
     pub fn identity() -> Self
     where
         T: Clone,
