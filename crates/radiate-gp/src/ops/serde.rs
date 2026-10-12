@@ -195,12 +195,9 @@ impl From<OpVariant<bool>> for Result<Op<bool>, serde::de::value::Error> {
                     op_names::OR => Ok(Op::or()),
                     op_names::NOT => Ok(Op::not()),
                     op_names::XOR => Ok(Op::xor()),
-                    op_names::EQ => Ok(Op::eq()),
-                    op_names::NE => Ok(Op::ne()),
                     op_names::GT => Ok(Op::gt()),
                     op_names::GE => Ok(Op::ge()),
                     op_names::LT => Ok(Op::lt()),
-                    op_names::LE => Ok(Op::le()),
                     op_names::IF_ELSE => Ok(Op::if_else()),
                     op_names::AND_THEN => Ok(Op::and_then()),
                     op_names::OR_ELSE => Ok(Op::or_else()),
@@ -208,7 +205,6 @@ impl From<OpVariant<bool>> for Result<Op<bool>, serde::de::value::Error> {
                     op_names::NOR => Ok(Op::nor()),
                     op_names::XNOR => Ok(Op::xnor()),
                     op_names::IMPLIES => Ok(Op::implies()),
-                    op_names::IFF => Ok(Op::iff()),
                     _ => Err(serde::de::Error::custom(format!(
                         "Unknown boolean function name: {}",
                         name

@@ -94,17 +94,22 @@ Provided `Ops` include:
     | `Nand` | 2 | !(x && y) | `Op::nand()` | Fn |
     | `Nor` | 2 | `!(x || y)` | `Op::nor()` | Fn |
     | `Xnor` | 2 | !(x ^ y) | `Op::xnor()` | Fn |
-    | `Equal` | 2 | x == y | `Op::eq()` | Fn |
-    | `NotEqual` | 2 | x != y | `Op::ne()` | Fn |
     | `Greater` | 2 | x > y | `Op::gt()` | Fn |
     | `Less` | 2 | x < y | `Op::lt()` | Fn |
     | `GreaterEqual` | 2 | x >= y | `Op::ge()` | Fn |
-    | `LessEqual` | 2 | x <= y | `Op::le()` | Fn |
     | `IfElse` | 3 | if x then y else z | `Op::if_else()` | Fn |
     | `AndThen` | 3 | x && y && z | `Op::and_then()` | Fn |
     | `OrElse` | 3 | `x || y || z` | `Op::or_else()` | Fn |
     | `Implies` | 2 | `!x || y` | `Op::implies()` | Fn |
-    | `Iff` | 2 | x == y | `Op::iff()` | Fn |
+
+    `bool_ops()` returns one op per distinct function: `and`, `or`, `not`, `xor`, `xnor`, `nand`,
+    `nor`, `implies` and `if_else`. It leaves out `gt`, `ge` and `lt` (`gt` and `lt` are each other
+    with the arguments swapped, and `ge` is `implies` swapped) and the three-input `and_then` /
+    `or_else`.
+
+    !!! note "Removed duplicates"
+        `eq`, `iff`, `ne` and `le` were removed: they computed the same function as `xnor`, `xnor`,
+        `xor` and `implies`. Trees saved with those names still load, as the replacement op.
 
     !!! note "Python"
         The `bool` ops are Rust-only.

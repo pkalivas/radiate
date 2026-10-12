@@ -10,6 +10,7 @@ mod serde;
 use radiate_utils::Float;
 use std::cell::RefCell;
 
+pub use bool::bool_ops;
 pub use math::{activation_ops, all_ops, math_ops};
 pub use mutator::OperationMutator;
 pub use operation::*;
@@ -87,12 +88,9 @@ pub(crate) mod op_names {
     pub const OR: &str = "or";
     pub const NOT: &str = "not";
     pub const XOR: &str = "xor";
-    pub const EQ: &str = "eq";
-    pub const NE: &str = "ne";
     pub const GT: &str = "gt";
     pub const GE: &str = "ge";
     pub const LT: &str = "lt";
-    pub const LE: &str = "le";
     pub const IF_ELSE: &str = "if_else";
     pub const AND_THEN: &str = "and_then";
     pub const OR_ELSE: &str = "or_else";
@@ -100,5 +98,4 @@ pub(crate) mod op_names {
     pub const NOR: &str = "nor";
     pub const XNOR: &str = "xnor";
     pub const IMPLIES: &str = "implies";
-    pub const IFF: &str = "iff";
 }

@@ -18,7 +18,6 @@ members = [
     "examples/rust/novelty_search",
     "examples/rust/snake",
     "examples/rust/onemax",
-    "examples/rust/paige1",
     # "examples/rust/flappy-bird",
 
     "examples/rust/graphs/iris-graph",
@@ -27,8 +26,10 @@ members = [
     "examples/rust/graphs/simple-memory-graph",
     "examples/rust/graphs/neat-graph",
 
+    "examples/rust/trees/paige1",
     "examples/rust/trees/regression-tree",
     "examples/rust/trees/iris-tree",
+    "examples/rust/trees/multiplexer-tree",
 ]
 default-members = [
     "crates/*"
@@ -57,6 +58,7 @@ exclude = [
 
     "examples/rust/trees/regression-tree",
     "examples/rust/trees/iris-tree",    
+    "examples/rust/trees/multiplexer-tree",
 ]
 
 [workspace.package]

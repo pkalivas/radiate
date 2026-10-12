@@ -6,21 +6,18 @@ const MIN_SCORE: f32 = 0.01;
 fn main() {
     random_provider::seed(42);
 
-    let values = vec![
-        (NodeType::Input, vec![Op::var(0), Op::var(1)]),
-        (NodeType::Edge, vec![Op::weight(), Op::identity()]),
-        (
-            NodeType::Vertex,
-            vec![
-                Op::add(),
-                Op::sub(),
-                Op::mul(),
-                Op::div(),
-                Op::linear(),
-                Op::sigmoid(),
-            ],
-        ),
-        (NodeType::Output, vec![Op::sigmoid()]),
+    let values = node_set![
+        Input => Op::vars(0..2),
+        Edge => [Op::weight(), Op::identity()],
+        Vertex => [
+            Op::add(),
+            Op::sub(),
+            Op::mul(),
+            Op::div(),
+            Op::linear(),
+            Op::sigmoid(),
+        ],
+        Output => Op::sigmoid()
     ];
 
     let graph_codec = GraphCodec::directed(2, 1, values);
