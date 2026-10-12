@@ -59,7 +59,7 @@ def complex_regression_dataset():
 @pytest.fixture
 def memory_dataset():
     """Create a dataset for testing memory-based fitness functions."""
-    dataset = rd.DataSet.simple_memory(7, dtype=rd.Float32)
+    dataset = rd.DataSet.simple_memory(7)
     return dataset.features, dataset.labels
 
 

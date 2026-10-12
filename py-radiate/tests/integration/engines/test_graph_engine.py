@@ -86,6 +86,7 @@ def test_engine_graph_regression_with_speciation(
 def test_engine_graph_with_recurrent_connections(memory_dataset, random_seed):
     """Test engine with graph codec and elitism for classification."""
     inputs, outputs = memory_dataset
+    print(outputs.shape)
 
     codec = rd.GraphCodec.recurrent(
         shape=(1, 1),
