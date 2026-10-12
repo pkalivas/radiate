@@ -164,7 +164,7 @@ impl<F: OpFloat> From<OpVariant<F>> for Result<Op<F>, serde::de::value::Error> {
                 arity: _,
                 value,
             } => match name.as_str() {
-                "w" => Ok(Op::weight_with(value)),
+                op_names::WEIGHT => Ok(Op::weight_with(value)),
                 _ => Err(serde::de::Error::custom(format!(
                     "Unknown mutable constant name: {}",
                     name
@@ -175,7 +175,7 @@ impl<F: OpFloat> From<OpVariant<F>> for Result<Op<F>, serde::de::value::Error> {
                 arity: _,
                 value,
             } => match name.as_str() {
-                "dot" => Ok(Op::dot_with(value)),
+                op_names::DOT => Ok(Op::dot_with(value)),
                 _ => Err(serde::de::Error::custom(format!(
                     "Unknown pair weight name: {}",
                     name

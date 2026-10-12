@@ -34,6 +34,7 @@ pub mod components {
         EUCLIDEAN_DISTANCE = "EuclideanDistance";
         COSINE_DISTANCE = "CosineDistance";
         NEAT_DISTANCE = "NeatDistance";
+        TREE_DISTANCE = "TreeDistance";
 
         MULTI_POINT_CROSSOVER = "MultiPointCrossover";
         UNIFORM_CROSSOVER = "UniformCrossover";

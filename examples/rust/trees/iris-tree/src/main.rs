@@ -29,6 +29,7 @@ fn main() -> RadiateResult<()> {
         .codec(codec)
         .fitness_fn(Regression::new(train.clone(), Loss::MSE))
         .minimizing()
+        .diversity(TreeDistance::new())
         .alter(alters!(
             TreeCrossover::new(0.5),
             OperationMutator::new(0.01, 0.08),

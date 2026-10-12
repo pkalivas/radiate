@@ -3,7 +3,7 @@ use radiate::{
     BitChromosome, CharChromosome, CosineDistance, EuclideanDistance, FloatChromosome,
     GraphChromosome, HammingDistance, IntChromosome, NeatDistance, Op, PackedBitChromosome,
     PackedBitHammingDistance, PermutationChromosome, Phenotype, RadiateResult, TreeChromosome,
-    chromosomes::NumericAllele, distance::Distance, ops::OpFloat,
+    TreeDistance, chromosomes::NumericAllele, distance::Distance, ops::OpFloat,
 };
 use radiate_error::radiate_bail;
 use radiate_utils::{Float, Integer};
@@ -84,8 +84,17 @@ impl<F: OpFloat> InputTransform<RadiateResult<Box<dyn Distance<Phenotype<TreeChr
     for PyEngineInput
 {
     fn transform(&self) -> RadiateResult<Box<dyn Distance<Phenotype<TreeChromosome<Op<F>>>>>> {
-        // There are currently no diversity measures implemented for tree chromosomes
-        radiate_bail!(Builder: "No diversity measures implemented for tree chromosomes")
+        match self.component() {
+            crate::constants::components::TREE_DISTANCE => {
+                let k = self.extract::<Option<f64>>("k")?;
+                if let Some(k) = k {
+                    return Ok(Box::new(TreeDistance::new().with_k(k as f32)));
+                }
+
+                Ok(Box::new(TreeDistance::new()))
+            }
+            _ => radiate_bail!(Builder: "Unknown diversity measure: {}", self.component()),
+        }
     }
 }
 

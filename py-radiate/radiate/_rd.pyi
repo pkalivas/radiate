@@ -28,6 +28,7 @@ class _Components:
     EUCLIDEAN_DISTANCE: Final[str]
     COSINE_DISTANCE: Final[str]
     NEAT_DISTANCE: Final[str]
+    TREE_DISTANCE: Final[str]
 
     MULTI_POINT_CROSSOVER: Final[str]
     UNIFORM_CROSSOVER: Final[str]
@@ -39,6 +40,7 @@ class _Components:
     GRAPH_CROSSOVER: Final[str]
     PARTIALLY_MAPPED_CROSSOVER: Final[str]
     EDGE_RECOMBINE_CROSSOVER: Final[str]
+    DIFFERENTIAL_CROSSOVER: Final[str]
 
     UNIFORM_MUTATOR: Final[str]
     SCRAMBLE_MUTATOR: Final[str]

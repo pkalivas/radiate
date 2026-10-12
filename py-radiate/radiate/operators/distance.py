@@ -56,6 +56,23 @@ class Dist(EngineInput):
         )
 
     @staticmethod
+    def tree(k: float = 2.0) -> Dist:
+        """
+        Structural distance between trees, based on Ekart & Nemeth's structural alignment distance.
+        The two trees are laid over each other from the root and compared node by node, with each
+        level down counting `1 / k` as much as the one above, so a different root weighs more than
+        a different leaf. The result is in [0, 1]: 0 for identical trees, 1 when no aligned
+        position matches. Multi-tree genotypes average over their trees.
+
+        :param k: How fast deeper levels fade. 2.0 by default; 1.0 weighs every node equally.
+        """
+        return Dist(
+            component=components.TREE_DISTANCE,
+            k=k,
+            allowed_genes={GeneType.TREE},
+        )
+
+    @staticmethod
     def hamming() -> Dist:
         """
         Initialize the Hamming Distance diversity parameter. This is a pretty simple distance metric

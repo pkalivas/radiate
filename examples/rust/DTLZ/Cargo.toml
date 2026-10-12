@@ -5,4 +5,4 @@ edition = "2024"
 
 [dependencies]
 radiate = { workspace = true, features = ["ui"] }
-plotly = "0.13.5"
+plotly = "0.14.1"

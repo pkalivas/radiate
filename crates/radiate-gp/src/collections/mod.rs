@@ -18,5 +18,5 @@ pub use node::{Node, NodeType};
 pub use store::{IntoNodeValues, NodeSet, NodeValue};
 pub use trees::{
     Format, HoistMutator, SubtreeMutator, Tree, TreeChromosome, TreeCodec, TreeCrossover,
-    TreeIterator, TreeNode,
+    TreeDistance, TreeIterator, TreeNode,
 };
