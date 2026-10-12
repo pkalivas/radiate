@@ -243,6 +243,7 @@ fn tree_registry<F: OpFloat>() -> AlterRegistry<TreeChromosome<Op<F>>> {
 
         crate::constants::components::HOIST_MUTATOR         => convert_hoist_mutator,
         crate::constants::components::OPERATION_MUTATOR     => convert_operation_mutator,
+        crate::constants::components::SUBTREE_MUTATOR       => convert_subtree_mutator,
     })
 }
 
@@ -273,6 +274,19 @@ impl_input_transform_for!(TreeChromosome<Op<f64>>, tree_registry);
 /// ---------------------------------------------------------------------------
 /// Concrete converters
 /// ---------------------------------------------------------------------------
+fn convert_subtree_mutator(input: &PyEngineInput) -> RadiateResult<SubtreeMutator> {
+    let rate = input.extract::<PyExpr>("rate")?.inner;
+    let max_depth = input
+        .extract::<Option<i64>>("max_depth")?
+        .map(|s| s as usize);
+
+    if let Some(max_depth) = max_depth {
+        Ok(SubtreeMutator::new(rate).with_max_depth(max_depth))
+    } else {
+        Ok(SubtreeMutator::new(rate))
+    }
+}
+
 fn convert_jitter_mutator(input: &PyEngineInput) -> RadiateResult<JitterMutator> {
     let rate = input.extract::<PyExpr>("rate")?.inner;
     let magnitude = input.extract::<f64>("magnitude")?;

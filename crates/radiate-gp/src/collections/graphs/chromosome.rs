@@ -1,4 +1,4 @@
-use crate::{Factory, GraphNode, NodeStore, node::Node};
+use crate::{Factory, GraphNode, NodeSet, node::Node};
 use radiate_core::{Chromosome, Gene, Valid};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -65,12 +65,12 @@ use std::{fmt::Debug, hash::Hash};
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct GraphChromosome<T> {
     nodes: Vec<GraphNode<T>>,
-    store: Option<NodeStore<T>>,
+    store: Option<NodeSet<T>>,
     max_nodes: Option<usize>,
 }
 
 impl<T> GraphChromosome<T> {
-    pub fn new(nodes: Vec<GraphNode<T>>, factory: NodeStore<T>) -> Self {
+    pub fn new(nodes: Vec<GraphNode<T>>, factory: NodeSet<T>) -> Self {
         GraphChromosome {
             nodes,
             store: Some(factory),
@@ -91,7 +91,7 @@ impl<T> GraphChromosome<T> {
         self.nodes = nodes;
     }
 
-    pub fn store(&self) -> Option<&NodeStore<T>> {
+    pub fn store(&self) -> Option<&NodeSet<T>> {
         self.store.as_ref()
     }
 
@@ -100,11 +100,11 @@ impl<T> GraphChromosome<T> {
     }
 }
 
-impl<T> Factory<Option<NodeStore<T>>, GraphChromosome<T>> for GraphChromosome<T>
+impl<T> Factory<Option<NodeSet<T>>, GraphChromosome<T>> for GraphChromosome<T>
 where
     T: Clone + PartialEq + Default,
 {
-    fn new_instance(&self, input: Option<NodeStore<T>>) -> GraphChromosome<T> {
+    fn new_instance(&self, input: Option<NodeSet<T>>) -> GraphChromosome<T> {
         input
             .or_else(|| self.store.clone())
             .map(|store| GraphChromosome {
@@ -213,11 +213,11 @@ impl<T> From<Vec<GraphNode<T>>> for GraphChromosome<T> {
     }
 }
 
-impl<T, I> From<(I, NodeStore<T>)> for GraphChromosome<T>
+impl<T, I> From<(I, NodeSet<T>)> for GraphChromosome<T>
 where
     I: IntoIterator<Item = GraphNode<T>>,
 {
-    fn from((iter, store): (I, NodeStore<T>)) -> Self {
+    fn from((iter, store): (I, NodeSet<T>)) -> Self {
         GraphChromosome {
             nodes: iter.into_iter().collect(),
             store: Some(store),

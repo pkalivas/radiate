@@ -1,4 +1,4 @@
-use crate::{NodeStore, TreeNode};
+use crate::{NodeSet, TreeNode};
 use radiate_core::{Chromosome, Valid};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -9,14 +9,14 @@ type Constraint<N> = Arc<dyn Fn(&N) -> bool + Send + Sync>;
 #[derive(Clone, Default)]
 pub struct TreeChromosome<T> {
     nodes: Vec<TreeNode<T>>,
-    store: Option<NodeStore<T>>,
+    store: Option<NodeSet<T>>,
     constraint: Option<Constraint<TreeNode<T>>>,
 }
 
 impl<T> TreeChromosome<T> {
     pub fn new(
         nodes: Vec<TreeNode<T>>,
-        store: Option<NodeStore<T>>,
+        store: Option<NodeSet<T>>,
         constraint: Option<Constraint<TreeNode<T>>>,
     ) -> Self {
         TreeChromosome {
@@ -34,7 +34,7 @@ impl<T> TreeChromosome<T> {
         &mut self.nodes[0]
     }
 
-    pub fn get_store(&self) -> Option<NodeStore<T>> {
+    pub fn get_store(&self) -> Option<NodeSet<T>> {
         self.store.clone()
     }
 }
@@ -176,7 +176,7 @@ where
     where
         D: Deserializer<'de>,
     {
-        let (nodes, store): (Vec<TreeNode<T>>, Option<NodeStore<T>>) =
+        let (nodes, store): (Vec<TreeNode<T>>, Option<NodeSet<T>>) =
             Deserialize::deserialize(deserializer)?;
 
         Ok(TreeChromosome {
@@ -193,7 +193,7 @@ mod tests {
     use crate::{Node, NodeType};
 
     fn create_test_chromosome() -> TreeChromosome<i32> {
-        let mut store = NodeStore::new();
+        let mut store = NodeSet::new();
         store.insert(NodeType::Vertex, vec![1, 2, 3]);
         store.insert(NodeType::Leaf, vec![4, 5]);
 
@@ -304,7 +304,7 @@ mod tests {
     #[cfg(feature = "serde")]
     fn test_serialize_deserialize_with_complex_type() {
         use crate::Op;
-        let mut store = NodeStore::new();
+        let mut store = NodeSet::new();
         store.insert(NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]);
         store.insert(NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]);
 

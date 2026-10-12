@@ -38,12 +38,49 @@ impl<T> NodeValue<T> {
     }
 }
 
+/// One or many values to add to a [NodeSet] under a single [NodeType]: a single value, an
+/// array, or a `Vec`. Lets [NodeSet::push] take any of them:
+///
+/// ```text
+///   NodeSet::new()
+///       .push(NodeType::Input, [1, 2, 3])        array
+///       .push(NodeType::Output, 5)               single value
+///       .push(NodeType::Vertex, vec![6, 7, 8])   Vec
+/// ```
+pub trait IntoNodeValues<T> {
+    fn into_node_values(self) -> Vec<NodeValue<T>>;
+}
+
+impl<T, K: Into<NodeValue<T>>> IntoNodeValues<T> for Vec<K> {
+    fn into_node_values(self) -> Vec<NodeValue<T>> {
+        self.into_iter().map(Into::into).collect()
+    }
+}
+
+impl<T, K: Into<NodeValue<T>>, const N: usize> IntoNodeValues<T> for [K; N] {
+    fn into_node_values(self) -> Vec<NodeValue<T>> {
+        self.into_iter().map(Into::into).collect()
+    }
+}
+
+impl<T> IntoNodeValues<T> for NodeValue<T> {
+    fn into_node_values(self) -> Vec<NodeValue<T>> {
+        vec![self]
+    }
+}
+
 macro_rules! impl_node_value {
     ($($t:ty),*) => {
         $(
             impl From<$t> for NodeValue<$t> {
                 fn from(value: $t) -> Self {
                     NodeValue::Unbound(value)
+                }
+            }
+
+            impl IntoNodeValues<$t> for $t {
+                fn into_node_values(self) -> Vec<NodeValue<$t>> {
+                    vec![self.into()]
                 }
             }
         )*
@@ -72,13 +109,13 @@ impl_node_value!(
 );
 
 #[derive(Default)]
-pub struct NodeStore<T> {
+pub struct NodeSet<T> {
     values: Arc<BTreeMap<NodeType, Vec<NodeValue<T>>>>,
 }
 
-impl<T> NodeStore<T> {
+impl<T> NodeSet<T> {
     pub fn new() -> Self {
-        NodeStore {
+        NodeSet {
             values: Arc::new(BTreeMap::new()),
         }
     }
@@ -102,6 +139,20 @@ impl<T> NodeStore<T> {
             && values
                 .get(&node_type)
                 .is_some_and(|values| !values.is_empty())
+    }
+
+    /// Adds `values` under `node_type`, after any already there. `values` can be a single
+    /// value, an array or a `Vec` (see [IntoNodeValues]).
+    pub fn push(mut self, node_type: NodeType, values: impl IntoNodeValues<T>) -> Self
+    where
+        T: Clone,
+    {
+        let store = Arc::make_mut(&mut self.values);
+        store
+            .entry(node_type)
+            .or_default()
+            .extend(values.into_node_values());
+        self
     }
 
     pub fn add(&mut self, values: Vec<T>)
@@ -154,12 +205,12 @@ impl<T> NodeStore<T> {
     }
 }
 
-impl<T> From<HashMap<NodeType, Vec<T>>> for NodeStore<T>
+impl<T> From<HashMap<NodeType, Vec<T>>> for NodeSet<T>
 where
     T: Into<NodeValue<T>> + Clone,
 {
     fn from(values: HashMap<NodeType, Vec<T>>) -> Self {
-        let mut store = NodeStore::new();
+        let mut store = NodeSet::new();
         for (node_type, ops) in values {
             store.insert(node_type, ops);
         }
@@ -168,12 +219,12 @@ where
     }
 }
 
-impl<T> From<Vec<(NodeType, Vec<T>)>> for NodeStore<T>
+impl<T> From<Vec<(NodeType, Vec<T>)>> for NodeSet<T>
 where
     T: Into<NodeValue<T>> + Clone,
 {
     fn from(values: Vec<(NodeType, Vec<T>)>) -> Self {
-        let mut store = NodeStore::new();
+        let mut store = NodeSet::new();
         for (node_type, ops) in values {
             store.insert(node_type, ops);
         }
@@ -212,20 +263,20 @@ where
     }
 }
 
-impl<T> From<Vec<T>> for NodeStore<T>
+impl<T> From<Vec<T>> for NodeSet<T>
 where
     T: Into<NodeValue<T>> + Clone,
 {
     fn from(values: Vec<T>) -> Self {
-        let mut store = NodeStore::new();
+        let mut store = NodeSet::new();
         store.add(values);
         store
     }
 }
 
-impl<T: Clone> From<Op<T>> for NodeStore<Op<T>> {
+impl<T: Clone> From<Op<T>> for NodeSet<Op<T>> {
     fn from(value: Op<T>) -> Self {
-        let mut store = NodeStore::new();
+        let mut store = NodeSet::new();
 
         let input_values = vec![Op::var(0)];
         let output_values = vec![value.clone()];
@@ -241,29 +292,29 @@ impl<T: Clone> From<Op<T>> for NodeStore<Op<T>> {
     }
 }
 
-impl<T: Clone> From<&NodeStore<T>> for NodeStore<T> {
-    fn from(store: &NodeStore<T>) -> Self {
-        NodeStore {
+impl<T: Clone> From<&NodeSet<T>> for NodeSet<T> {
+    fn from(store: &NodeSet<T>) -> Self {
+        NodeSet {
             values: Arc::clone(&store.values),
         }
     }
 }
 
-impl<T> Clone for NodeStore<T> {
+impl<T> Clone for NodeSet<T> {
     fn clone(&self) -> Self {
-        NodeStore {
+        NodeSet {
             values: Arc::clone(&self.values),
         }
     }
 }
 
-impl<T: PartialEq> PartialEq for NodeStore<T> {
+impl<T: PartialEq> PartialEq for NodeSet<T> {
     fn eq(&self, other: &Self) -> bool {
         self.values == other.values
     }
 }
 
-impl<T: Debug> Debug for NodeStore<T> {
+impl<T: Debug> Debug for NodeSet<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for (node_type, values) in self.values.iter() {
             writeln!(f, "{node_type:?}:")?;
@@ -277,7 +328,7 @@ impl<T: Debug> Debug for NodeStore<T> {
 }
 
 #[cfg(feature = "serde")]
-impl<T> Serialize for NodeStore<T>
+impl<T> Serialize for NodeSet<T>
 where
     T: Serialize,
 {
@@ -292,7 +343,7 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<'de, T> Deserialize<'de> for NodeStore<T>
+impl<'de, T> Deserialize<'de> for NodeSet<T>
 where
     T: Deserialize<'de>,
 {
@@ -307,19 +358,19 @@ where
             map.insert(node_type, node_values);
         }
 
-        Ok(NodeStore {
+        Ok(NodeSet {
             values: Arc::new(map),
         })
     }
 }
 
 #[macro_export]
-macro_rules! node_store {
+macro_rules! node_set {
     ($($node_type:ident => $values:expr),+) => {
         {
-            let mut store = NodeStore::new();
+            let mut store = NodeSet::new();
             $(
-                store.insert(NodeType::$node_type, $values);
+                store = store.push(NodeType::$node_type, $values);
             )*
             store
         }
@@ -331,9 +382,53 @@ mod tests {
     use super::*;
     use crate::{Factory, Node, TreeNode, ops};
 
+    #[test]
+    fn test_push_accepts_single_array_and_vec() {
+        let store = NodeSet::new()
+            .push(NodeType::Input, [1, 2, 3])
+            .push(NodeType::Output, 5)
+            .push(NodeType::Vertex, vec![6, 7, 8, 9])
+            .push(NodeType::Vertex, 10);
+
+        let values = |node_type| {
+            store
+                .map_by_type(node_type, |vals| {
+                    vals.iter().map(|v| *v.value()).collect::<Vec<i32>>()
+                })
+                .unwrap_or_default()
+        };
+
+        assert_eq!(values(NodeType::Input), vec![1, 2, 3]);
+        assert_eq!(values(NodeType::Output), vec![5]);
+        assert_eq!(values(NodeType::Vertex), vec![6, 7, 8, 9, 10]);
+    }
+
+    #[test]
+    fn test_push_ops_keep_their_arity() {
+        let store = NodeSet::new()
+            .push(NodeType::Input, [Op::var(0), Op::var(1)])
+            .push(NodeType::Vertex, vec![Op::add(), Op::sigmoid()])
+            .push(NodeType::Output, Op::<f32>::linear());
+
+        let arities = |node_type| {
+            store
+                .map_by_type(node_type, |vals| {
+                    vals.iter().map(|v| v.arity()).collect::<Vec<_>>()
+                })
+                .unwrap_or_default()
+        };
+
+        assert_eq!(arities(NodeType::Input), vec![Some(Arity::Zero); 2]);
+        assert_eq!(
+            arities(NodeType::Vertex),
+            vec![Some(Arity::Exact(2)), Some(Arity::Any)]
+        );
+        assert_eq!(arities(NodeType::Output), vec![Some(Arity::Any)]);
+    }
+
     #[allow(dead_code)]
-    fn create_test_store() -> NodeStore<i32> {
-        let mut store = NodeStore::new();
+    fn create_test_store() -> NodeSet<i32> {
+        let mut store = NodeSet::new();
 
         store.insert(NodeType::Input, vec![1, 2, 3]);
         store.insert(NodeType::Output, vec![4, 5]);
@@ -357,7 +452,7 @@ mod tests {
 
     #[test]
     fn test_node_store() {
-        let mut store = NodeStore::<Op<f32>>::from(ops::all_ops());
+        let mut store = NodeSet::<Op<f32>>::from(ops::all_ops());
 
         store.add(Op::vars(0..3));
 
@@ -371,7 +466,7 @@ mod tests {
 
     #[test]
     fn test_node_store_insert() {
-        let mut store = NodeStore::new();
+        let mut store = NodeSet::new();
         let values = vec![1, 2, 3];
         store.insert(NodeType::Input, values.clone());
 
@@ -390,7 +485,7 @@ mod tests {
 
     #[test]
     fn test_node_store_macro() {
-        let store = node_store! {
+        let store = node_set! {
             Input => vec![1, 2, 3],
             Output => vec![4, 5, 6],
             Edge => vec![7, 8, 9],
@@ -416,7 +511,7 @@ mod tests {
 
     #[test]
     fn test_insert_and_contains() {
-        let mut store = NodeStore::new();
+        let mut store = NodeSet::new();
 
         store.insert(NodeType::Input, vec![1, 2, 3]);
         assert!(store.contains_type(NodeType::Input));
@@ -429,7 +524,7 @@ mod tests {
 
     #[test]
     fn test_new_store_is_empty() {
-        let store: NodeStore<i32> = NodeStore::new();
+        let store: NodeSet<i32> = NodeSet::new();
         assert!(!store.contains_type(NodeType::Input));
         assert!(!store.contains_type(NodeType::Output));
         assert!(!store.contains_type(NodeType::Vertex));
@@ -437,7 +532,7 @@ mod tests {
 
     #[test]
     fn test_map_operation() {
-        let mut store = NodeStore::new();
+        let mut store = NodeSet::new();
         store.insert(NodeType::Input, vec![1, 2, 3]);
         store.insert(NodeType::Output, vec![4, 5]);
 
@@ -454,7 +549,7 @@ mod tests {
 
     #[test]
     fn test_map_by_type() {
-        let mut store = NodeStore::new();
+        let mut store = NodeSet::new();
         store.insert(NodeType::Input, vec![1, 2, 3]);
         store.insert(NodeType::Output, vec![4, 5]);
 
@@ -485,7 +580,7 @@ mod tests {
         map.insert(NodeType::Input, vec![1, 2, 3]);
         map.insert(NodeType::Output, vec![4, 5]);
 
-        let store: NodeStore<i32> = map.into();
+        let store: NodeSet<i32> = map.into();
 
         assert!(store.contains_type(NodeType::Input));
         assert!(store.contains_type(NodeType::Output));
@@ -499,7 +594,7 @@ mod tests {
             (NodeType::Output, vec![4, 5]),
         ];
 
-        let store: NodeStore<i32> = values.into();
+        let store: NodeSet<i32> = values.into();
 
         assert!(store.contains_type(NodeType::Input));
         assert!(store.contains_type(NodeType::Output));
@@ -508,7 +603,7 @@ mod tests {
 
     #[test]
     fn test_empty_map_returns_none() {
-        let store: NodeStore<i32> = NodeStore::new();
+        let store: NodeSet<i32> = NodeSet::new();
 
         // map should return None for empty store
         assert!(store.map(|_| 42).is_none());
@@ -519,7 +614,7 @@ mod tests {
 
     #[test]
     fn test_insert_overwrites_existing() {
-        let mut store = NodeStore::new();
+        let mut store = NodeSet::new();
 
         // First insert
         store.insert(NodeType::Input, vec![1, 2, 3]);
@@ -546,7 +641,7 @@ mod tests {
         let serialized = serde_json::to_string(&store).unwrap();
 
         // Deserialize back
-        let deserialized: NodeStore<i32> = serde_json::from_str(&serialized).unwrap();
+        let deserialized: NodeSet<i32> = serde_json::from_str(&serialized).unwrap();
 
         // Verify the contents
         assert_eq!(store, deserialized);
@@ -555,10 +650,10 @@ mod tests {
     #[test]
     #[cfg(feature = "serde")]
     fn test_serialize_deserialize_empty() {
-        let store: NodeStore<i32> = NodeStore::new();
+        let store: NodeSet<i32> = NodeSet::new();
 
         let serialized = serde_json::to_string(&store).unwrap();
-        let deserialized: NodeStore<i32> = serde_json::from_str(&serialized).unwrap();
+        let deserialized: NodeSet<i32> = serde_json::from_str(&serialized).unwrap();
 
         assert_eq!(store, deserialized);
     }
@@ -566,7 +661,7 @@ mod tests {
     #[test]
     #[cfg(feature = "serde")]
     fn test_serialize_deserialize_with_bounded_values() {
-        let mut store = NodeStore::new();
+        let mut store = NodeSet::new();
 
         // Create a store with only bounded values
         let bounded_values = vec![
@@ -584,7 +679,7 @@ mod tests {
         );
 
         let serialized = serde_json::to_string(&store).unwrap();
-        let deserialized: NodeStore<i32> = serde_json::from_str(&serialized).unwrap();
+        let deserialized: NodeSet<i32> = serde_json::from_str(&serialized).unwrap();
 
         assert_eq!(store, deserialized);
     }
@@ -592,14 +687,14 @@ mod tests {
     #[test]
     #[cfg(feature = "serde")]
     fn test_serialize_deserialize_with_unbound_values() {
-        let mut store = NodeStore::new();
+        let mut store = NodeSet::new();
 
         // Create a store with only unbound values
         let unbound_values = vec![1, 2, 3, 4, 5];
         store.insert(NodeType::Vertex, unbound_values);
 
         let serialized = serde_json::to_string(&store).unwrap();
-        let deserialized: NodeStore<i32> = serde_json::from_str(&serialized).unwrap();
+        let deserialized: NodeSet<i32> = serde_json::from_str(&serialized).unwrap();
 
         assert_eq!(store, deserialized);
     }
@@ -607,7 +702,7 @@ mod tests {
     #[test]
     #[cfg(feature = "serde")]
     fn test_serialize_deserialize_mixed_values() {
-        let mut store = NodeStore::new();
+        let mut store = NodeSet::new();
 
         // Mix of bounded and unbound values
         let mixed_values = vec![
@@ -626,7 +721,7 @@ mod tests {
         );
 
         let serialized = serde_json::to_string(&store).unwrap();
-        let deserialized: NodeStore<i32> = serde_json::from_str(&serialized).unwrap();
+        let deserialized: NodeSet<i32> = serde_json::from_str(&serialized).unwrap();
 
         assert_eq!(store, deserialized);
     }
@@ -634,7 +729,7 @@ mod tests {
     #[test]
     #[cfg(feature = "serde")]
     fn test_serialize_deserialize_all_node_types() {
-        let mut store = NodeStore::new();
+        let mut store = NodeSet::new();
 
         // Add values for all node types
         store.insert(NodeType::Input, vec![1, 2]);
@@ -645,7 +740,7 @@ mod tests {
         store.insert(NodeType::Root, vec![11, 12]);
 
         let serialized = serde_json::to_string(&store).unwrap();
-        let deserialized: NodeStore<i32> = serde_json::from_str(&serialized).unwrap();
+        let deserialized: NodeSet<i32> = serde_json::from_str(&serialized).unwrap();
 
         assert_eq!(store, deserialized);
     }
@@ -654,7 +749,7 @@ mod tests {
     #[cfg(feature = "serde")]
     fn test_serialize_deserialize_complex_type() {
         // Test with a more complex type (String)
-        let mut store = NodeStore::new();
+        let mut store = NodeSet::new();
 
         let values = vec![
             NodeValue::Bounded("hello".to_string(), Arity::Exact(2)),
@@ -668,7 +763,7 @@ mod tests {
         );
 
         let serialized = serde_json::to_string(&store).unwrap();
-        let deserialized: NodeStore<String> = serde_json::from_str(&serialized).unwrap();
+        let deserialized: NodeSet<String> = serde_json::from_str(&serialized).unwrap();
 
         assert_eq!(store, deserialized);
     }

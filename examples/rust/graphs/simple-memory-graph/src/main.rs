@@ -3,15 +3,15 @@ use radiate::*;
 const MAX_INDEX: usize = 500;
 const MIN_SCORE: f32 = 0.01;
 
-fn main() {
+fn main() -> RadiateResult<()> {
     random_provider::seed(2);
 
-    let values = vec![
-        (NodeType::Input, vec![Op::var(0)]),
-        (NodeType::Edge, vec![Op::weight(), Op::identity()]),
-        (NodeType::Vertex, ops::all_ops()),
-        (NodeType::Output, vec![Op::sigmoid()]),
-    ];
+    let values = node_set! {
+        Input => Op::var(0),
+        Edge => [Op::weight(), Op::identity()],
+        Vertex => ops::all_ops(),
+        Output => Op::sigmoid()
+    };
 
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::lstm(1, 1, values))
@@ -29,15 +29,17 @@ fn main() {
         ))
         .build();
 
-    engine
+    let result = engine
         .iter()
         .until(|view| {
             println!("[ {:?} ]: {:?}", view.index(), view.score().as_f32());
             view.index() == MAX_INDEX || view.score().as_f32() < MIN_SCORE
         })
-        .last()
-        .inspect(display)
-        .unwrap();
+        .last()?;
+
+    display(&result);
+
+    Ok(())
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {

@@ -417,6 +417,21 @@ class Mutate(AlterBase):
         )
 
     @staticmethod
+    def subtree(rate: OperatorRate = 0.1, max_depth: int | None = None) -> Mutate:
+        """
+        The `SubtreeMutator` randomly selects a subtree within a tree chromosome and replaces it with a new randomly generated subtree.
+
+        :param rate: The probability of mutating each gene in an individual.
+        :param max_depth: The maximum depth of the new subtree. If `None`, no depth constraint is applied.
+        """
+        return Mutate(
+            components.SUBTREE_MUTATOR,
+            rate=_get_rate(rate),
+            max_depth=max_depth,
+            allowed_genes=GeneType.TREE,
+        )
+
+    @staticmethod
     def inversion(rate: OperatorRate = 0.1) -> Mutate:
         """
         `InvertMutator` is a segment inversion mutator. It randomly selects a segment of the

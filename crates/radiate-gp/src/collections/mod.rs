@@ -15,7 +15,8 @@ pub use graphs::{
     NodeBuilder, StatefulGraph,
 };
 pub use node::{Node, NodeType};
-pub use store::{NodeStore, NodeValue};
+pub use store::{IntoNodeValues, NodeSet, NodeValue};
 pub use trees::{
-    Format, HoistMutator, Tree, TreeChromosome, TreeCodec, TreeCrossover, TreeIterator, TreeNode,
+    Format, HoistMutator, ShrinkMutator, SubtreeMutator, Tree, TreeChromosome, TreeCodec,
+    TreeCrossover, TreeIterator, TreeNode,
 };

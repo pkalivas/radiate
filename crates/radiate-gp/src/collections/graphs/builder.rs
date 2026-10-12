@@ -1,6 +1,6 @@
 use super::aggregate::GraphAggregate;
 use crate::{
-    Arity, Factory, NodeStore,
+    Arity, Factory, NodeSet,
     collections::{Graph, GraphNode, NodeType},
 };
 
@@ -38,7 +38,7 @@ impl<T: Clone + Default> Graph<T> {
     pub fn directed(
         input_size: usize,
         output_size: usize,
-        values: impl Into<NodeStore<T>>,
+        values: impl Into<NodeSet<T>>,
     ) -> Graph<T> {
         let builder = NodeBuilder::new(values);
 
@@ -90,7 +90,7 @@ impl<T: Clone + Default> Graph<T> {
     pub fn recurrent(
         input_size: usize,
         output_size: usize,
-        values: impl Into<NodeStore<T>>,
+        values: impl Into<NodeSet<T>>,
     ) -> Graph<T> {
         let builder = NodeBuilder::new(values);
 
@@ -119,7 +119,7 @@ impl<T: Clone + Default> Graph<T> {
     pub fn weighted_directed(
         input_size: usize,
         output_size: usize,
-        values: impl Into<NodeStore<T>>,
+        values: impl Into<NodeSet<T>>,
     ) -> Graph<T> {
         let builder = NodeBuilder::new(values);
 
@@ -146,7 +146,7 @@ impl<T: Clone + Default> Graph<T> {
     pub fn weighted_recurrent(
         input_size: usize,
         output_size: usize,
-        values: impl Into<NodeStore<T>>,
+        values: impl Into<NodeSet<T>>,
     ) -> Graph<T> {
         let builder = NodeBuilder::new(values);
 
@@ -181,7 +181,7 @@ impl<T: Clone + Default> Graph<T> {
     ///
     /// # Returns
     /// A new LSTM graph.
-    pub fn lstm(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Graph<T> {
+    pub fn lstm(input_size: usize, output_size: usize, store: impl Into<NodeSet<T>>) -> Graph<T> {
         let builder = NodeBuilder::new(store);
 
         let input = builder.input(input_size);
@@ -232,7 +232,7 @@ impl<T: Clone + Default> Graph<T> {
     ///
     /// # Returns
     /// A new GRU graph.
-    pub fn gru(input_size: usize, output_size: usize, values: impl Into<NodeStore<T>>) -> Graph<T> {
+    pub fn gru(input_size: usize, output_size: usize, values: impl Into<NodeSet<T>>) -> Graph<T> {
         let builder = NodeBuilder::new(values);
 
         let input = builder.input(input_size);
@@ -276,7 +276,7 @@ impl<T: Clone + Default> Graph<T> {
         output_size: usize,
         width: usize,
         height: usize,
-        values: impl Into<NodeStore<T>>,
+        values: impl Into<NodeSet<T>>,
     ) -> Graph<T> {
         let builder = NodeBuilder::new(values);
 
@@ -315,11 +315,11 @@ impl<T: Clone + Default> Graph<T> {
 /// A simple builder struct for constructing nodes of a certain type. This is pretty much just a
 /// quality of life struct that removes boilerplate code when creating collections of nodes.
 pub struct NodeBuilder<T> {
-    store: NodeStore<T>,
+    store: NodeSet<T>,
 }
 
 impl<T: Clone + Default> NodeBuilder<T> {
-    pub fn new(store: impl Into<NodeStore<T>>) -> Self {
+    pub fn new(store: impl Into<NodeSet<T>>) -> Self {
         NodeBuilder {
             store: store.into(),
         }
@@ -386,7 +386,7 @@ impl<T: Clone + Default> NodeBuilder<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Node, Op, node_store};
+    use crate::{Node, Op, node_set};
     use radiate_core::Valid;
 
     #[test]
@@ -475,7 +475,7 @@ mod tests {
 
     #[test]
     fn test_graph_builder_weighted_recurrent() {
-        let store = node_store![
+        let store = node_set![
             Input => vec![Op::var(0), Op::var(1), Op::var(2)],
             Output => vec![Op::sigmoid()],
             Edge => vec![Op::weight_with(1.0)]
@@ -511,7 +511,7 @@ mod tests {
 
     #[test]
     fn test_graph_builder_lstm() {
-        let store = node_store![
+        let store = node_set![
             Input => vec![Op::var(0)],
             Output => vec![Op::sigmoid()],
             Vertex => vec![Op::sigmoid(), Op::tanh(), Op::mul(), Op::add()],
@@ -548,7 +548,7 @@ mod tests {
 
     #[test]
     fn test_graph_builder_gru() {
-        let store = node_store![
+        let store = node_set![
             Input => vec![Op::var(0)],
             Output => vec![Op::sigmoid()],
             Vertex => vec![Op::sigmoid(), Op::tanh(), Op::mul(), Op::add()],

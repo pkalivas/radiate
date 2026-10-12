@@ -3,16 +3,11 @@ import radiate as rd
 
 rd.random.seed(500)
 
-use_graph = True
+use_graph = False
 
-dataset = rd.DataSet.iris()
-train, test = dataset.split(0.75)
-train = train.standardize()
-test = test.standardize()
-
-
-train_features, train_targets = train.features, train.labels
-test_features, test_targets = test.features, test.labels
+train, test = rd.DataSet.iris().split(0.75)
+train_features, train_targets = train.standardize().pair()
+test_features, test_targets = test.standardize().pair()
 
 
 def graph_engine() -> rd.Engine:
@@ -51,6 +46,7 @@ def tree_engine() -> rd.Engine:
         .alter(
             rd.Cross.tree(0.7),
             rd.Mutate.op(0.01, 0.08),
+            rd.Mutate.subtree(0.05, max_depth=5),
         )
         .limit(rd.Limit.score(0.1), rd.Limit.seconds(5))
     )

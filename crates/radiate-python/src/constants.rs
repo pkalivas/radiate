@@ -53,6 +53,7 @@ pub mod components {
         GAUSSIAN_MUTATOR = "GaussianMutator";
         GRAPH_MUTATOR = "GraphMutator";
         OPERATION_MUTATOR = "OperationMutator";
+        SUBTREE_MUTATOR = "SubtreeMutator";
         TREE_CROSSOVER = "TreeCrossover";
         HOIST_MUTATOR = "HoistMutator";
         INVERSION_MUTATOR = "InversionMutator";

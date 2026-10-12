@@ -5,7 +5,7 @@ fn main() {
     // Create a store for tree operations
     // Each vertex node created will have a random value chosen from [1, 2, 3]
     // Each leaf node created will have a random value chosen from [4, 5, 6]
-    let tree_store: NodeStore<i32> = vec![
+    let tree_store: NodeSet<i32> = vec![
         (NodeType::Vertex, vec![1, 2, 3]),
         (NodeType::Leaf, vec![4, 5, 6]),
     ]
@@ -13,7 +13,7 @@ fn main() {
 
     // -- or use the macro --
 
-    let tree_store: NodeStore<i32> = node_store! {
+    let tree_store: NodeSet<i32> = node_set! {
         Root => vec![1, 2, 3],
         Vertex => vec![1, 2, 3],
         Leaf => vec![4, 5, 6]
@@ -21,7 +21,7 @@ fn main() {
 
     // -- with ops --
     // for trees, the input nodes are always the leaf nodes, so we can use the `Op::var` to represent them
-    let op_store: NodeStore<Op<f32>> = node_store! {
+    let op_store: NodeSet<Op<f32>> = node_set! {
         Root => vec![Op::sigmoid()],
         Vertex => vec![Op::add(), Op::mul()],
         Leaf => (0..3).map(Op::var).collect::<Vec<_>>()
@@ -38,7 +38,7 @@ fn main() {
     // Each edge node created will have a random value chosen from [3, 4]
     // Each vertex node created will have a random value chosen from [5, 6, 7]
     // Each output node created will have a random value chosen from [8, 9, 10]
-    let graph_store: NodeStore<i32> = vec![
+    let graph_store: NodeSet<i32> = vec![
         (NodeType::Input, vec![1, 2]),
         (NodeType::Edge, vec![3, 4]),
         (NodeType::Vertex, vec![5, 6, 7]),
@@ -48,7 +48,7 @@ fn main() {
 
     // -- or use the macro --
 
-    let graph_store: NodeStore<i32> = node_store! {
+    let graph_store: NodeSet<i32> = node_set! {
         Input => vec![1, 2],
         Edge => vec![3, 4],
         Vertex => vec![5, 6, 7],
@@ -56,7 +56,7 @@ fn main() {
     };
 
     // -- with ops --
-    let op_store: NodeStore<Op<f32>> = node_store! {
+    let op_store: NodeSet<Op<f32>> = node_set! {
         Input => vec![Op::var(0), Op::var(1)],
         Edge => vec![Op::add(), Op::mul()],
         Vertex => vec![Op::sub(), Op::div(), Op::max()],

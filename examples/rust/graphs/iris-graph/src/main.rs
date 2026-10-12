@@ -12,27 +12,18 @@ fn main() -> RadiateResult<()> {
 
     let (_, in_dim, out_dim) = train.shape();
 
-    let ops = ops::all_ops();
-    let edges = vec![Op::identity(), Op::weight()];
-    let outputs = vec![Op::sigmoid()];
-
-    let store = vec![
-        (NodeType::Input, (0..in_dim).map(Op::var).collect()),
-        (NodeType::Edge, edges.clone()),
-        (NodeType::Vertex, ops.clone()),
-        (NodeType::Output, outputs.clone()),
-    ];
-
-    let codec = GraphCodec::directed(in_dim, out_dim, store);
-    let regression = Regression::new(train.clone(), Loss::MSE);
+    let other = node_set! {
+        Input => Op::vars(0..in_dim),
+        Edge => [Op::identity(), Op::weight()],
+        Vertex => ops::all_ops(),
+        Output => Op::sigmoid()
+    };
 
     let engine = GeneticEngine::builder()
-        .codec(codec)
+        .codec(GraphCodec::directed(in_dim, out_dim, other))
         .minimizing()
-        .fitness_fn(regression)
+        .fitness_fn(Regression::new(train.clone(), Loss::MSE))
         .parallel()
-        .offspring_fraction(0.9)
-        .replace_strategy(GraphReplacement)
         .offspring_selector(BoltzmannSelector::new(4.0))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),

@@ -1,6 +1,6 @@
 use crate::collections::{Tree, TreeNode};
 use crate::node::Node;
-use crate::{Arity, Factory, NodeStore, NodeType};
+use crate::{Arity, Factory, NodeSet, NodeType};
 use radiate_core::Valid;
 
 const NUM_CHILDREN_ANY: usize = 2;
@@ -22,7 +22,7 @@ impl<T: Clone + Default> Tree<T> {
     ///
     /// # Returns
     /// A tree with the given depth, where each node is a random node from the node store.
-    pub fn with_depth(depth: usize, nodes: impl Into<NodeStore<T>>) -> Self {
+    pub fn with_depth(depth: usize, nodes: impl Into<NodeSet<T>>) -> Self {
         let store = nodes.into();
 
         let root = if store.contains_type(NodeType::Root) {
@@ -64,7 +64,7 @@ impl<T: Clone + Default> Tree<T> {
     ///
     /// # Returns
     /// A tree node with the given depth, where each node is a random node from the node store.
-    pub(crate) fn grow(current_depth: usize, store: &NodeStore<T>) -> Option<TreeNode<T>> {
+    pub(crate) fn grow(current_depth: usize, store: &NodeSet<T>) -> Option<TreeNode<T>> {
         if current_depth == 0 {
             return store.new_instance(NodeType::Leaf);
         }
@@ -85,7 +85,7 @@ impl<T: Clone + Default> Tree<T> {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn repair_node(node: &mut TreeNode<T>, store: &NodeStore<T>) {
+    pub(crate) fn repair_node(node: &mut TreeNode<T>, store: &NodeSet<T>) {
         if node.children().is_none() && node.is_valid() {
             return;
         }

@@ -8,29 +8,6 @@ use radiate_utils::Matrix;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
-//  // Rows → columns: feature i becomes contiguous row i.
-//     let mut columns = std::mem::take(&mut self.columns);
-//     columns.reshape_and_fill(width, samples, V::default());
-//     for (r, sample) in features.iter().enumerate() {
-//         for (i, &x) in sample.iter().enumerate() {
-//             columns[(i, r)] = x;
-//         }
-//     }
-
-//     let mut predictions = std::mem::take(&mut self.predictions);
-//     self.eval_columns(nodes, &columns, &mut predictions);
-
-//     // Columns → rows.
-//     for (r, out) in outputs.iter_mut().enumerate() {
-//         for (j, o) in out.iter_mut().enumerate() {
-//             *o = predictions[(j, r)];
-//         }
-//     }
-
-//     self.columns = columns;
-//     self.predictions = predictions;
-// }
-
 /// Input columns are collected into a stack array up to this fan-in, so the common case doesn't
 /// allocate per node; wider nodes spill to the heap.
 const STACK_INPUTS: usize = 8;

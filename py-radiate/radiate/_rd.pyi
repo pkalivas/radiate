@@ -48,6 +48,7 @@ class _Components:
     GRAPH_MUTATOR: Final[str]
     OPERATION_MUTATOR: Final[str]
     TREE_CROSSOVER: Final[str]
+    SUBTREE_MUTATOR: Final[str]
     HOIST_MUTATOR: Final[str]
     INVERSION_MUTATOR: Final[str]
     POLYNOMIAL_MUTATOR: Final[str]

@@ -1,17 +1,17 @@
 use super::{Graph, GraphChromosome, GraphNode};
-use crate::{Factory, NodeStore};
+use crate::{Factory, NodeSet};
 use radiate_core::{Codec, Genotype};
 
 #[derive(Clone)]
 pub struct GraphCodec<T> {
-    store: NodeStore<T>,
+    store: NodeSet<T>,
     template: GraphChromosome<T>,
 }
 
 impl<T: Clone + Default> GraphCodec<T> {
     pub fn new(
         template: impl IntoIterator<Item = GraphNode<T>>,
-        store: impl Into<NodeStore<T>>,
+        store: impl Into<NodeSet<T>>,
     ) -> Self {
         GraphCodec {
             store: store.into(),
@@ -19,7 +19,7 @@ impl<T: Clone + Default> GraphCodec<T> {
         }
     }
 
-    pub fn directed(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Self {
+    pub fn directed(input_size: usize, output_size: usize, store: impl Into<NodeSet<T>>) -> Self {
         let new_store = store.into();
 
         GraphCodec {
@@ -30,11 +30,7 @@ impl<T: Clone + Default> GraphCodec<T> {
         }
     }
 
-    pub fn recurrent(
-        input_size: usize,
-        output_size: usize,
-        store: impl Into<NodeStore<T>>,
-    ) -> Self {
+    pub fn recurrent(input_size: usize, output_size: usize, store: impl Into<NodeSet<T>>) -> Self {
         let new_store = store.into();
 
         GraphCodec {
@@ -48,7 +44,7 @@ impl<T: Clone + Default> GraphCodec<T> {
     pub fn weighted_directed(
         input_size: usize,
         output_size: usize,
-        store: impl Into<NodeStore<T>>,
+        store: impl Into<NodeSet<T>>,
     ) -> Self {
         let new_store = store.into();
 
@@ -63,7 +59,7 @@ impl<T: Clone + Default> GraphCodec<T> {
     pub fn weighted_recurrent(
         input_size: usize,
         output_size: usize,
-        store: impl Into<NodeStore<T>>,
+        store: impl Into<NodeSet<T>>,
     ) -> Self {
         let new_store = store.into();
 
@@ -75,7 +71,7 @@ impl<T: Clone + Default> GraphCodec<T> {
         }
     }
 
-    pub fn lstm(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Self {
+    pub fn lstm(input_size: usize, output_size: usize, store: impl Into<NodeSet<T>>) -> Self {
         let new_store = store.into();
 
         GraphCodec {
@@ -86,7 +82,7 @@ impl<T: Clone + Default> GraphCodec<T> {
         }
     }
 
-    pub fn gru(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Self {
+    pub fn gru(input_size: usize, output_size: usize, store: impl Into<NodeSet<T>>) -> Self {
         let new_store = store.into();
 
         GraphCodec {
@@ -102,7 +98,7 @@ impl<T: Clone + Default> GraphCodec<T> {
         output_size: usize,
         rows: usize,
         cols: usize,
-        store: impl Into<NodeStore<T>>,
+        store: impl Into<NodeSet<T>>,
     ) -> Self {
         let new_store = store.into();
 

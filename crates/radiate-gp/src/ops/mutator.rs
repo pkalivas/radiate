@@ -1,6 +1,6 @@
 use crate::node::{Node, NodeExt};
 use crate::ops::operation::Op;
-use crate::{Factory, GraphChromosome, NodeStore, NodeType, TreeChromosome};
+use crate::{Factory, GraphChromosome, NodeSet, NodeType, TreeChromosome};
 use radiate_core::{AlterContext, Expr, Mutate, RateSet, SmallStr};
 use radiate_core::{Chromosome, random_provider};
 
@@ -37,7 +37,7 @@ impl OperationMutator {
     fn mutate_node<T>(
         &self,
         node: &mut impl Node<Value = Op<T>>,
-        store: &NodeStore<Op<T>>,
+        store: &NodeSet<Op<T>>,
         replace_rate: f32,
         metrics: &mut OpMutateMetrics,
     ) where

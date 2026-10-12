@@ -1,4 +1,4 @@
-use crate::NodeStore;
+use crate::NodeSet;
 use crate::collections::{Tree, TreeChromosome, TreeNode};
 use radiate_core::{Codec, Genotype};
 use std::sync::Arc;
@@ -9,14 +9,14 @@ type Constraint<N> = Arc<dyn Fn(&N) -> bool + Send + Sync>;
 pub struct TreeCodec<T: Clone, D = Vec<Tree<T>>> {
     depth: usize,
     num_trees: usize,
-    store: Option<NodeStore<T>>,
+    store: Option<NodeSet<T>>,
     constraint: Option<Constraint<TreeNode<T>>>,
     template: Option<Tree<T>>,
     _marker: std::marker::PhantomData<D>,
 }
 
 impl<T: Clone + Default> TreeCodec<T> {
-    pub fn single(depth: usize, store: impl Into<NodeStore<T>>) -> TreeCodec<T, Tree<T>> {
+    pub fn single(depth: usize, store: impl Into<NodeSet<T>>) -> TreeCodec<T, Tree<T>> {
         TreeCodec {
             depth,
             num_trees: 1,
@@ -30,7 +30,7 @@ impl<T: Clone + Default> TreeCodec<T> {
     pub fn multi_root(
         depth: usize,
         num_trees: usize,
-        store: impl Into<NodeStore<T>>,
+        store: impl Into<NodeSet<T>>,
     ) -> TreeCodec<T, Vec<Tree<T>>> {
         TreeCodec {
             depth,

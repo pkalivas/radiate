@@ -4,7 +4,7 @@ const MIN_SCORE: f32 = 0.1;
 const MAX_SECONDS: f64 = 5.0;
 const MIN_TREE_DEPTH: usize = 3;
 
-fn main() {
+fn main() -> RadiateResult<()> {
     random_provider::seed(1000);
 
     let (mut train, mut test) = DataSet::iris().split(0.75);
@@ -13,41 +13,38 @@ fn main() {
 
     let (_, in_dim, out_dim) = train.shape();
 
-    let store = vec![
-        (NodeType::Root, vec![Op::sigmoid()]),
-        (
-            NodeType::Vertex,
-            vec![Op::sigmoid(), Op::add(), Op::mul(), Op::sub(), Op::dot()],
-        ),
-        (
-            NodeType::Leaf,
-            (0..in_dim)
-                .map(Op::var)
-                .chain(std::iter::once(Op::erc()))
-                .collect(),
-        ),
-    ];
+    let set = node_set! {
+        Root => Op::sigmoid(),
+        Vertex => [Op::sigmoid(), Op::add(), Op::mul(), Op::sub(), Op::dot()],
+        Leaf => Op::vars(0..in_dim)
+            .into_iter()
+            .chain(std::iter::once(Op::erc()))
+            .collect::<Vec<_>>()
+    };
+
+    let codec =
+        TreeCodec::multi_root(MIN_TREE_DEPTH, out_dim, set).constraint(|node| node.size() < 40);
 
     let engine = GeneticEngine::builder()
-        .codec(
-            TreeCodec::multi_root(MIN_TREE_DEPTH, out_dim, store)
-                .constraint(|node| node.size() < 40),
-        )
+        .codec(codec)
         .fitness_fn(Regression::new(train.clone(), Loss::MSE))
         .minimizing()
         .alter(alters!(
-            TreeCrossover::new(0.7),
+            TreeCrossover::new(0.5),
             OperationMutator::new(0.01, 0.08),
+            SubtreeMutator::new(0.1),
         ))
         .build();
 
-    engine
+    let result = engine
         .iter()
         .logging()
         .until(|epoch| epoch.score().as_f32() < MIN_SCORE || epoch.seconds() > MAX_SECONDS)
-        .last()
-        .inspect(|ctx| display(&train, &test, ctx))
-        .unwrap();
+        .last()?;
+
+    display(&train, &test, &result);
+
+    Ok(())
 }
 
 fn display(

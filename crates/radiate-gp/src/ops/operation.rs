@@ -1,4 +1,4 @@
-use crate::{Arity, Eval, Factory, NodeValue, TreeNode, ops::Param};
+use crate::{Arity, Eval, Factory, IntoNodeValues, NodeValue, TreeNode, ops::Param};
 use std::{
     fmt::{Debug, Display},
     hash::Hash,
@@ -253,6 +253,12 @@ impl<T: Clone> From<Op<T>> for NodeValue<Op<T>> {
     fn from(value: Op<T>) -> Self {
         let arity = value.arity();
         NodeValue::Bounded(value, arity)
+    }
+}
+
+impl<T: Clone> IntoNodeValues<Op<T>> for Op<T> {
+    fn into_node_values(self) -> Vec<NodeValue<Op<T>>> {
+        vec![self.into()]
     }
 }
 

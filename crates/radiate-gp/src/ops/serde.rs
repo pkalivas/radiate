@@ -175,7 +175,7 @@ impl<F: OpFloat> From<OpVariant<F>> for Result<Op<F>, serde::de::value::Error> {
                 arity: _,
                 value,
             } => match name.as_str() {
-                "w2" => Ok(Op::dot_with(value)),
+                "dot" => Ok(Op::dot_with(value)),
                 _ => Err(serde::de::Error::custom(format!(
                     "Unknown pair weight name: {}",
                     name
