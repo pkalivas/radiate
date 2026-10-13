@@ -28,7 +28,7 @@ engine = (
 
 
 result = engine.run(log=True)
-eval_results = result.value().eval(features)
+eval_results = result.value.eval(features)
 accuracy = np.mean(
     np.abs(np.array(eval_results).flatten() - np.array(labels).flatten()) < 0.1
 )
@@ -36,4 +36,4 @@ accuracy = np.mean(
 print(result)
 print(f"Accuracy within 0.1: {accuracy * 100:.2f}%")
 
-print(result.value().format())
+print(result.value.format())

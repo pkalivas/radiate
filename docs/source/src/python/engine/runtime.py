@@ -15,7 +15,7 @@ engine = (
 
 # The engine is itself an iterator over `Generation` epochs
 for epoch in engine:
-    print(f"Generation {epoch.index()}: Score = {epoch.score()}")
+    print(f"Generation {epoch.index}: Score = {epoch.score}")
 # --8<-- [end:iterator_basic]
 
 # --8<-- [start:iterator_next]
@@ -32,9 +32,9 @@ engine = (
 # (below) when you don't need to inspect each generation as it happens.
 while True:
     epoch = next(engine)
-    if epoch.index() >= 5:
+    if epoch.index >= 5:
         break
-    print(f"Generation {epoch.index()}: Score = {epoch.score()}")
+    print(f"Generation {epoch.index}: Score = {epoch.score}")
 # --8<-- [end:iterator_next]
 
 # --8<-- [start:iterator_convenience]

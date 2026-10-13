@@ -32,11 +32,11 @@ engine = (
 result = engine.run(log=True)
 
 
-print(result.metrics().dashboard())
+print(result.metrics.dashboard())
 print(result)
 print(
     rd.accuracy(
-        result.value(),
+        result.value,
         features=train_features,
         targets=train_targets,
         name="TRAIN_ACCURACY",
@@ -45,7 +45,7 @@ print(
 )
 print(
     rd.accuracy(
-        result.value(),
+        result.value,
         features=test_features,
         targets=test_targets,
         name="TEST_ACCURACY",

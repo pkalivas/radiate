@@ -25,7 +25,7 @@ engine = (
 result = engine.run()
 
 # Get the metrics of the engine
-metrics = result.metrics()  # MetricSet object
+metrics = result.metrics  # MetricSet object
 df = (
     metrics.to_polars()
 )  # Convert metrics to a Polars DataFrame for analysis (if installed)
@@ -75,12 +75,10 @@ engine = (
 result = engine.run()
 
 # Access the metrics from the result
-metrics = result.metrics()
+metrics = result.metrics
 
 # Get tags for a specific metric
-tags = metrics[
-    "scores"
-].tags()  # e.g., [Tag.SCORE, Tag.STATISTIC, Tag.DISTRIBUTION]
+tags = metrics["scores"].tags()  # e.g., [Tag.SCORE, Tag.STATISTIC, Tag.DISTRIBUTION]
 
 for metric in metrics.values_by_tag(rd.Tag.ALTERER):
     ...  # access all metrics related to alterers (crossover, mutation) ...

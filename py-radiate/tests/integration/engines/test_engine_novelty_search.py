@@ -41,10 +41,10 @@ def test_engine_is_novel(random_seed):
 
     result = engine.run()
 
-    assert calc_population_diversity(result.population()) > 0.85, (
+    assert calc_population_diversity(result.population) > 0.85, (
         "Population should have diversity"
     )
-    assert result.index() == 100
+    assert result.index == 100
 
 
 @pytest.mark.integration
@@ -66,7 +66,7 @@ def test_int_engine_novelty_with_decorator_creates(random_seed):
 
     result = engine.run()
 
-    assert calc_population_diversity(result.population()) > 0.85, (  # type: ignore
+    assert calc_population_diversity(result.population) > 0.85, (  # type: ignore
         "Population should have diversity"
     )
-    assert result.index() == 100
+    assert result.index == 100

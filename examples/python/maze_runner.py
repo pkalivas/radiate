@@ -176,4 +176,4 @@ result = engine.run(log=True)
 print(result)
 
 print("\nBest solution found:")
-print(f"  Path: Start → {' → '.join([wp.name for wp in result.value()])} → End")
+print(f"  Path: Start → {' → '.join([wp.name for wp in result.value])} → End")

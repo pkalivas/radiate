@@ -60,11 +60,11 @@ def test_engine_graph_regression_with_speciation(squared_dataset, random_seed):
 
     # Testing in multithreaded mode can lead to slightly different results so we
     # relax the assertion a bit by allowing a few # of species
-    assert len(result.species()) > 1, "Should maintain multiple species"
+    assert len(result.species) > 1, "Should maintain multiple species"
     assert result.index <= 500
     assert isinstance(result.value, rd.Graph)
 
-    species = result.species()
+    species = result.species
     score_total = 0.0
     for spec in species:
         mascot = spec.mascot()

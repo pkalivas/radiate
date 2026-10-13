@@ -35,10 +35,10 @@ engine = (
 result = engine.run(log=True)
 
 print(result)
-print(result.metrics().dashboard())
+print(result.metrics.dashboard())
 
 x, y = rd.DataSet.pagie1().pair()
-preds = result.value().eval(x)
+preds = result.value.eval(x)
 
 
 fig = pl.graph_objects.Figure()

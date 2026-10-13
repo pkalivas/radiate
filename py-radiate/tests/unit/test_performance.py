@@ -67,7 +67,7 @@ class TestEnginePerformance:
 
         result, execution_time = performance_benchmark.time_function(engine_run)
 
-        assert result.index() == 50
+        assert result.index == 50
         assert execution_time < 5.0
 
     @pytest.mark.performance
@@ -92,7 +92,7 @@ class TestEnginePerformance:
 
         result, execution_time = performance_benchmark.time_function(engine_run)
 
-        assert result.index() == 10
+        assert result.index == 10
         assert execution_time < 30.0
 
 

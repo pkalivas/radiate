@@ -143,6 +143,7 @@ class Generation[G, T](RsObject):
             lambda: Population.from_rust(self.__backend__().population()),
         )
 
+    @property
     def species(self) -> list[Species[G]]:
         """
         Get the species of the generation.
@@ -157,6 +158,7 @@ class Generation[G, T](RsObject):
 
         return self.try_get_cache("species_cache", _get_species)
 
+    @property
     def ecosystem(self) -> Ecosystem[G]:
         """
         Get the ecosystem of the generation.

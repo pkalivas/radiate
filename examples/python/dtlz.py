@@ -59,16 +59,15 @@ engine = (
 
 
 result = engine.run(ui=False)
-front = result.front()
-hypervolume = front.hypervolume([1.0, 1.0, 1.0])
+hypervolume = result.front.hypervolume([1.0, 1.0, 1.0])
 
-print(result.metrics().dashboard())
+print(result.metrics.dashboard())
 print()
 print(f"Hypervolume: {hypervolume}")
 
-x = [member.score[0] for member in front]
-y = [member.score[1] for member in front]
-z = [member.score[2] for member in front]
+x = [member.score[0] for member in result.front]
+y = [member.score[1] for member in result.front]
+z = [member.score[2] for member in result.front]
 
 axis = {"range": [-0.025, 0.525]}
 fig = go.Figure(go.Scatter3d(x=x, y=y, z=z, mode="markers", marker={"size": 4}))

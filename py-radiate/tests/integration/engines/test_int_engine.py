@@ -17,12 +17,12 @@ def test_engine_int_minimization(random_seed):
 
     result = engine.run()
 
-    assert result.value() == [0 for _ in range(num_genes)]
-    assert result.score() == [0]
-    assert result.index() <= 500
-    assert len(result.population()) == len(result.ecosystem().population())
-    assert len(result.ecosystem().species()) == 0
-    assert result.objective() == rd.MIN
+    assert result.value == [0 for _ in range(num_genes)]
+    assert result.score == [0]
+    assert result.index <= 500
+    assert len(result.population) == len(result.ecosystem.population())
+    assert len(result.ecosystem.species()) == 0
+    assert result.objective == rd.MIN
 
 
 @pytest.mark.integration
@@ -48,12 +48,12 @@ def test_engine_int_vector_nparray(random_seed):
         .limit(rd.Limit.score(0), rd.Limit.generations(500))
     ).run()
 
-    assert np.array_equal(result.value(), np.array([0 for _ in range(num_genes)]))
-    assert result.score() == [0]
-    assert result.index() <= 500
-    assert len(result.population()) == len(result.ecosystem().population())
-    assert len(result.ecosystem().species()) == 0
-    assert result.objective() == rd.MIN
+    assert np.array_equal(result.value, np.array([0 for _ in range(num_genes)]))
+    assert result.score == [0]
+    assert result.index <= 500
+    assert len(result.population) == len(result.ecosystem.population())
+    assert len(result.ecosystem.species()) == 0
+    assert result.objective == rd.MIN
 
 
 @pytest.mark.integration
@@ -76,12 +76,12 @@ def test_engine_int_matrix_nparray(random_seed):
 
     result = engine.run()
 
-    assert np.array_equal(result.value(), np.zeros(rows * cols, dtype=np.int64))
-    assert result.score() == [0]
-    assert result.index() <= 500
-    assert len(result.population()) == len(result.ecosystem().population())
-    assert len(result.ecosystem().species()) == 0
-    assert result.objective() == rd.MIN
+    assert np.array_equal(result.value, np.zeros(rows * cols, dtype=np.int64))
+    assert result.score == [0]
+    assert result.index <= 500
+    assert len(result.population) == len(result.ecosystem.population())
+    assert len(result.ecosystem.species()) == 0
+    assert result.objective == rd.MIN
 
 
 @pytest.mark.integration
@@ -109,12 +109,12 @@ def test_engine_int_jagged_matrix(random_seed):
     )
     result = engine.run()
 
-    assert result.value() == [[0 for _ in range(n)] for n in shape]
-    assert result.score() == [0]
-    assert result.index() <= 500
-    assert len(result.population()) == len(result.ecosystem().population())
-    assert len(result.ecosystem().species()) == 0
-    assert result.objective() == rd.MIN
+    assert result.value == [[0 for _ in range(n)] for n in shape]
+    assert result.score == [0]
+    assert result.index <= 500
+    assert len(result.population) == len(result.ecosystem.population())
+    assert len(result.ecosystem.species()) == 0
+    assert result.objective == rd.MIN
 
 
 @pytest.mark.unit
@@ -132,7 +132,7 @@ def test_create_int_scalar_engine_from_genes():
     result = engine.run()
 
     assert result is not None
-    assert type(result.value()) is int
+    assert type(result.value) is int
 
 
 @pytest.mark.unit
@@ -157,10 +157,10 @@ def test_create_int_vector_engine_from_genes():
     ).run()
 
     assert result is not None
-    assert type(result.value()) is list
-    assert len(result.value()) == 3
+    assert type(result.value) is list
+    assert len(result.value) == 3
 
-    for phenotype in result.population():
+    for phenotype in result.population:
         for chromosome in phenotype.genotype():
             assert len(chromosome) == 3
 
@@ -181,8 +181,8 @@ def test_create_int_vector_engine_from_genes():
     result = engine.run()
 
     assert result is not None
-    assert type(result.value()) is np.ndarray
-    assert result.value().shape == (3,)
+    assert type(result.value) is np.ndarray
+    assert result.value.shape == (3,)
 
 
 @pytest.mark.unit
@@ -202,8 +202,8 @@ def test_create_int_engine_from_chromosomes():
     result = engine.run()
 
     assert result is not None
-    assert type(result.value()) is list
-    assert len(result.value()) == 5
+    assert type(result.value) is list
+    assert len(result.value) == 5
 
     def matrix_fit(val: list[list[int]]) -> int:
         return sum(sum(x**2 for x in row) for row in val)
@@ -221,11 +221,11 @@ def test_create_int_engine_from_chromosomes():
     )
 
     result = engine.run()
-    population = result.population()
+    population = result.population
 
     assert result is not None
-    assert type(result.value()) is list
-    assert len(result.value()) == 3
+    assert type(result.value) is list
+    assert len(result.value) == 3
 
     for phenotype in population:
         genotype = phenotype.genotype()

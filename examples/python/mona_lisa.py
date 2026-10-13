@@ -136,8 +136,8 @@ if not rd._GIL_ENABLED:
     engine = engine.parallel()
 
 result = engine.run(log=True)
-value = result.value()
+value = result.value
 
 frame = render(np.asarray(value, dtype=np.float32), W, H)
 frame.save(OUT / "final.png")
-print(f"Final RMS: {result.score()}")
+print(f"Final RMS: {result.score}")

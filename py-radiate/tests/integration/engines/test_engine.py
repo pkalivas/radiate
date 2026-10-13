@@ -32,10 +32,10 @@ def test_engine_maintains_population_size(random_seed):
 
     result = engine.run()
 
-    assert all(i < 0.001 for i in result.value())
-    assert len(result.value()) == N_GENES
-    assert result.index() < 1000
-    assert len(result.population()) == 107
+    assert all(i < 0.001 for i in result.value)
+    assert len(result.value) == N_GENES
+    assert result.index < 1000
+    assert len(result.population) == 107
 
 
 @pytest.mark.integration
@@ -74,10 +74,10 @@ def test_engine_batch_fitness():
 
     result = engine.run()
 
-    assert all(i < 0.001 for i in result.value())
-    assert len(result.value()) == N_GENES
-    assert result.index() < 1000
-    assert len(result.population()) == 107
+    assert all(i < 0.001 for i in result.value)
+    assert len(result.value) == N_GENES
+    assert result.index < 1000
+    assert len(result.population) == 107
 
 
 @pytest.mark.integration
@@ -99,9 +99,9 @@ def test_engine_multi_objective(random_seed):
 
     result = engine.run()
 
-    assert len(result.score()) == 2, "Should return two objectives"
-    assert result.index() == 50, "Should complete within 50 generations"
-    assert result.objective() == ["min", "max"]
+    assert len(result.score) == 2, "Should return two objectives"
+    assert result.index == 50, "Should complete within 50 generations"
+    assert result.objective == ["min", "max"]
 
 
 @pytest.mark.integration
@@ -109,11 +109,9 @@ def test_engine_multi_objective_front(simple_multi_objective_engine, random_seed
     """Test multi-objective engine with Pareto front."""
     result = simple_multi_objective_engine.limit(rd.Limit.generations(100)).run()
 
-    fitness_values = list(set(map(lambda x: tuple(x.score), result.front())))
+    fitness_values = list(set(map(lambda x: tuple(x.score), result.front)))
 
-    assert result.objective() == [rd.MIN, rd.MIN], (
-        "Should be minimizing both objectives"
-    )
+    assert result.objective == [rd.MIN, rd.MIN], "Should be minimizing both objectives"
     # Check if the Pareto front is non-dominated
     for i, f1 in enumerate(fitness_values):
         for j, f2 in enumerate(fitness_values):
@@ -143,7 +141,7 @@ def test_engine_with_iter(random_seed):
     assert all(isinstance(r, rd.Generation) for r in results), (
         "Should yield Generation objects"
     )
-    assert results[-1].index() == 5, "Last generation index should be 5"
+    assert results[-1].index == 5, "Last generation index should be 5"
 
 
 @pytest.mark.integration
@@ -162,7 +160,7 @@ def test_engine_with_iter_and_run(random_seed):
     results = []
     for generation in engine:
         results.append(generation)
-        if generation.index() == 3:
+        if generation.index == 3:
             break
 
     # Now run the engine to completion
@@ -171,5 +169,5 @@ def test_engine_with_iter_and_run(random_seed):
     assert all(isinstance(r, rd.Generation) for r in results), (
         "Should yield Generation objects"
     )
-    assert results[-1].index() == 3, "Last generation index should be 3"
-    assert final_result.index() == 5, "Final result index should be 5"
+    assert results[-1].index == 3, "Last generation index should be 3"
+    assert final_result.index == 5, "Final result index should be 5"

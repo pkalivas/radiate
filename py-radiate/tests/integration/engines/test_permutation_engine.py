@@ -21,9 +21,9 @@ def test_engine_permutation_tsp(random_seed):
         .limit(rd.Limit.score(5), rd.Limit.generations(100))
     ).run()
 
-    assert result.index() <= 100
-    assert len(set(result.value())) == 5
-    assert all(0 <= x < 5 for x in result.value())
+    assert result.index <= 100
+    assert len(set(result.value)) == 5
+    assert all(0 <= x < 5 for x in result.value)
 
 
 @pytest.mark.integration
@@ -68,5 +68,5 @@ def test_engine_permutation_returns_typed_object_to_fitness(random_seed):
         .limit(rd.Limit.score(0), rd.Limit.generations(100))
     ).run()
 
-    assert result.index() <= 100
-    assert set(result.value()) <= set(points)
+    assert result.index <= 100
+    assert set(result.value) <= set(points)

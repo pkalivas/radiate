@@ -55,14 +55,14 @@ engine = (
 
 result = engine.run(ui=True)
 
-eval_results = result.value().eval(x)
-accuracy = rd.accuracy(result.value(), x, y, loss=rd.MSE)
+eval_results = result.value.eval(x)
+accuracy = rd.accuracy(result.value, x, y, loss=rd.MSE)
 
 print(result)
-print(result.metrics().dashboard())
+print(result.metrics.dashboard())
 print(accuracy)
 print(result.dtype())
 
-graph = result.value()
+graph = result.value
 out = graph.eval([2.2], unchecked=True)
 print(type(out), out)

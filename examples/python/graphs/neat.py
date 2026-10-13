@@ -41,11 +41,11 @@ engine = (
 
 result = engine.run(ui=True)
 
-eval_results = result.value().eval(features)
-accuracy = rd.accuracy(result.value(), features, targets, loss=rd.MSE)
+eval_results = result.value.eval(features)
+accuracy = rd.accuracy(result.value, features, targets, loss=rd.MSE)
 
 print(result)
-print(result.metrics().dashboard())
+print(result.metrics.dashboard())
 print(accuracy)
-print(f"Graph Dtype: {result.value().dtype()}")
-print("Species count mean:", result.metrics()["species.count"].mean())
+print(f"Graph Dtype: {result.value.dtype()}")
+print("Species count mean:", result.metrics["species.count"].mean())

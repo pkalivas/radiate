@@ -15,7 +15,7 @@ def test_generation_metrics(random_seed):
             .limit(rd.Limit.score(0), rd.Limit.generations(500))
         )
         .run()
-        .metrics()
+        .metrics
     )
 
     assert len(metrics) == 33
@@ -107,12 +107,12 @@ def test_metric_times_are_correct(random_seed):
     ).run()
 
     time_name_set = set()
-    for metric in result.metrics():
+    for metric in result.metrics:
         if rd.Tag.TIME in metric.tags():
             assert metric.time_last() is not None
             time_name_set.add(metric.name())
 
-    for metric in result.metrics().values_by_tag(rd.Tag.TIME):
+    for metric in result.metrics.values_by_tag(rd.Tag.TIME):
         assert metric.time_last() is not None
         assert metric.name() in time_name_set
 
@@ -127,7 +127,7 @@ def test_metric_tags(random_seed):
     )
 
     result = engine.run()
-    metrics = result.metrics()
+    metrics = result.metrics
 
     # Check that certain metrics have expected tags
     assert "scores" in metrics

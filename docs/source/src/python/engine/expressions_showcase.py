@@ -43,7 +43,7 @@ engine = (
     )
     .regression(inputs, answers, loss=rd.MSE)
     .subscribe(collector)
-    .diversity(rd.NeatDistance(), distance_signal)
+    .diversity(rd.Dist.neat(), distance_signal)
     .metrics(
         distance_signal_mean=distance_signal_mean, species_count_mean=species_count_mean
     )

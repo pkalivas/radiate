@@ -28,5 +28,5 @@ engine = (
 
 result = engine.run(log=True)
 
-print(result.metrics().dashboard())
-print("Best solution:", "".join(result.value()))
+print(result.metrics.dashboard())
+print("Best solution:", "".join(result.value))

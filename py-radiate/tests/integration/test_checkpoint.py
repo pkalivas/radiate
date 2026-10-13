@@ -47,7 +47,7 @@ def test_load_checkpoint(cubic_dataset, random_seed):
     )
 
     for epoch in engine:
-        assert epoch.index() > 50
+        assert epoch.index > 50
 
 
 # @pytest.mark.integration

@@ -25,11 +25,11 @@ def test_engine_float_vector_maximization(random_seed):
     result = engine.run()
 
     # Should find values close to ±1.0
-    assert result.score()[0] > 2.5
-    assert result.index() <= 100
-    assert len(result.population()) == len(result.ecosystem().population())
-    assert len(result.ecosystem().species()) == 0
-    assert result.objective() == rd.MAX
+    assert result.score[0] > 2.5
+    assert result.index <= 100
+    assert len(result.population) == len(result.ecosystem.population())
+    assert len(result.ecosystem.species()) == 0
+    assert result.objective == rd.MAX
 
 
 @pytest.mark.integration
@@ -62,11 +62,11 @@ def test_engine_float_matrix_minimization(random_seed):
     result = engine.run()
 
     # Should find values close to 0.0
-    assert result.score()[0] < 0.5
-    assert result.index() <= 200
-    assert len(result.population()) == len(result.ecosystem().population())
-    assert len(result.ecosystem().species()) == 0
-    assert result.objective() == rd.MIN
+    assert result.score[0] < 0.5
+    assert result.index <= 200
+    assert len(result.population) == len(result.ecosystem.population())
+    assert len(result.ecosystem.species()) == 0
+    assert result.objective == rd.MIN
 
 
 @pytest.mark.integration
@@ -116,14 +116,14 @@ def test_engine_float_simple_neural_network(random_seed, cubic_dataset):
 
     result = engine.run()
 
-    assert result.index() <= 500
-    assert len(result.population()) == len(result.ecosystem().population())
-    assert len(result.ecosystem().species()) == 0
-    assert result.objective() == rd.MIN
+    assert result.index <= 500
+    assert len(result.population) == len(result.ecosystem.population())
+    assert len(result.ecosystem.species()) == 0
+    assert result.objective == rd.MIN
     assert result.dtype() == rd.Float32
-    assert len(result.value()) == 3
+    assert len(result.value) == 3
     assert all(
-        isinstance(w, np.ndarray) and w.dtype == np.float32 for w in result.value()
+        isinstance(w, np.ndarray) and w.dtype == np.float32 for w in result.value
     )
 
 
@@ -143,7 +143,7 @@ def test_create_float_scalar_engine_from_genes():
     result = engine.run()
 
     assert result is not None
-    assert type(result.value()) is float
+    assert type(result.value) is float
 
 
 @pytest.mark.unit
@@ -166,10 +166,10 @@ def test_create_float_vector_engine_from_genes():
     ).run()
 
     assert result is not None
-    assert type(result.value()) is list
-    assert len(result.value()) == 3
+    assert type(result.value) is list
+    assert len(result.value) == 3
 
-    for phenotype in result.population():
+    for phenotype in result.population:
         for chromosome in phenotype.genotype():
             assert len(chromosome) == 3
 
@@ -207,8 +207,8 @@ def test_create_float_np_vector_engine_from_genes():
     result = engine.run()
 
     assert result is not None
-    assert type(result.value()) is np.ndarray
-    assert result.value().shape == (3,)
+    assert type(result.value) is np.ndarray
+    assert result.value.shape == (3,)
 
 
 @pytest.mark.unit
@@ -227,8 +227,8 @@ def test_create_float_engine_from_chromosomes():
     result = engine.run()
 
     assert result is not None
-    assert type(result.value()) is list
-    assert len(result.value()) == 5
+    assert type(result.value) is list
+    assert len(result.value) == 5
 
 
 @pytest.mark.unit
@@ -249,11 +249,11 @@ def test_create_float_engine_from_chromosomes_with_numpy():
     )
 
     result = engine.run()
-    population = result.population()
+    population = result.population
 
     assert result is not None
-    assert type(result.value()) is list
-    assert len(result.value()) == 3
+    assert type(result.value) is list
+    assert len(result.value) == 3
 
     for phenotype in population:
         genotype = phenotype.genotype()

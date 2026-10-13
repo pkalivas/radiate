@@ -18,4 +18,4 @@ engine = (
     .limit(rd.Limit.score(NUM_BITS))
 )
 
-print(engine.run().metrics().dashboard())
+print(engine.run().metrics.dashboard())
