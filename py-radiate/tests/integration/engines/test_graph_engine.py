@@ -172,7 +172,6 @@ def test_engine_graph_recurrent_class_acc(memory_dataset, random_seed):
 @pytest.mark.skipif(not rd._NUMPY_AVAILABLE, reason="numpy not installed")
 def test_engine_graph_recurrent_with_np(memory_dataset, random_seed):
     """Test engine with graph codec and elitism for classification."""
-    # import numpy as np
 
     inputs, outputs = memory_dataset
 
@@ -206,12 +205,6 @@ def test_engine_graph_recurrent_with_np(memory_dataset, random_seed):
     assert result.score()[0] < 0.01
     assert result.index() <= 500
     assert isinstance(result.value(), rd.Graph)
-
-    # np_inputs = np.array(inputs)
-    # np_outputs = np.array(outputs)
-    # acc = rd.accuracy(result.value(), np_inputs, np_outputs, loss=rd.MSE)
-
-    # result.value().reset()
 
 
 @pytest.mark.integration

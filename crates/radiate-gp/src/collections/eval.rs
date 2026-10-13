@@ -75,7 +75,7 @@ where
 ///     Output => vec![Op::add()]
 /// };
 ///
-/// let mut graph = Graph::directed(2, 1, store);
+/// let mut graph = Graph::directed(2, 1, store).unwrap();
 ///
 /// // Define a buffer to store the output
 /// let mut output_buffer = vec![vec![0.0]];

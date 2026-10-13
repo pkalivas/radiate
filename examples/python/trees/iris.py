@@ -21,7 +21,7 @@ engine = (
             rd.Op.sub(),
             rd.Op.dot(),
         ],
-        leaf=[rd.Op.var(i) for i in range(in_dim)] + [rd.Op.erc()],
+        leaf=rd.Op.erc(),
     )
     .regression(train_features, train_targets, loss=rd.MSE)
     .alter(

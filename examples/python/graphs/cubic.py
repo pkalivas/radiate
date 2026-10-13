@@ -30,10 +30,11 @@ engine = (
         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.sum()],
         # all edge nodes will use this operation - can be a list too
         edge=rd.Op.weight(),
+        # specify the output operation for the graph nodes
+        output=rd.Op.sum(),
         # specify the dtype of the underlying graph node's Op's dtype T (Op<T>) -
         # input data (x, y) must match this dtype - notice how
         # line 32 specifies the np dtype when computing the fitness.
-        # output=[rd.Op.linear()],
         dtype=rd.Float32,
     )
     # .fitness(fit)

@@ -65,7 +65,7 @@ use std::ops::{Index, IndexMut};
 ///     (NodeType::Input, vec![Op::var(0), Op::var(1)]),
 ///     (NodeType::Output, vec![Op::sigmoid(), Op::tanh()]),
 /// ];
-/// let graph = Graph::directed(2, 2, values);
+/// let graph = Graph::directed(2, 2, values).unwrap();
 /// ```
 ///
 /// # Graph Types
@@ -842,7 +842,7 @@ mod test {
             (NodeType::Output, vec![Op::linear()]),
         ];
 
-        let op_graph = Graph::directed(2, 2, values);
+        let op_graph = Graph::directed(2, 2, values).unwrap();
         let eval_one = op_graph.eval(&vec![vec![0.5, 1.5]]);
 
         let serialized_op = serde_json::to_string(&op_graph).unwrap();

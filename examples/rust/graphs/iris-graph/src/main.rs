@@ -20,7 +20,7 @@ fn main() -> RadiateResult<()> {
     };
 
     let engine = GeneticEngine::builder()
-        .codec(GraphCodec::directed(in_dim, out_dim, other))
+        .codec(GraphCodec::directed(in_dim, out_dim, other)?)
         .minimizing()
         .fitness_fn(Regression::new(train.clone(), Loss::MSE))
         .parallel()

@@ -17,7 +17,7 @@ fn main() {
     ];
 
     let engine = GeneticEngine::builder()
-        .codec(GraphCodec::directed(1, 1, store))
+        .codec(GraphCodec::directed(1, 1, store).unwrap())
         .fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .alter(alters!(

@@ -224,7 +224,7 @@ fn main() {
         .clamp(0.01, 10.0);
 
     let engine = GeneticEngine::builder()
-        .codec(GraphCodec::directed(1, 1, store))
+        .codec(GraphCodec::directed(1, 1, store).unwrap())
         .fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .diversity(NeatDistance::new(1.0, 1.0, 3.0))

@@ -20,7 +20,7 @@ fn main() {
         Output => Op::sigmoid()
     ];
 
-    let graph_codec = GraphCodec::directed(2, 1, values);
+    let graph_codec = GraphCodec::directed(2, 1, values).unwrap();
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::builder()

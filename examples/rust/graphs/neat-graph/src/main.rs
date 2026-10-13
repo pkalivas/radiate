@@ -17,7 +17,7 @@ fn main() -> RadiateResult<()> {
     };
 
     let engine = GeneticEngine::builder()
-        .codec(GraphCodec::directed(in_dim, out_dim, store))
+        .codec(GraphCodec::directed(in_dim, out_dim, store)?)
         .fitness_fn(Regression::new(data.clone(), Loss::MSE))
         .minimizing()
         .diversity(NeatDistance::default())

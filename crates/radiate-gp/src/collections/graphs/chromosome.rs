@@ -42,7 +42,7 @@ use std::{fmt::Debug, hash::Hash};
 ///     Vertex => vec![10, 11, 12]
 /// };
 ///
-/// let graph = Graph::directed(1, 1, store.clone());
+/// let graph = Graph::directed(1, 1, store.clone()).unwrap();
 ///
 /// let chromosome = GraphChromosome::from((graph, store));
 /// ```

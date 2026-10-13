@@ -181,7 +181,7 @@ fn graph_xor() {
         (NodeType::Output, vec![Op::sigmoid()]),
     ];
 
-    let graph_codec = GraphCodec::directed(2, 1, store);
+    let graph_codec = GraphCodec::directed(2, 1, store).unwrap();
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::builder()

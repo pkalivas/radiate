@@ -44,22 +44,22 @@ fn main() {
     ];
 
     // create a directed graph with 2 input nodes and 2 output nodes
-    let graph: Graph<Op<f32>> = Graph::directed(2, 2, values.clone());
+    let graph: Graph<Op<f32>> = Graph::directed(2, 2, values.clone()).unwrap();
 
     // create a recurrent graph with 2 input nodes and 2 output nodes
-    let graph: Graph<Op<f32>> = Graph::recurrent(2, 2, values.clone());
+    let graph: Graph<Op<f32>> = Graph::recurrent(2, 2, values.clone()).unwrap();
 
     // create a weighted directed graph with 2 input nodes and 2 output nodes
-    let graph: Graph<Op<f32>> = Graph::weighted_directed(2, 2, values.clone());
+    let graph: Graph<Op<f32>> = Graph::weighted_directed(2, 2, values.clone()).unwrap();
 
     // create a weighted recurrent graph with 2 input nodes and 2 output nodes
-    let graph: Graph<Op<f32>> = Graph::weighted_recurrent(2, 2, values.clone());
+    let graph: Graph<Op<f32>> = Graph::weighted_recurrent(2, 2, values.clone()).unwrap();
 
     // create an LSTM graph with 2 input nodes and 2 output nodes
-    let graph: Graph<Op<f32>> = Graph::lstm(2, 2, values.clone());
+    let graph: Graph<Op<f32>> = Graph::lstm(2, 2, values.clone()).unwrap();
 
     // create a GRU graph with 2 input nodes and 2 output nodes
-    let graph: Graph<Op<f32>> = Graph::gru(2, 2, values);
+    let graph: Graph<Op<f32>> = Graph::gru(2, 2, values).unwrap();
 
     // Op graphs can be evaluated much like trees, but with the added complexity of connections.
     let inputs = vec![vec![1.0, 2.0]];
@@ -85,12 +85,12 @@ fn main() {
     ];
 
     // Create a directed graph codec with 2 input nodes and 2 output nodes
-    let codec = GraphCodec::directed(2, 2, store.clone());
+    let codec = GraphCodec::directed(2, 2, store.clone()).unwrap();
     let genotype: Genotype<GraphChromosome<Op<f32>>> = codec.encode();
     let graph: Graph<Op<f32>> = codec.decode(&genotype);
 
     // Create a recurrent graph codec with 2 input nodes and 2 output nodes
-    let recurrent_codec = GraphCodec::recurrent(2, 2, store);
+    let recurrent_codec = GraphCodec::recurrent(2, 2, store).unwrap();
     let recurrent_genotype: Genotype<GraphChromosome<Op<f32>>> = recurrent_codec.encode();
     let recurrent_graph: Graph<Op<f32>> = recurrent_codec.decode(&recurrent_genotype);
     // --8<-- [end:encode_decode]

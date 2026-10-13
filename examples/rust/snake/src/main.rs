@@ -73,7 +73,9 @@ fn run_graph_engine() {
     ];
 
     // only allow graphs to evolve +10 more nodes than inputs * outputs
-    let codec = GraphCodec::weighted_directed(INPUT_SIZE, OUTPUT_SIZE, store).with_max_nodes(10);
+    let codec = GraphCodec::weighted_directed(INPUT_SIZE, OUTPUT_SIZE, store)
+        .unwrap()
+        .with_max_nodes(10);
 
     let engine = GeneticEngine::builder()
         .codec(codec)

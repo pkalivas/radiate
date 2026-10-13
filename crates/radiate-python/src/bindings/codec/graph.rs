@@ -1,6 +1,8 @@
 use crate::{PyGenotype, PyOp, Wrap, bindings::gp::PyGraph};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
-use radiate::{Codec, DataType, GraphCodec, NodeType, Op, dtype_names, ops::OpFloat};
+use radiate::{
+    Codec, DataType, GraphCodec, NodeType, Op, RadiateResult, dtype_names, ops::OpFloat,
+};
 use radiate_error::radiate_py_bail;
 use std::collections::HashMap;
 
@@ -43,7 +45,7 @@ impl PyGraphCodec {
                     output_size,
                     ops,
                     max_nodes,
-                )),
+                )?),
             }),
             DataType::Float64 => Ok(PyGraphCodec {
                 codec: PyGraphCodecInner::Float64(build_typed_codec::<f64>(
@@ -52,7 +54,7 @@ impl PyGraphCodec {
                     output_size,
                     ops,
                     max_nodes,
-                )),
+                )?),
             }),
             _ => radiate_py_bail!("Unsupported data type for graph codec: {:datatype:?}"),
         }
@@ -98,7 +100,7 @@ fn build_typed_codec<F: OpFloat>(
     output_size: usize,
     ops: Option<HashMap<String, Vec<PyOp>>>,
     max_nodes: Option<usize>,
-) -> GraphCodec<Op<F>>
+) -> RadiateResult<GraphCodec<Op<F>>>
 where
     PyOp: Into<Op<F>> + Clone,
 {
@@ -131,10 +133,10 @@ where
         Some("gru") => GraphCodec::gru(input_size, output_size, values),
         Some("lstm") => GraphCodec::lstm(input_size, output_size, values),
         _ => GraphCodec::directed(input_size, output_size, values),
-    };
+    }?;
 
-    match max_nodes {
+    Ok(match max_nodes {
         Some(max_nodes) => codec.with_max_nodes(max_nodes),
         None => codec,
-    }
+    })
 }

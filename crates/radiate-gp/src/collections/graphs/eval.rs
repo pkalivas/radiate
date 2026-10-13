@@ -525,12 +525,12 @@ mod tests {
     #[test]
     fn test_builder_graphs() {
         let graphs = [
-            Graph::directed(3, 2, store(3)),
-            Graph::recurrent(3, 2, store(3)),
-            Graph::weighted_directed(3, 2, store(3)),
-            Graph::weighted_recurrent(3, 2, store(3)),
-            Graph::lstm(3, 2, store(3)),
-            Graph::gru(3, 2, store(3)),
+            Graph::directed(3, 2, store(3)).unwrap(),
+            Graph::recurrent(3, 2, store(3)).unwrap(),
+            Graph::weighted_directed(3, 2, store(3)).unwrap(),
+            Graph::weighted_recurrent(3, 2, store(3)).unwrap(),
+            Graph::lstm(3, 2, store(3)).unwrap(),
+            Graph::gru(3, 2, store(3)).unwrap(),
         ];
 
         for graph in &graphs {
@@ -567,8 +567,8 @@ mod tests {
 
     #[test]
     fn test_with_cache_from_another_graph() {
-        let small = Graph::directed(2, 1, store(2));
-        let large = Graph::lstm(3, 2, store(3));
+        let small = Graph::directed(2, 1, store(2)).unwrap();
+        let large = Graph::lstm(3, 2, store(3)).unwrap();
 
         let features = Matrix::new(vec![0.5_f32, -1.0, 2.0]).reshape(3, 1);
         let mut evaluator = GraphEvaluator::new(&large);

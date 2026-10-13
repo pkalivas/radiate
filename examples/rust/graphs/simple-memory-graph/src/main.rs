@@ -17,7 +17,7 @@ fn main() -> RadiateResult<()> {
     };
 
     let engine = GeneticEngine::builder()
-        .codec(GraphCodec::lstm(in_dim, out_dim, values))
+        .codec(GraphCodec::lstm(in_dim, out_dim, values)?)
         .fitness_fn(Regression::new(data.clone(), Loss::MSE))
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4_f32))
