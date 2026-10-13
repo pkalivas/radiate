@@ -91,7 +91,7 @@ where
     Generation<C, T>: Serialize + Into<EpochHandle>,
 {
     let result = if ui {
-        radiate::ui(engine).iter().limit(limits).last()
+        radiate::ui(engine).iter().logging().limit(limits).last()
     } else {
         engine
             .iter()

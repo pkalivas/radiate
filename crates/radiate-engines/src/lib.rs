@@ -37,9 +37,15 @@ pub(crate) type Result<T> = std::result::Result<T, RadiateError>;
 
 static INIT_LOGGING: Mutex<Once> = Mutex::new(Once::new());
 static LOGGING_INITIALIZED: AtomicBool = AtomicBool::new(false);
+static LOGGING_DISABLED: AtomicBool = AtomicBool::new(false);
+
+pub fn logging_enabled() -> bool {
+    !LOGGING_DISABLED.load(Ordering::SeqCst)
+}
 
 pub fn disable_logging() {
     LOGGING_INITIALIZED.store(true, Ordering::SeqCst);
+    LOGGING_DISABLED.store(true, Ordering::SeqCst);
     INIT_LOGGING.lock().unwrap().call_once(|| {
         tracing::subscriber::set_global_default(tracing::subscriber::NoSubscriber::default())
             .expect("Failed to set global subscriber");

@@ -190,7 +190,7 @@ where
 
         let handler =
             CheckpointWriterHandler::<C, T>::new(interval, path_without_extension.into(), writer);
-        let attached = self.params.event_stream.attatch(handler);
+        let attached = self.params.event_stream.attach(handler);
 
         if attached.is_err() {
             self.add_error_if(

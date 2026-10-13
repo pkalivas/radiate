@@ -213,16 +213,20 @@ where
     pub fn logging(self) -> EngineRuntime<E> {
         init_logging();
         let stream = self.engine.context().event_stream();
-        stream.subscribe(LoggingHandler);
+        stream.subscribe(LoggingHandler::new());
 
-        self.listen()
+        self.monitor_health().attach_logger()
     }
 
-    pub fn listen(self) -> EngineRuntime<E> {
+    pub fn monitor_health(self) -> EngineRuntime<E> {
         let stream = self.engine.context().event_stream();
+        stream.attach(HealthMonitor::<T>::default()).unwrap();
+        self
+    }
 
-        stream.attatch(EngineLogger::<T>::new()).unwrap();
-        stream.attatch(HealthMonitor::<T>::default()).unwrap();
+    pub fn attach_logger(self) -> EngineRuntime<E> {
+        let stream = self.engine.context().event_stream();
+        stream.attach(EngineLogger::<T>::new()).unwrap();
         self
     }
 }

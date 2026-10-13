@@ -58,7 +58,7 @@ engine = (
 )
 
 
-result = engine.run(ui=False)
+result = engine.run(ui=True)
 hypervolume = result.front.hypervolume([1.0, 1.0, 1.0])
 
 print(result.metrics.dashboard())

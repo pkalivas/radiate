@@ -122,10 +122,20 @@ pub enum LogLevel {
 pub struct LogEvent(pub LogLevel, pub String);
 
 #[derive(Clone, Default)]
-pub struct LoggingHandler;
+pub struct LoggingHandler(bool);
+
+impl LoggingHandler {
+    pub fn new() -> Self {
+        Self(crate::logging_enabled())
+    }
+}
 
 impl Handler<LogEvent> for LoggingHandler {
     fn handle(&mut self, message: &LogEvent, _ctx: &EventContext<'_, Self>) {
+        if !self.0 {
+            return;
+        }
+
         match message.0 {
             LogLevel::Info => tracing::info!("{}", message.1),
             LogLevel::Warn => tracing::warn!("{}", message.1),
