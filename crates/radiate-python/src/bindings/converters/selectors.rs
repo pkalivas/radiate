@@ -1,55 +1,118 @@
-use crate::{InputTransform, PyEngineInput, PyEngineInputType};
+use crate::{
+    PyEngineInput, PyEngineInputType,
+    bindings::converters::{FromPyEngineInput, Registry},
+    registry,
+};
 use radiate::*;
 
-impl<C> InputTransform<RadiateResult<Box<dyn Select<C>>>> for PyEngineInput
+pub(crate) fn selectors<C>() -> Registry<Box<dyn Select<C>>>
 where
-    C: Chromosome + Clone,
+    C: Chromosome + Clone + 'static,
 {
-    fn transform(&self) -> RadiateResult<Box<dyn Select<C>>> {
+    use crate::constants::components;
+    registry!("selector", |s| Box::new(s) as Box<dyn Select<C>>; {
+        components::TOURNAMENT_SELECTOR           => TournamentSelector,
+        components::ROULETTE_WHEEL_SELECTOR       => RouletteSelector,
+        components::RANK_SELECTOR                 => RankSelector,
+        components::STOCHASTIC_UNIVERSAL_SELECTOR => StochasticUniversalSamplingSelector,
+        components::BOLTZMANN_SELECTOR            => BoltzmannSelector,
+        components::ELITE_SELECTOR                => EliteSelector,
+        components::RANDOM_SELECTOR               => RandomSelector,
+        components::NSGA2_SELECTOR                => NSGA2Selector,
+        components::NSGA3_SELECTOR                => NSGA3Selector,
+        components::TOURNAMENT_NSGA2_SELECTOR     => TournamentNSGA2Selector,
+        components::LINEAR_RANK_SELECTOR          => LinearRankSelector,
+    })
+}
+
+impl<C> FromPyEngineInput for Box<dyn Select<C>>
+where
+    C: Chromosome + Clone + 'static,
+{
+    fn from_input(input: &PyEngineInput) -> RadiateResult<Self> {
         if !matches!(
-            self.input_type,
+            input.input_type,
             PyEngineInputType::SurvivorSelector | PyEngineInputType::OffspringSelector
         ) {
             return Err(radiate_err!(Builder: format!(
                 "Expected input type to be SurvivorSelector or OffspringSelector, got {:?}",
-                self.input_type
+                input.input_type
             )));
         }
 
-        match self.component() {
-            crate::constants::components::TOURNAMENT_SELECTOR => {
-                let tournament_size = self.extract::<i64>("k")?;
-                Ok(Box::new(TournamentSelector::new(tournament_size as usize)))
-            }
-            crate::constants::components::ROULETTE_WHEEL_SELECTOR => {
-                Ok(Box::new(RouletteSelector::new()))
-            }
-            crate::constants::components::RANK_SELECTOR => Ok(Box::new(RankSelector::new())),
-            crate::constants::components::STOCHASTIC_UNIVERSAL_SELECTOR => {
-                Ok(Box::new(StochasticUniversalSamplingSelector::new()))
-            }
-            crate::constants::components::BOLTZMANN_SELECTOR => {
-                let temp = self.extract::<f64>("temp")?;
-                Ok(Box::new(BoltzmannSelector::new(temp as f32)))
-            }
-            crate::constants::components::ELITE_SELECTOR => Ok(Box::new(EliteSelector::new())),
-            crate::constants::components::RANDOM_SELECTOR => Ok(Box::new(RandomSelector::new())),
-            crate::constants::components::NSGA2_SELECTOR => Ok(Box::new(NSGA2Selector::new())),
-            crate::constants::components::NSGA3_SELECTOR => {
-                let ref_points = self.extract::<i64>("points")?;
-                Ok(Box::new(NSGA3Selector::new(ref_points as usize)))
-            }
-            crate::constants::components::TOURNAMENT_NSGA2_SELECTOR => {
-                Ok(Box::new(TournamentNSGA2Selector::new()))
-            }
-            crate::constants::components::LINEAR_RANK_SELECTOR => {
-                let selection_pressure = self.extract::<f64>("pressure")?;
-                Ok(Box::new(LinearRankSelector::new(selection_pressure as f32)))
-            }
-            _ => Err(radiate_err!(Builder: format!(
-                "Selector type {} not yet implemented",
-                self.component()
-            ))),
-        }
+        selectors::<C>().convert(input)
+    }
+}
+
+/// ---------------------------------------------------------------------------
+/// Concrete converters
+/// ---------------------------------------------------------------------------
+impl FromPyEngineInput for TournamentSelector {
+    fn from_input(input: &PyEngineInput) -> RadiateResult<Self> {
+        let k = input.extract::<i64>("k")?;
+        Ok(TournamentSelector::new(k as usize))
+    }
+}
+
+impl FromPyEngineInput for RouletteSelector {
+    fn from_input(_: &PyEngineInput) -> RadiateResult<Self> {
+        Ok(RouletteSelector::new())
+    }
+}
+
+impl FromPyEngineInput for RankSelector {
+    fn from_input(_: &PyEngineInput) -> RadiateResult<Self> {
+        Ok(RankSelector::new())
+    }
+}
+
+impl FromPyEngineInput for StochasticUniversalSamplingSelector {
+    fn from_input(_: &PyEngineInput) -> RadiateResult<Self> {
+        Ok(StochasticUniversalSamplingSelector::new())
+    }
+}
+
+impl FromPyEngineInput for BoltzmannSelector {
+    fn from_input(input: &PyEngineInput) -> RadiateResult<Self> {
+        let temp = input.extract::<f64>("temp")?;
+        Ok(BoltzmannSelector::new(temp as f32))
+    }
+}
+
+impl FromPyEngineInput for EliteSelector {
+    fn from_input(_: &PyEngineInput) -> RadiateResult<Self> {
+        Ok(EliteSelector::new())
+    }
+}
+
+impl FromPyEngineInput for RandomSelector {
+    fn from_input(_: &PyEngineInput) -> RadiateResult<Self> {
+        Ok(RandomSelector::new())
+    }
+}
+
+impl FromPyEngineInput for NSGA2Selector {
+    fn from_input(_: &PyEngineInput) -> RadiateResult<Self> {
+        Ok(NSGA2Selector::new())
+    }
+}
+
+impl FromPyEngineInput for NSGA3Selector {
+    fn from_input(input: &PyEngineInput) -> RadiateResult<Self> {
+        let points = input.extract::<i64>("points")?;
+        Ok(NSGA3Selector::new(points as usize))
+    }
+}
+
+impl FromPyEngineInput for TournamentNSGA2Selector {
+    fn from_input(_: &PyEngineInput) -> RadiateResult<Self> {
+        Ok(TournamentNSGA2Selector::new())
+    }
+}
+
+impl FromPyEngineInput for LinearRankSelector {
+    fn from_input(input: &PyEngineInput) -> RadiateResult<Self> {
+        let pressure = input.extract::<f64>("pressure")?;
+        Ok(LinearRankSelector::new(pressure as f32))
     }
 }

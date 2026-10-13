@@ -13,7 +13,7 @@ import radiate as rd
 rd.random.seed(500)
 
 
-features, labels = rd.DataSet.cubic(dtype=rd.Float32).pair()
+features, labels = rd.DataSet.cubic().pair()
 
 engine = (
     rd.Engine.tree(

@@ -1,40 +1,34 @@
+use crate::{
+    PyEngineInput, PyEngineInputType,
+    bindings::converters::{FromPyEngineInput, Registry},
+    registry,
+};
+use radiate::*;
 use std::sync::{Arc, Mutex};
 
-use crate::{InputTransform, PyEngineInput, PyEngineInputType};
-use radiate::*;
+type SharedFilter<C> = Arc<Mutex<dyn EcosystemFilter<C>>>;
 
-impl<C> InputTransform<RadiateResult<Vec<Arc<Mutex<dyn EcosystemFilter<C>>>>>>
-    for &[PyEngineInput]
-where
-    C: Chromosome + Clone,
-{
-    fn transform(&self) -> RadiateResult<Vec<Arc<Mutex<dyn EcosystemFilter<C>>>>> {
-        let mut filters: Vec<Arc<Mutex<dyn EcosystemFilter<C>>>> = Vec::new();
-        for input in *self {
-            if !matches!(input.input_type, PyEngineInputType::Filter) {
-                return Err(radiate_err!(Builder: format!(
-                    "Expected input type to be Filter, got {:?}",
-                    input.input_type
-                )));
-            }
-            match input.component() {
-                crate::constants::components::UNIQUE_SCORE_FILTER => {
-                    let threshold = input.extract::<f64>("threshold")?;
-                    let max_stagnation = input.extract::<i64>("max_stagnation")?;
-                    filters.push(Arc::new(Mutex::new(UniqueScoreFilter::new(
-                        max_stagnation as usize,
-                        threshold as f32,
-                    ))));
-                }
-                _ => {
-                    return Err(radiate_err!(Builder: format!(
-                        "Filter type {} not yet implemented",
-                        input.component()
-                    )));
-                }
-            }
-        }
+pub(crate) fn filters<C: Chromosome + Clone + 'static>() -> Registry<SharedFilter<C>> {
+    use crate::constants::components;
+    registry!("filter", |f| Arc::new(Mutex::new(f)) as SharedFilter<C>; {
+        components::UNIQUE_SCORE_FILTER => UniqueScoreFilter,
+    })
+}
 
-        Ok(filters)
+impl<C: Chromosome + Clone + 'static> FromPyEngineInput for SharedFilter<C> {
+    fn from_input(input: &PyEngineInput) -> RadiateResult<Self> {
+        input.expect_type(PyEngineInputType::Filter)?;
+        filters::<C>().convert(input)
+    }
+}
+
+impl FromPyEngineInput for UniqueScoreFilter {
+    fn from_input(input: &PyEngineInput) -> RadiateResult<Self> {
+        let threshold = input.extract::<f64>("threshold")?;
+        let max_stagnation = input.extract::<i64>("max_stagnation")?;
+        Ok(UniqueScoreFilter::new(
+            max_stagnation as usize,
+            threshold as f32,
+        ))
     }
 }

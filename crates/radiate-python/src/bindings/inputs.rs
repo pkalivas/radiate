@@ -1,8 +1,7 @@
-use crate::PyAnyObject;
-use pyo3::{
-    Py, PyAny, PyResult, Python, exceptions::PyKeyError, prelude::FromPyObjectOwned, pyclass,
-    pymethods,
-};
+use crate::{PyAnyObject, bindings::converters::FromPyEngineInput};
+use pyo3::{Py, PyAny, Python, prelude::FromPyObjectOwned, pyclass, pymethods};
+use radiate::RadiateResult;
+use radiate_error::{radiate_bail, radiate_err};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug};
 
@@ -79,18 +78,25 @@ impl PyEngineInput {
 }
 
 impl PyEngineInput {
-    pub fn extract<T: for<'py> FromPyObjectOwned<'py>>(&self, key: &str) -> PyResult<T> {
-        Python::attach(|py| match self.args.get(key) {
-            Some(v) => v.extract::<T>(py).map_err(|e| {
-                PyKeyError::new_err(format!(
-                    "Failed to extract key '{}' from PyEngineInput args: {}",
-                    key, e
-                ))
-            }),
-            None => Err(PyKeyError::new_err(format!(
-                "Key '{}' not found in PyEngineInput args",
-                key
-            ))),
+    pub fn expect_type(&self, expected: PyEngineInputType) -> RadiateResult<()> {
+        if self.input_type != expected {
+            radiate_bail!(Builder: "Expected input type {:?}, but found {:?}", expected, self.input_type);
+        }
+
+        Ok(())
+    }
+
+    pub fn convert<T: FromPyEngineInput>(&self) -> RadiateResult<T> {
+        T::from_input(self)
+    }
+
+    pub fn extract<T: for<'py> FromPyObjectOwned<'py>>(&self, key: &str) -> RadiateResult<T> {
+        let Some(value) = self.args.get(key) else {
+            radiate_bail!(Builder: "Key '{}' not found in PyEngineInput args", key);
+        };
+
+        Python::attach(|py| value.extract::<T>(py)).map_err(|e| {
+            radiate_err!(Builder: "Failed to extract key '{}' from PyEngineInput args: {}", key, e)
         })
     }
 

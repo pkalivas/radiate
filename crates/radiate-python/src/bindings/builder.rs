@@ -1,5 +1,5 @@
 use crate::{
-    EngineBuilderHandle, FreeThreadPyEvaluator, InputTransform, PyCodec, PyEngine, PyEngineInput,
+    EngineBuilderHandle, FreeThreadPyEvaluator, PyCodec, PyEngine, PyEngineInput,
     PyEngineInputType, PyExpr, PyFitnessFn, PyFitnessInner, PyPermutationCodec, PyPopulation,
     prelude::*, radiate,
 };
@@ -17,10 +17,9 @@ use crate::{
 use crate::{PyGeneration, PySubscriber};
 use core::panic;
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
-use radiate::{distance::Distance, prelude::*};
+use radiate::prelude::*;
 use radiate_error::{ResultExt, radiate_py_bail, radiate_py_err};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 
 macro_rules! dispatch_builder_typed {
     // ------------------------------------------------------------
@@ -93,7 +92,14 @@ impl PyEngineBuilder {
 
         let limits = input_groups
             .get(&PyEngineInputType::Limit)
-            .map(|inputs| inputs.transform())
+            .map(|inputs| {
+                inputs
+                    .iter()
+                    .map(PyEngineInput::convert)
+                    .collect::<RadiateResult<Vec<Limit>>>()
+                    .context("Failed to transform limit input")
+            })
+            .transpose()?
             .unwrap_or_default();
 
         Ok(PyEngine::new(limits, inner.try_build()?))
@@ -177,10 +183,11 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_many_typed(|typed_builder, inputs| {
-                let filters = InputTransform::<
-                    RadiateResult<Vec<Arc<Mutex<dyn EcosystemFilter<_>>>>>,
-                >::transform(&inputs)
-                .context("Failed to transform filter input")?;
+                let filters = inputs
+                    .iter()
+                    .map(PyEngineInput::convert)
+                    .collect::<RadiateResult<Vec<_>>>()
+                    .context("Failed to transform filter input")?;
                 Ok(typed_builder.filters(filters))
             })
         )
@@ -395,9 +402,9 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let selector =
-                    InputTransform::<RadiateResult<Box<dyn Select<_>>>>::transform(input)
-                        .context("Failed to transform selector input")?;
+                let selector = input
+                    .convert()
+                    .context("Failed to transform selector input")?;
 
                 Ok(match input.input_type() {
                     SurvivorSelector => typed_builder.boxed_survivor_selector(selector),
@@ -418,9 +425,11 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_many_typed(|typed_builder, alter_inputs| {
-                let alters =
-                    InputTransform::<RadiateResult<Vec<Alterer<_>>>>::transform(&alter_inputs)
-                        .context("Failed to transform alterers input")?;
+                let alters = alter_inputs
+                    .iter()
+                    .map(PyEngineInput::convert)
+                    .collect::<RadiateResult<Vec<_>>>()
+                    .context("Failed to transform alterer input")?;
                 Ok(typed_builder.alter(alters))
             })
         )
@@ -434,9 +443,9 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let diversity =
-                    InputTransform::<RadiateResult<Box<dyn Distance<_>>>>::transform(input)
-                        .context("Failed to transform diversity input")?;
+                let diversity = input
+                    .convert()
+                    .context("Failed to transform diversity input")?;
 
                 Ok(typed_builder.boxed_diversity(Some(diversity)))
             })
@@ -815,19 +824,15 @@ impl PyEngineBuilder {
             .extract::<bool>(py)?;
 
         let codec = Self::get_input_of_type(inputs, PyEngineInputType::Codec)
-            .map(|codec| codec.extract::<Py<PyAny>>("codec"))
-            .unwrap_or(Err(radiate_py_err!(
-                "EngineBuilder requires a Codec input."
-            )))?;
+            .ok_or_else(|| radiate_py_err!("EngineBuilder requires a Codec input."))?
+            .extract::<Py<PyAny>>("codec")?;
 
         let problem = Self::get_input_of_type(inputs, PyEngineInputType::FitnessFunction)
-            .map(|fitness| fitness.extract::<PyFitnessFn>("fitness"))
-            .unwrap_or(Err(radiate_py_err!(
-                "EngineBuilder requires a FitnessFunction input."
-            )))?;
+            .ok_or_else(|| radiate_py_err!("EngineBuilder requires a FitnessFunction input."))?
+            .extract::<PyFitnessFn>("fitness")?;
 
         let executor = Self::get_input_of_type(inputs, PyEngineInputType::Executor)
-            .map(InputTransform::<RadiateResult<Executor>>::transform)
+            .map(PyEngineInput::convert)
             .unwrap_or(Ok(Executor::Serial))?;
 
         if executor.is_parallel()

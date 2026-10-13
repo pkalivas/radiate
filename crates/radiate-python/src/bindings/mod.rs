@@ -21,7 +21,6 @@ pub use codec::{
     PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyGraphCodec, PyIntCodec, PyPackedBitCodec,
     PyPermutationCodec, PyTreeCodec,
 };
-pub use converters::InputTransform;
 pub use dataset::*;
 pub use datatype::{_get_dtype_max, _get_dtype_min, dtype, dtype_from_str};
 pub use engine::{PyEngine, PyEngineRunOption};
