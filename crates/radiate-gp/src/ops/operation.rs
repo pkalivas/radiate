@@ -1,8 +1,5 @@
 use crate::{Arity, Eval, Factory, IntoNodeValues, NodeValue, TreeNode, ops::Param};
-use std::{
-    fmt::{Debug, Display},
-    hash::Hash,
-};
+use std::fmt::{Debug, Display};
 
 /// [Op] is an enumeration that represents the different types of operations
 /// that can be performed within the genetic programming framework. Each variant
@@ -170,40 +167,6 @@ where
                 (Op::Pair(_, _, val_a, _), Op::Pair(_, _, val_b, _)) => val_a == val_b,
                 _ => false,
             }
-    }
-}
-
-impl Hash for Op<f32> {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.name().hash(state);
-        self.arity().hash(state);
-        match self {
-            Op::Fn(_, _, op) => {
-                let op_ptr = *op as usize;
-                op_ptr.hash(state);
-            }
-            Op::Var(_, index, domain) => {
-                index.hash(state);
-                domain.hash(state);
-            }
-            Op::Const(_, value) => {
-                value.to_bits().hash(state);
-            }
-            Op::Value(_, _, value, operation) => {
-                (*value).data().to_bits().hash(state);
-                let op_ptr = *operation as usize;
-                op_ptr.hash(state);
-            }
-            Op::Pair(_, _, value, operation) => {
-                let data = (*value).data();
-                let b_one = data.0.to_bits();
-                let b_two = data.1.to_bits();
-                b_one.hash(state);
-                b_two.hash(state);
-                let op_ptr = *operation as usize;
-                op_ptr.hash(state);
-            }
-        }
     }
 }
 

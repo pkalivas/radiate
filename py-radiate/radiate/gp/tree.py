@@ -106,6 +106,13 @@ class Tree(RsObject):
         result = self.__backend__().eval(eval_data)
         return result if not is_list else result.tolist()
 
+    def format(self) -> str:
+        """
+        Returns:
+            str: The formatted string representation of the tree.
+        """
+        return self.__backend__().format()
+
     def to_dot(self) -> str:
         """
         Convert the tree to DOT format for visualization. This representation can be used with graph
@@ -118,8 +125,6 @@ class Tree(RsObject):
 
     def to_json(self) -> str:
         """
-        Serialize the tree to a JSON string. Pretty simple.
-
         Returns:
             str: The JSON string representation of the tree.
         """
@@ -128,8 +133,6 @@ class Tree(RsObject):
     @staticmethod
     def from_json(json_str: str) -> Tree:
         """
-        Deserialize a JSON string to a Tree object.
-
         Args:
             json_str (str): The JSON string representation of the tree.
         Returns:

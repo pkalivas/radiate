@@ -140,6 +140,21 @@ impl PyTree {
         }
     }
 
+    pub fn format(&self) -> String {
+        match &self.inner {
+            PyTreeInner::Float32(trees) => trees
+                .iter()
+                .map(|tree| tree.format())
+                .collect::<Vec<String>>()
+                .join("\n"),
+            PyTreeInner::Float64(trees) => trees
+                .iter()
+                .map(|tree| tree.format())
+                .collect::<Vec<String>>()
+                .join("\n"),
+        }
+    }
+
     pub fn __repr__(&self) -> String {
         let mut result = String::new();
         result.push_str("Tree(\n");

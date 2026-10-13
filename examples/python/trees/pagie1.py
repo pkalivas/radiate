@@ -19,12 +19,7 @@ vertex_ops = [
 ]
 
 engine = (
-    rd.Engine.tree(
-        shape=(in_dim, out_dim),
-        vertex=vertex_ops,
-        root=rd.Op.sum(),
-        leaf=[rd.Op.var(0), rd.Op.var(1), rd.Op.erc()],
-    )
+    rd.Engine.tree(shape=(in_dim, out_dim), vertex=vertex_ops, root=rd.Op.sum())
     .regression(x, y, loss=rd.MSE)
     .select(rd.Select.boltzmann(temp=4.0))
     .diversity(rd.Dist.tree(), target=5)

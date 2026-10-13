@@ -137,12 +137,12 @@ class PyEngineBuilder:
 class PyEngine:
     def __iter__(self) -> "PyEngine": ...
     def __next__(self) -> "PyGeneration": ...
-    def run(self, options: list[PyEngineInput]) -> PyGeneration: ...
+    def run(self, log: bool = False, ui: bool = False) -> PyGeneration: ...
 
 class PyFitnessFn[T]:
     @staticmethod
     def novelty_search(
-        distance_fn: str,
+        distance_fn: PyEngineInput,
         descriptor: Callable[[T], object],
         k: int,
         threshold: float,

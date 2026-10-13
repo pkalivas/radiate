@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use super::Op;
 use crate::{
     Arity,
@@ -8,6 +10,319 @@ use smallvec::SmallVec;
 
 use super::OpFloat;
 use crate::{Eval, EvalInto};
+
+impl<F: OpFloat> Op<F> {
+    pub fn weight() -> Self {
+        Self::weight_with(random_provider::range(-F::ONE..F::ONE))
+    }
+
+    pub fn weight_with(value: F) -> Self {
+        let supplier = || random_provider::range(-F::ONE..F::ONE);
+
+        let operation = |inputs: &[F], w: &F| weight(inputs[0], *w);
+
+        let modifier = |current: &mut F| {
+            let diff = random_provider::range(-F::ONE..F::ONE) * F::TENTH;
+            *current = clamp(*current + diff);
+        };
+
+        Op::Value(
+            op_names::WEIGHT,
+            1.into(),
+            Param::new(clamp(value), supplier, modifier),
+            operation,
+        )
+    }
+
+    pub fn dot() -> Self {
+        Self::dot_with((F::ONE, F::ONE))
+    }
+
+    pub fn dot_with((a, b): (F, F)) -> Self {
+        let supplier = || {
+            let a = random_provider::range(-F::ONE..F::ONE);
+            let b = random_provider::range(-F::ONE..F::ONE);
+            (a, b)
+        };
+
+        let operation =
+            |inputs: &[F], weight: &(F, F)| dot(inputs[0], inputs[1], weight.0, weight.1);
+
+        let modifier = |current: &mut (F, F)| {
+            let side = random_provider::bool(0.5);
+            let diff = random_provider::range(-F::ONE..F::ONE) * F::TENTH;
+            if side {
+                current.0 = clamp(current.0 + diff);
+            } else {
+                current.1 = clamp(current.1 + diff);
+            }
+        };
+
+        Op::Pair(
+            op_names::DOT,
+            2.into(),
+            Param::new((clamp(a), clamp(b)), supplier, modifier),
+            operation,
+        )
+    }
+
+    /// Ephemeral Random Constant (ERC).
+    pub fn erc() -> Self {
+        let supplier = || random_provider::range(-F::ONE..F::ONE);
+
+        let modifier = |current: &mut F| {
+            let diff = random_provider::range(-F::ONE..F::ONE) * F::TENTH;
+            *current = clamp(*current + diff);
+        };
+
+        Op::Value(
+            op_names::ERC,
+            0.into(),
+            Param::new(clamp(supplier()), supplier, modifier),
+            |_: &[F], w: &F| *w,
+        )
+    }
+
+    pub fn one() -> Self {
+        Op::constant("one", F::ONE)
+    }
+
+    pub fn two() -> Self {
+        Op::constant("two", F::TWO)
+    }
+
+    pub fn three() -> Self {
+        Op::constant("three", F::THREE)
+    }
+
+    pub fn sign() -> Self {
+        Op::Fn(op_names::SIGN, 1.into(), |inputs: &[F]| unary(inputs, sign))
+    }
+
+    pub fn reciprocal() -> Self {
+        Op::Fn(op_names::RECIPROCAL, 1.into(), |inputs: &[F]| {
+            unary(inputs, reciprocal)
+        })
+    }
+
+    pub fn add() -> Self {
+        Op::Fn(op_names::ADD, 2.into(), |inputs: &[F]| binary(inputs, add))
+    }
+
+    pub fn sub() -> Self {
+        Op::Fn(op_names::SUB, 2.into(), |inputs: &[F]| binary(inputs, sub))
+    }
+
+    pub fn mul() -> Self {
+        Op::Fn(op_names::MUL, 2.into(), |inputs: &[F]| binary(inputs, mul))
+    }
+
+    pub fn div() -> Self {
+        Op::Fn(op_names::DIV, 2.into(), |inputs: &[F]| binary(inputs, div))
+    }
+
+    pub fn neg() -> Self {
+        Op::Fn(op_names::NEG, 1.into(), |inputs: &[F]| unary(inputs, neg))
+    }
+
+    pub fn pow() -> Self {
+        Op::Fn(op_names::POW, 2.into(), |inputs: &[F]| binary(inputs, pow))
+    }
+
+    pub fn sqrt() -> Self {
+        Op::Fn(op_names::SQRT, 1.into(), |inputs: &[F]| unary(inputs, sqrt))
+    }
+
+    pub fn abs() -> Self {
+        Op::Fn(op_names::ABS, 1.into(), |inputs: &[F]| unary(inputs, abs))
+    }
+
+    pub fn exp() -> Self {
+        Op::Fn(op_names::EXP, 1.into(), |inputs: &[F]| unary(inputs, exp))
+    }
+
+    pub fn log() -> Self {
+        Op::Fn(op_names::LOG, 1.into(), |inputs: &[F]| unary(inputs, log))
+    }
+
+    pub fn sin() -> Self {
+        Op::Fn(op_names::SIN, 1.into(), |inputs: &[F]| unary(inputs, sin))
+    }
+
+    pub fn cos() -> Self {
+        Op::Fn(op_names::COS, 1.into(), |inputs: &[F]| unary(inputs, cos))
+    }
+
+    pub fn tan() -> Self {
+        Op::Fn(op_names::TAN, 1.into(), |inputs: &[F]| unary(inputs, tan))
+    }
+
+    pub fn ceil() -> Self {
+        Op::Fn(op_names::CEIL, 1.into(), |inputs: &[F]| unary(inputs, ceil))
+    }
+
+    pub fn floor() -> Self {
+        Op::Fn(op_names::FLOOR, 1.into(), |inputs: &[F]| {
+            unary(inputs, floor)
+        })
+    }
+
+    pub fn tooth() -> Self {
+        Op::Fn(op_names::TOOTH, Arity::Any, |inputs: &[F]| {
+            AggregateOperations::Tooth.apply(inputs)
+        })
+    }
+
+    pub fn gaussian() -> Self {
+        Op::Fn(op_names::GAUSSIAN, Arity::Any, |inputs: &[F]| {
+            AggregateOperations::Gaussian.apply(inputs)
+        })
+    }
+
+    pub fn sum() -> Self {
+        Op::Fn(op_names::SUM, Arity::Any, |inputs: &[F]| {
+            AggregateOperations::Sum.apply(inputs)
+        })
+    }
+
+    pub fn diff() -> Self {
+        Op::Fn(op_names::DIFF, Arity::Any, |inputs: &[F]| {
+            AggregateOperations::Diff.apply(inputs)
+        })
+    }
+
+    pub fn prod() -> Self {
+        Op::Fn(op_names::PROD, Arity::Any, |inputs: &[F]| {
+            AggregateOperations::Prod.apply(inputs)
+        })
+    }
+
+    pub fn max() -> Self {
+        Op::Fn(op_names::MAX, Arity::Any, |inputs: &[F]| {
+            AggregateOperations::Max.apply(inputs)
+        })
+    }
+
+    pub fn min() -> Self {
+        Op::Fn(op_names::MIN, Arity::Any, |inputs: &[F]| {
+            AggregateOperations::Min.apply(inputs)
+        })
+    }
+
+    pub fn sigmoid() -> Self {
+        Op::Fn(op_names::SIGMOID, Arity::Any, |inputs: &[F]| {
+            ActivationOperation::Sigmoid.apply(inputs)
+        })
+    }
+
+    pub fn tanh() -> Self {
+        Op::Fn(op_names::TANH, Arity::Any, |inputs: &[F]| {
+            ActivationOperation::Tanh.apply(inputs)
+        })
+    }
+
+    pub fn relu() -> Self {
+        Op::Fn(op_names::RELU, Arity::Any, |inputs: &[F]| {
+            ActivationOperation::ReLU.apply(inputs)
+        })
+    }
+
+    pub fn leaky_relu() -> Self {
+        Op::Fn(op_names::LEAKY_RELU, Arity::Any, |inputs: &[F]| {
+            ActivationOperation::LeakyReLU.apply(inputs)
+        })
+    }
+
+    pub fn elu() -> Self {
+        Op::Fn(op_names::ELU, Arity::Any, |inputs: &[F]| {
+            ActivationOperation::ELU.apply(inputs)
+        })
+    }
+
+    pub fn linear() -> Self {
+        Op::Fn(op_names::LINEAR, Arity::Any, |inputs: &[F]| {
+            ActivationOperation::Linear.apply(inputs)
+        })
+    }
+
+    pub fn mish() -> Self {
+        Op::Fn(op_names::MISH, Arity::Any, |inputs: &[F]| {
+            ActivationOperation::Mish.apply(inputs)
+        })
+    }
+
+    pub fn swish() -> Self {
+        Op::Fn(op_names::SWISH, Arity::Any, |inputs: &[F]| {
+            ActivationOperation::Swish.apply(inputs)
+        })
+    }
+
+    pub fn softplus() -> Self {
+        Op::Fn(op_names::SOFTPLUS, Arity::Any, |inputs: &[F]| {
+            ActivationOperation::Softplus.apply(inputs)
+        })
+    }
+
+    pub fn logsumexp() -> Self {
+        Op::Fn(op_names::LOGSUMEXP, Arity::Exact(2), |inputs: &[F]| {
+            AggregateOperations::LogSumExp.apply(inputs)
+        })
+    }
+}
+
+impl Hash for Op<f32> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name().hash(state);
+        self.arity().hash(state);
+        match self {
+            Op::Var(_, index, domain) => {
+                index.hash(state);
+                domain.hash(state);
+            }
+            Op::Const(_, value) => {
+                value.to_bits().hash(state);
+            }
+            Op::Value(_, _, value, _) => {
+                (*value).data().to_bits().hash(state);
+            }
+            Op::Pair(_, _, value, _) => {
+                let data = (*value).data();
+                let b_one = data.0.to_bits();
+                let b_two = data.1.to_bits();
+                b_one.hash(state);
+                b_two.hash(state);
+            }
+            _ => {}
+        }
+    }
+}
+
+impl Hash for Op<f64> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name().hash(state);
+        self.arity().hash(state);
+        match self {
+            Op::Var(_, index, domain) => {
+                index.hash(state);
+                domain.hash(state);
+            }
+            Op::Const(_, value) => {
+                value.to_bits().hash(state);
+            }
+            Op::Value(_, _, value, _) => {
+                (*value).data().to_bits().hash(state);
+            }
+            Op::Pair(_, _, value, _) => {
+                let data = (*value).data();
+                let b_one = data.0.to_bits();
+                let b_two = data.1.to_bits();
+                b_one.hash(state);
+                b_two.hash(state);
+            }
+            _ => {}
+        }
+    }
+}
 
 // Every math op is defined once, as a function of plain values below. An op's *shape* (how it
 // reads its inputs) then turns that one function into both of its forms:
@@ -346,265 +661,6 @@ impl ActivationOperation {
             ActivationOperation::Swish => summed(inputs, swish),
             ActivationOperation::Softplus => summed(inputs, softplus),
         }
-    }
-}
-
-impl<F: OpFloat> Op<F> {
-    pub fn weight() -> Self {
-        Self::weight_with(random_provider::range(-F::ONE..F::ONE))
-    }
-
-    pub fn weight_with(value: F) -> Self {
-        let supplier = || random_provider::range(-F::ONE..F::ONE);
-
-        let operation = |inputs: &[F], w: &F| weight(inputs[0], *w);
-
-        let modifier = |current: &mut F| {
-            let diff = random_provider::range(-F::ONE..F::ONE) * F::TENTH;
-            *current = clamp(*current + diff);
-        };
-
-        Op::Value(
-            op_names::WEIGHT,
-            1.into(),
-            Param::new(clamp(value), supplier, modifier),
-            operation,
-        )
-    }
-
-    pub fn dot() -> Self {
-        Self::dot_with((F::ONE, F::ONE))
-    }
-
-    pub fn dot_with((a, b): (F, F)) -> Self {
-        let supplier = || {
-            let a = random_provider::range(-F::ONE..F::ONE);
-            let b = random_provider::range(-F::ONE..F::ONE);
-            (a, b)
-        };
-
-        let operation =
-            |inputs: &[F], weight: &(F, F)| dot(inputs[0], inputs[1], weight.0, weight.1);
-
-        let modifier = |current: &mut (F, F)| {
-            let side = random_provider::bool(0.5);
-            let diff = random_provider::range(-F::ONE..F::ONE) * F::TENTH;
-            if side {
-                current.0 = clamp(current.0 + diff);
-            } else {
-                current.1 = clamp(current.1 + diff);
-            }
-        };
-
-        Op::Pair(
-            op_names::DOT,
-            2.into(),
-            Param::new((clamp(a), clamp(b)), supplier, modifier),
-            operation,
-        )
-    }
-
-    /// Ephemeral Random Constant (ERC).
-    pub fn erc() -> Self {
-        let supplier = || random_provider::range(-F::ONE..F::ONE);
-
-        let modifier = |current: &mut F| {
-            let diff = random_provider::range(-F::ONE..F::ONE) * F::TENTH;
-            *current = clamp(*current + diff);
-        };
-
-        Op::Value(
-            op_names::ERC,
-            0.into(),
-            Param::new(clamp(supplier()), supplier, modifier),
-            |_: &[F], w: &F| *w,
-        )
-    }
-
-    pub fn one() -> Self {
-        Op::constant("one", F::ONE)
-    }
-
-    pub fn two() -> Self {
-        Op::constant("two", F::TWO)
-    }
-
-    pub fn three() -> Self {
-        Op::constant("three", F::THREE)
-    }
-
-    pub fn sign() -> Self {
-        Op::Fn(op_names::SIGN, 1.into(), |inputs: &[F]| unary(inputs, sign))
-    }
-
-    pub fn reciprocal() -> Self {
-        Op::Fn(op_names::RECIPROCAL, 1.into(), |inputs: &[F]| {
-            unary(inputs, reciprocal)
-        })
-    }
-
-    pub fn add() -> Self {
-        Op::Fn(op_names::ADD, 2.into(), |inputs: &[F]| binary(inputs, add))
-    }
-
-    pub fn sub() -> Self {
-        Op::Fn(op_names::SUB, 2.into(), |inputs: &[F]| binary(inputs, sub))
-    }
-
-    pub fn mul() -> Self {
-        Op::Fn(op_names::MUL, 2.into(), |inputs: &[F]| binary(inputs, mul))
-    }
-
-    pub fn div() -> Self {
-        Op::Fn(op_names::DIV, 2.into(), |inputs: &[F]| binary(inputs, div))
-    }
-
-    pub fn neg() -> Self {
-        Op::Fn(op_names::NEG, 1.into(), |inputs: &[F]| unary(inputs, neg))
-    }
-
-    pub fn pow() -> Self {
-        Op::Fn(op_names::POW, 2.into(), |inputs: &[F]| binary(inputs, pow))
-    }
-
-    pub fn sqrt() -> Self {
-        Op::Fn(op_names::SQRT, 1.into(), |inputs: &[F]| unary(inputs, sqrt))
-    }
-
-    pub fn abs() -> Self {
-        Op::Fn(op_names::ABS, 1.into(), |inputs: &[F]| unary(inputs, abs))
-    }
-
-    pub fn exp() -> Self {
-        Op::Fn(op_names::EXP, 1.into(), |inputs: &[F]| unary(inputs, exp))
-    }
-
-    pub fn log() -> Self {
-        Op::Fn(op_names::LOG, 1.into(), |inputs: &[F]| unary(inputs, log))
-    }
-
-    pub fn sin() -> Self {
-        Op::Fn(op_names::SIN, 1.into(), |inputs: &[F]| unary(inputs, sin))
-    }
-
-    pub fn cos() -> Self {
-        Op::Fn(op_names::COS, 1.into(), |inputs: &[F]| unary(inputs, cos))
-    }
-
-    pub fn tan() -> Self {
-        Op::Fn(op_names::TAN, 1.into(), |inputs: &[F]| unary(inputs, tan))
-    }
-
-    pub fn ceil() -> Self {
-        Op::Fn(op_names::CEIL, 1.into(), |inputs: &[F]| unary(inputs, ceil))
-    }
-
-    pub fn floor() -> Self {
-        Op::Fn(op_names::FLOOR, 1.into(), |inputs: &[F]| {
-            unary(inputs, floor)
-        })
-    }
-
-    pub fn tooth() -> Self {
-        Op::Fn(op_names::TOOTH, Arity::Any, |inputs: &[F]| {
-            AggregateOperations::Tooth.apply(inputs)
-        })
-    }
-
-    pub fn gaussian() -> Self {
-        Op::Fn(op_names::GAUSSIAN, Arity::Any, |inputs: &[F]| {
-            AggregateOperations::Gaussian.apply(inputs)
-        })
-    }
-
-    pub fn sum() -> Self {
-        Op::Fn(op_names::SUM, Arity::Any, |inputs: &[F]| {
-            AggregateOperations::Sum.apply(inputs)
-        })
-    }
-
-    pub fn diff() -> Self {
-        Op::Fn(op_names::DIFF, Arity::Any, |inputs: &[F]| {
-            AggregateOperations::Diff.apply(inputs)
-        })
-    }
-
-    pub fn prod() -> Self {
-        Op::Fn(op_names::PROD, Arity::Any, |inputs: &[F]| {
-            AggregateOperations::Prod.apply(inputs)
-        })
-    }
-
-    pub fn max() -> Self {
-        Op::Fn(op_names::MAX, Arity::Any, |inputs: &[F]| {
-            AggregateOperations::Max.apply(inputs)
-        })
-    }
-
-    pub fn min() -> Self {
-        Op::Fn(op_names::MIN, Arity::Any, |inputs: &[F]| {
-            AggregateOperations::Min.apply(inputs)
-        })
-    }
-
-    pub fn sigmoid() -> Self {
-        Op::Fn(op_names::SIGMOID, Arity::Any, |inputs: &[F]| {
-            ActivationOperation::Sigmoid.apply(inputs)
-        })
-    }
-
-    pub fn tanh() -> Self {
-        Op::Fn(op_names::TANH, Arity::Any, |inputs: &[F]| {
-            ActivationOperation::Tanh.apply(inputs)
-        })
-    }
-
-    pub fn relu() -> Self {
-        Op::Fn(op_names::RELU, Arity::Any, |inputs: &[F]| {
-            ActivationOperation::ReLU.apply(inputs)
-        })
-    }
-
-    pub fn leaky_relu() -> Self {
-        Op::Fn(op_names::LEAKY_RELU, Arity::Any, |inputs: &[F]| {
-            ActivationOperation::LeakyReLU.apply(inputs)
-        })
-    }
-
-    pub fn elu() -> Self {
-        Op::Fn(op_names::ELU, Arity::Any, |inputs: &[F]| {
-            ActivationOperation::ELU.apply(inputs)
-        })
-    }
-
-    pub fn linear() -> Self {
-        Op::Fn(op_names::LINEAR, Arity::Any, |inputs: &[F]| {
-            ActivationOperation::Linear.apply(inputs)
-        })
-    }
-
-    pub fn mish() -> Self {
-        Op::Fn(op_names::MISH, Arity::Any, |inputs: &[F]| {
-            ActivationOperation::Mish.apply(inputs)
-        })
-    }
-
-    pub fn swish() -> Self {
-        Op::Fn(op_names::SWISH, Arity::Any, |inputs: &[F]| {
-            ActivationOperation::Swish.apply(inputs)
-        })
-    }
-
-    pub fn softplus() -> Self {
-        Op::Fn(op_names::SOFTPLUS, Arity::Any, |inputs: &[F]| {
-            ActivationOperation::Softplus.apply(inputs)
-        })
-    }
-
-    pub fn logsumexp() -> Self {
-        Op::Fn(op_names::LOGSUMEXP, Arity::Exact(2), |inputs: &[F]| {
-            AggregateOperations::LogSumExp.apply(inputs)
-        })
     }
 }
 

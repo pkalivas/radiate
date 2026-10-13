@@ -34,7 +34,6 @@ class Phenotype[T](RsObject):
 
     def __len__(self):
         """
-        Returns the length of the phenotype.
         :return: Length of the phenotype.
         """
         return len(self.__backend__().genotype)
@@ -47,7 +46,6 @@ class Phenotype[T](RsObject):
 
     def gene_type(self) -> "GeneType":
         """
-        Returns the type of the genes in the phenotype.
         :return: The gene type as a string.
         """
         from . import GeneType
@@ -56,21 +54,30 @@ class Phenotype[T](RsObject):
 
     def id(self) -> int:
         """
-        Returns the unique identifier of the phenotype.
         :return: The unique identifier of the phenotype.
         """
         return self.__backend__().id
 
+    def generation(self) -> int:
+        """
+        :return: The generation of the phenotype.
+        """
+        return self.__backend__().generation
+
+    def species(self) -> int:
+        """
+        :return: The species of the phenotype.
+        """
+        return self.__backend__().species
+
     def score(self) -> list[float]:
         """
-        Returns the score of the phenotype.
         :return: The score of the phenotype.
         """
         return self.try_get_cache("score_cache", lambda: self.__backend__().score)
 
     def genotype(self) -> Genotype[T]:
         """
-        Returns the genotype of the phenotype.
         :return: The genotype of the phenotype.
         """
         return self.try_get_cache(

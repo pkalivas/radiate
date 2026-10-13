@@ -18,9 +18,8 @@ features, labels = rd.DataSet.cubic().pair()
 engine = (
     rd.Engine.tree(
         shape=(1, 1),
-        leaf=[rd.Op.var(0), rd.Op.erc()],
-        vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.add(), rd.Op.dot()],
-        root=rd.Op.linear(),
+        vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.add()],
+        root=rd.Op.sum(),
     )
     .regression(features, labels)
     .alter(rd.Cross.tree(0.7), rd.Mutate.op())
@@ -36,3 +35,5 @@ accuracy = np.mean(
 
 print(result)
 print(f"Accuracy within 0.1: {accuracy * 100:.2f}%")
+
+print(result.value().format())

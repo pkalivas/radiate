@@ -27,12 +27,13 @@ engine = (
         # specify the shape of the graph: (num_inputs, num_outputs)
         shape=(1, 1),
         # all vertex nodes will pick a random Op<T> from the below list.
-        vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+        vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.sum()],
         # all edge nodes will use this operation - can be a list too
         edge=rd.Op.weight(),
         # specify the dtype of the underlying graph node's Op's dtype T (Op<T>) -
         # input data (x, y) must match this dtype - notice how
         # line 32 specifies the np dtype when computing the fitness.
+        # output=[rd.Op.linear()],
         dtype=rd.Float32,
     )
     # .fitness(fit)
@@ -51,7 +52,7 @@ engine = (
 )
 
 
-result = engine.run(log=True)
+result = engine.run(ui=True)
 
 eval_results = result.value().eval(x)
 accuracy = rd.accuracy(result.value(), x, y, loss=rd.MSE)

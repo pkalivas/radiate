@@ -1,5 +1,5 @@
 use crate::{
-    PyAnyObject, PyNoveltySearch, Wrap,
+    PyAnyObject, PyEngineInput, PyNoveltySearch, Wrap,
     bindings::datatype::{FloatMatrixPair, extract_regression_pair},
 };
 use pyo3::{
@@ -91,20 +91,20 @@ impl PyFitnessFn {
     pub fn novelty_search<'py>(
         py: Python<'py>,
         descriptor: Py<PyAny>,
-        distance_fn: String,
+        distance_fn: PyEngineInput,
         k: usize,
         threshold: f32,
         archive_size: usize,
         is_batch: bool,
-    ) -> Self {
-        let search = PyNoveltySearch::new(descriptor, k, threshold, archive_size, distance_fn);
-        PyFitnessFn {
+    ) -> PyResult<Self> {
+        let search = PyNoveltySearch::new(descriptor, k, threshold, archive_size, distance_fn)?;
+        Ok(PyFitnessFn {
             inner: PyFitnessInner::NoveltySearch(
                 PyAnyObject {
-                    inner: search.into_py_any(py).unwrap(),
+                    inner: search.into_py_any(py)?,
                 },
                 is_batch,
             ),
-        }
+        })
     }
 }

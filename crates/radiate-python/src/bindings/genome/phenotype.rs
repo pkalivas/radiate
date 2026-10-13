@@ -15,7 +15,11 @@ pub struct PyPhenotype {
     #[pyo3(get)]
     pub(crate) score: Vec<f32>,
     #[pyo3(get)]
+    pub(crate) generation: usize,
+    #[pyo3(get)]
     pub(crate) id: u64,
+    #[pyo3(get)]
+    pub(crate) species: u64,
 }
 
 #[pymethods]
@@ -27,6 +31,8 @@ impl PyPhenotype {
             genotype,
             score: score.unwrap_or_default(),
             id: id.unwrap_or(PhenotypeId::new().into()),
+            generation: 0,
+            species: 0,
         }
     }
 
@@ -78,14 +84,20 @@ macro_rules! impl_from_py_phenotype {
         where
             $chromosome: Chromosome + Clone,
         {
-            fn from(phenotype: Phenotype<$chromosome>) -> Self {
+            fn from(mut phenotype: Phenotype<$chromosome>) -> Self {
+                let score = phenotype
+                    .score()
+                    .map(|score| score.as_ref().to_vec())
+                    .unwrap_or_default();
+                let id = phenotype.id().into();
+                let generation = phenotype.generation();
+                let species = phenotype.species().into();
                 PyPhenotype {
-                    genotype: PyGenotype::from(phenotype.genotype().clone()),
-                    score: phenotype
-                        .score()
-                        .map(|score| score.as_ref().to_vec())
-                        .unwrap_or_default(),
-                    id: phenotype.id().into(),
+                    genotype: PyGenotype::from(phenotype.take_genotype().unwrap()),
+                    score,
+                    id,
+                    generation,
+                    species,
                 }
             }
         }
@@ -95,7 +107,10 @@ macro_rules! impl_from_py_phenotype {
             $chromosome: Chromosome + Clone,
         {
             fn from(py_phenotype: PyPhenotype) -> Self {
-                let mut result = Phenotype::from((Genotype::from(py_phenotype.genotype), 0));
+                let mut result = Phenotype::from((
+                    Genotype::from(py_phenotype.genotype),
+                    py_phenotype.generation,
+                ));
 
                 if !py_phenotype.score.is_empty() {
                     result.set_score(Some(py_phenotype.score.into()));

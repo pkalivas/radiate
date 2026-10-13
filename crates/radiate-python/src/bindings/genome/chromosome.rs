@@ -1,4 +1,4 @@
-use crate::{PyGene, PyGeneType, Wrap, dtype};
+use crate::{PyGene, PyGeneType, Wrap};
 use pyo3::{
     Bound, IntoPyObject, PyAny, PyResult, Python,
     exceptions::{PyIndexError, PyTypeError, PyValueError},
@@ -61,8 +61,9 @@ pub(crate) enum ChromosomeInner {
     Float64(FloatChromosome<f64>),
 
     Bit(BitChromosome),
-    Char(CharChromosome),
     PackedBit(PackedBitChromosome),
+
+    Char(CharChromosome),
 
     Permutation(PermutationChromosome<usize>),
 
@@ -314,7 +315,7 @@ impl PyChromosome {
             ChromosomeInner::Float64(_) => PyGeneType::Float,
 
             ChromosomeInner::Bit(_) => PyGeneType::Bit,
-            ChromosomeInner::PackedBit(_) => PyGeneType::Bit,
+            ChromosomeInner::PackedBit(_) => PyGeneType::PackedBit,
             ChromosomeInner::Char(_) => PyGeneType::Char,
 
             ChromosomeInner::Permutation(_) => PyGeneType::Permutation,
@@ -351,16 +352,16 @@ impl PyChromosome {
             ChromosomeInner::Float64(_) => DataType::Float64,
 
             ChromosomeInner::Bit(_) => DataType::Boolean,
-            ChromosomeInner::PackedBit(_) => DataType::Boolean,
+            ChromosomeInner::PackedBit(_) => DataType::UInt64,
             ChromosomeInner::Char(_) => DataType::Char,
 
             ChromosomeInner::Permutation(_) => DataType::Usize,
 
-            ChromosomeInner::Graph32(_) => dtype::graph_node_dtype(DataType::Float32),
-            ChromosomeInner::Graph64(_) => dtype::graph_node_dtype(DataType::Float64),
+            ChromosomeInner::Graph32(_) => DataType::Float32,
+            ChromosomeInner::Graph64(_) => DataType::Float64,
 
-            ChromosomeInner::Tree32(_) => dtype::tree_node_dtype(DataType::Float32),
-            ChromosomeInner::Tree64(_) => dtype::tree_node_dtype(DataType::Float64),
+            ChromosomeInner::Tree32(_) => DataType::Float32,
+            ChromosomeInner::Tree64(_) => DataType::Float64,
         }
     }
 }

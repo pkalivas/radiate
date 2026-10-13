@@ -2,12 +2,9 @@ use crate::{
     EngineHandle, EpochHandle, PyGeneration, bindings::handles::EngineIterHandle, match_variant,
 };
 use pyo3::{PyRefMut, PyResult, Python, pyclass, pymethods};
-use radiate::{
-    Chromosome, Engine, EngineRuntime, EvolutionContext, Generation, GeneticEngine, Limit,
-};
+use radiate::{Chromosome, Generation, GeneticEngine, Limit};
 use radiate_error::{radiate_py_bail, radiate_py_err};
 use serde::Serialize;
-use std::time::Duration;
 
 const ENGINE_ALREADY_RUN_ERROR_STRING: &str =
     "Engine has already been run. Create a new engine instance to run again.";
@@ -18,26 +15,6 @@ const BUILD_ENGINE_WITH_LIMIT_ERROR_STRING: &str = "Engine must be built with at
         .fitness(my_fitness_fn)
         .limit(rd.Limit.generation(100)) # <- Must have at least one limit
     )";
-
-#[pyclass(from_py_object)]
-#[derive(Clone)]
-pub enum PyEngineRunOption {
-    Log(bool),
-    Ui(Duration),
-}
-
-#[pymethods]
-impl PyEngineRunOption {
-    #[staticmethod]
-    pub fn log(value: bool) -> Self {
-        PyEngineRunOption::Log(value)
-    }
-
-    #[staticmethod]
-    pub fn ui() -> Self {
-        PyEngineRunOption::Ui(radiate::DEFAULT_RENDER_INTERVAL)
-    }
-}
 
 #[pyclass(unsendable)]
 pub struct PyEngine {
@@ -84,7 +61,7 @@ impl PyEngine {
         })
     }
 
-    pub fn run(&mut self, py: Python, options: Vec<PyEngineRunOption>) -> PyResult<PyGeneration> {
+    pub fn run(&mut self, py: Python, log: bool, ui: bool) -> PyResult<PyGeneration> {
         let handle = self
             .engine
             .take()
@@ -96,7 +73,7 @@ impl PyEngine {
 
         py.detach(|| {
             let limits = self.limits.clone();
-            let epoch = match_variant!(EngineHandle, handle, engine => run_engine(engine, limits, options)?.into());
+            let epoch = match_variant!(EngineHandle, handle, engine => run_engine(engine, limits, log, ui)?.into());
             Ok(PyGeneration::new(epoch))
         })
     }
@@ -105,70 +82,23 @@ impl PyEngine {
 fn run_engine<C, T>(
     engine: GeneticEngine<C, T>,
     limits: Vec<Limit>,
-    options: Vec<PyEngineRunOption>,
+    log: bool,
+    ui: bool,
 ) -> PyResult<Generation<C, T>>
 where
     C: Chromosome + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,
     Generation<C, T>: Serialize + Into<EpochHandle>,
 {
-    let ui_interval = get_ui_option(&options);
-    if let Some(interval) = ui_interval {
-        iter_engine(
-            radiate::ui((engine, interval)).iter().listen(),
-            limits,
-            options,
-        )
+    let result = if ui {
+        radiate::ui(engine).iter().limit(limits).last()
     } else {
-        iter_engine(engine.iter(), limits, options)
-    }
-}
+        engine
+            .iter()
+            .chain_if(log, |eng| eng.logging())
+            .limit(limits)
+            .last()
+    };
 
-fn iter_engine<E, C, T>(
-    engine: EngineRuntime<E>,
-    limits: Vec<Limit>,
-    options: Vec<PyEngineRunOption>,
-) -> PyResult<Generation<C, T>>
-where
-    E: Engine<Epoch = Generation<C, T>, Ctx = EvolutionContext<C, T>> + 'static,
-    E::Epoch: Serialize + Into<EpochHandle>,
-    C: Chromosome + Clone + Serialize + 'static,
-    T: Clone + Send + Sync + Serialize + 'static,
-{
-    let log = get_log_option(&options);
-
-    engine
-        .chain_if(log.unwrap_or(false), |eng| eng.logging())
-        .limit(limits)
-        .last()
-        .map_err(|err| radiate_py_err!(format!("Engine failed during execution: {err}")))
-}
-
-fn get_log_option(options: &[PyEngineRunOption]) -> Option<bool> {
-    let ui = get_ui_option(options);
-    let log = options
-        .iter()
-        .find(|opt| matches!(opt, PyEngineRunOption::Log(_)))
-        .and_then(|opt| {
-            if let PyEngineRunOption::Log(val) = opt {
-                Some(*val)
-            } else {
-                None
-            }
-        });
-
-    if ui.is_some() { Some(false) } else { log }
-}
-
-fn get_ui_option(options: &[PyEngineRunOption]) -> Option<Duration> {
-    options
-        .iter()
-        .find(|opt| matches!(opt, PyEngineRunOption::Ui(_)))
-        .and_then(|opt| {
-            if let PyEngineRunOption::Ui(interval) = opt {
-                Some(*interval)
-            } else {
-                None
-            }
-        })
+    result.map_err(|err| radiate_py_err!(format!("Engine failed during execution: {err}")))
 }

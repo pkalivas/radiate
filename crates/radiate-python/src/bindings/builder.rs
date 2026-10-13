@@ -183,12 +183,13 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_many_typed(|typed_builder, inputs| {
-                let filters = inputs
-                    .iter()
-                    .map(PyEngineInput::convert)
-                    .collect::<RadiateResult<Vec<_>>>()
-                    .context("Failed to transform filter input")?;
-                Ok(typed_builder.filters(filters))
+                Ok(typed_builder.filters(
+                    inputs
+                        .iter()
+                        .map(PyEngineInput::convert)
+                        .collect::<RadiateResult<Vec<_>>>()
+                        .context("Failed to transform filter input")?,
+                ))
             })
         )
     }
@@ -425,12 +426,13 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_many_typed(|typed_builder, alter_inputs| {
-                let alters = alter_inputs
-                    .iter()
-                    .map(PyEngineInput::convert)
-                    .collect::<RadiateResult<Vec<_>>>()
-                    .context("Failed to transform alterer input")?;
-                Ok(typed_builder.alter(alters))
+                Ok(typed_builder.alter(
+                    alter_inputs
+                        .iter()
+                        .map(PyEngineInput::convert)
+                        .collect::<RadiateResult<Vec<_>>>()
+                        .context("Failed to transform alterer input")?,
+                ))
             })
         )
     }
@@ -443,11 +445,11 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let diversity = input
-                    .convert()
-                    .context("Failed to transform diversity input")?;
-
-                Ok(typed_builder.boxed_diversity(Some(diversity)))
+                Ok(typed_builder.boxed_diversity(Some(
+                    input
+                        .convert()
+                        .context("Failed to transform diversity input")?,
+                )))
             })
         )
     }

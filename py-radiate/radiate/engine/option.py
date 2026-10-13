@@ -2,27 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from radiate.radiate import PyEngineRunOption
-
-from .._bridge import RsObject
 from .._typing import Checkpoint, FileType
-
-
-class RunParam(RsObject):
-    def __init__(self, option: PyEngineRunOption):
-        super().__init__(option)
-
-
-class LogParam(RunParam):
-    def __init__(self, enable: bool = False):
-        option = PyEngineRunOption.log(enable)
-        super().__init__(option)
-
-
-class UiParam(RunParam):
-    def __init__(self):
-        option = PyEngineRunOption.ui()
-        super().__init__(option)
 
 
 class CheckpointParam:

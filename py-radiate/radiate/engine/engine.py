@@ -41,7 +41,6 @@ from ..operators.limit import Limit
 from ..operators.selector import Select
 from .builder import EngineBuilder
 from .generation import Generation
-from .option import LogParam, UiParam
 
 if TYPE_CHECKING:
     from radiate._rd import PyEngine
@@ -69,18 +68,7 @@ class EngineRuntime[G, T]:
         ui: bool = False,
     ) -> Generation[G, T]:
         """Run the engine and return the resulting generation."""
-        log_option = LogParam(enable=log)
-        ui_option = UiParam() if ui else None
-
-        return Generation.from_rust(
-            self._engine.run(
-                [
-                    opt.__backend__()
-                    for opt in [log_option, ui_option]
-                    if opt is not None
-                ]
-            )
-        )
+        return Generation.from_rust(self._engine.run(log, ui))
 
 
 class Engine[G, T]:

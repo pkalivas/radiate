@@ -61,12 +61,10 @@ from .engine import (
     Front,
     FrontValue,
     Generation,
-    LogParam,
     Metric,
     MetricCollector,
     MetricSet,
     Tag,
-    UiParam,
     on_checkpoint_saved,
     on_epoch,
     on_event,
@@ -192,9 +190,7 @@ __all__ = [
     "Metric",
     "Tag",
     # Options
-    "LogParam",
     "CheckpointParam",
-    "UiParam",
     # Dtype
     "UInt8",
     "UInt16",

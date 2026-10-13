@@ -132,11 +132,11 @@ impl PyGene {
             GeneInner::Char(_) => DataType::Char,
             GeneInner::Permutation(_) => DataType::UInt64,
 
-            GeneInner::GraphNode32(_) => dtype::graph_node_dtype(DataType::Float32),
-            GeneInner::GraphNode64(_) => dtype::graph_node_dtype(DataType::Float64),
+            GeneInner::GraphNode32(_) => DataType::Float32,
+            GeneInner::GraphNode64(_) => DataType::Float64,
 
-            GeneInner::TreeNode32(_) => dtype::tree_node_dtype(DataType::Float32),
-            GeneInner::TreeNode64(_) => dtype::tree_node_dtype(DataType::Float64),
+            GeneInner::TreeNode32(_) => DataType::Float32,
+            GeneInner::TreeNode64(_) => DataType::Float64,
         };
 
         Wrap(dtype).into_pyobject(py)

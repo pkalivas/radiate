@@ -85,7 +85,9 @@ macro_rules! impl_into_py_population {
                                 .score()
                                 .map(|score| score.as_ref().to_vec())
                                 .unwrap_or_default(),
+                            generation: phenotype.generation(),
                             id: phenotype.id().into(),
+                            species: phenotype.species().into(),
                         })
                         .collect(),
                 }

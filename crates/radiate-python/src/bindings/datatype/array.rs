@@ -77,13 +77,6 @@ where
         let cols = shape[1];
 
         return Ok(Matrix::from(array.as_slice()?.to_vec()).reshape(rows, cols));
-
-        // let mut matrix = Matrix::empty();
-        // for i in 0..rows {
-        //     matrix.append_row(array.as_array().slice(s![i, ..]).to_vec());
-        // }
-
-        // return Ok(matrix);
     } else if let Ok(py_list) = obj.cast::<pyo3::types::PyList>() {
         let mut matrix = Matrix::empty();
         for item in py_list.try_iter()? {
@@ -101,7 +94,8 @@ where
     }
 
     Err(pyo3::exceptions::PyTypeError::new_err(format!(
-        "Input must be either a 2D NumPy array or a list of lists but found: {:?}",
+        "Input must be either a 2D NumPy array or a list of lists but found: {:?}\n
+         Please ensure your input is correctly formatted and your DataType is correct.",
         obj
     )))
 }

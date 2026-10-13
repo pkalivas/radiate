@@ -21,16 +21,22 @@ class OpBuilder:
     def __init__(self, dtype: RdDataType, **kwargs):
         self.dtype = dtype
         self.ops = {}
+        self._seen = {key: set() for key in kwargs}
 
         for key, op in kwargs.items():
             if op is not None:
                 if isinstance(op, Op):
                     op._dtype = dtype
                     self.ops[key] = [op]
+                    self._seen[key].add(op.name())
                 elif isinstance(op, (list, tuple)):
+                    values = self.ops.get(key, [])
                     for o in op:
                         o._dtype = dtype
-                    self.ops[key] = list(op)
+                        if o.name() not in self._seen[key]:
+                            values.append(o)
+                            self._seen[key].add(o.name())
+                    self.ops[key] = values
 
 
 class Op(LazyRsObject):
@@ -43,6 +49,12 @@ class Op(LazyRsObject):
         self._name = name
         self._dtype = dtype if dtype is not None else Float64
         self._args = kwargs
+
+    def __repr__(self) -> str:
+        return self.__backend__().__repr__()
+
+    def __hash__(self) -> int:
+        return hash((self._name, self._dtype, frozenset(self._args.items())))
 
     def _initialize(self) -> Callable[[], Any]:
         def build():

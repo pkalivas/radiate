@@ -124,6 +124,7 @@ where
                                 new_node.set_innovation(node.innovation());
                                 new_node
                             })
+                            .or_else(|| Some(node.clone()))
                     })
                     .collect(),
                 store: Some(store),

@@ -142,13 +142,10 @@ class Fitness[T](EngineInput):
         descriptor = _setup_descriptor(descriptor, distance)
         distance_fn = _setup_distance(distance)
 
-        if distance_fn.component is None:
-            raise ValueError("Distance function must be provided for novelty search.")
-
         return Fitness(
             FitnessType.NOVELTY,
             fitness=PyFitnessFn.novelty_search(
-                distance_fn=distance_fn.component,
+                distance_fn=distance_fn.__backend__(),
                 descriptor=descriptor,
                 k=k,
                 threshold=threshold,

@@ -1,10 +1,11 @@
-use crate::{PyEngineInput, PyEngineInputType, PyGeneType, PyPopulation};
-use pyo3::{PyResult, pyfunction};
+use crate::{PyEngineInput, PyEngineInputType, PyGeneType, PyPopulation, Wrap};
+use pyo3::{PyResult, Python, pyfunction, types::PyAnyMethods};
 use radiate::prelude::*;
 use radiate_error::{radiate_py_bail, radiate_py_err};
 
 #[pyfunction]
-pub fn py_select(
+pub fn py_select<'py>(
+    py: Python<'py>,
     selector: PyEngineInput,
     objective: PyEngineInput,
     count: usize,
@@ -20,19 +21,81 @@ pub fn py_select(
         )));
     }
 
+    let dtype = population.dtype(py)?.extract::<Wrap<DataType>>()?;
+
     match population.gene_type() {
-        PyGeneType::Float => select_population::<FloatChromosome<f64>>(
-            population.into(),
-            objective,
-            count,
-            selector.convert()?,
-        ),
-        PyGeneType::Int => select_population::<IntChromosome<i64>>(
-            population.into(),
-            objective,
-            count,
-            selector.convert()?,
-        ),
+        PyGeneType::Float => match dtype.0 {
+            DataType::Float32 => select_population::<FloatChromosome<f32>>(
+                population.into(),
+                objective,
+                count,
+                selector.convert()?,
+            ),
+            DataType::Float64 => select_population::<FloatChromosome<f64>>(
+                population.into(),
+                objective,
+                count,
+                selector.convert()?,
+            ),
+            _ => Err(radiate_py_err!(format!(
+                "Unsupported data type for Float gene type: {:?}",
+                dtype.0
+            ))),
+        },
+        PyGeneType::Int => match dtype.0 {
+            DataType::UInt8 => select_population::<IntChromosome<u8>>(
+                population.into(),
+                objective,
+                count,
+                selector.convert()?,
+            ),
+            DataType::UInt16 => select_population::<IntChromosome<u16>>(
+                population.into(),
+                objective,
+                count,
+                selector.convert()?,
+            ),
+            DataType::UInt32 => select_population::<IntChromosome<u32>>(
+                population.into(),
+                objective,
+                count,
+                selector.convert()?,
+            ),
+            DataType::UInt64 => select_population::<IntChromosome<u64>>(
+                population.into(),
+                objective,
+                count,
+                selector.convert()?,
+            ),
+            DataType::Int8 => select_population::<IntChromosome<i8>>(
+                population.into(),
+                objective,
+                count,
+                selector.convert()?,
+            ),
+            DataType::Int16 => select_population::<IntChromosome<i16>>(
+                population.into(),
+                objective,
+                count,
+                selector.convert()?,
+            ),
+            DataType::Int32 => select_population::<IntChromosome<i32>>(
+                population.into(),
+                objective,
+                count,
+                selector.convert()?,
+            ),
+            DataType::Int64 => select_population::<IntChromosome<i64>>(
+                population.into(),
+                objective,
+                count,
+                selector.convert()?,
+            ),
+            _ => Err(radiate_py_err!(format!(
+                "Unsupported data type for Int gene type: {:?}",
+                dtype.0
+            ))),
+        },
         PyGeneType::Char => select_population::<CharChromosome>(
             population.into(),
             objective,
@@ -51,18 +114,42 @@ pub fn py_select(
             count,
             selector.convert()?,
         ),
-        PyGeneType::GraphNode => select_population::<GraphChromosome<Op<f64>>>(
-            population.into(),
-            objective,
-            count,
-            selector.convert()?,
-        ),
-        PyGeneType::TreeNode => select_population::<TreeChromosome<Op<f64>>>(
-            population.into(),
-            objective,
-            count,
-            selector.convert()?,
-        ),
+        PyGeneType::GraphNode => match dtype.0 {
+            DataType::Float32 => select_population::<GraphChromosome<Op<f32>>>(
+                population.into(),
+                objective,
+                count,
+                selector.convert()?,
+            ),
+            DataType::Float64 => select_population::<GraphChromosome<Op<f64>>>(
+                population.into(),
+                objective,
+                count,
+                selector.convert()?,
+            ),
+            _ => Err(radiate_py_err!(format!(
+                "Unsupported data type for GraphNode gene type: {:?}",
+                dtype.0
+            ))),
+        },
+        PyGeneType::TreeNode => match dtype.0 {
+            DataType::Float32 => select_population::<TreeChromosome<Op<f32>>>(
+                population.into(),
+                objective,
+                count,
+                selector.convert()?,
+            ),
+            DataType::Float64 => select_population::<TreeChromosome<Op<f64>>>(
+                population.into(),
+                objective,
+                count,
+                selector.convert()?,
+            ),
+            _ => Err(radiate_py_err!(format!(
+                "Unsupported data type for TreeNode gene type: {:?}",
+                dtype.0
+            ))),
+        },
         _ => Err(radiate_py_err!(format!(
             "Gene type {:?} not supported for selection",
             population.gene_type()

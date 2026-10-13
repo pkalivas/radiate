@@ -34,8 +34,8 @@ pub trait FromPyEngineInput: Sized {
 }
 
 pub struct Registry<O: 'static> {
-    kind: &'static str,
-    entries: &'static [(&'static str, fn(&PyEngineInput) -> RadiateResult<O>)],
+    pub(crate) kind: &'static str,
+    pub(crate) entries: &'static [(&'static str, fn(&PyEngineInput) -> RadiateResult<O>)],
 }
 
 impl<O> Registry<O> {

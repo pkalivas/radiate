@@ -44,7 +44,7 @@ pub fn _edge_ops(dtype: &str) -> PyResult<Vec<PyOp>> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Hash)]
 pub enum PyOpInner {
     F32(Op<f32>),
     F64(Op<f64>),
@@ -81,7 +81,7 @@ impl From<Op<f64>> for PyOp {
 }
 
 #[pyclass(from_py_object)]
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Hash)]
 pub struct PyOp(pub PyOpInner);
 
 #[pymethods]
@@ -104,6 +104,13 @@ impl PyOp {
             Arity::Zero => Ok(intern!(py, "Zero").to_string()),
             Arity::Exact(n) => Ok(radiate_utils::intern!(format!("Exact({:?})", n)).to_string()),
             Arity::Any => Ok(intern!(py, "Any").to_string()),
+        }
+    }
+
+    pub fn __repr__(&self) -> String {
+        match &self.0 {
+            PyOpInner::F32(op) => format!("{:?}", op),
+            PyOpInner::F64(op) => format!("{:?}", op),
         }
     }
 
