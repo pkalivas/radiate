@@ -33,9 +33,11 @@ pub trait FromPyEngineInput: Sized {
     fn from_input(input: &PyEngineInput) -> RadiateResult<Self>;
 }
 
+type RegisteryEntries<O> = &'static [(&'static str, fn(&PyEngineInput) -> RadiateResult<O>)];
+
 pub struct Registry<O: 'static> {
     pub(crate) kind: &'static str,
-    pub(crate) entries: &'static [(&'static str, fn(&PyEngineInput) -> RadiateResult<O>)],
+    pub(crate) entries: RegisteryEntries<O>,
 }
 
 impl<O> Registry<O> {
@@ -71,7 +73,7 @@ macro_rules! impl_from_input {
     ($chrom:ty, alterers: $alters:expr, distances: $dists:expr) => {
         impl FromPyEngineInput for radiate::Alterer<$chrom> {
             fn from_input(input: &PyEngineInput) -> RadiateResult<Self> {
-                input.expect_type(crate::PyEngineInputType::Alterer)?;
+                input.expect_type($crate::PyEngineInputType::Alterer)?;
                 $alters.convert(input)
             }
         }
@@ -80,7 +82,7 @@ macro_rules! impl_from_input {
             for Box<dyn radiate::distance::Distance<radiate::Phenotype<$chrom>>>
         {
             fn from_input(input: &PyEngineInput) -> RadiateResult<Self> {
-                input.expect_type(crate::PyEngineInputType::Diversity)?;
+                input.expect_type($crate::PyEngineInputType::Diversity)?;
                 $dists.convert(input)
             }
         }
