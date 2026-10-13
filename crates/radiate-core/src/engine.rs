@@ -37,7 +37,7 @@ pub enum EngineState {
 /// # Examples
 ///
 /// ```rust
-/// use radiate_core::engine::{Engine, EngineExt, EngineState};
+/// use radiate_core::engine::{Engine, EngineState};
 /// use radiate_error::RadiateError;
 ///
 /// #[derive(Default)]
@@ -82,7 +82,8 @@ pub enum EngineState {
 ///
 /// // Use the engine with a termination condition
 /// let mut engine = MyEngine::default();
-/// let final_epoch = engine.run(|epoch| epoch.generation >= 10);
+/// let step_result = engine.step().unwrap();
+/// let final_epoch = engine.epoch();
 /// println!("Final generation: {}", final_epoch.generation);
 /// ```
 ///

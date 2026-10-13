@@ -30,7 +30,7 @@ fn main() -> RadiateResult<()> {
         Leaf => Op::vars(0..INPUTS)
     };
 
-    let codec = TreeCodec::single(2, set).constraint(|node| node.size() < 50);
+    let codec = TreeCodec::single(2, set).max_size(50);
 
     let engine = GeneticEngine::builder()
         .codec(codec)

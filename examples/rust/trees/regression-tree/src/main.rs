@@ -13,7 +13,7 @@ fn main() -> RadiateResult<()> {
     ];
 
     let engine = GeneticEngine::builder()
-        .codec(TreeCodec::single(3, set).constraint(|root| root.size() < 30))
+        .codec(TreeCodec::single(3, set).max_size(30))
         .fitness_fn(Regression::new(data, Loss::MSE))
         .minimizing()
         .mutator(HoistMutator::new(0.01))

@@ -161,7 +161,6 @@ mod tests {
     use crate::node::Node;
     use crate::{NodeSet, NodeType, Op, TreeNode};
     use radiate_core::alter::AlterUpdates;
-    use std::sync::Arc;
 
     fn store() -> NodeSet<Op<f32>> {
         vec![
@@ -178,10 +177,7 @@ mod tests {
     /// A random tree of `depth`, optionally constrained to at most `max_size` nodes.
     fn chromosome(depth: usize, max_size: Option<usize>) -> TreeChromosome<Op<f32>> {
         let root = Tree::with_depth(depth, store()).take_root().unwrap();
-        let constraint = max_size
-            .map(|max| Arc::new(move |node: &TreeNode<Op<f32>>| node.size() <= max) as Arc<_>);
-
-        TreeChromosome::new(vec![root], Some(store()), constraint)
+        TreeChromosome::new(vec![root], Some(store()), max_size.map(|m| m as u32))
     }
 
     /// Mutates `chromosome` `times` times at `rate`, returning (applied, rejected).

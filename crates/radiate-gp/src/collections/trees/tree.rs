@@ -30,7 +30,7 @@ use std::{fmt::Debug, hash::Hash};
 ///                 .attach(TreeNode::new(Op::constant("one", 1.0)))
 ///                 .attach(TreeNode::new(Op::constant("two", 2.0)))
 ///         )
-///         .attach(TreeNode::new(Op::constant(3.0)))
+///         .attach(TreeNode::new(Op::constant("three", 3.0)))
 /// );
 ///
 /// // Evaluate the tree

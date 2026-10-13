@@ -93,8 +93,8 @@ use std::{fmt::Debug, hash::Hash};
 /// use radiate_gp::{Op, Eval, TreeNode};
 ///
 /// let tree = TreeNode::new(Op::add())
-///     .attach(TreeNode::new(Op::constant(2.0)))
-///     .attach(TreeNode::new(Op::constant(3.0)));
+///     .attach(TreeNode::new(Op::constant("two", 2.0)))
+///     .attach(TreeNode::new(Op::constant("three", 3.0)));
 ///
 /// let result = tree.eval(&[]); // Evaluates to 5.0
 /// ```
@@ -172,6 +172,19 @@ impl<T> TreeNode<T> {
 
     pub fn take_children(&mut self) -> Option<Vec<TreeNode<T>>> {
         self.children.take()
+    }
+
+    pub fn arity_matches_children(&self) -> bool {
+        match self.arity() {
+            Arity::Zero => return self.children.is_none(),
+            Arity::Exact(n) => {
+                if self.children.is_none() || self.children.as_ref().unwrap().len() != n {
+                    return false;
+                }
+            }
+            Arity::Any => {}
+        }
+        true
     }
 
     #[inline]
@@ -303,14 +316,8 @@ where
 impl<T> Valid for TreeNode<T> {
     fn is_valid(&self) -> bool {
         for node in self.iter_breadth_first() {
-            match node.arity() {
-                Arity::Zero => return node.children.is_none(),
-                Arity::Exact(n) => {
-                    if node.children.is_none() || node.children.as_ref().unwrap().len() != n {
-                        return false;
-                    }
-                }
-                Arity::Any => {}
+            if !node.arity_matches_children() {
+                return false;
             }
         }
 

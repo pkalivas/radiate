@@ -94,7 +94,7 @@ pub enum Step {
 #[derive(Default, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct GraphPlan {
-    // Row
+    // Row wise plan
     order: Vec<usize>,
     input_ranges: Vec<(u32, u32)>,
     output_indices: Vec<usize>,

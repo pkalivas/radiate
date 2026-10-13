@@ -32,10 +32,10 @@ use std::{fmt::Debug, hash::Hash};
 /// # Examples
 /// ```
 /// use radiate_gp::collections::graphs::{GraphChromosome, GraphNode, Graph};
-/// use radiate_gp::{NodeStore, node_store, NodeType};
+/// use radiate_gp::{NodeSet, node_set, NodeType};
 ///
 /// // Create a new chromosome with some nodes
-///let store = node_store! {
+///let store = node_set! {
 ///     Input => vec![1, 2, 3],
 ///     Output => vec![4, 5, 6],
 ///     Edge => vec![7, 8, 9],

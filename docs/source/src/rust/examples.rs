@@ -244,7 +244,7 @@ fn tree() {
         (NodeType::Leaf, vec![Op::var(0)]),
     ];
 
-    let tree_codec = TreeCodec::single(3, store).constraint(|root| root.size() < 30);
+    let tree_codec = TreeCodec::single(3, store).max_size(30);
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::builder()

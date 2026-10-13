@@ -116,6 +116,5 @@ where
         }
     }
 
-    TreeCodec::multi_root(min_depth, output_size, values)
-        .constraint(move |node| node.size() <= max_size)
+    TreeCodec::multi_root(min_depth, output_size, values).max_size(max_size as u32)
 }

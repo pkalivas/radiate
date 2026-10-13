@@ -28,7 +28,7 @@ fn main() -> RadiateResult<()> {
             .collect::<Vec<_>>()
     };
 
-    let codec = TreeCodec::single(MIN_TREE_DEPTH, set).constraint(|node| node.size() < 40);
+    let codec = TreeCodec::single(MIN_TREE_DEPTH, set).max_size(40);
 
     let engine = GeneticEngine::builder()
         .codec(codec)

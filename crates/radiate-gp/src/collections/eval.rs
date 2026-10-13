@@ -13,12 +13,12 @@
 /// let root = TreeNode::new(Op::add())
 ///     .attach(
 ///         TreeNode::new(Op::mul())
-///             .attach(TreeNode::new(Op::constant(2.0)))
-///             .attach(TreeNode::new(Op::constant(3.0))),
+///             .attach(TreeNode::new(Op::constant("two", 2.0)))
+///             .attach(TreeNode::new(Op::constant("three", 3.0))),
 ///     )
 ///     .attach(
 ///         TreeNode::new(Op::add())
-///             .attach(TreeNode::new(Op::constant(2.0)))
+///             .attach(TreeNode::new(Op::constant("two", 2.0)))
 ///             .attach(TreeNode::new(Op::var(0))),
 ///     );
 ///
@@ -70,7 +70,7 @@ where
 ///
 /// // Create a simple graph that adds two inputs together
 /// // This is functionaly equivalent to f(x, y) = x + y
-/// let store = node_store! {
+/// let store = node_set! {
 ///     Input => vec![Op::var(0), Op::var(1)],
 ///     Output => vec![Op::add()]
 /// };
