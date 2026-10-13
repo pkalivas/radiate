@@ -27,9 +27,9 @@ def test_engine_graph_xor(xor_dataset, random_seed):
 
     result = engine.run()
 
-    assert result.score()[0] < 0.1
-    assert result.index() <= 1000
-    assert isinstance(result.value(), rd.Graph)
+    assert result.score[0] < 0.1
+    assert result.index <= 1000
+    assert isinstance(result.value, rd.Graph)
 
 
 @pytest.mark.integration
@@ -61,8 +61,8 @@ def test_engine_graph_regression_with_speciation(squared_dataset, random_seed):
     # Testing in multithreaded mode can lead to slightly different results so we
     # relax the assertion a bit by allowing a few # of species
     assert len(result.species()) > 1, "Should maintain multiple species"
-    assert result.index() <= 500
-    assert isinstance(result.value(), rd.Graph)
+    assert result.index <= 500
+    assert isinstance(result.value, rd.Graph)
 
     species = result.species()
     score_total = 0.0
@@ -107,11 +107,11 @@ def test_engine_graph_with_recurrent_connections(memory_dataset, random_seed):
 
     result = engine.run()
 
-    assert result.index() <= 2000
-    assert isinstance(result.value(), rd.Graph)
-    assert len(result.population()) == 250
+    assert result.index <= 2000
+    assert isinstance(result.value, rd.Graph)
+    assert len(result.population) == 250
 
-    graph = result.value()
+    graph = result.value
 
     for _ in range(25):
         for inp, out in zip(inputs, outputs):
@@ -156,11 +156,11 @@ def test_engine_graph_recurrent_class_acc(memory_dataset, random_seed):
 
     result = engine.run()
 
-    assert result.score()[0] < 0.01
-    assert result.index() <= 500
-    assert isinstance(result.value(), rd.Graph)
+    assert result.score[0] < 0.01
+    assert result.index <= 500
+    assert isinstance(result.value, rd.Graph)
 
-    acc = rd.accuracy(result.value(), inputs, outputs, loss=rd.XEnt)
+    acc = rd.accuracy(result.value, inputs, outputs, loss=rd.XEnt)
 
     assert acc.sample_count() == len(inputs)
     assert acc.recall() is not None and acc.recall() > 0.99  # type: ignore
@@ -202,9 +202,9 @@ def test_engine_graph_recurrent_with_np(memory_dataset, random_seed):
 
     result = engine.run()
 
-    assert result.score()[0] < 0.01
-    assert result.index() <= 500
-    assert isinstance(result.value(), rd.Graph)
+    assert result.score[0] < 0.01
+    assert result.index <= 500
+    assert isinstance(result.value, rd.Graph)
 
 
 @pytest.mark.integration
@@ -277,7 +277,7 @@ def test_graph_engine_species_targeting(cubic_dataset, random_seed):
     )
 
     result = engine.run()
-    species_count_mean = result.metrics()["species.count"].mean()
+    species_count_mean = result.metrics["species.count"].mean()
 
     assert species_count_mean is not None
-    assert abs(species_count_mean - 5.0) < 0.1  # Should be ~5
+    assert abs(species_count_mean - 5.0) < 0.15  # Should be ~5

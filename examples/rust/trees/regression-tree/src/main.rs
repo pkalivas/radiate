@@ -16,7 +16,7 @@ fn main() -> RadiateResult<()> {
         .codec(TreeCodec::single(3, set).max_size(30))
         .fitness_fn(Regression::new(data, Loss::MSE))
         .minimizing()
-        .mutator(HoistMutator::new(0.01))
+        .mutator(SubtreeMutator::new(0.01))
         .crossover(TreeCrossover::new(0.7))
         .build();
 

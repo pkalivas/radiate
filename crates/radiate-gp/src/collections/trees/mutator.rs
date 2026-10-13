@@ -177,7 +177,7 @@ mod tests {
     /// A random tree of `depth`, optionally constrained to at most `max_size` nodes.
     fn chromosome(depth: usize, max_size: Option<usize>) -> TreeChromosome<Op<f32>> {
         let root = Tree::with_depth(depth, store()).take_root().unwrap();
-        TreeChromosome::new(vec![root], Some(store()), max_size.map(|m| m as u32))
+        TreeChromosome::new(root, Some(store()), max_size.map(|m| m as u32))
     }
 
     /// Mutates `chromosome` `times` times at `rate`, returning (applied, rejected).
@@ -246,8 +246,7 @@ mod tests {
             assert_eq!(mutate(&mut mutator, &mut chromosome, 0.0, 50), (0, 50));
             assert!(chromosome.root() == &before);
 
-            let mut single =
-                TreeChromosome::new(vec![TreeNode::new(Op::var(0))], Some(store()), None);
+            let mut single = TreeChromosome::new(TreeNode::new(Op::var(0)), Some(store()), None);
             assert_eq!(mutate(&mut mutator, &mut single, 1.0, 50), (0, 50));
             assert_eq!(single.root().size(), 1);
         });

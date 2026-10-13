@@ -1,8 +1,9 @@
 use super::TreeIterator;
-use crate::{Arity, Factory, NodeSet, NodeType, Tree, node::Node};
+use crate::{Arity, Eval, Factory, NodeSet, NodeType, Tree, eval::STACK_INPUTS, node::Node};
 use radiate_core::genome::{Gene, Valid};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use smallvec::SmallVec;
 use std::{fmt::Debug, hash::Hash};
 
 /// A node in a tree structure that represents a single element with optional children.
@@ -322,6 +323,26 @@ impl<T> Valid for TreeNode<T> {
         }
 
         true
+    }
+}
+
+impl<T, V> Eval<[V], V> for TreeNode<T>
+where
+    T: Eval<[V], V>,
+    V: Clone,
+{
+    #[inline]
+    fn eval(&self, input: &[V]) -> V {
+        if let Some(children) = self.children() {
+            let inputs = children
+                .iter()
+                .map(|child| child.eval(input))
+                .collect::<SmallVec<[V; STACK_INPUTS]>>();
+
+            return self.value().eval(&inputs);
+        }
+
+        self.value().eval(input)
     }
 }
 

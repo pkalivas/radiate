@@ -53,6 +53,7 @@ class Generation[G, T](RsObject):
 
         return Generation.from_rust(PyGeneration.from_pickle(pickle_bytes))
 
+    @property
     def gene_type(self) -> "GeneType":
         """
         Get the gene type of the generation.
@@ -60,6 +61,7 @@ class Generation[G, T](RsObject):
         """
         return GeneType.from_str(self.__backend__().gene_type())
 
+    @property
     def score(self) -> list[float]:
         """
         Get the fitness of the generation.
@@ -67,6 +69,7 @@ class Generation[G, T](RsObject):
         """
         return self.try_get_cache("score_cache", lambda: self.__backend__().score())
 
+    @property
     def index(self) -> int:
         """
         Get the index of the generation.
@@ -74,6 +77,7 @@ class Generation[G, T](RsObject):
         """
         return self.__backend__().index()
 
+    @property
     def value(self) -> T:
         """
         Get the value of the generation.
@@ -97,6 +101,7 @@ class Generation[G, T](RsObject):
 
         return self.try_get_cache("value_cache", _get_value)
 
+    @property
     def front(self) -> Front:
         """
         Get the Pareto front of the generation.
@@ -106,6 +111,7 @@ class Generation[G, T](RsObject):
             "front_cache", lambda: Front.from_rust(self.__backend__().front())
         )
 
+    @property
     def metrics(self) -> MetricSet:
         """
         Get the metrics of the generation.
@@ -115,6 +121,7 @@ class Generation[G, T](RsObject):
             "metrics_cache", lambda: MetricSet.from_rust(self.__backend__().metrics())
         )
 
+    @property
     def objective(self) -> list[str] | str:
         """
         Get the objective names of the generation.
@@ -125,6 +132,7 @@ class Generation[G, T](RsObject):
             return obj[0]
         return obj
 
+    @property
     def population(self) -> Population[G]:
         """
         Get the population of the generation.

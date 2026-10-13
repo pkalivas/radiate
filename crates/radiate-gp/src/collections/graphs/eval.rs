@@ -2,15 +2,11 @@ use super::{
     GraphNode,
     compile::{GraphPlan, Step, When},
 };
-use crate::{Eval, EvalInto, EvalIntoMut, EvalMut, Graph};
+use crate::{Eval, EvalInto, EvalIntoMut, EvalMut, Graph, eval::STACK_INPUTS};
 use radiate_utils::Matrix;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
-
-/// Input columns are collected into a stack array up to this fan-in, so the common case doesn't
-/// allocate per node; wider nodes spill to the heap.
-const STACK_INPUTS: usize = 8;
 
 /// A [GraphEvaluator]'s reusable state: the compiled plan, each node's latest value, and the
 /// buffers it runs in.

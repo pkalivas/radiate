@@ -1,4 +1,4 @@
-use crate::{TreeIterator, collections::TreeNode};
+use crate::{Eval, EvalMut, TreeIterator, collections::TreeNode};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, hash::Hash};
@@ -142,6 +142,47 @@ impl<T> Tree<T> {
 
     pub fn height(&self) -> usize {
         self.root.as_ref().map_or(0, |node| node.height())
+    }
+}
+
+impl<T, V> Eval<[V], V> for Tree<T>
+where
+    T: Eval<[V], V>,
+    V: Clone,
+{
+    #[inline]
+    fn eval(&self, input: &[V]) -> V {
+        self.root()
+            .map(|root| root.eval(input))
+            .unwrap_or_else(|| panic!("Tree has no root node."))
+    }
+}
+
+impl<T, V> EvalMut<[V], Vec<V>> for Tree<T>
+where
+    T: Eval<[V], V>,
+    V: Clone,
+{
+    #[inline]
+    fn eval_mut(&mut self, input: &[V]) -> Vec<V> {
+        if let Some(root) = self.root() {
+            vec![root.eval(input)]
+        } else {
+            vec![]
+        }
+    }
+}
+
+impl<T, V> EvalMut<[V], Vec<V>> for Vec<Tree<T>>
+where
+    T: Eval<[V], V>,
+    V: Clone,
+{
+    #[inline]
+    fn eval_mut(&mut self, input: &[V]) -> Vec<V> {
+        self.iter_mut()
+            .filter_map(|tree| tree.root().map(|root| root.eval(input)))
+            .collect::<Vec<V>>()
     }
 }
 

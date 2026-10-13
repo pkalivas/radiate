@@ -52,9 +52,13 @@ where
         if let Some(store) = &self.store {
             let new_chromosomes = (0..self.num_trees)
                 .map(|_| Tree::with_depth(self.depth, store))
-                .filter_map(|tree| tree.take_root().map(|root| vec![root]))
-                .map(|node| TreeChromosome::new(node, Some(store.clone()), self.max_size.clone()))
+                .filter_map(|tree| tree.take_root())
+                .map(|root| TreeChromosome::new(root, Some(store.clone()), self.max_size.clone()))
                 .collect::<Vec<TreeChromosome<T>>>();
+
+            if new_chromosomes.len() != self.num_trees {
+                return Genotype::default();
+            }
 
             return Genotype::new(new_chromosomes);
         }
@@ -78,11 +82,12 @@ where
         if let Some(store) = &self.store {
             let new_chromosome = Tree::with_depth(self.depth, store)
                 .take_root()
-                .map(|root| vec![root])
-                .map(|tree| TreeChromosome::new(tree, Some(store.clone()), self.max_size.clone()))
-                .unwrap_or_else(|| TreeChromosome::new(vec![], None, self.max_size.clone()));
+                .map(|root| TreeChromosome::new(root, Some(store.clone()), self.max_size.clone()));
 
-            return Genotype::new(vec![new_chromosome]);
+            return match new_chromosome {
+                Some(chrom) => Genotype::from(chrom),
+                None => Genotype::default(),
+            };
         }
 
         Genotype::new(vec![])

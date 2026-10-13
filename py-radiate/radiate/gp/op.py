@@ -53,9 +53,6 @@ class Op(LazyRsObject):
     def __repr__(self) -> str:
         return self.__backend__().__repr__()
 
-    def __hash__(self) -> int:
-        return hash((self._name, self._dtype, frozenset(self._args.items())))
-
     def _initialize(self) -> Callable[[], Any]:
         def build():
             return _create_op(self._name, str(self._dtype), self._args)

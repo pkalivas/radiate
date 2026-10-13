@@ -125,8 +125,8 @@ where
         one: &Phenotype<TreeChromosome<T>>,
         two: &Phenotype<TreeChromosome<T>>,
     ) -> f32 {
-        let trees_one = one.genotype().iter().flat_map(|c| c.as_ref());
-        let trees_two = two.genotype().iter().flat_map(|c| c.as_ref());
+        let trees_one = one.genotype().iter().map(|c| c.as_ref());
+        let trees_two = two.genotype().iter().map(|c| c.as_ref());
         let (mut trees_one, mut trees_two) = (trees_one.peekable(), trees_two.peekable());
 
         let mut total = 0.0;
@@ -263,7 +263,7 @@ mod tests {
         let phenotype = |trees: Vec<TreeNode<Op<f32>>>| {
             let chromosomes = trees
                 .into_iter()
-                .map(|tree| TreeChromosome::from(vec![tree]))
+                .map(|tree| TreeChromosome::from(tree))
                 .collect::<Vec<_>>();
             Phenotype::from((chromosomes, 0))
         };

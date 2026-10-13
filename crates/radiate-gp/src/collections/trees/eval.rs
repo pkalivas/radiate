@@ -1,11 +1,10 @@
-use super::Tree;
-use crate::{Eval, EvalMut, TreeNode, eval::EvalInto, node::Node};
+use crate::{
+    TreeNode,
+    eval::{EvalInto, STACK_INPUTS},
+    node::Node,
+};
 use radiate_utils::Matrix;
 use smallvec::SmallVec;
-
-/// Input columns are collected into a stack array up to this fan-in, so the common case doesn't
-/// allocate per node; wider nodes spill to the heap.
-const STACK_INPUTS: usize = 8;
 
 /// Reusable buffers for evaluating trees a whole column (every sample) at a time.
 ///
@@ -85,82 +84,26 @@ where
         push_column(child, features, n, stack);
     }
 
-    {
-        let (below, above) = stack.split_at_mut(base + n);
-        let inputs = above
-            .chunks_exact(n)
-            .collect::<SmallVec<[&[V]; STACK_INPUTS]>>();
-        node.value().eval_into(&inputs, &mut below[base..]);
-    }
-
+    process_stack(node, n, base, stack);
     stack.truncate(base + n);
 }
 
-impl<T, V> Eval<[V], V> for Tree<T>
+fn process_stack<T, V>(node: &TreeNode<T>, n: usize, base: usize, stack: &mut Vec<V>)
 where
-    T: Eval<[V], V>,
-    V: Clone,
+    T: for<'c> EvalInto<[&'c [V]], [V]>,
+    V: Copy + Default,
 {
-    #[inline]
-    fn eval(&self, input: &[V]) -> V {
-        self.root()
-            .map(|root| root.eval(input))
-            .unwrap_or_else(|| panic!("Tree has no root node."))
-    }
-}
-
-impl<T, V> EvalMut<[V], Vec<V>> for Tree<T>
-where
-    T: Eval<[V], V>,
-    V: Clone,
-{
-    #[inline]
-    fn eval_mut(&mut self, input: &[V]) -> Vec<V> {
-        if let Some(root) = self.root() {
-            vec![root.eval(input)]
-        } else {
-            vec![]
-        }
-    }
-}
-
-impl<T, V> EvalMut<[V], Vec<V>> for Vec<Tree<T>>
-where
-    T: Eval<[V], V>,
-    V: Clone,
-{
-    #[inline]
-    fn eval_mut(&mut self, input: &[V]) -> Vec<V> {
-        self.iter_mut()
-            .filter_map(|tree| tree.root().map(|root| root.eval(input)))
-            .collect::<Vec<V>>()
-    }
-}
-
-impl<T, V> Eval<[V], V> for TreeNode<T>
-where
-    T: Eval<[V], V>,
-    V: Clone,
-{
-    #[inline]
-    fn eval(&self, input: &[V]) -> V {
-        if let Some(children) = self.children() {
-            let inputs = children
-                .iter()
-                .map(|child| child.eval(input))
-                .collect::<SmallVec<[V; STACK_INPUTS]>>();
-
-            return self.value().eval(&inputs);
-        }
-
-        self.value().eval(input)
-    }
+    let (below, above) = stack.split_at_mut(base + n);
+    let inputs = above
+        .chunks_exact(n)
+        .collect::<SmallVec<[&[V]; STACK_INPUTS]>>();
+    node.value().eval_into(&inputs, &mut below[base..]);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{NodeType, Op, TreeNode, all_ops};
+    use crate::{Eval, NodeType, Op, Tree, TreeNode, all_ops};
     use radiate_core::random_provider;
 
     /// Evaluates `roots` one sample at a time and as a batch, asserting the two agree bit for bit.

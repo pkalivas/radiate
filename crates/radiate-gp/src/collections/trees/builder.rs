@@ -1,7 +1,6 @@
 use crate::collections::{Tree, TreeNode};
 use crate::node::Node;
 use crate::{Arity, Factory, NodeSet, NodeType};
-use radiate_core::Valid;
 
 const NUM_CHILDREN_ANY: usize = 2;
 
@@ -64,7 +63,7 @@ impl<T: Clone + Default> Tree<T> {
     ///
     /// # Returns
     /// A tree node with the given depth, where each node is a random node from the node store.
-    pub(crate) fn grow(current_depth: usize, store: &NodeSet<T>) -> Option<TreeNode<T>> {
+    pub fn grow(current_depth: usize, store: &NodeSet<T>) -> Option<TreeNode<T>> {
         if current_depth == 0 {
             return store.new_instance(NodeType::Leaf);
         }
@@ -82,39 +81,6 @@ impl<T: Clone + Default> Tree<T> {
         }
 
         Some(parent)
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn repair_node(node: &mut TreeNode<T>, store: &NodeSet<T>) {
-        if node.children().is_none() && node.is_valid() {
-            return;
-        }
-
-        let num_children = match node.arity() {
-            Arity::Zero => 0,
-            Arity::Exact(n) => n,
-            Arity::Any => NUM_CHILDREN_ANY,
-        };
-
-        let current_num_children = node.children().map_or(0, |c| c.len());
-
-        if current_num_children < num_children {
-            for _ in 0..(num_children - current_num_children) {
-                if let Some(leaf) = store.new_instance(NodeType::Leaf) {
-                    node.add_child(leaf);
-                }
-            }
-        } else if current_num_children > num_children {
-            for _ in 0..(current_num_children - num_children) {
-                node.detach(current_num_children - 1);
-            }
-        }
-
-        if let Some(children) = node.children_mut() {
-            for child in children.iter_mut() {
-                Self::repair_node(child, store);
-            }
-        }
     }
 }
 

@@ -1,3 +1,7 @@
+/// Input columns are collected into a stack array up to this fan-in, so the common case doesn't
+/// allocate per node; wider nodes spill to the heap.
+pub(crate) const STACK_INPUTS: usize = 8;
+
 /// [Eval] trait is used to evaluate a [Tree] or [Graph] of node's.
 /// It is implemented directly on the GP structures to allow for easy and dynamic
 /// evaluation of the structures with a given input.
