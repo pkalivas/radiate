@@ -1,9 +1,8 @@
 use crate::{PyGenotype, PyOp, Wrap, bindings::gp::PyGraph};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
-use radiate::{
-    Codec, DataType, GraphCodec, NodeType, Op, RadiateResult, dtype_names, ops::OpFloat,
-};
+use radiate::{Codec, DataType, GraphCodec, NodeType, Op, RadiateResult, dtype_names};
 use radiate_error::radiate_py_bail;
+use radiate_utils::Float;
 use std::collections::HashMap;
 
 const INPUT_NODE_TYPE: &str = "input";
@@ -94,7 +93,7 @@ impl PyGraphCodec {
     }
 }
 
-fn build_typed_codec<F: OpFloat>(
+fn build_typed_codec<F: Float>(
     graph_type: Option<&str>,
     input_size: usize,
     output_size: usize,

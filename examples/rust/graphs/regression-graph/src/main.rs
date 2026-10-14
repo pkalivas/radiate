@@ -3,17 +3,17 @@ use radiate::prelude::*;
 const MIN_SCORE: f32 = 0.001;
 
 fn main() -> RadiateResult<()> {
-    random_provider::seed(514);
+    random_provider::seed(518);
 
     let store = node_set![
         Input => Op::var(0),
         Edge => Op::weight(),
-        Vertex => [Op::sub(), Op::mul(), Op::sum(), Op::dot()],
+        Vertex => [Op::sub(), Op::mul(), Op::sum()],
         Output => Op::sum()
     ];
 
     let engine = GeneticEngine::builder()
-        .codec(GraphCodec::directed(1, 1, store)?)
+        .codec(GraphCodec::directed(1, 1, store)?.with_max_nodes(15))
         .fitness_fn(Regression::new(DataSet::cubic(), Loss::MSE))
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4.0))

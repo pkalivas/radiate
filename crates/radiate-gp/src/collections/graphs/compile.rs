@@ -59,7 +59,6 @@ use std::ops::Range;
 pub enum When {
     Current,
     Previous,
-    Never,
 }
 
 /// One unit of the column schedule.
@@ -238,9 +237,7 @@ impl GraphPlan {
             let pos = pos_of[index];
             when.extend(node.incoming().iter().map(|&src| {
                 let src_pos = pos_of[src];
-                if src_pos == u32::MAX {
-                    When::Never
-                } else if src_pos >= pos {
+                if src_pos >= pos {
                     any_previous = true;
                     When::Previous
                 } else {

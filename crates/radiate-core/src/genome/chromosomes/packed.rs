@@ -107,10 +107,12 @@ pub struct PackedBitChromosome {
 
 impl PackedBitChromosome {
     pub fn new(num_bits: usize) -> Self {
-        let words = (0..num_words(num_bits))
-            .map(|_| BitWordGene(random_provider::random()))
-            .collect();
-        let mut chromosome = PackedBitChromosome { words, num_bits };
+        let mut chromosome = PackedBitChromosome {
+            words: (0..num_words(num_bits))
+                .map(|_| BitWordGene(random_provider::random()))
+                .collect(),
+            num_bits,
+        };
         chromosome.clear_tail();
         chromosome
     }
@@ -127,10 +129,12 @@ impl PackedBitChromosome {
         self.num_bits
     }
 
+    #[inline]
     pub fn bit(&self, i: usize) -> bool {
         (self.words[i / WORD_SIZE].0 >> (i % WORD_SIZE)) & 1 != 0
     }
 
+    #[inline]
     pub fn set_bit(&mut self, i: usize, value: bool) {
         let mask = 1u64 << (i % WORD_SIZE);
         let word = &mut self.words[i / WORD_SIZE].0;
@@ -141,11 +145,13 @@ impl PackedBitChromosome {
         }
     }
 
+    #[inline]
     pub fn flip_bit(&mut self, i: usize) {
         self.words[i / WORD_SIZE].0 ^= 1u64 << (i % WORD_SIZE);
     }
 
     /// Tail-masked popcount.
+    #[inline]
     pub fn count_ones(&self) -> usize {
         match self.words.split_last() {
             Some((last, rest)) => {
@@ -159,10 +165,12 @@ impl PackedBitChromosome {
     }
 
     /// Tail-masked count of zero bits.
+    #[inline]
     pub fn count_zeros(&self) -> usize {
         self.num_bits - self.count_ones()
     }
 
+    #[inline]
     pub fn iter_bits(&self) -> impl Iterator<Item = bool> + '_ {
         (0..self.num_bits).map(move |i| self.bit(i))
     }

@@ -3,15 +3,20 @@ use num_order::{NumHash, NumOrd};
 
 pub trait Float: Primitive + num_traits::Float + NumHash + NumOrd<Self> {
     const DTYPE: DataType;
+
     const THREE: Self;
     const FOUR: Self;
     const FIVE: Self;
     const SIX: Self;
-    const EPS: Self;
+
     const NAN: Self;
+    const EPS: Self;
+    const EXTREMA: Self;
+
     const TENTH: Self;
     const HUNDREDTH: Self;
     const THOUSANDTH: Self;
+
     const PI: Self;
 
     fn safe_clamp(self, min: Self, max: Self) -> Self {
@@ -25,7 +30,7 @@ pub trait Float: Primitive + num_traits::Float + NumHash + NumOrd<Self> {
 
 #[macro_export]
 macro_rules! impl_float_scalar {
-    ($t:ty, $dtype:ident, $eps:expr, $pi:expr) => {
+    ($t:ty, $dtype:ident, $eps:expr, $extrema:expr, $pi:expr) => {
         impl Primitive for $t {
             const HALF: Self = 0.5;
             const MIN: Self = <$t>::MIN;
@@ -73,6 +78,7 @@ macro_rules! impl_float_scalar {
             const SIX: Self = 6.0;
             const NAN: Self = <$t>::NAN;
             const EPS: Self = $eps;
+            const EXTREMA: Self = $extrema;
             const TENTH: Self = 0.1;
             const HUNDREDTH: Self = 0.01;
             const THOUSANDTH: Self = 0.001;
@@ -81,5 +87,5 @@ macro_rules! impl_float_scalar {
     };
 }
 
-impl_float_scalar!(f32, Float32, 1e-6_f32, std::f32::consts::PI);
-impl_float_scalar!(f64, Float64, 1e-12_f64, std::f64::consts::PI);
+impl_float_scalar!(f32, Float32, 1e-6_f32, 1e7_f32, std::f32::consts::PI);
+impl_float_scalar!(f64, Float64, 1e-12_f64, 1e14_f64, std::f64::consts::PI);

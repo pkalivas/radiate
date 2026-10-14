@@ -236,7 +236,7 @@ impl<T: Clone> Matrix<T> {
         self.cols += 1;
     }
 
-    pub fn reshape_and_fill(&mut self, rows: usize, cols: usize, default_value: T) {
+    pub fn resize_and_fill(&mut self, rows: usize, cols: usize, default_value: T) {
         let new_size = rows * cols;
         self.data.clear();
         self.data.resize(new_size, default_value);

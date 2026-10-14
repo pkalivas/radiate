@@ -1,6 +1,7 @@
 use super::{Chromosome, Phenotype};
 use crate::{Objective, Score, objectives::Scored, phenotype::PhenotypeId, tracker::Tracker};
 use radiate_utils::sentry_id;
+use rustc_hash::FxBuildHasher;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{
@@ -18,7 +19,7 @@ pub struct Species<C: Chromosome> {
     pub adjusted_score: Option<Score>,
     pub mascot: Phenotype<C>,
     pub size: usize,
-    pub members: HashSet<PhenotypeId>,
+    pub members: HashSet<PhenotypeId, FxBuildHasher>,
 }
 
 impl<C: Chromosome> Species<C> {
@@ -30,7 +31,7 @@ impl<C: Chromosome> Species<C> {
             adjusted_score: Some(initial.score().unwrap().clone()),
             mascot: initial,
             size: 0,
-            members: HashSet::new(),
+            members: HashSet::with_hasher(FxBuildHasher::default()),
         }
     }
 

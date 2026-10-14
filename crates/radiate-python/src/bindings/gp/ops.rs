@@ -3,9 +3,10 @@ use pyo3::{PyAny, PyResult, pyclass, types::PyAnyMethods};
 use pyo3::{exceptions::PyValueError, prelude::FromPyObjectOwned};
 use radiate::{
     Arity, DataType, Eval, Factory, Op,
-    ops::{OpFloat, math, op_names},
+    ops::{math, op_names},
 };
 use radiate_error::radiate_py_bail;
+use radiate_utils::Float;
 
 fn _op_collection<F>(ops: Vec<Op<F>>) -> PyResult<Vec<PyOp>>
 where
@@ -161,7 +162,7 @@ pub fn _create_op<'py>(
 fn build_typed_op<'py, F>(py: Python<'py>, name: &str, params: Option<Py<PyAny>>) -> PyResult<PyOp>
 where
     PyOp: From<Op<F>>,
-    F: FromPyObjectOwned<'py> + OpFloat,
+    F: FromPyObjectOwned<'py> + Float,
 {
     let op = match name {
         op_names::CONSTANT => {

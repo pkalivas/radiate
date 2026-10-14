@@ -8,39 +8,12 @@ pub mod primitives;
 mod serde;
 
 use radiate_utils::Float;
-use std::cell::RefCell;
 
 pub use bool::bool_ops;
 pub use math::{activation_ops, all_ops, arithmetic_ops};
 pub use mutator::OperationMutator;
 pub use operation::*;
 pub use param::Param;
-
-pub trait OpFloat: Float + Send + Sync {
-    const MAX_VALUE: Self;
-    const LOG_EPS: Self;
-
-    fn with_loss_buffer<R>(f: impl FnOnce(&mut Vec<Self>) -> R) -> R;
-}
-
-macro_rules! impl_op_float {
-    ($t:ty, $max:expr, $log_eps:expr) => {
-        impl OpFloat for $t {
-            const MAX_VALUE: Self = $max;
-            const LOG_EPS: Self = $log_eps;
-
-            fn with_loss_buffer<R>(f: impl FnOnce(&mut Vec<Self>) -> R) -> R {
-                thread_local! {
-                    static BUFFER: RefCell<Vec<$t>> = const { RefCell::new(Vec::new()) };
-                }
-                BUFFER.with(|cell| f(&mut cell.borrow_mut()))
-            }
-        }
-    };
-}
-
-impl_op_float!(f32, 1e10_f32, 1e-7_f32);
-impl_op_float!(f64, 1e10_f64, 1e-7_f64);
 
 pub mod op_names {
     /// Primitive operation names

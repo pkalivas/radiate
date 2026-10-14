@@ -14,6 +14,7 @@ pub trait Primitive:
     const HALF: Self;
     const MIN: Self;
     const MAX: Self;
+
     const ZERO: Self;
     const ONE: Self;
     const TWO: Self;

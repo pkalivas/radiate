@@ -1,20 +1,20 @@
 use super::Loss;
 use crate::{
     GraphChromosome, GraphEvaluator, Op, TreeChromosome, eval::EvalIntoMut, graphs::GraphEvalCache,
-    ops::OpFloat, trees::TreeEvalCache,
+    trees::TreeEvalCache,
 };
 use radiate_core::{BatchFitnessFunction, Genotype, Score};
-use radiate_utils::{DataSet, Matrix};
+use radiate_utils::{DataSet, Float, Matrix};
 use std::sync::OnceLock;
 
 #[derive(Clone)]
-pub struct Regression<F: OpFloat> {
+pub struct Regression<F: Float> {
     data_set: DataSet<F>,
     loss: Loss,
     feature_cols: OnceLock<Matrix<F>>,
 }
 
-impl<F: OpFloat> Regression<F> {
+impl<F: Float> Regression<F> {
     pub fn new(sample_set: impl Into<DataSet<F>>, loss: Loss) -> Self {
         Regression {
             data_set: sample_set.into(),
@@ -32,7 +32,7 @@ impl<F: OpFloat> Regression<F> {
 
 impl<F> BatchFitnessFunction<&Genotype<GraphChromosome<Op<F>>>, F> for Regression<F>
 where
-    F: OpFloat + Into<Score>,
+    F: Float + Send + Sync + Into<Score>,
 {
     #[inline]
     fn evaluate(&self, graphs: Vec<&Genotype<GraphChromosome<Op<F>>>>) -> Vec<F> {
@@ -57,7 +57,7 @@ where
 
 impl<F> BatchFitnessFunction<&Genotype<TreeChromosome<Op<F>>>, F> for Regression<F>
 where
-    F: OpFloat + Into<Score>,
+    F: Float + Send + Sync + Into<Score>,
 {
     #[inline]
     fn evaluate(&self, trees: Vec<&Genotype<TreeChromosome<Op<F>>>>) -> Vec<F> {

@@ -26,7 +26,6 @@ pub struct GraphEvalCache<V> {
     inputs: Vec<V>,
     values: Matrix<V>,
     lagged: Vec<V>,
-    defaults: Vec<V>,
 }
 
 impl<V> GraphEvalCache<V>
@@ -257,21 +256,16 @@ pub fn process_batch_column_major<T, V>(
         inputs,
         values,
         lagged,
-        defaults,
         ..
     } = cache;
 
     plan.schedule(nodes);
-    let plan = &*plan;
 
     // One row per node, defaulted, so nodes that never run read as default exactly like
     // their untouched state one sample at a time.
     if values.rows() != nodes.len() || values.cols() != cols {
-        values.reshape_and_fill(nodes.len(), cols, V::default());
+        values.resize_and_fill(nodes.len(), cols, V::default());
     }
-
-    defaults.clear();
-    defaults.resize(cols, V::default());
 
     // A node with no incoming edges reads the sample's features - ie: giving input
     // nodes their inputs to vectorize over the samples.
@@ -283,15 +277,9 @@ pub fn process_batch_column_major<T, V>(
 
     for step in plan.steps() {
         match step {
-            Step::Column(index) => process_column_major(
-                *index,
-                nodes,
-                plan,
-                values,
-                lagged,
-                defaults,
-                &feature_columns,
-            ),
+            Step::Column(index) => {
+                process_column_major(*index, nodes, plan, values, lagged, &feature_columns)
+            }
             Step::Cycle(range) => {
                 let cycle = plan.cycle_nodes(range.clone());
                 process_cycle_column_major(cycle, nodes, plan, values, inputs)
@@ -299,51 +287,12 @@ pub fn process_batch_column_major<T, V>(
         }
     }
 
-    outputs.reshape_and_fill(plan.output_indices().len(), cols, V::default());
+    outputs.resize_and_fill(plan.output_indices().len(), cols, V::default());
     for (j, &index) in plan.output_indices().iter().enumerate() {
         outputs.row_mut(j).copy_from_slice(values.row(index));
     }
 }
 
-/// Steps a cycle's nodes through the samples together, exactly like one-sample-at-a-time
-/// evaluation but restricted to the cycle:
-///
-/// ```text
-///   for sample r in 0..N:
-///       for node in cycle (row evaluator order):
-///           Current input  → values[src][r]      (earlier this sample, or a finished column)
-///           Previous input → values[src][r - 1]  (default at r = 0)
-///           values[node][r] = node.eval(inputs)
-/// ```
-///
-/// Inputs from outside the cycle are complete columns by the time this runs, so the only
-/// sequential work is the cycle itself. A node on a cycle always has incoming edges, so it
-/// of the edge-indexed `inputs` buffer, the same buffer one-sample-at-a-time evaluation uses.
-fn process_cycle_column_major<T, V>(
-    cycle: &[usize],
-    nodes: &[GraphNode<T>],
-    plan: &GraphPlan,
-    values: &mut Matrix<V>,
-    inputs: &mut [V],
-) where
-    T: Eval<[V], V>,
-    V: Copy + Default,
-{
-    for col in 0..values.cols() {
-        for &index in cycle {
-            let node = &nodes[index];
-            let buf = &mut inputs[plan.inputs(index)];
-            for ((dst, &src), when) in buf.iter_mut().zip(node.incoming()).zip(plan.when(index)) {
-                *dst = match when {
-                    When::Current => values[(src, col)],
-                    When::Previous if col > 0 => values[(src, col - 1)],
-                    When::Previous | When::Never => V::default(),
-                };
-            }
-            values[(index, col)] = node.eval(buf);
-        }
-    }
-}
 /// Computes one node's whole column (a node not on a cycle) via its column [EvalInto].
 fn process_column_major<T, V>(
     index: usize,
@@ -351,7 +300,6 @@ fn process_column_major<T, V>(
     plan: &GraphPlan,
     values: &mut Matrix<V>,
     lagged: &mut Vec<V>,
-    defaults: &[V],
     feature_columns: &[&[V]],
 ) where
     T: for<'c> EvalInto<[&'c [V]], [V]>,
@@ -398,11 +346,50 @@ fn process_column_major<T, V>(
         .map(|(&src, w)| match w {
             When::Current => row(src),
             When::Previous => lagged_columns.next().unwrap_or(&[]),
-            When::Never => defaults,
         })
         .collect::<SmallVec<[&[V]; STACK_INPUTS]>>();
 
     node.eval_into(&columns, out);
+}
+
+/// Steps a cycle's nodes through the samples together, exactly like one-sample-at-a-time
+/// evaluation but restricted to the cycle:
+///
+/// ```text
+///   for sample r in 0..N:
+///       for node in cycle (row evaluator order):
+///           Current input  → values[src][r]      (earlier this sample, or a finished column)
+///           Previous input → values[src][r - 1]  (default at r = 0)
+///           values[node][r] = node.eval(inputs)
+/// ```
+///
+/// Inputs from outside the cycle are complete columns by the time this runs, so the only
+/// sequential work is the cycle itself. A node on a cycle always has incoming edges, so it
+/// of the edge-indexed `inputs` buffer, the same buffer one-sample-at-a-time evaluation uses.
+fn process_cycle_column_major<T, V>(
+    cycle: &[usize],
+    nodes: &[GraphNode<T>],
+    plan: &GraphPlan,
+    values: &mut Matrix<V>,
+    inputs: &mut [V],
+) where
+    T: Eval<[V], V>,
+    V: Copy + Default,
+{
+    for col in 0..values.cols() {
+        for &index in cycle {
+            let node = &nodes[index];
+            let buf = &mut inputs[plan.inputs(index)];
+            for ((dst, &src), when) in buf.iter_mut().zip(node.incoming()).zip(plan.when(index)) {
+                *dst = match when {
+                    When::Current => values[(src, col)],
+                    When::Previous if col > 0 => values[(src, col - 1)],
+                    When::Previous => V::default(),
+                };
+            }
+            values[(index, col)] = node.eval(buf);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -415,7 +402,7 @@ mod tests {
 
         let width = samples.first().map_or(0, |s| s.len());
         let mut features = Matrix::default();
-        features.reshape_and_fill(width, samples.len(), 0.0);
+        features.resize_and_fill(width, samples.len(), 0.0);
         for (r, sample) in samples.iter().enumerate() {
             for (f, &x) in sample.iter().enumerate() {
                 features[(f, r)] = x;
