@@ -135,7 +135,7 @@ impl<T: Scored> Front<T> {
             self.scratch.remove_buff.clear();
 
             let mut accept = true;
-            for (idx, existing) in self.values.iter().enumerate() {
+            for (idx, existing) in self.values.iter().enumerate().rev() {
                 if existing == new_member {
                     accept = false;
                     break;

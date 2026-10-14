@@ -73,14 +73,19 @@ impl Executor {
             Executor::Serial => jobs.into_iter().map(|func| func()).collect(),
             Executor::FixedSizedWorkerPool(num_workers) => {
                 let pool = get_thread_pool(*num_workers);
-                let iter = jobs.into_iter();
-                let mut results = Vec::with_capacity(iter.size_hint().0);
+                let (tx, rx) = crossbeam::channel::unbounded();
 
-                for job in iter {
-                    results.push(pool.submit_with_result(job));
+                for (i, job) in jobs.into_iter().enumerate() {
+                    let tx = tx.clone();
+                    pool.submit(move || {
+                        tx.send((i, job())).unwrap();
+                    });
                 }
 
-                results.into_iter().map(|r| r.result()).collect()
+                // so `rx` disconnects once the last job's sender is gone
+                drop(tx);
+
+                rx.iter().map(|(_, result)| result).collect::<Vec<_>>()
             }
             #[cfg(feature = "rayon")]
             Executor::WorkerPool => jobs

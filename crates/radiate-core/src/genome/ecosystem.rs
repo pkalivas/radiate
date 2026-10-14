@@ -154,10 +154,9 @@ impl<C: Chromosome> Ecosystem<C> {
 
             let total_score = Score::try_from((adjusted_scores.iter(), |a, b| a + b))?;
             for (i, spec) in species.iter_mut().enumerate() {
-                // Scores are backed by an Arc<[f32]> so these clones are cheap
+                // Scores are backed by an Arc<[f32]> if multi-objective, so these clones are cheap
                 let raw_score = raw_scores[i].clone();
-                let spec_score = adjusted_scores[i].clone();
-                let adjusted_score = spec_score.merge(&total_score, |a, b| a / b)?;
+                let adjusted_score = adjusted_scores[i].merge(&total_score, |a, b| a / b)?;
 
                 spec.update_score(raw_score, adjusted_score, objective);
             }

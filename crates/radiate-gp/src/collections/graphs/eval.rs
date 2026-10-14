@@ -266,7 +266,10 @@ pub fn process_batch_column_major<T, V>(
 
     // One row per node, defaulted, so nodes that never run read as default exactly like
     // their untouched state one sample at a time.
-    values.reshape_and_fill(nodes.len(), cols, V::default());
+    if values.rows() != nodes.len() || values.cols() != cols {
+        values.reshape_and_fill(nodes.len(), cols, V::default());
+    }
+
     defaults.clear();
     defaults.resize(cols, V::default());
 

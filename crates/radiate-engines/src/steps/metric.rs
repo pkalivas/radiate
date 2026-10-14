@@ -29,9 +29,9 @@ pub struct MetricStep {
     age_distribution: Vec<usize>,
     size_distribution: Vec<usize>,
 
-    last_gen_ids: HashSet<PhenotypeId>,
-    curr_ids: HashSet<PhenotypeId>,
-    unique_members: HashSet<PhenotypeId>,
+    last_gen_ids: HashSet<PhenotypeId, rustc_hash::FxBuildHasher>,
+    curr_ids: HashSet<PhenotypeId, rustc_hash::FxBuildHasher>,
+    unique_members: HashSet<PhenotypeId, rustc_hash::FxBuildHasher>,
 
     score_names: Vec<SmallStr>,
     unique_score_names: Vec<SmallStr>,
@@ -55,6 +55,9 @@ impl MetricStep {
             objective,
             expressions,
             scores_dist_matrix,
+            last_gen_ids: HashSet::with_hasher(rustc_hash::FxBuildHasher::default()),
+            curr_ids: HashSet::with_hasher(rustc_hash::FxBuildHasher::default()),
+            unique_members: HashSet::with_hasher(rustc_hash::FxBuildHasher::default()),
             ..Default::default()
         }
     }

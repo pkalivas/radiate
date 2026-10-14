@@ -22,6 +22,7 @@ serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 rayon = { workspace = true, optional = true }
 crossbeam = { workspace = true }
+rustc-hash = { workspace = true }
 
 [dev-dependencies]
 serde = { workspace = true }

@@ -171,6 +171,7 @@ impl GraphPlan {
             .extend(nodes.iter_topological().map(|n| n.index()));
 
         self.input_ranges.clear();
+        self.input_ranges.reserve(nodes.len());
         let mut start = 0;
         self.input_ranges.extend(nodes.iter().map(|node| {
             let end = start + node.incoming().len() as u32;
@@ -228,7 +229,11 @@ impl GraphPlan {
             pos_of[index] = pos as u32;
         }
 
+        let edges = self.input_ranges.last().map_or(0, |&(_, e)| e as usize);
+
         when.clear();
+        when.reserve(edges);
+        let mut any_previous = false;
         for (index, node) in nodes.iter().enumerate() {
             let pos = pos_of[index];
             when.extend(node.incoming().iter().map(|&src| {
@@ -236,6 +241,7 @@ impl GraphPlan {
                 if src_pos == u32::MAX {
                     When::Never
                 } else if src_pos >= pos {
+                    any_previous = true;
                     When::Previous
                 } else {
                     When::Current
@@ -243,10 +249,24 @@ impl GraphPlan {
             }));
         }
 
+        steps.clear();
+        steps.reserve(order.len());
+        cycle_nodes.clear();
+        if !any_previous {
+            // Every evaluated edge points earlier in the row order: no cycles, and the row
+            // order is already inputs-first.
+            steps.reserve(order.len());
+            steps.extend(order.iter().map(|&i| Step::Column(i)));
+            self.has_schedule = true;
+            return;
+        }
+
         // 2. Strongly connected components over the evaluated nodes, by position. Unreached
         //    sources are constant, so they don't take part.
         sccs.edges.clear();
+        sccs.edges.reserve(nodes.len());
         sccs.edge_ranges.clear();
+        sccs.edge_ranges.reserve(nodes.len());
         for &index in order.iter() {
             let start = sccs.edges.len() as u32;
             for &src in nodes[index].incoming() {
@@ -261,8 +281,7 @@ impl GraphPlan {
 
         // 3. The schedule: components in dependency order, each cycle's nodes in the row
         //    evaluator's order (the order they run within a sample).
-        steps.clear();
-        cycle_nodes.clear();
+        cycle_nodes.reserve(nodes.len());
         for c in 0..sccs.component_ends.len() {
             let start = if c == 0 {
                 0
