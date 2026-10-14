@@ -2,7 +2,7 @@ use crate::{
     EngineHandle, EpochHandle, PyGeneration, bindings::handles::EngineIterHandle, match_variant,
 };
 use pyo3::{PyRefMut, PyResult, Python, pyclass, pymethods};
-use radiate::{Chromosome, Generation, GeneticEngine, Limit};
+use radiate::{Chromosome, Generation, GeneticEngine, Limit, RadiateResult};
 use radiate_error::{radiate_py_bail, radiate_py_err};
 use serde::Serialize;
 
@@ -84,13 +84,13 @@ fn run_engine<C, T>(
     limits: Vec<Limit>,
     log: bool,
     ui: bool,
-) -> PyResult<Generation<C, T>>
+) -> RadiateResult<Generation<C, T>>
 where
     C: Chromosome + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,
     Generation<C, T>: Serialize + Into<EpochHandle>,
 {
-    let result = if ui {
+    if ui {
         radiate::ui(engine).iter().logging().limit(limits).last()
     } else {
         engine
@@ -98,7 +98,5 @@ where
             .chain_if(log, |eng| eng.logging())
             .limit(limits)
             .last()
-    };
-
-    result.map_err(|err| radiate_py_err!(format!("Engine failed during execution: {err}")))
+    }
 }

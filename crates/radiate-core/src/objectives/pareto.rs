@@ -5,7 +5,6 @@
 
 use crate::objectives::{Objective, Optimize};
 use radiate_utils::Float;
-use std::collections::HashMap;
 
 /// A small constant to avoid division by zero and ensure non-zero weights.
 const EPSILON: f32 = 1e-6;
@@ -27,10 +26,14 @@ const EPSILON: f32 = 1e-6;
 /// (f_{i+1} - f_{i-1}) / (f_max - f_min)
 /// ```
 #[inline]
-pub fn crowding_distance<T: AsRef<[f32]>>(scores: &[T]) -> Vec<f32> {
-    let mut buffer = vec![0.0; scores.len()];
+pub fn crowding_distance<T, K>(scores: &[T]) -> Vec<K>
+where
+    T: AsRef<[K]>,
+    K: Float + PartialOrd,
+{
+    let mut buffer = vec![K::zero(); scores.len()];
 
-    if !ensure_buffer_len(scores, &mut buffer) {
+    if !ensure_buffer_len(scores, &mut buffer, K::zero()) {
         return buffer;
     }
 
@@ -39,8 +42,12 @@ pub fn crowding_distance<T: AsRef<[f32]>>(scores: &[T]) -> Vec<f32> {
 }
 
 #[inline]
-pub fn buffered_crowding_distance<T: AsRef<[f32]>>(scores: &[T], buffer: &mut [f32]) {
-    if !ensure_buffer_len(scores, buffer) {
+pub fn buffered_crowding_distance<T, K>(scores: &[T], buffer: &mut [K])
+where
+    T: AsRef<[K]>,
+    K: Float + PartialOrd,
+{
+    if !ensure_buffer_len(scores, buffer, K::zero()) {
         return;
     }
 
@@ -66,25 +73,29 @@ pub fn buffered_crowding_distance<T: AsRef<[f32]>>(scores: &[T], buffer: &mut [f
         let max = scores[indices[n - 1]].as_ref()[dim];
         let range = max - min;
 
-        if !range.is_finite() || range == 0.0 {
+        if !range.is_finite() || range == K::zero() {
             continue;
         }
 
-        buffer[indices[0]] = f32::INFINITY;
-        buffer[indices[n - 1]] = f32::INFINITY;
+        buffer[indices[0]] = K::infinity();
+        buffer[indices[n - 1]] = K::infinity();
 
         for k in 1..(n - 1) {
             let prev = scores[indices[k - 1]].as_ref()[dim];
             let next = scores[indices[k + 1]].as_ref()[dim];
             let contrib = (next - prev).abs() / range;
-            buffer[indices[k]] += contrib;
+            buffer[indices[k]] = buffer[indices[k]] + contrib;
         }
     }
 }
 
 #[inline]
-pub fn front_crowding_distance<T: AsRef<[f32]>>(scores: &[T], ranks: &[usize]) -> Vec<f32> {
-    let mut distances = vec![0.0; scores.len()];
+pub fn front_crowding_distance<T, K>(scores: &[T], ranks: &[usize]) -> Vec<K>
+where
+    T: AsRef<[K]>,
+    K: Float + PartialOrd,
+{
+    let mut distances = vec![K::zero(); scores.len()];
 
     for front in fronts_from_ranks(ranks) {
         let front_scores = front
@@ -120,7 +131,11 @@ pub fn fronts_from_ranks(ranks: &[usize]) -> Vec<Vec<usize>> {
 }
 
 #[inline]
-pub fn non_dominated<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -> Vec<usize> {
+pub fn non_dominated<T, K>(population: &[T], objective: &Objective) -> Vec<usize>
+where
+    T: AsRef<[K]>,
+    K: Float + PartialOrd,
+{
     let n = population.len();
     if n == 0 {
         return Vec::new();
@@ -156,7 +171,11 @@ pub fn non_dominated<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -
 /// individuals in the population. The result is a vector of ranks, where the rank
 ///   of the individual at index `i` is `ranks[i]`.
 #[inline]
-pub fn rank<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -> Vec<usize> {
+pub fn rank<T, K>(population: &[T], objective: &Objective) -> Vec<usize>
+where
+    T: AsRef<[K]>,
+    K: Float + PartialOrd,
+{
     let n = population.len();
     if n == 0 {
         return Vec::new();
@@ -235,7 +254,11 @@ pub fn rank<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -> Vec<usi
 /// 4. Normalize crowding distances to [0, 1], where 1 = most isolated.
 /// 5. Combine the two normalized values multiplicatively to get the final weight.
 #[inline]
-pub fn weights<T: AsRef<[f32]>>(scores: &[T], objective: &Objective) -> Vec<f32> {
+pub fn weights<T, K>(scores: &[T], objective: &Objective) -> Vec<K>
+where
+    T: AsRef<[K]>,
+    K: Float + PartialOrd,
+{
     let n = scores.len();
     if n == 0 {
         return Vec::new();
@@ -244,50 +267,54 @@ pub fn weights<T: AsRef<[f32]>>(scores: &[T], objective: &Objective) -> Vec<f32>
     let ranks = rank(scores, objective);
     let distances = crowding_distance(scores);
 
-    let max_rank = *ranks.iter().max().unwrap_or(&0) as f32;
+    let max_rank_usize = *ranks.iter().max().unwrap_or(&0);
+    let max_rank = K::from(max_rank_usize).unwrap();
 
     let rank_weight = ranks
         .iter()
         .map(|r| {
-            if max_rank == 0.0 {
-                1.0
+            if max_rank == K::zero() {
+                K::one()
             } else {
-                1.0 - (*r as f32 / max_rank)
+                K::one() - (K::from(*r).unwrap() / max_rank)
             }
         })
-        .collect::<Vec<f32>>();
+        .collect::<Vec<K>>();
 
     let finite_max = distances
         .iter()
         .cloned()
         .filter(|d| d.is_finite())
-        .fold(0.0f32, f32::max);
+        .fold(K::zero(), K::max);
 
     let crowd_weight = distances
         .iter()
         .map(|d| {
-            if !d.is_finite() || finite_max == 0.0 {
-                1.0
+            if !d.is_finite() || finite_max == K::zero() {
+                K::one()
             } else {
                 *d / finite_max
             }
         })
-        .collect::<Vec<f32>>();
+        .collect::<Vec<K>>();
 
     rank_weight
         .into_iter()
         .zip(crowd_weight)
-        .map(|(r, c)| (r + EPSILON).max(0.0) * (c + EPSILON).max(0.0))
+        .map(|(r, c)| {
+            (r + K::from(EPSILON).unwrap()).max(K::zero())
+                * (c + K::from(EPSILON).unwrap()).max(K::zero())
+        })
         .collect()
 }
 
 // Determine if one score dominates another score. A score `a` dominates a score `b`
 // if it is better in every objective and at least one objective is strictly better.
-pub fn dominance<K: PartialOrd, T: AsRef<[K]>>(
-    score_a: &T,
-    score_b: &T,
-    objective: &Objective,
-) -> bool {
+pub fn dominance<T, K>(score_a: &T, score_b: &T, objective: &Objective) -> bool
+where
+    T: AsRef<[K]>,
+    K: PartialOrd,
+{
     let mut better_in_any = false;
     match objective {
         Objective::Single(opt) => {
@@ -336,10 +363,11 @@ pub fn dominance<K: PartialOrd, T: AsRef<[K]>>(
 /// Calculate the Pareto front of a set of scores. The Pareto front is the set of
 /// scores that are not dominated by any other score in the set. This is useful
 /// for selecting the best solutions in a multi-objective optimization problem.
-pub fn pareto_front<K: PartialOrd, T: AsRef<[K]> + Clone>(
-    values: &[T],
-    objective: &Objective,
-) -> Vec<T> {
+pub fn pareto_front<T, K>(values: &[T], objective: &Objective) -> Vec<T>
+where
+    T: AsRef<[K]> + Clone,
+    K: PartialOrd,
+{
     let mut front = Vec::new();
     for score in values {
         let mut dominated = false;
@@ -534,83 +562,148 @@ pub fn das_dennis(m: usize, p: usize) -> Vec<Vec<f32>> {
     out
 }
 
-pub fn entropy<T, K>(scores: &[T], bins_per_dim: usize) -> K
+/// Calculate the spacing entropy of a set of scores - a parameter-free measure of how
+/// evenly the points are distributed.
+///
+/// Each objective is min/max normalized to `[0, 1]`, then every point's distance to its
+/// nearest neighbor `d_i` is turned into a weight `p_i = d_i / sum(d)`. The result is the
+/// Shannon entropy of those weights normalized by `ln(n)`, so it lies in `[0, 1]`:
+/// `1` means perfectly even spacing, values toward `0` mean the points are clumped.
+/// Exact duplicates have `d_i = 0` and contribute nothing.
+///
+/// This measures evenness, not coverage - pair it with hypervolume for that.
+/// Nearest neighbors are found exactly with a sort-and-sweep on the first objective:
+/// points are sorted along it, and each point's search stops once the gap along that
+/// axis alone exceeds its best distance so far. Worst case is still `O(n^2 * m)`, but
+/// on a front (where points are spread along the first axis) it is close to
+/// `O(n log n)` for two objectives.
+pub fn spacing_entropy<T, K>(scores: &[T]) -> K
 where
-    K: Float + PartialOrd,
     T: AsRef<[K]>,
+    K: Float + PartialOrd,
+{
+    if scores.len() < 2 {
+        return K::zero();
+    }
+
+    let buffer_size = scores.len() * scores[0].as_ref().len();
+    let mut buffer = vec![K::zero(); buffer_size];
+    buffered_spacing_entropy(scores, &mut buffer)
+}
+
+pub fn buffered_spacing_entropy<T, K>(scores: &[T], buffer: &mut [K]) -> K
+where
+    T: AsRef<[K]>,
+    K: Float,
 {
     let n = scores.len();
     let m = if n > 0 { scores[0].as_ref().len() } else { 0 };
 
-    if n == 0 || m == 0 || bins_per_dim == 0 {
+    if n < 2 || m == 0 {
         return K::zero();
     }
 
     let mut mins = vec![K::infinity(); m];
     let mut maxs = vec![K::neg_infinity(); m];
 
-    for row in scores.iter().take(n) {
+    for row in scores.iter() {
         let row = row.as_ref();
         for d in 0..m {
-            let x = row[d];
-            if x < mins[d] {
-                mins[d] = x;
+            if row[d] < mins[d] {
+                mins[d] = row[d];
             }
-            if x > maxs[d] {
-                maxs[d] = x;
+            if row[d] > maxs[d] {
+                maxs[d] = row[d];
             }
         }
     }
 
-    for d in 0..m {
-        if (maxs[d] - mins[d]).abs() < K::EPS {
-            maxs[d] = mins[d] + K::one();
-        }
-    }
+    let inv_ranges = (0..m)
+        .map(|d| {
+            let range = maxs[d] - mins[d];
+            if range.abs() < K::EPS {
+                K::one()
+            } else {
+                K::one() / range
+            }
+        })
+        .collect::<Vec<K>>();
 
-    let mut cell_counts: HashMap<Vec<u8>, usize> = HashMap::new();
+    let mut order = (0..n).collect::<Vec<usize>>();
+    order.sort_unstable_by(|&a, &b| {
+        scores[a].as_ref()[0]
+            .partial_cmp(&scores[b].as_ref()[0])
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
-    for row in scores.iter().take(n) {
-        let row = row.as_ref();
-        let mut cell = Vec::with_capacity(m);
-
+    // Normalized points laid out contiguously in sorted order.
+    for &i in order.iter() {
+        let row = scores[i].as_ref();
         for d in 0..m {
-            let norm = (row[d] - mins[d]) / (maxs[d] - mins[d]);
-            let mut idx = (norm * K::from(bins_per_dim).unwrap())
-                .floor()
-                .to_i32()
-                .unwrap();
-            if idx < 0 {
-                idx = 0;
-            }
-
-            if idx >= bins_per_dim as i32 {
-                idx = bins_per_dim as i32 - 1;
-            }
-            cell.push(idx as u8);
+            buffer[i * m + d] = (row[d] - mins[d]) * inv_ranges[d];
         }
-
-        *cell_counts.entry(cell).or_insert(0) += 1;
     }
 
-    let n_f = K::from(n).unwrap();
+    let sq_dist = |a: &[K], b: &[K]| {
+        let mut dist = K::zero();
+        for d in 0..m {
+            let diff = a[d] - b[d];
+            dist = dist + diff * diff;
+        }
+        dist
+    };
+
+    let mut best_buffer = vec![K::zero(); n];
+    let mut total = K::zero();
+
+    for i in 0..n {
+        let a = &buffer[i * m..(i + 1) * m];
+        let mut best = K::infinity();
+
+        for j in (i + 1)..n {
+            let b = &buffer[j * m..(j + 1) * m];
+            let gap = b[0] - a[0];
+            if gap * gap >= best {
+                break;
+            }
+
+            best = best.min(sq_dist(a, b));
+        }
+
+        for j in (0..i).rev() {
+            let b = &buffer[j * m..(j + 1) * m];
+            let gap = a[0] - b[0];
+            if gap * gap >= best {
+                break;
+            }
+
+            best = best.min(sq_dist(a, b));
+        }
+
+        best_buffer[i] = best.sqrt();
+        total = total + best_buffer[i];
+    }
+
+    if total <= K::zero() {
+        return K::zero();
+    }
+
     let mut h = K::zero();
-    for &count in cell_counts.values() {
-        let p = K::from(count).unwrap() / n_f;
+    for &d in best_buffer.iter() {
+        let p = d / total;
         if p > K::zero() {
             h = h - p * p.ln();
         }
     }
 
-    let k = cell_counts.len().min(n);
-    if k > 1 {
-        h / K::from(k).unwrap().ln()
-    } else {
-        K::zero()
-    }
+    h / K::from(n).unwrap().ln()
 }
 
-fn ensure_buffer_len<T: AsRef<[f32]>>(scores: &[T], buffer: &mut [f32]) -> bool {
+fn ensure_buffer_len<T, K>(scores: &[T], buffer: &mut [K], default: K) -> bool
+where
+    T: AsRef<[K]>,
+    K: Float,
+{
     let n = scores.len();
     if n == 0 {
         return false;
@@ -618,7 +711,7 @@ fn ensure_buffer_len<T: AsRef<[f32]>>(scores: &[T], buffer: &mut [f32]) -> bool 
 
     let m = scores[0].as_ref().len();
     if m == 0 {
-        buffer.fill(0.0);
+        buffer.fill(default);
         return false;
     }
 
@@ -650,7 +743,7 @@ mod tests {
     #[test]
     fn crowding_distance_zero_dims() {
         let scores = vec![vec![], vec![]];
-        let d = crowding_distance(&scores);
+        let d: Vec<f32> = crowding_distance(&scores);
         assert_eq!(d, vec![0.0, 0.0]);
     }
 
@@ -1110,5 +1203,74 @@ mod tests {
                 "dims {dims}: {hv} vs lifted {hv_up}"
             );
         }
+    }
+
+    // ---- spacing_entropy ----
+
+    #[test]
+    fn spacing_entropy_degenerate_inputs_are_zero() {
+        let empty: Vec<Vec<f32>> = vec![];
+        let single = vec![vec![0.5f32, 0.5]];
+        let dupes = vec![vec![1.0f32, 1.0]; 4];
+
+        assert_eq!(spacing_entropy::<_, f32>(&empty), 0.0);
+        assert_eq!(spacing_entropy::<_, f32>(&single), 0.0);
+        assert_eq!(spacing_entropy::<_, f32>(&dupes), 0.0);
+    }
+
+    #[test]
+    fn spacing_entropy_even_front_is_one() {
+        let scores = (0..10)
+            .map(|i| {
+                let x = i as f32 / 9.0;
+                vec![x, 1.0 - x]
+            })
+            .collect::<Vec<_>>();
+
+        let h: f32 = spacing_entropy(&scores);
+        assert!((h - 1.0).abs() < 1e-5, "{h}");
+    }
+
+    #[test]
+    fn spacing_entropy_clumped_front_scores_lower() {
+        let even = (0..10)
+            .map(|i| {
+                let x = i as f32 / 9.0;
+                vec![x, 1.0 - x]
+            })
+            .collect::<Vec<_>>();
+
+        // eight points packed near one end, two outliers spread far apart
+        let mut clumped = (0..8)
+            .map(|i| {
+                let x = i as f32 * 0.001;
+                vec![x, 1.0 - x]
+            })
+            .collect::<Vec<_>>();
+        clumped.push(vec![0.5, 0.5]);
+        clumped.push(vec![1.0, 0.0]);
+
+        let h_even: f32 = spacing_entropy(&even);
+        let h_clumped: f32 = spacing_entropy(&clumped);
+        assert!(h_clumped < h_even, "{h_clumped} vs {h_even}");
+        assert!(h_clumped < 0.7, "{h_clumped}");
+    }
+
+    #[test]
+    fn spacing_entropy_is_scale_invariant() {
+        let base = vec![
+            vec![0.0f32, 1.0],
+            vec![0.2, 0.7],
+            vec![0.3, 0.5],
+            vec![1.0, 0.0],
+        ];
+        let scaled = base
+            .iter()
+            .map(|r| vec![r[0] * 1000.0, r[1] * 0.01])
+            .collect::<Vec<_>>();
+
+        let a: f32 = spacing_entropy(&base);
+        let b: f32 = spacing_entropy(&scaled);
+        assert!((a - b).abs() < 1e-4, "{a} vs {b}");
     }
 }

@@ -1,5 +1,5 @@
 use super::TreeIterator;
-use crate::{Arity, Eval, Factory, NodeSet, NodeType, Tree, eval::STACK_INPUTS, node::Node};
+use crate::{Arity, Eval, NodeType, eval::STACK_INPUTS, node::Node};
 use radiate_core::genome::{Gene, Valid};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -343,15 +343,6 @@ where
         }
 
         self.value().eval(input)
-    }
-}
-
-impl<T> Factory<(usize, Option<NodeSet<T>>), Option<TreeNode<T>>> for TreeNode<T>
-where
-    T: Clone + Default,
-{
-    fn new_instance(&self, (index, store): (usize, Option<NodeSet<T>>)) -> Option<TreeNode<T>> {
-        store.and_then(|store| Tree::with_depth(index, store).take_root())
     }
 }
 

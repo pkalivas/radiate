@@ -326,18 +326,18 @@ fn process_cycle_column_major<T, V>(
     T: Eval<[V], V>,
     V: Copy + Default,
 {
-    for r in 0..values.cols() {
+    for col in 0..values.cols() {
         for &index in cycle {
             let node = &nodes[index];
             let buf = &mut inputs[plan.inputs(index)];
             for ((dst, &src), when) in buf.iter_mut().zip(node.incoming()).zip(plan.when(index)) {
                 *dst = match when {
-                    When::Current => values[(src, r)],
-                    When::Previous if r > 0 => values[(src, r - 1)],
+                    When::Current => values[(src, col)],
+                    When::Previous if col > 0 => values[(src, col - 1)],
                     When::Previous | When::Never => V::default(),
                 };
             }
-            values[(index, r)] = node.eval(buf);
+            values[(index, col)] = node.eval(buf);
         }
     }
 }
@@ -388,8 +388,6 @@ fn process_column_major<T, V>(
         }
     }
 
-    // Gather the input columns: slices straight into `values`, `lagged` or `defaults`
-    // Up to `STACK_INPUTS` live on the stack
     let mut lagged_columns = lagged.chunks_exact(n.max(1));
     let columns = incoming
         .iter()

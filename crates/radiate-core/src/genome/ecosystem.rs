@@ -1,5 +1,5 @@
 use super::{Chromosome, Genotype, Phenotype, Population, Species};
-use crate::{Objective, Score};
+use crate::{Objective, Score, error::RadiateResult};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -131,7 +131,7 @@ impl<C: Chromosome> Ecosystem<C> {
     }
 
     #[inline]
-    pub fn fitness_share(&mut self, objective: &Objective)
+    pub fn fitness_share(&mut self, objective: &Objective) -> RadiateResult<()>
     where
         C: PartialEq,
     {
@@ -145,31 +145,34 @@ impl<C: Chromosome> Ecosystem<C> {
                     .filter_map(|pheno| pheno.score())
                     .collect::<Vec<&Score>>();
 
-                let adjusted = Self::adjust_scores(&species_member_scores).sum::<Score>();
+                let adjusted_score_iter = Self::adjust_scores(&species_member_scores);
+                let adjusted = Score::try_from((adjusted_score_iter, |a, b| a + b))?;
 
                 raw_scores.push(species_member_scores[0]);
                 adjusted_scores.push(adjusted);
             }
 
-            let total_score = adjusted_scores.iter().sum::<Score>();
+            let total_score = Score::try_from((adjusted_scores.iter(), |a, b| a + b))?;
             for (i, spec) in species.iter_mut().enumerate() {
                 // Scores are backed by an Arc<[f32]> so these clones are cheap
                 let raw_score = raw_scores[i].clone();
                 let spec_score = adjusted_scores[i].clone();
-                let adjusted_score = spec_score / total_score.clone();
+                let adjusted_score = spec_score.merge(&total_score, |a, b| a / b)?;
 
                 spec.update_score(raw_score, adjusted_score, objective);
             }
 
             objective.sort(species);
         }
+
+        Ok(())
     }
 
     #[inline]
     fn adjust_scores(scores: &[&Score]) -> impl Iterator<Item = Score> {
         scores
             .iter()
-            .map(|score| (**score).clone() / scores.len() as f32)
+            .map(|score| (**score).scale(|val| val / scores.len() as f32))
     }
 }
 

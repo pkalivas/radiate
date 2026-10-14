@@ -3,8 +3,6 @@ use crate::objectives::{Objective, Scored, pareto};
 use serde::{Deserialize, Serialize};
 use std::{cmp::Ordering, ops::Range};
 
-const DEFAULT_ENTROPY_BINS: usize = 20;
-
 #[derive(Debug)]
 pub struct FrontAddResult {
     pub added_count: usize,
@@ -20,6 +18,7 @@ struct FrontScratch {
     index_buff: Vec<usize>,
     crowding_buff: Vec<f32>,
     filter_buff: Vec<bool>,
+    entropy_buff: Vec<f32>,
 }
 
 #[derive(Clone)]
@@ -93,7 +92,15 @@ impl<T: Scored> Front<T> {
             return None;
         }
 
-        Some(pareto::entropy(scores.as_slice(), DEFAULT_ENTROPY_BINS))
+        self.scratch.entropy_buff.clear();
+        self.scratch
+            .entropy_buff
+            .resize(scores.len() * self.objective.dims(), 0.0);
+
+        Some(pareto::buffered_spacing_entropy(
+            scores.as_slice(),
+            &mut self.scratch.entropy_buff,
+        ))
     }
 
     /// Calculate the hypervolume of the front with respect to the `reference` point, using the

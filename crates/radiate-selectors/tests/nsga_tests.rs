@@ -131,7 +131,7 @@ mod nsga_tests {
 
     #[test]
     fn front_crowding_distance_gives_each_front_infinite_boundaries() {
-        let scores = vec![
+        let scores: Vec<Vec<f32>> = vec![
             vec![0.0, 10.0],
             vec![2.0, 2.0],
             vec![10.0, 0.0],

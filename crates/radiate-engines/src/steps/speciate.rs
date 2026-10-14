@@ -330,7 +330,7 @@ where
 
         self.calc_species_metrics(generation, ecosystem, metrics);
 
-        ecosystem.fitness_share(&self.objective);
+        ecosystem.fitness_share(&self.objective)?;
 
         Ok(())
     }
