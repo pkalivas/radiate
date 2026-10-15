@@ -11,7 +11,7 @@ fn main() -> RadiateResult<()> {
 
     let values = node_set! {
         Input => Op::var(0),
-        Edge => [Op::weight(), Op::identity()],
+        Edge => [Op::weight()],
         Vertex => ops::all_ops(),
         Output => Op::sigmoid()
     };
@@ -49,8 +49,12 @@ fn display(data: &DataSet<f32>, result: &Generation<GraphChromosome<Op<f32>>, Gr
 
     for (idx, row) in data.iter().enumerate() {
         let output = outputs[idx].clone();
-        println!("{:?} -> expected: {:?}, actual: {output:.3?}", row.0, row.1,);
+        println!("{:?} -> {:?} :: {:.3?}", row.0[0], row.1[0], output[0]);
     }
 
     println!("{result:?}");
+
+    for node in result.value().iter_topological() {
+        println!("{:?}", node);
+    }
 }

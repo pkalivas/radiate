@@ -139,14 +139,14 @@ impl<'a, T> GraphTransaction<'a, T> {
     /// - If valid, returns `Valid(steps)`.
     /// - If invalid, rolls back and returns `Invalid(steps, replay)`.
     pub fn commit(self) -> TransactionResult<T> {
-        self.commit_internal::<fn(&Graph<T>) -> bool>(None)
+        self.commit_internal::<fn(&Graph<T>) -> bool>(None, true)
     }
 
     /// Like `commit()`, but also requires `validator(&Graph<T>)` to pass.
     ///
     /// This is useful for domain-specific acceptance checks in addition to structural validity.
     pub fn commit_with(self, validator: impl Fn(&Graph<T>) -> bool) -> TransactionResult<T> {
-        self.commit_internal(Some(validator))
+        self.commit_internal(Some(validator), true)
     }
 
     /// Attempt to commit the transaction, repairing invalid nodes if possible.
@@ -167,7 +167,7 @@ impl<'a, T> GraphTransaction<'a, T> {
             attempts += 1;
         }
 
-        self.commit()
+        self.commit_internal::<fn(&Graph<T>) -> bool>(None, false)
     }
 
     /// Append a node to the graph and record the change. Returns the new node's index.
@@ -409,41 +409,41 @@ impl<'a, T> GraphTransaction<'a, T> {
     }
 
     #[inline]
-    pub fn unique_random_source_node(
+    fn random_node_of_type(
         &self,
-        arity: &Arity,
+        node_types: &[NodeType],
         rand: &mut RdRand,
-    ) -> Option<Vec<&GraphNode<T>>> {
-        let needed_insertions = match arity {
-            Arity::Exact(n) => *n,
-            _ => 1,
-        };
-
-        if self.graph.len() < needed_insertions {
+    ) -> Option<&GraphNode<T>> {
+        let nodes = self.graph.as_ref();
+        if nodes.is_empty() || node_types.is_empty() {
             return None;
         }
 
-        if needed_insertions == 1 {
-            return self.random_source_node(rand).map(|n| vec![n]);
-        }
-
-        let mut sorted = SortedBuffer::new();
-
-        let mut attempts = 0;
-        while sorted.len() < needed_insertions && attempts < MAX_SOURCE_ATTEMPTS {
-            if let Some(node) = self.random_source_node(rand) {
-                SortedBuffer::insert_sorted_unique(&mut sorted, node.index());
+        // Eligible nodes are nearly all of the graph, so a few draws almost always land.
+        for _ in 0..MAX_REJECTION_DRAWS {
+            let node = &nodes[rand.range(0..nodes.len())];
+            if node_types.contains(&node.node_type()) {
+                return Some(node);
             }
-
-            attempts += 1;
         }
 
-        Some(
-            sorted
-                .iter()
-                .map(|&idx| &self.graph[idx])
-                .collect::<Vec<&GraphNode<T>>>(),
-        )
+        // Rare (tiny or input-heavy graphs): count, then take the k-th eligible node.
+        self.random_node_where(rand, |n| node_types.contains(&n.node_type()))
+    }
+
+    /// Uniform over nodes matching `filter`, in two passes and with no allocation.
+    #[inline]
+    fn random_node_where<F>(&self, rand: &mut RdRand, filter: F) -> Option<&GraphNode<T>>
+    where
+        F: Fn(&GraphNode<T>) -> bool,
+    {
+        let count = self.iter().filter(|n| filter(n)).count();
+        if count == 0 {
+            return None;
+        }
+
+        let k = rand.range(0..count);
+        self.iter().filter(|n| filter(n)).nth(k)
     }
 
     #[inline]
@@ -622,49 +622,15 @@ impl<'a, T> GraphTransaction<'a, T> {
         false
     }
 
-    #[inline]
-    fn random_node_of_type(
-        &self,
-        node_types: &[NodeType],
-        rand: &mut RdRand,
-    ) -> Option<&GraphNode<T>> {
-        let nodes = self.graph.as_ref();
-        if nodes.is_empty() || node_types.is_empty() {
-            return None;
-        }
-
-        // Eligible nodes are nearly all of the graph, so a few draws almost always land.
-        for _ in 0..MAX_REJECTION_DRAWS {
-            let node = &nodes[rand.range(0..nodes.len())];
-            if node_types.contains(&node.node_type()) {
-                return Some(node);
-            }
-        }
-
-        // Rare (tiny or input-heavy graphs): count, then take the k-th eligible node.
-        self.random_node_where(rand, |n| node_types.contains(&n.node_type()))
-    }
-
-    /// Uniform over nodes matching `filter`, in two passes and with no allocation.
-    #[inline]
-    fn random_node_where<F>(&self, rand: &mut RdRand, filter: F) -> Option<&GraphNode<T>>
-    where
-        F: Fn(&GraphNode<T>) -> bool,
-    {
-        let count = self.iter().filter(|n| filter(n)).count();
-        if count == 0 {
-            return None;
-        }
-
-        let k = rand.range(0..count);
-        self.iter().filter(|n| filter(n)).nth(k)
-    }
-
     fn commit_internal<F: Fn(&Graph<T>) -> bool>(
         mut self,
         validator: Option<F>,
+        set_cycles: bool,
     ) -> TransactionResult<T> {
-        self.set_cycles();
+        if set_cycles {
+            self.set_cycles();
+        }
+
         let result_steps = self.steps.iter().map(|step| (*step).clone()).collect();
 
         if let Some(validator) = validator {
@@ -821,8 +787,8 @@ impl<T> Deref for GraphTransaction<'_, T> {
 
 #[cfg(test)]
 mod tests {
-    use super::{GraphTransaction, InsertStep, MutationStep, TransactionResult};
-    use crate::collections::graphs::{Direction, Graph, GraphNode, InnovationId};
+    use super::{GraphTransaction, MutationStep, TransactionResult};
+    use crate::collections::graphs::{Direction, Graph, InnovationId};
     use crate::{Arity, Node, NodeType};
     use radiate_core::{Valid, random_provider};
 

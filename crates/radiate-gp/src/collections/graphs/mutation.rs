@@ -215,58 +215,6 @@ where
                 })
             });
 
-            // let result = random_provider::with_rng(|rand| {
-            //     graph.try_modify(|mut trans| {
-            //         let target_idx = trans.random_target_node(rand).map(|n| n.index());
-            //         let source_idx = trans
-            //             .unique_random_source_node(&new_node.arity(), rand)
-            //             .map(|nodes| nodes.into_iter().map(|n| n.index()).collect::<Vec<usize>>())
-            //             .unwrap_or_default();
-
-            //         let node_idx = trans.push(new_node);
-
-            //         if let Some(trgt) = target_idx {
-            //             for src in source_idx {
-            //                 let insertion_steps =
-            //                     trans.get_insertion_steps(src, trgt, node_idx, rand);
-
-            //                 for step in insertion_steps {
-            //                     match step {
-            //                         InsertStep::Connect(source, target) => {
-            //                             trans.attach(source, target)
-            //                         }
-            //                         InsertStep::Detach(source, target) => {
-            //                             trans.detach(source, target)
-            //                         }
-            //                         InsertStep::NewStructure(
-            //                             source,
-            //                             new_node,
-            //                             target,
-            //                             node_type,
-            //                         ) => {
-            //                             let in_innov =
-            //                                 trans.get(source).and_then(|n| n.innovation());
-            //                             let out_innov =
-            //                                 trans.get(target).and_then(|n| n.innovation());
-
-            //                             let innov_id = self
-            //                                 .innov_context
-            //                                 .get_innovation(in_innov, out_innov, node_type);
-
-            //                             trans.set_innovation(new_node, Some(innov_id));
-            //                         }
-            //                         _ => {}
-            //                     }
-            //                 }
-            //             }
-            //         }
-
-            //         trans.commit_with(|graph: &Graph<T>| {
-            //             self.allow_recurrent || !graph.iter().any(|node| node.is_recurrent())
-            //         })
-            //     })
-            // });
-
             chromosome.set_nodes(graph.take_nodes());
 
             return match result {
@@ -281,3 +229,55 @@ where
         0
     }
 }
+
+// let result = random_provider::with_rng(|rand| {
+//     graph.try_modify(|mut trans| {
+//         let target_idx = trans.random_target_node(rand).map(|n| n.index());
+//         let source_idx = trans
+//             .unique_random_source_node(&new_node.arity(), rand)
+//             .map(|nodes| nodes.into_iter().map(|n| n.index()).collect::<Vec<usize>>())
+//             .unwrap_or_default();
+
+//         let node_idx = trans.push(new_node);
+
+//         if let Some(trgt) = target_idx {
+//             for src in source_idx {
+//                 let insertion_steps =
+//                     trans.get_insertion_steps(src, trgt, node_idx, rand);
+
+//                 for step in insertion_steps {
+//                     match step {
+//                         InsertStep::Connect(source, target) => {
+//                             trans.attach(source, target)
+//                         }
+//                         InsertStep::Detach(source, target) => {
+//                             trans.detach(source, target)
+//                         }
+//                         InsertStep::NewStructure(
+//                             source,
+//                             new_node,
+//                             target,
+//                             node_type,
+//                         ) => {
+//                             let in_innov =
+//                                 trans.get(source).and_then(|n| n.innovation());
+//                             let out_innov =
+//                                 trans.get(target).and_then(|n| n.innovation());
+
+//                             let innov_id = self
+//                                 .innov_context
+//                                 .get_innovation(in_innov, out_innov, node_type);
+
+//                             trans.set_innovation(new_node, Some(innov_id));
+//                         }
+//                         _ => {}
+//                     }
+//                 }
+//             }
+//         }
+
+//         trans.commit_with(|graph: &Graph<T>| {
+//             self.allow_recurrent || !graph.iter().any(|node| node.is_recurrent())
+//         })
+//     })
+// });

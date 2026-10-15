@@ -2,9 +2,11 @@
 use serde::{Deserialize, Serialize};
 
 /// Strongly connected components, by Tarjan's algorithm (iterative, so deep graphs can't
-/// overflow the stack). Used by [GraphPlan](super::compile::GraphPlan) to find a graph's cycles.
+/// overflow the stack). Used by [GraphPlan](super::compile::GraphPlan) to order a graph's nodes
+/// and by graph transactions to mark which nodes sit on a cycle.
 ///
-/// Fill `edges`/`edge_ranges` with each node's sources, then call [CycleFinder::find]. Edges
+/// Fill `edges`/`edge_ranges` with each node's sources (or use [Sccs::find_in]), then call
+/// [Sccs::find]. Edges
 /// point from a node to the nodes it reads, so a component is emitted only after every
 /// component it reads from: `components` comes out inputs first.
 #[derive(Default, Clone, PartialEq)]
