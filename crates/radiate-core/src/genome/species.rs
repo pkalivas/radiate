@@ -31,7 +31,7 @@ impl<C: Chromosome> Species<C> {
             adjusted_score: Some(initial.score().unwrap().clone()),
             mascot: initial,
             size: 0,
-            members: HashSet::with_hasher(FxBuildHasher::default()),
+            members: HashSet::with_hasher(FxBuildHasher),
         }
     }
 

@@ -328,11 +328,10 @@ impl<'a, T> GraphTransaction<'a, T> {
     ) -> Placement {
         let target = &self.graph[target_idx];
 
-        if target.incoming().is_empty() {
-            Placement::Parallel
-        } else if target.node_type() == NodeType::Edge || target.is_locked() {
-            Placement::Split
-        } else if split_rate > 0.0 && rand.bool(split_rate) {
+        if target.node_type() == NodeType::Edge
+            || target.is_locked()
+            || (split_rate > 0.0 && rand.bool(split_rate))
+        {
             Placement::Split
         } else {
             Placement::Parallel
@@ -367,7 +366,7 @@ impl<'a, T> GraphTransaction<'a, T> {
         let anchor = if split {
             *rand.choose(target.incoming())
         } else {
-            *rand.choose(&sources)
+            *rand.choose(sources)
         };
 
         steps.push(InsertStep::Connect(anchor, new_node_idx));

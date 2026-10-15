@@ -47,7 +47,7 @@ impl MetricSet {
     pub fn new() -> Self {
         MetricSet {
             metrics: Vec::new(),
-            name_lookup: HashMap::with_hasher(FxBuildHasher::default()),
+            name_lookup: HashMap::with_hasher(FxBuildHasher),
             meta: Meta::default(),
         }
     }
@@ -229,7 +229,7 @@ impl<'a> ProjectExpr<'a> for MetricSet {
 
 impl From<Vec<Metric>> for MetricSet {
     fn from(metrics: Vec<Metric>) -> Self {
-        let mut by_name = HashMap::with_hasher(FxBuildHasher::default());
+        let mut by_name = HashMap::with_hasher(FxBuildHasher);
         for (i, m) in metrics.iter().enumerate() {
             by_name.insert(m.name().clone(), MetricIdx::new(i as u32));
         }
@@ -301,7 +301,7 @@ impl<'de> Deserialize<'de> for MetricSet {
         D: serde::Deserializer<'de>,
     {
         let metrics = Vec::<Metric>::deserialize(deserializer)?;
-        let mut by_name = HashMap::with_hasher(FxBuildHasher::default());
+        let mut by_name = HashMap::with_hasher(FxBuildHasher);
         for (i, m) in metrics.iter().enumerate() {
             by_name.insert(m.name().clone(), MetricIdx::new(i as u32));
         }

@@ -84,7 +84,7 @@ impl Score {
     pub fn as_slice(&self) -> &[f32] {
         match &self {
             Score::Single(v) => std::slice::from_ref(v),
-            Score::Multi(v) => &v,
+            Score::Multi(v) => v,
         }
     }
 
@@ -159,7 +159,7 @@ impl AsRef<[f32]> for Score {
     fn as_ref(&self) -> &[f32] {
         match &self {
             Score::Single(v) => std::slice::from_ref(v),
-            Score::Multi(v) => &v,
+            Score::Multi(v) => v,
         }
     }
 }
@@ -214,7 +214,7 @@ impl Index<usize> for Score {
     type Output = f32;
     fn index(&self, index: usize) -> &Self::Output {
         match &self {
-            Score::Single(v) => &v,
+            Score::Single(v) => v,
             Score::Multi(v) => &v[index],
         }
     }
@@ -240,15 +240,13 @@ where
             radiate_bail!(Fitness: "Cannot aggregate Vec<Score> with zero dimensions");
         } else if dims == 1 {
             let sum = peekable
-                .into_iter()
                 .fold(0.0, |acc, score| match &score.borrow() {
                     Score::Single(v) => func(acc, *v),
                     Score::Multi(v) => func(acc, v[0]),
                 });
-            return Ok(Score::from(sum));
+            Ok(Score::from(sum))
         } else {
             let sum = peekable
-                .into_iter()
                 .fold(vec![0.0; dims], |mut acc, score| {
                     match &score.borrow() {
                         Score::Single(v) => acc[0] = func(acc[0], *v),
@@ -261,7 +259,7 @@ where
                     acc
                 });
 
-            return Ok(Score::Multi(sum.into()));
+            Ok(Score::Multi(sum.into()))
         }
     }
 }
