@@ -1,8 +1,8 @@
 use super::transaction::{InsertStep, TransactionResult};
 use super::{Graph, GraphChromosome};
+use crate::node::Node;
 use crate::{Arity, graphs::node::InnovationId};
 use crate::{Factory, NodeType};
-use crate::{graphs::transaction::Placement, node::Node};
 use radiate_core::{AlterContext, Chromosome, Expr, RateSet, SmallStr, expr};
 use radiate_core::{Mutate, random_provider};
 use std::collections::HashMap;
@@ -132,7 +132,7 @@ where
     T: Clone + Default,
 {
     fn rates(&self) -> RateSet {
-        RateSet::new(0.9)
+        RateSet::new(1.0)
             .push(self.edge_rate.clone().alias(ADD_EDGE_RATE))
             .push(self.vertex_rate.clone().alias(ADD_VERTEX_RATE))
     }
@@ -143,9 +143,6 @@ where
         chromosome: &mut GraphChromosome<T>,
         ctx: &mut AlterContext,
     ) -> usize {
-        if !random_provider::bool(ctx.rate()) {
-            return 0;
-        }
         // If the chromosome has a maximum number of nodes then just return 0.
         // If we have reached this point, this graph is simply optimizing the
         // node's values and not the structure.
@@ -175,16 +172,9 @@ where
                         return trans.commit();
                     };
 
-                    let arity = new_node.arity();
-                    let placement = trans.placement_for(target_idx, 0.5, rand);
-
-                    // A split's anchor fills one input slot, so draw one fewer source.
-                    let needed = match (arity, placement) {
-                        (Arity::Zero, _) => 0,
-                        (Arity::Exact(n), Placement::Split) => n.saturating_sub(1),
-                        (Arity::Exact(n), Placement::Parallel) => n,
-                        (_, Placement::Split) => 0,
-                        (_, Placement::Parallel) => 1,
+                    let needed = match new_node.arity() {
+                        Arity::Exact(n) => n,
+                        _ => 1,
                     };
 
                     let sources = trans
@@ -193,18 +183,20 @@ where
                         .unwrap_or_default();
                     let node_idx = trans.push(new_node);
 
-                    for step in
-                        trans.get_insertion_steps(&sources, target_idx, node_idx, placement, rand)
-                    {
-                        match step {
-                            InsertStep::Connect(source, target) => trans.attach(source, target),
-                            InsertStep::Detach(source, target) => trans.detach(source, target),
-                            InsertStep::NewStructure(source, new_node, target) => {
-                                let in_innov = trans.get(source).and_then(|n| n.innovation());
-                                let out_innov = trans.get(target).and_then(|n| n.innovation());
-                                let innov_id =
-                                    self.innov_context.get_innovation(in_innov, out_innov);
-                                trans.set_innovation(new_node, Some(innov_id));
+                    for source_idx in sources {
+                        let steps =
+                            trans.get_insertion_steps(source_idx, target_idx, node_idx, rand);
+                        for step in steps {
+                            match step {
+                                InsertStep::Connect(source, target) => trans.attach(source, target),
+                                InsertStep::Detach(source, target) => trans.detach(source, target),
+                                InsertStep::NewStructure(source, new_node, target) => {
+                                    let in_innov = trans.get(source).and_then(|n| n.innovation());
+                                    let out_innov = trans.get(target).and_then(|n| n.innovation());
+                                    let innov_id =
+                                        self.innov_context.get_innovation(in_innov, out_innov);
+                                    trans.set_innovation(new_node, Some(innov_id));
+                                }
                             }
                         }
                     }
@@ -222,62 +214,10 @@ where
                     ctx.upsert(REJECTED, 1);
                     0
                 }
-                TransactionResult::Valid(steps) => steps.len(),
+                TransactionResult::Valid(_) => 1,
             };
         }
 
         0
     }
 }
-
-// let result = random_provider::with_rng(|rand| {
-//     graph.try_modify(|mut trans| {
-//         let target_idx = trans.random_target_node(rand).map(|n| n.index());
-//         let source_idx = trans
-//             .unique_random_source_node(&new_node.arity(), rand)
-//             .map(|nodes| nodes.into_iter().map(|n| n.index()).collect::<Vec<usize>>())
-//             .unwrap_or_default();
-
-//         let node_idx = trans.push(new_node);
-
-//         if let Some(trgt) = target_idx {
-//             for src in source_idx {
-//                 let insertion_steps =
-//                     trans.get_insertion_steps(src, trgt, node_idx, rand);
-
-//                 for step in insertion_steps {
-//                     match step {
-//                         InsertStep::Connect(source, target) => {
-//                             trans.attach(source, target)
-//                         }
-//                         InsertStep::Detach(source, target) => {
-//                             trans.detach(source, target)
-//                         }
-//                         InsertStep::NewStructure(
-//                             source,
-//                             new_node,
-//                             target,
-//                             node_type,
-//                         ) => {
-//                             let in_innov =
-//                                 trans.get(source).and_then(|n| n.innovation());
-//                             let out_innov =
-//                                 trans.get(target).and_then(|n| n.innovation());
-
-//                             let innov_id = self
-//                                 .innov_context
-//                                 .get_innovation(in_innov, out_innov, node_type);
-
-//                             trans.set_innovation(new_node, Some(innov_id));
-//                         }
-//                         _ => {}
-//                     }
-//                 }
-//             }
-//         }
-
-//         trans.commit_with(|graph: &Graph<T>| {
-//             self.allow_recurrent || !graph.iter().any(|node| node.is_recurrent())
-//         })
-//     })
-// });

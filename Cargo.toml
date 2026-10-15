@@ -75,8 +75,8 @@ homepage = "https://radiate.rs/"
 
 [workspace.dependencies]
 rand = "0.10.3"
-pyo3 = "0.29.3"
-numpy ="0.29.0"
+pyo3 = "0.30.1"
+numpy ="0.30.0"
 rayon = "1.12.0"
 smallvec = { version = "1.16.3", features = ["serde"] }
 thiserror = "2.0.21"
@@ -89,7 +89,7 @@ slotmap = "1.0"
 hashbrown = { version = "0.17.1" }
 crossterm = "0.29"
 ratatui = { version = "0.30.2", default-features = false, features = ["crossterm"] }
-tui-piechart = "1.0.3"
+tui-piechart = "1.1.0"
 color-eyre = "0.6.3"
 num-traits = "0.2.19"
 num-order = "1.2.0"

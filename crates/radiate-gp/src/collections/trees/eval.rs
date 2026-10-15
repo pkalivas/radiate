@@ -88,7 +88,7 @@ where
     stack.truncate(base + n);
 }
 
-fn process_stack<T, V>(node: &TreeNode<T>, n: usize, base: usize, stack: &mut Vec<V>)
+fn process_stack<T, V>(node: &TreeNode<T>, n: usize, base: usize, stack: &mut [V])
 where
     T: for<'c> EvalInto<[&'c [V]], [V]>,
     V: Copy + Default,
