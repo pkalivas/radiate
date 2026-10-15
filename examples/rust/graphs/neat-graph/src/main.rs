@@ -22,6 +22,7 @@ fn main() -> RadiateResult<()> {
         .minimizing()
         .diversity(NeatDistance::default())
         .target_species(TARGET_SPECIES)
+        .filter(UniqueScoreFilter::new(10, MIN_SCORE))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
