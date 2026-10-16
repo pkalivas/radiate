@@ -249,6 +249,16 @@ impl<T> Graph<T> {
         self
     }
 
+    pub fn are_attached(&self, incoming: usize, outgoing: usize) -> bool {
+        if let Some(src) = self.get(incoming)
+            && let Some(dst) = self.get(outgoing)
+        {
+            return src.outgoing().contains(&outgoing) && dst.incoming().contains(&incoming);
+        }
+
+        false
+    }
+
     /// tries to modify the graph using a [GraphTransaction]. If the transaction is successful,
     /// we return true and do nothing. If the transaction is not successful, we roll back the transaction
     /// by undoing all the changes made by the transaction and return false.

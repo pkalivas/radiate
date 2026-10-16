@@ -12,12 +12,12 @@ fn main() -> RadiateResult<()> {
     let store = node_set! {
         Input => Op::vars(0..in_dim),
         Edge => Op::identity(),
-        Vertex => [Op::add(), Op::mul()],
+        Vertex => [Op::sum(), Op::prod()],
         Output => Op::sum()
     };
 
     let engine = GeneticEngine::builder()
-        .codec(GraphCodec::directed(in_dim, out_dim, store)?)
+        .codec(GraphCodec::directed(in_dim, out_dim, store)?.with_max_nodes(10))
         .fitness_fn(Regression::new(data.clone(), Loss::MSE))
         .minimizing()
         .diversity(NeatDistance::default())

@@ -5,17 +5,10 @@ const MIN_SCORE: f32 = 0.001;
 fn main() -> RadiateResult<()> {
     random_provider::seed(518);
 
-    // let store = node_set![
-    //     Input => Op::var(0),
-    //     Edge => Op::weight(),
-    //     Vertex => [Op::sub(), Op::mul(), Op::sum(), Op::erc(), Op::erc_with(0.5)],
-    //     Output => Op::sum()
-    // ];
-
     let store = node_set![
         Input  => Op::var(0),
         Edge   => Op::weight(),
-        Vertex => [Op::mul(), Op::sum()],
+        Vertex => [Op::prod(), Op::sum()],
         Output => Op::sum()
     ];
 

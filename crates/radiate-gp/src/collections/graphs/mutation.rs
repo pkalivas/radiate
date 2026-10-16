@@ -5,7 +5,7 @@ use crate::{Arity, graphs::node::InnovationId};
 use crate::{Factory, NodeType};
 use radiate_core::{AlterContext, Chromosome, Expr, RateSet, SmallStr, expr};
 use radiate_core::{Mutate, random_provider};
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Debug};
 
 const SATURATED: SmallStr = SmallStr::from_static("mutator.graph.invalid.saturated");
 const REJECTED: SmallStr = SmallStr::from_static("mutator.graph.invalid");
@@ -177,8 +177,14 @@ where
                         _ => 1,
                     };
 
+                    let exclude = if self.allow_recurrent {
+                        None
+                    } else {
+                        Some(target_idx)
+                    };
+
                     let sources = trans
-                        .unique_random_source_nodes(needed, rand)
+                        .unique_random_source_nodes(needed, exclude, rand)
                         .map(|nodes| nodes.iter().map(|n| n.index()).collect::<Vec<_>>())
                         .unwrap_or_default();
                     let node_idx = trans.push(new_node);

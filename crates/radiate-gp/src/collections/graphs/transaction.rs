@@ -61,6 +61,16 @@ pub enum ReplayStep<T> {
     InnovationChange(usize, Option<InnovationId>),
 }
 
+/// A declarative plan for inserting a node between two nodes.
+///
+/// Consumers must execute these steps themselves (e.g., with `attach`/`detach`) before committing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InsertStep {
+    Detach(usize, usize),
+    Connect(usize, usize),
+    NewStructure(usize, usize, usize),
+}
+
 /// Result of finalizing a transaction.
 ///
 /// - `Valid(steps)`: the graph remained valid after cycle marking (and optional custom validation),
@@ -90,16 +100,6 @@ impl<T> TransactionResult<T> {
             transaction.replay(replay_steps.clone());
         }
     }
-}
-
-/// A declarative plan for inserting a node between two nodes.
-///
-/// Consumers must execute these steps themselves (e.g., with `attach`/`detach`) before committing.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum InsertStep {
-    Detach(usize, usize),
-    Connect(usize, usize),
-    NewStructure(usize, usize, usize),
 }
 
 /// Tracks reversible changes to a `Graph<T>` and provides commit/rollback.
@@ -179,7 +179,14 @@ impl<'a, T> GraphTransaction<'a, T> {
     }
 
     /// Remove an edge from `from` to `to` and record the change.
+    ///
+    /// Does nothing (and records nothing) if the edge doesn't exist, so a rollback never
+    /// attaches an edge that wasn't there to begin with.
     pub fn detach(&mut self, from: usize, to: usize) {
+        if self.graph[from].outgoing().binary_search(&to).is_err() {
+            return;
+        }
+
         self.steps.push(MutationStep::RemoveEdge(from, to));
         self.graph.detach(from, to);
         SortedBuffer::insert_sorted_unique(&mut self.effects, from);
@@ -325,13 +332,10 @@ impl<'a, T> GraphTransaction<'a, T> {
         rand: &mut RdRand,
     ) -> Vec<InsertStep> {
         let target_node = self.graph.get(target_idx).unwrap();
-        let source_node = self.graph.get(source_idx).unwrap();
         let new_node = self.graph.get(new_node_idx).unwrap();
 
         let mut steps = Vec::with_capacity(4);
 
-        let source_is_edge = source_node.node_type() == NodeType::Edge;
-        let target_is_edge = target_node.node_type() == NodeType::Edge;
         let new_node_arity = new_node.arity();
 
         if new_node_arity == Arity::Zero && !target_node.is_locked() {
@@ -339,42 +343,37 @@ impl<'a, T> GraphTransaction<'a, T> {
             return steps;
         }
 
-        // if source_is_edge {
-        //     let source_outgoing = *rand.choose(source_node.outgoing());
-
-        //     if source_outgoing == new_node_idx {
-        //         steps.push(InsertStep::Connect(source_idx, new_node_idx));
-        //     } else {
-        //         steps.push(InsertStep::Connect(source_idx, new_node_idx));
-        //         steps.push(InsertStep::Connect(new_node_idx, source_outgoing));
-        //         steps.push(InsertStep::Detach(source_idx, source_outgoing));
-        //         steps.push(InsertStep::NewStructure(
-        //             source_idx,
-        //             new_node_idx,
-        //             source_outgoing,
-        //         ));
-        //     }
-        // } else
-        if target_is_edge || target_node.is_locked() {
+        if target_node.is_locked() {
             let target_incoming = *rand.choose(target_node.incoming());
 
-            if target_incoming == new_node_idx {
+            // If the target incoming is the same as the new node and the new node is not locked,
+            // self connect the new node to itself (create a cycle)
+            if target_incoming == new_node_idx && !new_node.is_locked() {
                 steps.push(InsertStep::Connect(target_incoming, new_node_idx));
-            } else {
-                steps.push(InsertStep::Connect(target_incoming, new_node_idx));
-                steps.push(InsertStep::Connect(new_node_idx, target_idx));
-                steps.push(InsertStep::Detach(target_incoming, target_idx));
-                steps.push(InsertStep::NewStructure(
-                    target_incoming,
-                    new_node_idx,
-                    target_idx,
-                ));
+                return steps;
             }
+
+            // Connect the target incoming to the new node, then the new node to the target,
+            // detach the original connection, and create a new structure to represent this change.
+            // This shifts the connection from:
+            //
+            // target_incoming -> target_idx
+            // to
+            // target_incoming -> new_node_idx -> target_idx
+            steps.push(InsertStep::Connect(target_incoming, new_node_idx));
+            steps.push(InsertStep::Connect(new_node_idx, target_idx));
+            steps.push(InsertStep::Detach(target_incoming, target_idx));
+            steps.push(InsertStep::NewStructure(
+                target_incoming,
+                new_node_idx,
+                target_idx,
+            ));
+            return steps;
         } else {
             steps.push(InsertStep::Connect(source_idx, new_node_idx));
             steps.push(InsertStep::Connect(new_node_idx, target_idx));
 
-            if rand.bool(0.5) {
+            if self.graph.are_attached(source_idx, target_idx) && rand.bool(0.5) {
                 steps.push(InsertStep::Detach(source_idx, target_idx));
             }
 
@@ -385,61 +384,35 @@ impl<'a, T> GraphTransaction<'a, T> {
             ));
         }
 
-        // let source_is_edge = source_node.node_type() == NodeType::Edge;
-        // let target_is_edge = target_node.node_type() == NodeType::Edge;
-        // let new_node_arity = new_node.arity();
-
-        // if new_node_arity == Arity::Zero && !target_node.is_locked() {
-        //     steps.push(InsertStep::Connect(new_node_idx, target_idx));
-        //     return steps;
-        // }
-
-        // if source_is_edge {
-        //     let source_outgoing = *rand.choose(source_node.outgoing());
-
-        //     if source_outgoing == new_node_idx {
-        //         steps.push(InsertStep::Connect(source_idx, new_node_idx));
-        //     } else {
-        //         steps.push(InsertStep::Connect(source_idx, new_node_idx));
-        //         steps.push(InsertStep::Connect(new_node_idx, source_outgoing));
-        //         steps.push(InsertStep::Detach(source_idx, source_outgoing));
-        //         steps.push(InsertStep::NewStructure(
-        //             source_idx,
-        //             new_node_idx,
-        //             source_outgoing,
-        //         ));
-        //     }
-        // } else if target_is_edge || target_node.is_locked() {
-        //     let target_incoming = *rand.choose(target_node.incoming());
-
-        //     if target_incoming == new_node_idx {
-        //         steps.push(InsertStep::Connect(target_incoming, new_node_idx));
-        //     } else {
-        //         steps.push(InsertStep::Connect(target_incoming, new_node_idx));
-        //         steps.push(InsertStep::Connect(new_node_idx, target_idx));
-        //         steps.push(InsertStep::Detach(target_incoming, target_idx));
-        //         steps.push(InsertStep::NewStructure(
-        //             target_incoming,
-        //             new_node_idx,
-        //             target_idx,
-        //         ));
-        //     }
-        // } else {
-        //     steps.push(InsertStep::Connect(source_idx, new_node_idx));
-        //     steps.push(InsertStep::Connect(new_node_idx, target_idx));
-
-        //     if rand.bool(0.5) {
-        //         steps.push(InsertStep::Detach(source_idx, target_idx));
-        //     }
-
-        //     steps.push(InsertStep::NewStructure(
-        //         source_idx,
-        //         new_node_idx,
-        //         target_idx,
-        //     ));
-        // }
-
         return steps;
+    }
+
+    fn commit_internal<F: Fn(&Graph<T>) -> bool>(
+        mut self,
+        validator: Option<F>,
+        set_cycles: bool,
+    ) -> TransactionResult<T> {
+        if set_cycles {
+            self.set_cycles();
+        }
+
+        let result_steps = self.steps.iter().map(|step| (*step).clone()).collect();
+
+        if let Some(validator) = validator {
+            return if validator(self.graph) && self.is_valid() {
+                TransactionResult::Valid(result_steps)
+            } else {
+                let replay_steps = self.rollback();
+                TransactionResult::Invalid(result_steps, replay_steps)
+            };
+        }
+
+        if self.is_valid() {
+            TransactionResult::Valid(result_steps)
+        } else {
+            let replay_steps = self.rollback();
+            TransactionResult::Invalid(result_steps, replay_steps)
+        }
     }
 }
 
@@ -465,6 +438,44 @@ impl<'a, T> GraphTransaction<'a, T> {
         self.random_node_of_type(TARGET_NODE_TYPES, rand)
     }
 
+    /// Up to `needed` distinct random source nodes, never the node at `exclude` (typically the
+    /// insertion target, so a source can't wire the target back into itself).
+    #[inline]
+    pub fn unique_random_source_nodes(
+        &self,
+        needed: usize,
+        exclude: Option<usize>,
+        rand: &mut RdRand,
+    ) -> Option<Vec<&GraphNode<T>>> {
+        if self.graph.len() < needed {
+            return None;
+        }
+
+        let mut sorted = SortedBuffer::new();
+
+        let mut attempts = 0;
+        while sorted.len() < needed && attempts < MAX_SOURCE_ATTEMPTS {
+            if let Some(node) = self.random_source_node(rand) {
+                if let Some(exlude_idx) = exclude
+                    && node.index() == exlude_idx
+                {
+                    continue;
+                }
+
+                SortedBuffer::insert_sorted_unique(&mut sorted, node.index());
+            }
+
+            attempts += 1;
+        }
+
+        Some(
+            sorted
+                .iter()
+                .map(|&idx| &self.graph[idx])
+                .collect::<Vec<&GraphNode<T>>>(),
+        )
+    }
+
     #[inline]
     fn random_node_of_type(
         &self,
@@ -488,6 +499,30 @@ impl<'a, T> GraphTransaction<'a, T> {
         self.random_node_where(rand, |n| node_types.contains(&n.node_type()))
     }
 
+    /// Get a random target node that satisfies the provided filter function.
+    /// This is essentially a filtered version of the above function `random_target_node`.
+    #[inline]
+    fn random_target_node_where<F>(&self, rand: &mut RdRand, filter: F) -> Option<&GraphNode<T>>
+    where
+        F: Fn(&GraphNode<T>) -> bool,
+    {
+        self.random_node_where(rand, |node: &GraphNode<T>| {
+            TARGET_NODE_TYPES.contains(&node.node_type()) && filter(node)
+        })
+    }
+
+    /// Get a random source node that satisfies the provided filter function.
+    /// This is essentially a filtered version of the above function `random_source_node`.
+    #[inline]
+    fn random_source_node_where<F>(&self, rand: &mut RdRand, filter: F) -> Option<&GraphNode<T>>
+    where
+        F: Fn(&GraphNode<T>) -> bool,
+    {
+        self.random_node_where(rand, |node: &GraphNode<T>| {
+            SOURCE_NODE_TYPES.contains(&node.node_type()) && filter(node)
+        })
+    }
+
     /// Uniform over nodes matching `filter`, in two passes and with no allocation.
     #[inline]
     fn random_node_where<F>(&self, rand: &mut RdRand, filter: F) -> Option<&GraphNode<T>>
@@ -501,77 +536,6 @@ impl<'a, T> GraphTransaction<'a, T> {
 
         let k = rand.range(0..count);
         self.iter().filter(|n| filter(n)).nth(k)
-    }
-
-    #[inline]
-    pub fn unique_random_source_nodes(
-        &self,
-        needed: usize,
-        rand: &mut RdRand,
-    ) -> Option<Vec<&GraphNode<T>>> {
-        if self.graph.len() < needed {
-            return None;
-        }
-
-        if needed == 1 {
-            return self.random_source_node(rand).map(|n| vec![n]);
-        }
-
-        let mut sorted = SortedBuffer::new();
-
-        let mut attempts = 0;
-        while sorted.len() < needed && attempts < MAX_SOURCE_ATTEMPTS {
-            if let Some(node) = self.random_source_node(rand) {
-                SortedBuffer::insert_sorted_unique(&mut sorted, node.index());
-            }
-
-            attempts += 1;
-        }
-
-        Some(
-            sorted
-                .iter()
-                .map(|&idx| &self.graph[idx])
-                .collect::<Vec<&GraphNode<T>>>(),
-        )
-    }
-
-    /// Get a random target node that satisfies the provided filter function.
-    /// This is essentially a filtered version of the above function `random_target_node`.
-    #[inline]
-    pub fn random_target_node_where<F>(&self, rand: &mut RdRand, filter: F) -> Option<&GraphNode<T>>
-    where
-        F: Fn(&GraphNode<T>) -> bool,
-    {
-        let candidates = self
-            .iter()
-            .filter(|node| TARGET_NODE_TYPES.contains(&node.node_type()) && filter(node))
-            .collect::<Vec<&GraphNode<T>>>();
-
-        if candidates.is_empty() {
-            return None;
-        }
-
-        Some(*rand.choose(&candidates))
-    }
-
-    /// Get a random source node that satisfies the provided filter function.
-    /// This is essentially a filtered version of the above function `random_source_node`.
-    #[inline]
-    fn random_source_node_where<F>(&self, rand: &mut RdRand, filter: F) -> Option<&GraphNode<T>>
-    where
-        F: Fn(&GraphNode<T>) -> bool,
-    {
-        let candidates = self
-            .iter()
-            .filter(|node| SOURCE_NODE_TYPES.contains(&node.node_type()) && filter(node))
-            .collect::<Vec<&GraphNode<T>>>();
-
-        if candidates.is_empty() {
-            return None;
-        }
-
-        Some(*rand.choose(&candidates))
     }
 }
 
@@ -680,34 +644,6 @@ impl<'a, T> GraphTransaction<'a, T> {
         }
 
         false
-    }
-
-    fn commit_internal<F: Fn(&Graph<T>) -> bool>(
-        mut self,
-        validator: Option<F>,
-        set_cycles: bool,
-    ) -> TransactionResult<T> {
-        if set_cycles {
-            self.set_cycles();
-        }
-
-        let result_steps = self.steps.iter().map(|step| (*step).clone()).collect();
-
-        if let Some(validator) = validator {
-            return if validator(self.graph) && self.is_valid() {
-                TransactionResult::Valid(result_steps)
-            } else {
-                let replay_steps = self.rollback();
-                TransactionResult::Invalid(result_steps, replay_steps)
-            };
-        }
-
-        if self.is_valid() {
-            TransactionResult::Valid(result_steps)
-        } else {
-            let replay_steps = self.rollback();
-            TransactionResult::Invalid(result_steps, replay_steps)
-        }
     }
 }
 
@@ -859,43 +795,6 @@ mod tests {
     }
 
     #[test]
-    fn insertion_steps_source_is_edge_with_single_outgoing_equal_new() {
-        let mut g = Graph::<i32>::default();
-        let mut tx = GraphTransaction::new(&mut g);
-
-        // source edge with outgoing already pointing to new node
-        let source = tx
-            .push(GraphNode::with_arity(0, NodeType::Edge, 0, Arity::Exact(1)).with_outgoing([2]));
-        let target = tx.push((1, NodeType::Vertex, 1));
-        let newn = tx.push((2, NodeType::Vertex, 2));
-
-        let steps = random_provider::with_rng(|r| tx.get_insertion_steps(source, target, newn, r));
-        assert_eq!(steps, vec![InsertStep::Connect(source, newn)]);
-    }
-
-    #[test]
-    fn insertion_steps_source_is_edge_redirects_through_new() {
-        let mut g = Graph::<i32>::default();
-        let mut tx = GraphTransaction::new(&mut g);
-
-        // source edge with single outgoing to target (not new)
-        let source = tx
-            .push(GraphNode::with_arity(0, NodeType::Edge, 0, Arity::Exact(1)).with_outgoing([1]));
-        let target = tx.push((1, NodeType::Vertex, 1));
-        let newn = tx.push((2, NodeType::Vertex, 2));
-
-        let steps = random_provider::with_rng(|r| tx.get_insertion_steps(source, target, newn, r));
-        assert_eq!(
-            steps[..3],
-            vec![
-                InsertStep::Connect(source, newn),
-                InsertStep::Connect(newn, target),
-                InsertStep::Detach(source, target),
-            ]
-        );
-    }
-
-    #[test]
     fn insertion_steps_target_locked_prefers_detach_rewire() {
         let mut g = Graph::<i32>::default();
         let mut tx = GraphTransaction::new(&mut g);
@@ -917,25 +816,6 @@ mod tests {
                 InsertStep::Detach(source, target),
             ]
         );
-    }
-
-    #[test]
-    fn random_node_helpers_can_return_edges_when_only_edges_exist() {
-        random_provider::seed(1337);
-        random_provider::with_rng(|rand| {
-            let mut g = Graph::<i32>::default();
-            let mut tx = GraphTransaction::new(&mut g);
-
-            // Only edge nodes exist; helpers should still return something (and it will be an Edge).
-            tx.push((0, NodeType::Edge, 0, Arity::Exact(1)));
-            tx.push((1, NodeType::Edge, 1, Arity::Exact(1)));
-
-            let src = tx.random_source_node(rand).unwrap();
-            let tgt = tx.random_target_node(rand).unwrap();
-
-            assert_eq!(src.node_type(), NodeType::Edge);
-            assert_eq!(tgt.node_type(), NodeType::Edge);
-        });
     }
 
     #[test]
@@ -982,51 +862,56 @@ mod tests {
     }
 }
 
-// pub fn get_insertion_steps(
-//     &self,
-//     sources: &[usize],
-//     target_idx: usize,
-//     new_node_idx: usize,
-//     placement: Placement,
-//     rand: &mut RdRand,
-// ) -> SmallVec<[InsertStep; 8]> {
-//     let target = &self.graph[target_idx];
-//     let new_node = &self.graph[new_node_idx];
-//     let mut steps = SmallVec::new();
+// let source_is_edge = source_node.node_type() == NodeType::Edge;
+// let target_is_edge = target_node.node_type() == NodeType::Edge;
+// let new_node_arity = new_node.arity();
 
-//     if new_node.arity() == Arity::Zero {
-//         if !target.is_locked() {
-//             steps.push(InsertStep::Connect(new_node_idx, target_idx));
-//         }
-//         return steps;
-//     }
-
-//     // Edges and full nodes can only be split; arity-Any
-//     let split = !target.incoming().is_empty()
-//         && (target.node_type() == NodeType::Edge
-//             || target.is_locked()
-//             || placement == Placement::Split);
-
-//     let anchor = if split {
-//         *rand.choose(target.incoming())
-//     } else {
-//         *rand.choose(sources)
-//     };
-
-//     steps.push(InsertStep::Connect(anchor, new_node_idx));
+// if new_node_arity == Arity::Zero && !target_node.is_locked() {
 //     steps.push(InsertStep::Connect(new_node_idx, target_idx));
-//     if split {
-//         steps.push(InsertStep::Detach(anchor, target_idx));
-//     }
-//     steps.push(InsertStep::NewStructure(anchor, new_node_idx, target_idx));
+//     return steps;
+// }
 
-//     // The remaining sources only feed the new node; they never touch the target again.
-//     for &src in sources
-//         .iter()
-//         .filter(|&&s| s != anchor && s != new_node_idx)
-//     {
-//         steps.push(InsertStep::Connect(src, new_node_idx));
+// if source_is_edge {
+//     let source_outgoing = *rand.choose(source_node.outgoing());
+
+//     if source_outgoing == new_node_idx {
+//         steps.push(InsertStep::Connect(source_idx, new_node_idx));
+//     } else {
+//         steps.push(InsertStep::Connect(source_idx, new_node_idx));
+//         steps.push(InsertStep::Connect(new_node_idx, source_outgoing));
+//         steps.push(InsertStep::Detach(source_idx, source_outgoing));
+//         steps.push(InsertStep::NewStructure(
+//             source_idx,
+//             new_node_idx,
+//             source_outgoing,
+//         ));
+//     }
+// } else if target_is_edge || target_node.is_locked() {
+//     let target_incoming = *rand.choose(target_node.incoming());
+
+//     if target_incoming == new_node_idx {
+//         steps.push(InsertStep::Connect(target_incoming, new_node_idx));
+//     } else {
+//         steps.push(InsertStep::Connect(target_incoming, new_node_idx));
+//         steps.push(InsertStep::Connect(new_node_idx, target_idx));
+//         steps.push(InsertStep::Detach(target_incoming, target_idx));
+//         steps.push(InsertStep::NewStructure(
+//             target_incoming,
+//             new_node_idx,
+//             target_idx,
+//         ));
+//     }
+// } else {
+//     steps.push(InsertStep::Connect(source_idx, new_node_idx));
+//     steps.push(InsertStep::Connect(new_node_idx, target_idx));
+
+//     if rand.bool(0.5) {
+//         steps.push(InsertStep::Detach(source_idx, target_idx));
 //     }
 
-//     steps
+//     steps.push(InsertStep::NewStructure(
+//         source_idx,
+//         new_node_idx,
+//         target_idx,
+//     ));
 // }
