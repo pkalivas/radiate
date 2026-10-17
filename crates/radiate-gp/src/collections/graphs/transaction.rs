@@ -16,7 +16,7 @@
 //! 1) Build with `push(...)`, `attach(...)`, `detach(...)`, `change_direction(...)`
 //! 2) `commit()`, `commit_with(...)`, or `try_commit()` to finalize
 //! 3) On invalid commit, use returned `replay` to re-apply later with `replay(...)`
-use super::{Direction, Graph, GraphNode, NodeIdx};
+use super::{Direction, Graph, GraphNode, NodeIdx, cycles::Sccs};
 use crate::{Arity, NodeType, graphs::node::InnovationId, node::Node};
 use radiate_core::{RdRand, Valid, random_provider};
 use radiate_utils::SortedBuffer;
@@ -102,7 +102,6 @@ impl<T> TransactionResult<T> {
 pub struct GraphTransaction<'a, T> {
     graph: &'a mut Graph<T>,
     steps: Vec<MutationStep>,
-    effects: SortedBuffer<NodeIdx>,
 }
 
 impl<'a, T> GraphTransaction<'a, T> {
@@ -110,7 +109,6 @@ impl<'a, T> GraphTransaction<'a, T> {
         GraphTransaction {
             graph,
             steps: Vec::with_capacity(5),
-            effects: SortedBuffer::new(),
         }
     }
 
@@ -156,7 +154,6 @@ impl<'a, T> GraphTransaction<'a, T> {
         let index = NodeIdx::from_usize(self.graph.len());
         self.steps.push(MutationStep::AddNode(index));
         self.graph.push(node);
-        SortedBuffer::insert_sorted_unique(&mut self.effects, index);
         index
     }
 
@@ -165,8 +162,6 @@ impl<'a, T> GraphTransaction<'a, T> {
         let (from, to) = (from.into(), to.into());
         self.steps.push(MutationStep::AddEdge(from, to));
         self.graph.attach(from, to);
-        SortedBuffer::insert_sorted_unique(&mut self.effects, from);
-        SortedBuffer::insert_sorted_unique(&mut self.effects, to);
     }
 
     /// Remove an edge from `from` to `to` and record the change.
@@ -181,8 +176,6 @@ impl<'a, T> GraphTransaction<'a, T> {
 
         self.steps.push(MutationStep::RemoveEdge(from, to));
         self.graph.detach(from, to);
-        SortedBuffer::insert_sorted_unique(&mut self.effects, from);
-        SortedBuffer::insert_sorted_unique(&mut self.effects, to);
     }
 
     /// Change the direction of the node at `index` if it differs from its current direction.
@@ -280,25 +273,6 @@ impl<'a, T> GraphTransaction<'a, T> {
         }
     }
 
-    /// Mark cycle participation for nodes touched in this transaction:
-    /// - Nodes without cycles are set to `Direction::Forward`.
-    /// - Nodes in cycles (via `get_cycles(idx)`) are set to `Direction::Backward`.
-    pub fn set_cycles(&mut self) {
-        let effects = self.effects.clone();
-
-        for &idx in effects.iter() {
-            let node_cycles = self.graph.get_cycles(idx);
-
-            if node_cycles.is_empty() {
-                self.change_direction(idx, Direction::Forward);
-            } else {
-                for &cycle_idx in node_cycles.iter() {
-                    self.change_direction(cycle_idx, Direction::Backward);
-                }
-            }
-        }
-    }
-
     pub fn set_innovation(
         &mut self,
         node_idx: impl Into<NodeIdx>,
@@ -312,6 +286,15 @@ impl<'a, T> GraphTransaction<'a, T> {
                 node_idx,
                 previous_innovation,
             });
+        }
+    }
+
+    pub fn set_cycles(&mut self) {
+        let mut sccs = Sccs::default();
+        sccs.find_in(self.graph.as_ref());
+
+        for (index, direction) in sccs.directions() {
+            self.change_direction(index, direction);
         }
     }
 

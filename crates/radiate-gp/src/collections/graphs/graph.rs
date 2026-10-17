@@ -1,3 +1,4 @@
+use super::cycles::Sccs;
 use super::transaction::TransactionResult;
 use crate::{
     Arity, Eval, EvalInto, EvalIntoMut, EvalMut, Node, Op, StatefulGraph,
@@ -5,11 +6,10 @@ use crate::{
 };
 use crate::{
     GraphEvaluator,
-    collections::{Direction, GraphNode, graphs::NodeIdx},
+    collections::{GraphNode, graphs::NodeIdx},
 };
 use crate::{GraphIterator, NodeType};
 use radiate_core::Valid;
-use radiate_utils::SortedBuffer;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -41,7 +41,7 @@ use std::ops::{Index, IndexMut};
 /// while still maintaining the ability to represent traditional graphs.
 ///
 /// By default, a [Graph] is a directed acyclic graph (DAG). However, it is possible to create
-/// cycles in the graph by setting the 'direction' field of a [GraphNode] to [Direction::Backward].
+/// cycles in the graph by setting the 'direction' field of a [GraphNode] to [Direction::Backward](super::Direction::Backward).
 /// The [Graph] struct provides methods for attaching and detaching nodes from one another.
 /// It also provides methods for iterating over the nodes in the graph in a pseudo-topological order.
 ///
@@ -319,94 +319,17 @@ impl<T> Graph<T> {
         mutation(GraphTransaction::new(self))
     }
 
-    /// Given a list of node indices, this function will set the 'direction' field of the nodes
-    /// at those indices to [Direction::Backward] if they are part of a cycle. If they are not part
-    /// of a cycle, the 'direction' field will be set to [Direction::Forward].
-    /// If no indices are provided, the function will set the 'direction' field of all nodes in the graph.
+    /// Sets every node's 'direction' field from one pass over the graph's strongly connected
+    /// components: [Direction::Backward](super::Direction::Backward) if the node sits on a
+    /// cycle, [Direction::Forward](super::Direction::Forward) otherwise. The whole graph is recomputed, so no flag outlives the cycle that set it.
     #[inline]
-    pub fn set_cycles(&mut self, indecies: Vec<NodeIdx>) {
-        if indecies.is_empty() {
-            let all_indices = self
-                .as_ref()
-                .iter()
-                .map(|node| node.index())
-                .collect::<Vec<NodeIdx>>();
+    pub fn set_cycles(&mut self) {
+        let mut sccs = Sccs::default();
+        sccs.find_in(self.as_ref());
 
-            return self.set_cycles(all_indices);
+        for (index, direction) in sccs.directions() {
+            self.nodes[index.as_usize()].set_direction(direction);
         }
-
-        for idx in indecies {
-            let cycles = self.get_cycles(idx);
-
-            if cycles.is_empty() {
-                if let Some(node) = self.get_mut(idx) {
-                    node.set_direction(Direction::Forward);
-                }
-            } else {
-                for &cycle in cycles.iter() {
-                    if let Some(node) = self.get_mut(cycle) {
-                        node.set_direction(Direction::Backward);
-                    }
-                }
-            }
-        }
-    }
-
-    /// Get the cycles in the graph that include the node at the specified index.
-    ///
-    /// # Arguments
-    /// - index: The index of the node to get the cycles for.
-    #[inline]
-    pub fn get_cycles(&self, from: impl Into<NodeIdx>) -> SortedBuffer<NodeIdx> {
-        let n = self.len();
-        let mut on_stack = vec![false; n];
-        let mut visited = vec![false; n];
-        let mut cycles = vec![false; n];
-        let mut stack = Vec::with_capacity(n.min(64));
-
-        fn dfs<T>(
-            g: &Graph<T>,
-            u: usize,
-            visited: &mut [bool],
-            on_stack: &mut [bool],
-            cycles: &mut [bool],
-            stack: &mut Vec<usize>,
-        ) {
-            visited[u] = true;
-            on_stack[u] = true;
-            stack.push(u);
-
-            for v in g.nodes[u].outgoing().iter().map(|v| v.as_usize()) {
-                if !visited[v] {
-                    dfs(g, v, visited, on_stack, cycles, stack);
-                } else if on_stack[v] {
-                    let start = stack.iter().rposition(|&x| x == v).unwrap();
-                    for &w in &stack[start..] {
-                        cycles[w] = true;
-                    }
-                }
-            }
-
-            stack.pop();
-            on_stack[u] = false;
-        }
-
-        dfs(
-            self,
-            from.into().as_usize(),
-            &mut visited,
-            &mut on_stack,
-            &mut cycles,
-            &mut stack,
-        );
-
-        let mut out = SortedBuffer::new();
-        for (i, &c) in cycles.iter().enumerate() {
-            if c {
-                SortedBuffer::insert_sorted_unique(&mut out, NodeIdx::from_usize(i));
-            }
-        }
-        out
     }
 }
 
@@ -530,7 +453,7 @@ impl<T: Debug> Debug for Graph<T> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{Arity, Node, Op};
+    use crate::{Arity, Direction, Node, Op};
 
     #[test]
     fn test_graph_is_valid() {
@@ -661,7 +584,7 @@ mod test {
             .attach(idx_three, idx_four)
             .attach(idx_four, idx_two);
 
-        graph.set_cycles(vec![]);
+        graph.set_cycles();
 
         assert_eq!(graph.len(), 4);
 
@@ -687,6 +610,36 @@ mod test {
     }
 
     #[test]
+    fn test_set_cycles_clears_stale_flag_upstream_of_cycle() {
+        let mut graph = Graph::<Op<f32>>::default();
+        let x = graph.insert(NodeType::Input, Op::var(0));
+        let v1 = graph.insert(NodeType::Vertex, Op::sum());
+        let v2 = graph.insert(NodeType::Vertex, Op::sum());
+        let v3 = graph.insert(NodeType::Vertex, Op::sum());
+        let o = graph.insert(NodeType::Output, Op::sum());
+        graph
+            .attach(x, v1)
+            .attach(v1, v1)
+            .attach(v1, v2)
+            .attach(v2, v3)
+            .attach(v3, v2)
+            .attach(v3, o);
+
+        graph.set_cycles();
+        assert_eq!(graph[v1].direction(), Direction::Backward);
+
+        // v1 is no longer on a cycle, but still reaches the v2 <-> v3 cycle downstream.
+        graph.detach(v1, v1);
+        graph.set_cycles();
+
+        assert_eq!(graph[x].direction(), Direction::Forward);
+        assert_eq!(graph[v1].direction(), Direction::Forward);
+        assert_eq!(graph[v2].direction(), Direction::Backward);
+        assert_eq!(graph[v3].direction(), Direction::Backward);
+        assert_eq!(graph[o].direction(), Direction::Forward);
+    }
+
+    #[test]
     fn test_graph_set_cycles() {
         let mut graph = Graph::<i32>::default();
 
@@ -706,7 +659,7 @@ mod test {
             assert_eq!(node.direction(), Direction::Forward);
         }
 
-        graph.set_cycles(vec![]);
+        graph.set_cycles();
 
         for node in graph.iter() {
             assert!(node.is_valid());

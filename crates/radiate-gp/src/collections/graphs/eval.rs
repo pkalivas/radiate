@@ -502,7 +502,7 @@ mod tests {
             .attach(h, add)
             .attach(add, h)
             .attach(h, out);
-        graph.set_cycles(vec![]);
+        graph.set_cycles();
 
         assert_rows_match_batch(&graph, &samples(2, 50));
 

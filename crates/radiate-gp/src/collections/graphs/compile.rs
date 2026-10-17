@@ -282,23 +282,9 @@ impl GraphPlan {
         // 3. The schedule: components in dependency order, each cycle's nodes in the row
         //    evaluator's order (the order they run within a sample).
         cycle_nodes.reserve(nodes.len());
-        for c in 0..sccs.component_ends.len() {
-            let start = if c == 0 {
-                0
-            } else {
-                sccs.component_ends[c - 1]
-            } as usize;
-            let end = sccs.component_ends[c] as usize;
-            let members = &mut sccs.components[start..end];
-            members.sort_unstable();
-
-            let is_cycle = members.len() > 1 || {
-                let p = members[0];
-                let (es, ee) = sccs.edge_ranges[p as usize];
-                sccs.edges[es as usize..ee as usize].contains(&p)
-            };
-
-            if is_cycle {
+        sccs.sort_components();
+        for members in sccs.iter() {
+            if sccs.is_cycle(members) {
                 let first = cycle_nodes.len();
                 cycle_nodes.extend(members.iter().map(|&pos| order[pos as usize]));
                 steps.push(Step::Cycle(first..cycle_nodes.len()));

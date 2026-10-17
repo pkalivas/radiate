@@ -27,7 +27,7 @@ fn main() {
         .attach(idx_three, idx_four)
         .attach(idx_four, idx_two);
 
-    graph.set_cycles(vec![]);
+    graph.set_cycles();
     // --8<-- [end:eval]
 
     // --8<-- [start:variants]

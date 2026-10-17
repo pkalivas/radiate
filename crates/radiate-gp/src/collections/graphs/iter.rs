@@ -205,7 +205,7 @@ mod tests {
         graph.attach(6, 8);
         graph.attach(7, 9);
 
-        graph.set_cycles(vec![]);
+        graph.set_cycles();
 
         let results = graph
             .iter_topological()
@@ -291,7 +291,7 @@ mod tests {
         graph.attach(6, 8);
         graph.attach(7, 9);
 
-        graph.set_cycles(vec![]);
+        graph.set_cycles();
 
         let eval_order = graph
             .iter_topological()
