@@ -14,8 +14,8 @@ fn main() {
             Op::sub(),
             Op::mul(),
             Op::div(),
-            Op::linear(),
-            Op::sigmoid(),
+            // Op::sum(),
+            // Op::sigmoid(),
         ],
         Output => Op::sigmoid()
     ];
@@ -30,7 +30,7 @@ fn main() {
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.05, 0.05),
-            GraphMutator::new(0.06, 0.01).allow_recurrent(false),
+            GraphMutator::new(0.06, 0.01)
         ))
         .build();
 
