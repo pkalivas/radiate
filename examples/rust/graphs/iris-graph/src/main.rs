@@ -35,10 +35,9 @@ fn main() -> RadiateResult<()> {
         .minimizing()
         .fitness_fn(Regression::new(train.clone(), Loss::MSE))
         .parallel()
-        .offspring_selector(BoltzmannSelector::new(4.0))
+        .offspring_selector(RouletteSelector::new())
         .diversity(NeatDistance::new(1.0, 1.0, 3.0))
         .target_species(4)
-        .species_threshold(0.01)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.02, 0.05),

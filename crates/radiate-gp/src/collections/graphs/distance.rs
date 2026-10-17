@@ -29,6 +29,7 @@ pub struct NeatDistance {
     excess: f32,
     disjoint: f32,
     weight_diff: f32,
+    op_mismatch: f32,
 }
 
 impl NeatDistance {
@@ -37,7 +38,13 @@ impl NeatDistance {
             excess,
             disjoint,
             weight_diff,
+            op_mismatch: 1.0,
         }
+    }
+
+    pub fn with_op_mismatch(mut self, op_mismatch: f32) -> Self {
+        self.op_mismatch = op_mismatch;
+        self
     }
 
     #[inline]
@@ -61,6 +68,8 @@ impl NeatDistance {
         let mut disjoint = 0.0_f32;
         let mut matching = 0.0_f32;
         let mut weight_diff = F::zero();
+        let mut op_mismatch = 0.0_f32;
+        let mut weight_matches = 0.0_f32;
 
         let mut idx_one = 0;
         let mut idx_two = 0;
@@ -82,21 +91,17 @@ impl NeatDistance {
                     Ordering::Equal => {
                         matching += 1.0;
 
-                        let one_node = &one[idx_one];
-                        let two_node = &two[idx_two];
-
-                        if let (Op::Value(_, _, a_op, _), Op::Value(_, _, b_op, _)) =
-                            (one_node.value(), two_node.value())
+                        let (a, b) = (one[idx_one].value(), two[idx_two].value());
+                        if a.name() != b.name() {
+                            op_mismatch += 1.0;
+                        } else if let (Op::Value(_, _, a_op, _), Op::Value(_, _, b_op, _)) = (a, b)
                         {
+                            weight_matches += 1.0;
                             weight_diff = weight_diff + (*a_op.data() - *b_op.data()).abs();
-                        } else if let (Op::Pair(_, _, a_op, _), Op::Pair(_, _, b_op, _)) =
-                            (one_node.value(), two_node.value())
-                        {
-                            let a_data = *a_op.data();
-                            let b_data = *b_op.data();
-
-                            weight_diff = weight_diff + (a_data.0 - b_data.0).abs();
-                            weight_diff = weight_diff + (a_data.1 - b_data.1).abs();
+                        } else if let (Op::Pair(_, _, a_op, _), Op::Pair(_, _, b_op, _)) = (a, b) {
+                            let (a, b) = (*a_op.data(), *b_op.data());
+                            weight_matches += 1.0;
+                            weight_diff = weight_diff + (a.0 - b.0).abs() + (a.1 - b.1).abs();
                         }
 
                         idx_one += 1;
@@ -124,8 +129,14 @@ impl NeatDistance {
         }
 
         let inv_max = 1_f32 / max_genes as f32;
-        let avg_weight_diff = if matching > 0.0 {
-            weight_diff.extract::<f32>().unwrap() / matching
+
+        let avg_weight_diff = if weight_matches > 0.0 {
+            weight_diff.extract::<f32>().unwrap() / weight_matches
+        } else {
+            0.0
+        };
+        let op_mismatch_rate = if matching > 0.0 {
+            op_mismatch / matching
         } else {
             0.0
         };
@@ -133,6 +144,7 @@ impl NeatDistance {
         (self.excess * excess * inv_max)
             + (self.disjoint * disjoint * inv_max)
             + (self.weight_diff * avg_weight_diff)
+            + (self.op_mismatch * op_mismatch_rate)
     }
 }
 
@@ -142,11 +154,13 @@ impl Default for NeatDistance {
     /// Excess: 1.0,
     /// Disjoint: 1.0,
     /// Weight difference: 3.0
+    /// Operation mismatch: 1.0
     fn default() -> Self {
         Self {
             excess: 1.0,
             disjoint: 1.0,
             weight_diff: 3.0,
+            op_mismatch: 1.0,
         }
     }
 }

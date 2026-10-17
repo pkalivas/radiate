@@ -21,7 +21,6 @@ fn main() -> RadiateResult<()> {
         .fitness_fn(Regression::new(data.clone(), Loss::MSE))
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4_f32))
-        .survivor_selector(TournamentSelector::new(4))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.1, 0.05),

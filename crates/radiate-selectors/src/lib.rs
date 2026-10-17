@@ -9,18 +9,35 @@ pub mod roulette;
 pub mod stochastic_sampling;
 pub mod tournament;
 
-use radiate_core::random_provider;
+use radiate_core::{Optimize, random_provider};
 
 pub use botzmann::BoltzmannSelector;
 pub use elite::EliteSelector;
 pub use linear_rank::LinearRankSelector;
 pub use nsga2::{NSGA2Selector, TournamentNSGA2Selector};
 pub use nsga3::NSGA3Selector;
+use radiate_utils::MinMax;
 pub use random_selector::RandomSelector;
 pub use rank::RankSelector;
 pub use roulette::RouletteSelector;
 pub use stochastic_sampling::StochasticUniversalSamplingSelector;
 pub use tournament::TournamentSelector;
+
+/// Map raw single-objective scores to non-negative weights where larger is better,
+/// in place and independent of slice order. Maximizing keeps today's behavior
+/// (raw score, shifted only if negatives exist); minimizing uses `max - s`. `EPS`
+/// keeps the worst individual at a small nonzero chance.
+pub(crate) fn directed_weights(scores: &mut [f32], opt: Optimize) {
+    let (min, max) = scores.iter().collect::<MinMax<f32>>().min_max();
+    let offset = if min < 0.0 { -min } else { 0.0 };
+
+    for s in scores.iter_mut() {
+        *s = match opt {
+            Optimize::Maximize => *s + offset,
+            Optimize::Minimize => max - *s,
+        } + f32::EPSILON;
+    }
+}
 
 pub(crate) struct ProbabilityWheelIterator {
     cdf: Vec<f32>,

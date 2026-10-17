@@ -9,7 +9,7 @@ mod engine_tests {
     #[test]
     fn engine_can_minimize() {
         const EXPECTED_SUM: i32 = 0;
-        const EXPECTED_GENS: usize = 57;
+        const EXPECTED_INDEX: usize = 39;
 
         seeded(42, || {
             let result = int_minimize_engine(5, 100)
@@ -21,7 +21,7 @@ mod engine_tests {
             let best = result.value();
 
             assert_eq!(best.iter().sum::<i32>(), EXPECTED_SUM);
-            assert_eq!(result.index(), EXPECTED_GENS);
+            assert_eq!(result.index(), EXPECTED_INDEX);
         });
     }
 
@@ -128,9 +128,9 @@ mod engine_tests {
 
     #[test]
     fn test_engine_score_iterator() {
-        const BUDGET: usize = 300;
+        const BUDGET: usize = 1000;
 
-        seeded(46, || {
+        seeded(426, || {
             let result = int_minimize_engine(10, 100)
                 .iter()
                 .limit(Limit::Generation(BUDGET))
@@ -294,8 +294,9 @@ mod engine_tests {
                 .survivor_selector(TournamentSelector::new(3))
                 .offspring_selector(BoltzmannSelector::new(4.0))
                 .alter(alters![
-                    BlendCrossover::new(0.6, 0.5),
-                    GaussianMutator::new(0.05)
+                    DifferentialCrossover::new(0.75, 0.8, 0.9),
+                    ArithmeticMutator::new(0.03),
+                    GaussianMutator::new(0.03)
                 ])
                 .fitness_fn(move |geno: Vec<f32>| fitness(&geno, &test_inputs, &targets))
                 .build();

@@ -33,6 +33,7 @@ pub fn int_minimize_engine(
     let problem = IntMinimizeToZero::new(n_genes, max);
     GeneticEngine::builder()
         .minimizing()
+        .offspring_selector(BoltzmannSelector::new(4.0))
         .problem(problem)
         .build()
 }
@@ -45,6 +46,7 @@ pub fn quadratic_regression_engine(
     GeneticEngine::builder()
         .minimizing()
         .problem(problem)
+        .offspring_selector(BoltzmannSelector::new(4.0))
         .alter(alters![
             BlendCrossover::new(0.5, 0.5),
             GaussianMutator::new(0.1)

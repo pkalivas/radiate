@@ -1,5 +1,5 @@
-use crate::ProbabilityWheelIterator;
-use radiate_core::{Chromosome, Objective, Optimize, Phenotype, Select, math::norm, pareto};
+use crate::{ProbabilityWheelIterator, directed_weights};
+use radiate_core::{Chromosome, Objective, Phenotype, Select, math::norm, pareto};
 
 #[derive(Debug, Default)]
 pub struct RouletteSelector;
@@ -25,11 +25,8 @@ impl<C: Chromosome> Select<C> for RouletteSelector {
                     .filter_map(|s| s.first())
                     .collect::<Vec<_>>();
 
-                norm::scale_l1_affine_sorted(&mut scores);
-
-                if let Optimize::Minimize = opt {
-                    scores.reverse();
-                }
+                directed_weights(&mut scores, *opt);
+                norm::scale_l1(&mut scores);
 
                 scores
             }
@@ -48,3 +45,9 @@ impl<C: Chromosome> Select<C> for RouletteSelector {
         ProbabilityWheelIterator::new(fitness_values, count).collect()
     }
 }
+
+// norm::scale_l1_affine_sorted(&mut scores);
+
+// if let Optimize::Minimize = opt {
+//     scores.reverse();
+// }

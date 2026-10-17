@@ -177,6 +177,18 @@ where
             radiate_err!(Step: self.name(), "Species population is None during recombination"),
         )?;
 
+        // Population arrives sorted best -> worst: select survivors on that order.
+        let s_indices = self.timed_select(s_selector, population.as_ref(), metrics);
+
+        // Stable sort by species. Each species' range stays in fitness order.
+        let mut perm = (0..population.len()).collect::<Vec<usize>>();
+        perm.sort_by_key(|&i| population[i].species());
+
+        let mut new_pos = vec![0; perm.len()];
+        for (new, &old) in perm.iter().enumerate() {
+            new_pos[old] = new;
+        }
+
         population.sort_by(|a, b| a.species().cmp(&b.species()));
 
         let mut start = 0;
@@ -196,6 +208,11 @@ where
             )?;
         let quotas = self.quotas_from_scores(&raw);
 
+        self.survivor_counts.begin(population.len());
+        for &idx in s_indices.iter() {
+            self.survivor_counts.bump(new_pos[idx]);
+        }
+
         self.offspring_counts.begin(population.len());
         for (species, count) in species.iter().zip(quotas.iter()) {
             let range = species_groups
@@ -212,13 +229,6 @@ where
             for &idx in offspring.iter() {
                 self.offspring_counts.bump(range.start + idx);
             }
-        }
-
-        let s_indices = self.timed_select(s_selector, population.as_ref(), metrics);
-
-        self.survivor_counts.begin(population.len());
-        for &idx in s_indices.iter() {
-            self.survivor_counts.bump(idx);
         }
 
         let (survivors, mut offspring) = self.unioned_walk(ecosystem);
