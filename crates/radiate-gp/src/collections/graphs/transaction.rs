@@ -101,6 +101,7 @@ impl<T> TransactionResult<T> {
 ///   `replay(...)` in a fresh transaction.
 pub struct GraphTransaction<'a, T> {
     graph: &'a mut Graph<T>,
+    sccs: Option<&'a mut Sccs>,
     steps: Vec<MutationStep>,
 }
 
@@ -108,8 +109,13 @@ impl<'a, T> GraphTransaction<'a, T> {
     pub fn new(graph: &'a mut Graph<T>) -> Self {
         GraphTransaction {
             graph,
+            sccs: None,
             steps: Vec::with_capacity(5),
         }
+    }
+
+    pub fn with_sccs(&mut self, sccs: &'a mut Sccs) {
+        self.sccs = Some(sccs);
     }
 
     /// Finalize the transaction:
@@ -289,15 +295,6 @@ impl<'a, T> GraphTransaction<'a, T> {
         }
     }
 
-    pub fn set_cycles(&mut self) {
-        let mut sccs = Sccs::default();
-        sccs.find_in(self.graph.as_ref());
-
-        for (index, direction) in sccs.directions() {
-            self.change_direction(index, direction);
-        }
-    }
-
     fn commit_internal<F: Fn(&Graph<T>) -> bool>(
         mut self,
         validator: Option<F>,
@@ -323,6 +320,24 @@ impl<'a, T> GraphTransaction<'a, T> {
         } else {
             let replay_steps = self.rollback();
             TransactionResult::Invalid(result_steps, replay_steps)
+        }
+    }
+
+    fn set_cycles(&mut self) {
+        match self.sccs.take() {
+            Some(sccs) => {
+                self.mark_cycles(sccs);
+                self.sccs = Some(sccs);
+            }
+            None => self.mark_cycles(&mut Sccs::default()),
+        }
+    }
+
+    fn mark_cycles(&mut self, sccs: &mut Sccs) {
+        sccs.find_in(self.graph.as_ref());
+
+        for (index, direction) in sccs.directions() {
+            self.change_direction(index, direction);
         }
     }
 }
