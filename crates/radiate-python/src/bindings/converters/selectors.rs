@@ -113,6 +113,12 @@ impl FromPyEngineInput for TournamentNSGA2Selector {
 impl FromPyEngineInput for LinearRankSelector {
     fn from_input(input: &PyEngineInput) -> RadiateResult<Self> {
         let pressure = input.extract::<f64>("pressure")?;
+        if !(1.0..=2.0).contains(&pressure) {
+            return Err(radiate_err!(Builder: format!(
+                "LinearRankSelector pressure must be in [1.0, 2.0], got {pressure}"
+            )));
+        }
+
         Ok(LinearRankSelector::new(pressure as f32))
     }
 }

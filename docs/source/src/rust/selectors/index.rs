@@ -42,7 +42,7 @@ fn main() {
 
     // --8<-- [start:linear_rank_selector]
     // pressure
-    let selector = LinearRankSelector::new(0.1);
+    let selector = LinearRankSelector::new(1.5);
     // --8<-- [end:linear_rank_selector]
 
     // --8<-- [start:random_selector]

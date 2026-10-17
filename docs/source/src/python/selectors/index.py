@@ -55,7 +55,7 @@ selector = rd.Select.rank()  # Using the Select dsl syntax
 # --8<-- [start:linear_rank_selector]
 import radiate as rd
 
-selector = rd.Select.linear_rank(0.1)  # Using the Select dsl syntax
+selector = rd.Select.linear_rank(1.5)  # Using the Select dsl syntax
 # --8<-- [end:linear_rank_selector]
 
 _ = selector

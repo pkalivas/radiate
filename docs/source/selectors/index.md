@@ -249,28 +249,27 @@ The `RankSelector` is a selection strategy that selects individuals from the `po
 
 > Inputs
 >
-> * `pressure`: f32 - The scaling factor for the selection probabilities.
+> * `pressure`: f32 - The selection pressure, in the range $[1.0, 2.0]$.
 
-The `LinearRankSelector` selects individuals based on their **rank** in the `population` rather than their raw fitness values. The population is ranked best-first, and each individual is given a selection weight that decreases linearly with its rank — the best individual gets weight $N$, the worst gets weight $1$ — and individuals are then sampled in proportion to those weights:
+The `LinearRankSelector` selects individuals based on their **rank** in the `population` rather than their raw fitness values. The population is ranked best-first, and the selection probability decreases linearly from the best individual to the worst, with `pressure` controlling how steep that line is:
 
 $$
-p_{i}=\frac{N - i}{\sum_{k=1}^{N} k}=\frac{2\,(N - i)}{N\,(N + 1)}
+p_{i}=\frac{1}{N}\left(\eta^{+} - \left(\eta^{+} - \eta^{-}\right)\frac{i}{N - 1}\right), \qquad \eta^{+} = \text{pressure}, \quad \eta^{-} = 2 - \text{pressure}
 $$
 
 Where
 
 - $p_{i}$ is the probability of selecting the individual at rank $i$ (0-based, so $i = 0$ is the best)
 - $N$ is the total number of individuals in the `population`
+- $\eta^{+}/N$ is the probability of selecting the best individual, and $\eta^{-}/N$ the worst
+
+A `pressure` of $1.0$ gives uniform selection, and $2.0$ gives the worst individual no chance of being selected. Values outside $[1.0, 2.0]$ are rejected.
 
 Because selection depends only on rank — not on the spread of the raw fitness *values* — linear rank keeps weaker individuals in play and resists premature convergence, which makes it useful when fitness values are erratic or span a wide range.
 
-!!! note "`pressure` currently has no effect on the distribution"
-
-    The `pressure` argument scales the internal weighting, but because it scales each individual's weight and the running total equally, it cancels out of the probabilities above — so changing it does not currently change which individuals are selected.
-
 === ":fontawesome-brands-python: Python"
 
-    If `pressure` is not specified, it defaults to `0.5`.
+    If `pressure` is not specified, it defaults to `1.5`.
 
     ```python
     --8<-- "python/selectors/index.py:linear_rank_selector"
