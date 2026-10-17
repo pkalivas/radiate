@@ -232,7 +232,7 @@ fn main() {
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
-            GraphMutator::new(0.1, 0.1).allow_recurrent(false)
+            GraphMutator::new(0.1, 0.1)
         ))
         .build();
     // --8<-- [end:example]

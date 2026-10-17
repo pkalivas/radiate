@@ -345,7 +345,12 @@ impl FromPyEngineInput for GraphMutator {
             .extract::<Option<i64>>("target_size")?
             .map(|s| s as usize);
 
-        let mutator = GraphMutator::new(vertex_rate, edge_rate).allow_recurrent(allow_recurrent);
+        let mutator = GraphMutator::new(vertex_rate, edge_rate);
+        let mutator = if allow_recurrent {
+            mutator.allow_recurrent()
+        } else {
+            mutator
+        };
 
         match target_size {
             Some(size) => Ok(mutator.target_size(size)),

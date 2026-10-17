@@ -395,7 +395,7 @@ class Mutate(AlterBase):
     def graph(
         vertex_rate: OperatorRate = 0.1,
         edge_rate: OperatorRate = 0.1,
-        allow_recurrent: bool = True,
+        allow_recurrent: bool = False,
         target_size: int | None = None,
     ) -> Mutate:
         """

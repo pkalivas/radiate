@@ -20,7 +20,7 @@ def test_engine_graph_xor(xor_dataset, random_seed):
         .alter(
             rd.Cross.graph(0.5, 0.5),
             rd.Mutate.op(0.07, 0.05),
-            rd.Mutate.graph(0.1, 0.1, False),
+            rd.Mutate.graph(0.1, 0.1),
         )
         .limit(rd.Limit.score(0.1), rd.Limit.generations(1000))
     )
@@ -101,7 +101,7 @@ def test_engine_graph_with_recurrent_connections(memory_dataset, random_seed):
         .alter(
             rd.Cross.graph(0.5, 0.5),
             rd.Mutate.op(0.1, 0.05),
-            rd.Mutate.graph(0.05, 0.05),
+            rd.Mutate.graph(0.05, 0.05, True),
         )
     )
 
@@ -149,7 +149,7 @@ def test_engine_graph_recurrent_class_acc(memory_dataset, random_seed):
         .alter(
             rd.Cross.graph(0.5, 0.5),
             rd.Mutate.op(0.1, 0.05),
-            rd.Mutate.graph(0.05, 0.05),
+            rd.Mutate.graph(0.05, 0.05, True),
         )
         .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
     )
@@ -179,9 +179,8 @@ def test_engine_graph_recurrent_with_np(memory_dataset, random_seed):
         rd.Engine.graph(
             shape=(1, 1),
             vertex=[
-                rd.Op.add(),
                 rd.Op.mul(),
-                rd.Op.linear(),
+                rd.Op.sum(),
                 rd.Op.sub(),
                 rd.Op.sigmoid(),
                 rd.Op.tanh(),
@@ -239,7 +238,7 @@ def test_graph_eval_with_py_func(cubic_dataset, random_seed):
         .alter(
             rd.Cross.graph(0.4, 0.5),
             rd.Mutate.op(0.07, 0.05),
-            rd.Mutate.graph(0.1, 0.1, False),
+            rd.Mutate.graph(0.1, 0.1),
         )
         .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))
     )
@@ -258,7 +257,7 @@ def test_graph_engine_species_targeting(cubic_dataset, random_seed):
     engine = (
         rd.Engine.graph(
             shape=(1, 1),
-            vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+            vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.sum()],
             edge=rd.Op.weight(),
             output=rd.Op.linear(),
         )
@@ -266,18 +265,19 @@ def test_graph_engine_species_targeting(cubic_dataset, random_seed):
         .regression(inputs, answers, loss=rd.MSE)
         .diversity(
             rd.Dist.neat(excess=1.0, disjoint=1.0, weight_diff=3.0),
-            target=5,
+            target=4,
         )
         .alter(
             rd.Cross.graph(0.4, 0.5),
             rd.Mutate.op(0.07, 0.05),
-            rd.Mutate.graph(0.1, 0.1, False),
+            rd.Mutate.graph(0.1, 0.1),
         )
         .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))
     )
 
     result = engine.run()
+    print(result.index)
     species_count_mean = result.metrics["species.count"].mean()
 
     assert species_count_mean is not None
-    assert abs(species_count_mean - 5.0) < 0.15  # Should be ~5
+    assert abs(species_count_mean - 4.0) < 0.15  # Should be ~4

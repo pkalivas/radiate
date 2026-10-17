@@ -74,7 +74,7 @@ def graph_1x1_engine():
     ).alter(
         rd.Cross.graph(0.05),
         rd.Mutate.op(0.07, 0.05),
-        rd.Mutate.graph(0.1, 0.1, False),
+        rd.Mutate.graph(0.1, 0.1),
     )
 
 

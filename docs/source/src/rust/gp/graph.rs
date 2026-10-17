@@ -99,7 +99,7 @@ fn main() {
     // Create a mutator that adds vertices and edges with a 10% chance for either
     let mutator = GraphMutator::new(0.1, 0.1);
 
-    let mutator = GraphMutator::new(0.1, 0.1).allow_recurrent(false); // Disallow recurrent connections
+    let mutator = GraphMutator::new(0.1, 0.1).allow_recurrent(); // Allow recurrent connections
     // --8<-- [end:graph_mutator]
 
     // --8<-- [start:graph_crossover]

@@ -12,10 +12,21 @@ fn main() -> RadiateResult<()> {
 
     let (_, in_dim, out_dim) = train.shape();
 
+    let vertices = vec![
+        Op::add(),
+        Op::sub(),
+        Op::mul(),
+        Op::sum(),
+        Op::gaussian(),
+        Op::sigmoid(),
+        Op::tanh(),
+        Op::relu(),
+    ];
+
     let other = node_set! {
         Input => Op::vars(0..in_dim),
         Edge => [Op::identity(), Op::weight()],
-        Vertex => ops::all_ops(),
+        Vertex => vertices,
         Output => Op::sigmoid()
     };
 
@@ -28,7 +39,7 @@ fn main() -> RadiateResult<()> {
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.02, 0.05),
-            GraphMutator::new(0.008, 0.002)
+            GraphMutator::new(0.002, 0.002)
         ))
         .build();
 
@@ -65,4 +76,9 @@ fn display(
     println!("{:?}", result);
     println!("{:?}", train_acc);
     println!("{:?}", test_acc);
+
+    let dot = result.value().to_dot();
+    // save the dot representation to a file
+    let curr_dir = std::env::current_dir().expect("Unable to get current directory");
+    std::fs::write(curr_dir.join("graph.dot"), dot).expect("Unable to write file");
 }

@@ -25,7 +25,7 @@ fn main() -> RadiateResult<()> {
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.1, 0.05),
-            GraphMutator::new(0.05, 0.05)
+            GraphMutator::new(0.05, 0.05).allow_recurrent()
         ))
         .build();
 

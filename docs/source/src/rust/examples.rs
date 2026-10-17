@@ -191,7 +191,7 @@ fn graph_xor() {
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.05, 0.05),
-            GraphMutator::new(0.06, 0.01).allow_recurrent(false),
+            GraphMutator::new(0.06, 0.01)
         ))
         .build();
 

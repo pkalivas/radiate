@@ -1,6 +1,7 @@
 use super::transaction::TransactionResult;
 use crate::{
-    Eval, EvalInto, EvalIntoMut, EvalMut, Op, StatefulGraph, collections::graphs::GraphTransaction,
+    Arity, Eval, EvalInto, EvalIntoMut, EvalMut, Node, Op, StatefulGraph,
+    collections::graphs::GraphTransaction,
 };
 use crate::{
     GraphEvaluator,
@@ -257,6 +258,32 @@ impl<T> Graph<T> {
         }
 
         false
+    }
+
+    pub fn iter_node_incoming(&self, index: usize) -> impl Iterator<Item = &GraphNode<T>> + '_ {
+        self.get(index)
+            .into_iter()
+            .flat_map(|node| node.incoming().iter().map(|&idx| self.get(idx).unwrap()))
+    }
+
+    pub fn iter_node_outgoing(&self, index: usize) -> impl Iterator<Item = &GraphNode<T>> + '_ {
+        self.get(index)
+            .into_iter()
+            .flat_map(|node| node.outgoing().iter().map(|&idx| self.get(idx).unwrap()))
+    }
+
+    pub fn node_type(&self, node_idx: usize) -> Option<NodeType> {
+        self.get(node_idx).map(|node| node.node_type())
+    }
+
+    pub fn arity(&self, node_idx: usize) -> Option<Arity> {
+        self.get(node_idx).map(|node| node.arity())
+    }
+
+    pub fn is_locked(&self, node_idx: usize) -> bool {
+        self.get(node_idx)
+            .map(|node| node.is_locked())
+            .unwrap_or(false)
     }
 
     /// tries to modify the graph using a [GraphTransaction]. If the transaction is successful,
