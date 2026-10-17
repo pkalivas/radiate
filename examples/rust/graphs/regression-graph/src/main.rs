@@ -16,7 +16,7 @@ fn main() -> RadiateResult<()> {
         .codec(GraphCodec::directed(1, 1, store)?)
         .fitness_fn(Regression::new(DataSet::cubic(), Loss::MSE))
         .minimizing()
-        .offspring_selector(TournamentSelector::new(4))
+        .offspring_selector(SUSSelector::new())
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),

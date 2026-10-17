@@ -45,7 +45,6 @@ fn display(data: &DataSet<f32>, result: &Generation<GraphChromosome<Op<f32>>, Gr
     let outputs = result.value().eval(&data.features());
 
     println!("{:?}", result);
-
     println!("{}", result.metrics().dashboard());
 
     for (idx, row) in data.iter().enumerate() {

@@ -9,7 +9,7 @@ mod engine_tests {
     #[test]
     fn engine_can_minimize() {
         const EXPECTED_SUM: i32 = 0;
-        const EXPECTED_INDEX: usize = 39;
+        const EXPECTED_INDEX: usize = 57;
 
         seeded(42, || {
             let result = int_minimize_engine(5, 100)

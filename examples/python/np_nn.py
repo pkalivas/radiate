@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np  # type: ignore
 import radiate as rd
 
-rd.random.seed(123)
+rd.random.seed(518)
 
 ROOT = Path(__file__).parent.parent
 WRITE_DIR = ROOT / "data" / "scratch"
@@ -89,6 +89,7 @@ engine = (
         rd.Limit.seconds(30),
     )
 )
+
 
 engine.run(log=True)
 

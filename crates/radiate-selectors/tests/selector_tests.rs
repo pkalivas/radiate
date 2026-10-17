@@ -67,8 +67,8 @@ mod selector_tests {
     #[case(TournamentSelector::new(3), Optimize::Maximize, 80)]
     #[case(RankSelector::new(), Optimize::Minimize, 80)]
     #[case(RankSelector::new(), Optimize::Maximize, 80)]
-    #[case(StochasticUniversalSamplingSelector::new(), Optimize::Minimize, 80)]
-    #[case(StochasticUniversalSamplingSelector::new(), Optimize::Maximize, 80)]
+    #[case(SUSSelector::new(), Optimize::Minimize, 80)]
+    #[case(SUSSelector::new(), Optimize::Maximize, 80)]
     fn test_probability_selectors_better_than_random(
         #[case] selector: impl Select<FloatChromosome<f32>>,
         #[case] optimize: Optimize,
@@ -120,7 +120,7 @@ mod selector_tests {
     #[case(RouletteSelector::new())]
     #[case(TournamentSelector::new(3))]
     #[case(RankSelector::new())]
-    #[case(StochasticUniversalSamplingSelector::new())]
+    #[case(SUSSelector::new())]
     #[case(RandomSelector::new())]
     fn selector_returns_requested_count(#[case] selector: impl Select<FloatChromosome<f32>>) {
         seeded(7, || {
@@ -144,7 +144,7 @@ mod selector_tests {
     #[case(RouletteSelector::new())]
     #[case(TournamentSelector::new(3))]
     #[case(RankSelector::new())]
-    #[case(StochasticUniversalSamplingSelector::new())]
+    #[case(SUSSelector::new())]
     fn selector_indices_in_bounds(#[case] selector: impl Select<FloatChromosome<f32>>) {
         seeded(8, || {
             let population = random_float_population(50);

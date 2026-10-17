@@ -1,17 +1,17 @@
-use radiate_core::{Chromosome, Objective, Phenotype, Select, math::norm, pareto, random_provider};
-
-use crate::directed_weights;
+use radiate_core::{
+    Chromosome, Objective, Optimize, Phenotype, Select, math::norm, pareto, random_provider,
+};
 
 #[derive(Debug, Clone, Default)]
-pub struct StochasticUniversalSamplingSelector;
+pub struct SUSSelector;
 
-impl StochasticUniversalSamplingSelector {
+impl SUSSelector {
     pub fn new() -> Self {
-        StochasticUniversalSamplingSelector
+        SUSSelector
     }
 }
 
-impl<C: Chromosome> Select<C> for StochasticUniversalSamplingSelector {
+impl<C: Chromosome> Select<C> for SUSSelector {
     fn select(
         &self,
         population: &[Phenotype<C>],
@@ -26,8 +26,11 @@ impl<C: Chromosome> Select<C> for StochasticUniversalSamplingSelector {
                     .filter_map(|score| score.first())
                     .collect::<Vec<f32>>();
 
-                directed_weights(&mut weights, *opt);
                 norm::scale_l1(&mut weights);
+
+                if let Optimize::Minimize = opt {
+                    weights.reverse();
+                }
 
                 weights
             }
@@ -65,9 +68,3 @@ impl<C: Chromosome> Select<C> for StochasticUniversalSamplingSelector {
         pointers
     }
 }
-
-// norm::scale_l1(&mut weights);
-
-// if let Optimize::Minimize = opt {
-//     weights.reverse();
-// }

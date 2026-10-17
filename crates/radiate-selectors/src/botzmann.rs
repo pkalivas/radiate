@@ -14,16 +14,17 @@ impl BoltzmannSelector {
         BoltzmannSelector { temperature }
     }
 
-    fn apply_boltzmann(&self, weights: &mut [f32], opt: Optimize) {
-        let (min, max) = weights.iter().collect::<MinMax<f32>>().min_max();
-        let diff = (max - min).abs().max(MIN);
+    fn apply_boltzmann(&self, weights: &mut [f32]) {
+        let mut minmax = MinMax::default();
+        for &score in weights.iter() {
+            minmax.add(&score);
+        }
 
-        for w in weights.iter_mut() {
-            let norm = match opt {
-                Optimize::Maximize => (*w - min) / diff,
-                Optimize::Minimize => (max - *w) / diff,
-            };
-            *w = (self.temperature * norm).exp();
+        let min = minmax.min();
+        let diff = minmax.range().abs().max(MIN);
+
+        for score in weights.iter_mut() {
+            *score = (self.temperature * ((*score - min) / diff)).exp();
         }
     }
 }
@@ -43,7 +44,12 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
                     .filter_map(|p| p.score().and_then(|score| score.first()))
                     .collect::<Vec<_>>();
 
-                self.apply_boltzmann(&mut fitness_values, *opt);
+                self.apply_boltzmann(&mut fitness_values);
+                norm::scale_l1_affine_sorted(&mut fitness_values);
+
+                if let Optimize::Minimize = opt {
+                    fitness_values.reverse();
+                }
 
                 fitness_values
             }
@@ -54,7 +60,7 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
                     .collect::<Vec<_>>();
 
                 let mut weights = pareto::weights(&scores, objective);
-                self.apply_boltzmann(&mut weights, Optimize::Maximize);
+                self.apply_boltzmann(&mut weights);
                 norm::scale_l1(&mut weights);
 
                 weights

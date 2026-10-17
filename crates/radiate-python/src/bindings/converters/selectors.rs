@@ -14,7 +14,7 @@ where
         components::TOURNAMENT_SELECTOR           => TournamentSelector,
         components::ROULETTE_WHEEL_SELECTOR       => RouletteSelector,
         components::RANK_SELECTOR                 => RankSelector,
-        components::STOCHASTIC_UNIVERSAL_SELECTOR => StochasticUniversalSamplingSelector,
+        components::STOCHASTIC_UNIVERSAL_SELECTOR => SUSSelector,
         components::BOLTZMANN_SELECTOR            => BoltzmannSelector,
         components::ELITE_SELECTOR                => EliteSelector,
         components::RANDOM_SELECTOR               => RandomSelector,
@@ -66,9 +66,9 @@ impl FromPyEngineInput for RankSelector {
     }
 }
 
-impl FromPyEngineInput for StochasticUniversalSamplingSelector {
+impl FromPyEngineInput for SUSSelector {
     fn from_input(_: &PyEngineInput) -> RadiateResult<Self> {
-        Ok(StochasticUniversalSamplingSelector::new())
+        Ok(SUSSelector::new())
     }
 }
 

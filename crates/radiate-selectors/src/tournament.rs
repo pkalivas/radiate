@@ -25,20 +25,22 @@ impl<C: Chromosome> Select<C> for TournamentSelector {
             return Vec::new();
         }
 
-        let mut selected = Vec::with_capacity(count);
+        random_provider::with_rng(|rand| {
+            let mut selected = Vec::with_capacity(count);
 
-        for _ in 0..count {
-            let mut best = random_provider::range(0..n);
-            for _ in 1..self.k {
-                let r = random_provider::range(0..n);
-                if r < best {
-                    best = r;
+            for _ in 0..count {
+                let mut best = rand.range(0..n);
+                for _ in 1..self.k {
+                    let r = rand.range(0..n);
+                    if r < best {
+                        best = r;
+                    }
                 }
+
+                selected.push(best);
             }
 
-            selected.push(best);
-        }
-
-        selected
+            selected
+        })
     }
 }

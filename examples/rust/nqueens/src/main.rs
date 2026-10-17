@@ -8,7 +8,6 @@ fn main() {
     let engine = GeneticEngine::builder()
         .codec(IntChromosome::from((N_QUEENS, 0..N_QUEENS as i8)))
         .minimizing()
-        .offspring_selector(BoltzmannSelector::new(4.0))
         .alter(alters!(
             MultiPointCrossover::new(0.75, 2),
             UniformMutator::new(1.0 / N_QUEENS as f64)

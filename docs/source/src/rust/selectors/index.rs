@@ -33,7 +33,7 @@ fn main() {
     // --8<-- [end:tournament_nsga2_selector]
 
     // --8<-- [start:stochastic_sampling_selector]
-    let selector = StochasticUniversalSamplingSelector::new();
+    let selector = SUSSelector::new();
     // --8<-- [end:stochastic_sampling_selector]
 
     // --8<-- [start:rank_selector]
