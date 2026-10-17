@@ -239,25 +239,23 @@ where
         if dims == 0 {
             radiate_bail!(Fitness: "Cannot aggregate Vec<Score> with zero dimensions");
         } else if dims == 1 {
-            let sum = peekable
-                .fold(0.0, |acc, score| match &score.borrow() {
-                    Score::Single(v) => func(acc, *v),
-                    Score::Multi(v) => func(acc, v[0]),
-                });
+            let sum = peekable.fold(0.0, |acc, score| match &score.borrow() {
+                Score::Single(v) => func(acc, *v),
+                Score::Multi(v) => func(acc, v[0]),
+            });
             Ok(Score::from(sum))
         } else {
-            let sum = peekable
-                .fold(vec![0.0; dims], |mut acc, score| {
-                    match &score.borrow() {
-                        Score::Single(v) => acc[0] = func(acc[0], *v),
-                        Score::Multi(v) => {
-                            for (i, value) in v.iter().enumerate() {
-                                acc[i] = func(acc[i], *value);
-                            }
+            let sum = peekable.fold(vec![0.0; dims], |mut acc, score| {
+                match &score.borrow() {
+                    Score::Single(v) => acc[0] = func(acc[0], *v),
+                    Score::Multi(v) => {
+                        for (i, value) in v.iter().enumerate() {
+                            acc[i] = func(acc[i], *value);
                         }
                     }
-                    acc
-                });
+                }
+                acc
+            });
 
             Ok(Score::Multi(sum.into()))
         }

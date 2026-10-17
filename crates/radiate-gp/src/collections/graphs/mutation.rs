@@ -4,7 +4,6 @@ use crate::graphs::node::InnovationId;
 use crate::{Factory, NodeType};
 use radiate_core::{AlterContext, Chromosome, Expr, RateSet, SmallStr, expr};
 use radiate_core::{Mutate, random_provider};
-use smallvec::SmallVec;
 use std::{collections::HashMap, fmt::Debug};
 
 const SATURATED: SmallStr = SmallStr::from_static("mutator.graph.invalid.saturated");
@@ -12,7 +11,7 @@ const REJECTED: SmallStr = SmallStr::from_static("mutator.graph.invalid");
 const ADD_VERTEX_RATE: SmallStr = SmallStr::from_static("mutator.graph.rate.vertex");
 const ADD_EDGE_RATE: SmallStr = SmallStr::from_static("mutator.graph.rate.edge");
 
-type InnovationKeyItem = SmallVec<[Option<InnovationId>; 3]>;
+type InnovationKeyItem = Vec<InnovationId>;
 
 #[derive(Hash, Eq, PartialEq, Debug, Clone)]
 struct StructureChange {
@@ -175,18 +174,18 @@ where
 
                 let incoming_innov = trans
                     .iter_node_incoming(node_idx)
-                    .map(|node| node.innovation())
-                    .collect::<SmallVec<_>>();
+                    .filter_map(|node| node.innovation())
+                    .collect::<InnovationKeyItem>();
                 let outgoing_innov = trans
                     .iter_node_outgoing(node_idx)
-                    .map(|node| node.innovation())
-                    .collect::<SmallVec<_>>();
+                    .filter_map(|node| node.innovation())
+                    .collect::<InnovationKeyItem>();
 
                 let innovation_id = self
                     .innov_context
                     .get_innovation(incoming_innov, outgoing_innov);
-                trans.set_innovation(node_idx, Some(innovation_id));
 
+                trans.set_innovation(node_idx, Some(innovation_id));
                 trans.commit_with(|graph: &Graph<T>| {
                     self.allow_recurrent || !graph.iter().any(|node| node.is_recurrent())
                 })

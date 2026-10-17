@@ -159,9 +159,7 @@ where
                 let new_species_idx = ecosystem.push_species(new_species);
 
                 for i in 0..pop_len {
-                    if i != idx {
-                        ecosystem.add_species_member(new_species_idx, i);
-                    }
+                    ecosystem.add_species_member(new_species_idx, i);
                 }
             }
         }
@@ -278,7 +276,9 @@ where
         let rm_species_count = ecosystem.remove_dead_species();
 
         metrics.upsert(metric_names::SPECIES_DISTANCE_DIST, &self.distances);
-        metrics.upsert(metric_names::SPECIES_DIED, rm_species_count);
+        if rm_species_count > 0 {
+            metrics.upsert(metric_names::SPECIES_DIED, rm_species_count);
+        }
 
         calc_species_metrics(generation, ecosystem, metrics);
 

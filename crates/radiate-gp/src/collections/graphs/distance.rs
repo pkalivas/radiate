@@ -89,6 +89,14 @@ impl NeatDistance {
                             (one_node.value(), two_node.value())
                         {
                             weight_diff = weight_diff + (*a_op.data() - *b_op.data()).abs();
+                        } else if let (Op::Pair(_, _, a_op, _), Op::Pair(_, _, b_op, _)) =
+                            (one_node.value(), two_node.value())
+                        {
+                            let a_data = *a_op.data();
+                            let b_data = *b_op.data();
+
+                            weight_diff = weight_diff + (a_data.0 - b_data.0).abs();
+                            weight_diff = weight_diff + (a_data.1 - b_data.1).abs();
                         }
 
                         idx_one += 1;

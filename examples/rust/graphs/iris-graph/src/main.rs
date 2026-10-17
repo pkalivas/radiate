@@ -36,12 +36,13 @@ fn main() -> RadiateResult<()> {
         .fitness_fn(Regression::new(train.clone(), Loss::MSE))
         .parallel()
         .offspring_selector(BoltzmannSelector::new(4.0))
-        .diversity(NeatDistance::default())
+        .diversity(NeatDistance::new(1.0, 1.0, 3.0))
         .target_species(4)
+        .species_threshold(0.01)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.02, 0.05),
-            GraphMutator::new(0.002, 0.002)
+            GraphMutator::new(0.02, 0.02)
         ))
         .build();
 
@@ -79,8 +80,8 @@ fn display(
     println!("{:?}", train_acc);
     println!("{:?}", test_acc);
 
-    let dot = result.value().to_dot();
-    // save the dot representation to a file
-    let curr_dir = std::env::current_dir().expect("Unable to get current directory");
-    std::fs::write(curr_dir.join("graph.dot"), dot).expect("Unable to write file");
+    // let dot = result.value().to_dot();
+    // // save the dot representation to a file
+    // let curr_dir = std::env::current_dir().expect("Unable to get current directory");
+    // std::fs::write(curr_dir.join("graph.dot"), dot).expect("Unable to write file");
 }
