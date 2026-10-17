@@ -68,9 +68,9 @@ def graph_1x1_engine():
     """Create a simple 1x1 graph engine for testing."""
     return rd.Engine.graph(
         shape=(1, 1),
-        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sum()],
         edge=rd.Op.weight(),
-        output=rd.Op.linear(),
+        output=rd.Op.sum(),
     ).alter(
         rd.Cross.graph(0.05),
         rd.Mutate.op(0.07, 0.05),
@@ -85,7 +85,7 @@ def tree_2x1_engine():
         shape=(2, 1),
         vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sub()],
         leaf=[rd.Op.var(0), rd.Op.var(1)],
-        root=rd.Op.linear(),
+        root=rd.Op.sum(),
     ).alter(
         rd.Cross.tree(0.05),
         rd.Mutate.op(0.07, 0.05),

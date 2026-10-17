@@ -200,19 +200,19 @@ impl<T> Graph<T> {
     }
 
     pub fn inputs(&self) -> impl Iterator<Item = &GraphNode<T>> {
-        self.get_nodes_of_type(NodeType::Input)
+        self.iter_nodes_of_type(NodeType::Input)
     }
 
     pub fn outputs(&self) -> impl Iterator<Item = &GraphNode<T>> {
-        self.get_nodes_of_type(NodeType::Output)
+        self.iter_nodes_of_type(NodeType::Output)
     }
 
     pub fn vertices(&self) -> impl Iterator<Item = &GraphNode<T>> {
-        self.get_nodes_of_type(NodeType::Vertex)
+        self.iter_nodes_of_type(NodeType::Vertex)
     }
 
     pub fn edges(&self) -> impl Iterator<Item = &GraphNode<T>> {
-        self.get_nodes_of_type(NodeType::Edge)
+        self.iter_nodes_of_type(NodeType::Edge)
     }
 
     /// Attach and detach nodes from one another. This is the primary way to modify the graph.

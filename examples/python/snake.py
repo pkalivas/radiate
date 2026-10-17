@@ -350,7 +350,7 @@ class SnakeEvolver:
             vertex=[
                 rd.Op.sub(),
                 rd.Op.mul(),
-                rd.Op.linear(),
+                rd.Op.sum(),
                 rd.Op.sigmoid(),
                 rd.Op.relu(),
                 rd.Op.tanh(),

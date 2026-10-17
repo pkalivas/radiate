@@ -45,9 +45,3 @@ impl<C: Chromosome> Select<C> for RouletteSelector {
         ProbabilityWheelIterator::new(fitness_values, count).collect()
     }
 }
-
-// norm::scale_l1_affine_sorted(&mut scores);
-
-// if let Optimize::Minimize = opt {
-//     scores.reverse();
-// }

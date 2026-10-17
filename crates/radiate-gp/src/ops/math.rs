@@ -185,6 +185,11 @@ impl<F: Float> Op<F> {
         })
     }
 
+    #[deprecated(since = "1.3.2", note = "Use sum() instead")]
+    pub fn linear() -> Self {
+        Self::sum()
+    }
+
     pub fn sum() -> Self {
         Op::Fn(op_names::SUM, Arity::Any, |inputs: &[F]| {
             summed(inputs, clamp)

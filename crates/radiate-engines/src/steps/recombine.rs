@@ -432,6 +432,6 @@ fn goodness(scores: &[&Score], objective: &Objective) -> Vec<f32> {
     let dims = directions.len().max(1) as f32;
     weights
         .iter_mut()
-        .for_each(|w| *w = *w / dims + GOODNESS_FLOOR);
-    weights
+        .map(|w| *w / dims + GOODNESS_FLOOR)
+        .collect()
 }

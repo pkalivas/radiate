@@ -52,17 +52,6 @@ pub trait EvalMut<I: ?Sized, O> {
     fn eval_mut(&mut self, input: &I) -> O;
 }
 
-impl<I, O, T> EvalMut<I, O> for T
-where
-    I: ?Sized,
-    T: Eval<I, O>,
-{
-    #[inline]
-    fn eval_mut(&mut self, input: &I) -> O {
-        self.eval(input)
-    }
-}
-
 /// [EvalInto] trait is used to evaluate anything that implements the trait into a mutable buffer.
 /// In some cases where we can cache a buffer to write into, this can avoid allocations and massively
 /// improve performance. Just like the [Eval] & [EvalMut] traits the mutable version offers a way for the
@@ -94,44 +83,4 @@ pub trait EvalInto<I: ?Sized, O: ?Sized> {
 
 pub trait EvalIntoMut<I: ?Sized, O: ?Sized> {
     fn eval_into_mut(&mut self, input: &I, buffer: &mut O);
-}
-
-impl<I, O, T> EvalIntoMut<I, O> for T
-where
-    I: ?Sized,
-    O: ?Sized,
-    T: EvalInto<I, O>,
-{
-    #[inline]
-    fn eval_into_mut(&mut self, input: &I, buffer: &mut O) {
-        self.eval_into(input, buffer)
-    }
-}
-
-/// --- Blanket Implementations ---
-///
-/// Below are blanket implementations for closures to make it easy to use them
-/// wherever an [Eval] or [EvalInto] is required.
-impl<F, I, O> EvalInto<I, O> for F
-where
-    I: ?Sized,
-    O: ?Sized,
-    F: Fn(&I, &mut O),
-{
-    #[inline]
-    fn eval_into(&self, input: &I, buffer: &mut O) {
-        (self)(input, buffer)
-    }
-}
-
-/// [Eval] implementation for closures that take an input and return an output.
-impl<F, I, O> Eval<I, O> for F
-where
-    I: ?Sized,
-    F: Fn(&I) -> O,
-{
-    #[inline]
-    fn eval(&self, input: &I) -> O {
-        (self)(input)
-    }
 }

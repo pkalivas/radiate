@@ -66,8 +66,8 @@ where
 
         let mut cache = TreeEvalCache::default();
         let mut preds = Matrix::default();
-        let mut roots = Vec::new();
         let mut scores = Vec::with_capacity(trees.len());
+        let mut roots = Vec::new();
 
         for genotype in trees.iter() {
             roots.clear();

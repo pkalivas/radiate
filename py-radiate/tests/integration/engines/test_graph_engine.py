@@ -11,7 +11,7 @@ def test_engine_graph_xor(xor_dataset, random_seed):
     engine = (
         rd.Engine.graph(
             shape=(2, 1),
-            vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+            vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sum()],
             edge=rd.Op.weight(),
             output=rd.Op.sigmoid(),
         )
@@ -39,9 +39,9 @@ def test_engine_graph_regression_with_speciation(squared_dataset, random_seed):
 
     codec = rd.GraphCodec.directed(
         shape=(1, 1),
-        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sum()],
         edge=rd.Op.weight(),
-        output=rd.Op.linear(),
+        output=rd.Op.sum(),
     )
 
     engine = (
@@ -228,7 +228,7 @@ def test_graph_eval_with_py_func(cubic_dataset, random_seed):
     engine = (
         rd.Engine.graph(
             shape=(1, 1),
-            vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+            vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.sum()],
             edge=rd.Op.weight(),
             dtype=rd.Float32,
         )
@@ -259,7 +259,7 @@ def test_graph_engine_species_targeting(cubic_dataset, random_seed):
             shape=(1, 1),
             vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.sum()],
             edge=rd.Op.weight(),
-            output=rd.Op.linear(),
+            output=rd.Op.sum(),
         )
         .select(rd.Select.boltzmann(temp=4.0))
         .regression(inputs, answers, loss=rd.MSE)

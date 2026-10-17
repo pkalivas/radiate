@@ -20,14 +20,14 @@ struct StructureChange {
 }
 
 #[derive(Debug, Clone)]
-struct InnovationContext {
+struct InnovationCache {
     version: usize,
     innovations: HashMap<StructureChange, InnovationId>,
 }
 
-impl InnovationContext {
+impl InnovationCache {
     fn new() -> Self {
-        InnovationContext {
+        InnovationCache {
             version: 0,
             innovations: HashMap::new(),
         }
@@ -71,7 +71,7 @@ pub struct GraphMutator {
     vertex_rate: Expr,
     edge_rate: Expr,
     allow_recurrent: bool,
-    innov_context: InnovationContext,
+    cache: InnovationCache,
 }
 
 impl GraphMutator {
@@ -85,7 +85,7 @@ impl GraphMutator {
             vertex_rate: vertex_rate.into(),
             edge_rate: edge_rate.into(),
             allow_recurrent: false,
-            innov_context: InnovationContext::new(),
+            cache: InnovationCache::new(),
         }
     }
 
@@ -154,7 +154,7 @@ where
             return 0;
         }
 
-        self.innov_context.bump(ctx.generation());
+        self.cache.bump(ctx.generation());
 
         // Else, if we are below the maximum number of nodes,
         // attempt to mutate the graph by adding a new node of the determined type.
@@ -181,9 +181,7 @@ where
                     .filter_map(|node| node.innovation())
                     .collect::<InnovationKeyItem>();
 
-                let innovation_id = self
-                    .innov_context
-                    .get_innovation(incoming_innov, outgoing_innov);
+                let innovation_id = self.cache.get_innovation(incoming_innov, outgoing_innov);
 
                 trans.set_innovation(node_idx, Some(innovation_id));
                 trans.commit_with(|graph: &Graph<T>| {

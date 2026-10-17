@@ -68,7 +68,7 @@ fn run_graph_engine() {
     let store = vec![
         (NodeType::Input, Op::vars(0..INPUT_SIZE)),
         (NodeType::Edge, vec![Op::weight()]),
-        (NodeType::Vertex, ops::activation_ops()),
+        (NodeType::Vertex, ops::all_ops()),
         (NodeType::Output, vec![Op::sigmoid()]),
     ];
 

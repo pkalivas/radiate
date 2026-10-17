@@ -180,8 +180,11 @@ impl GraphPlan {
         }));
 
         self.output_indices.clear();
-        self.output_indices
-            .extend(nodes.get_nodes_of_type(NodeType::Output).map(|n| n.index()));
+        self.output_indices.extend(
+            nodes
+                .iter_nodes_of_type(NodeType::Output)
+                .map(|n| n.index()),
+        );
 
         self.has_schedule = false;
     }

@@ -64,24 +64,3 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
         ProbabilityWheelIterator::new(fitness_values, count).collect()
     }
 }
-
-// self.apply_boltzmann(&mut fitness_values);
-// norm::scale_l1_affine_sorted(&mut fitness_values);
-
-// if let Optimize::Minimize = opt {
-//     fitness_values.reverse();
-// }
-
-// fn apply_boltzmann(&self, weights: &mut [f32]) {
-//     let mut minmax = MinMax::default();
-//     for &score in weights.iter() {
-//         minmax.add(&score);
-//     }
-
-//     let min = minmax.min();
-//     let diff = minmax.range().abs().max(MIN);
-
-//     for score in weights.iter_mut() {
-//         *score = (self.temperature * ((*score - min) / diff)).exp();
-//     }
-// }

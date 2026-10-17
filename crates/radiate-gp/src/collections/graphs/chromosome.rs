@@ -198,7 +198,7 @@ impl<T: PartialEq> PartialEq for GraphChromosome<T> {
 
 impl<T: Hash> Hash for GraphChromosome<T> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        for node in self.as_ref() {
+        for node in self.nodes.iter() {
             node.hash(state);
         }
     }

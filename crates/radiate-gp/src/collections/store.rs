@@ -38,37 +38,6 @@ impl<T> NodeValue<T> {
     }
 }
 
-/// One or many values to add to a [NodeSet] under a single [NodeType]: a single value, an
-/// array, or a `Vec`. Lets [NodeSet::push] take any of them:
-///
-/// ```text
-///   NodeSet::new()
-///       .push(NodeType::Input, [1, 2, 3])        array
-///       .push(NodeType::Output, 5)               single value
-///       .push(NodeType::Vertex, vec![6, 7, 8])   Vec
-/// ```
-pub trait IntoNodeValues<T> {
-    fn into_node_values(self) -> Vec<NodeValue<T>>;
-}
-
-impl<T, K: Into<NodeValue<T>>> IntoNodeValues<T> for Vec<K> {
-    fn into_node_values(self) -> Vec<NodeValue<T>> {
-        self.into_iter().map(Into::into).collect()
-    }
-}
-
-impl<T, K: Into<NodeValue<T>>, const N: usize> IntoNodeValues<T> for [K; N] {
-    fn into_node_values(self) -> Vec<NodeValue<T>> {
-        self.into_iter().map(Into::into).collect()
-    }
-}
-
-impl<T> IntoNodeValues<T> for NodeValue<T> {
-    fn into_node_values(self) -> Vec<NodeValue<T>> {
-        vec![self]
-    }
-}
-
 macro_rules! impl_node_value {
     ($($t:ty),*) => {
         $(
@@ -108,6 +77,50 @@ impl_node_value!(
     &'static str
 );
 
+/// One or many values to add to a [NodeSet] under a single [NodeType]: a single value, an
+/// array, or a `Vec`. Lets [NodeSet::push] take any of them:
+///
+/// ```text
+///   NodeSet::new()
+///       .push(NodeType::Input, [1, 2, 3])        array
+///       .push(NodeType::Output, 5)               single value
+///       .push(NodeType::Vertex, vec![6, 7, 8])   Vec
+/// ```
+pub trait IntoNodeValues<T> {
+    fn into_node_values(self) -> Vec<NodeValue<T>>;
+}
+
+impl<T, K: Into<NodeValue<T>>> IntoNodeValues<T> for Vec<K> {
+    fn into_node_values(self) -> Vec<NodeValue<T>> {
+        self.into_iter().map(Into::into).collect()
+    }
+}
+
+impl<T, K: Into<NodeValue<T>>, const N: usize> IntoNodeValues<T> for [K; N] {
+    fn into_node_values(self) -> Vec<NodeValue<T>> {
+        self.into_iter().map(Into::into).collect()
+    }
+}
+
+impl<T> IntoNodeValues<T> for NodeValue<T> {
+    fn into_node_values(self) -> Vec<NodeValue<T>> {
+        vec![self]
+    }
+}
+
+#[macro_export]
+macro_rules! node_set {
+    ($($node_type:ident => $values:expr),+) => {
+        {
+            let mut store = NodeSet::new();
+            $(
+                store = store.push(NodeType::$node_type, $values);
+            )*
+            store
+        }
+    };
+}
+
 #[derive(Default)]
 pub struct NodeSet<T> {
     values: Arc<BTreeMap<NodeType, Vec<NodeValue<T>>>>,
@@ -122,15 +135,6 @@ impl<T> NodeSet<T> {
 
     pub fn ref_count(&self) -> usize {
         Arc::strong_count(&self.values)
-    }
-
-    pub fn count_type(&self, node_type: NodeType) -> usize {
-        let values = &self.values;
-        if let Some(values) = values.get(&node_type) {
-            return values.len();
-        }
-
-        0
     }
 
     pub fn contains_type(&self, node_type: NodeType) -> bool {
@@ -362,19 +366,6 @@ where
             values: Arc::new(map),
         })
     }
-}
-
-#[macro_export]
-macro_rules! node_set {
-    ($($node_type:ident => $values:expr),+) => {
-        {
-            let mut store = NodeSet::new();
-            $(
-                store = store.push(NodeType::$node_type, $values);
-            )*
-            store
-        }
-    };
 }
 
 #[cfg(test)]

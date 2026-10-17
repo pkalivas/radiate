@@ -7,7 +7,7 @@ use std::collections::VecDeque;
 pub trait GraphIterator<'a, T> {
     fn iter_topological(&'a self) -> GraphTopologicalIterator<'a, T>;
 
-    fn get_nodes_of_type(
+    fn iter_nodes_of_type(
         &'a self,
         node_type: NodeType,
     ) -> impl Iterator<Item = &'a GraphNode<T>> + 'a

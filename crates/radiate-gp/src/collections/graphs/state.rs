@@ -19,14 +19,14 @@ impl<T, V> StatefulGraph<T, V> {
 
     pub fn input_dim(&self) -> usize {
         self.inner
-            .get_nodes_of_type(crate::NodeType::Input)
+            .iter_nodes_of_type(crate::NodeType::Input)
             .collect::<Vec<_>>()
             .len()
     }
 
     pub fn output_dim(&self) -> usize {
         self.inner
-            .get_nodes_of_type(crate::NodeType::Output)
+            .iter_nodes_of_type(crate::NodeType::Output)
             .collect::<Vec<_>>()
             .len()
     }

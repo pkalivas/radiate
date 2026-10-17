@@ -102,14 +102,14 @@ where
             let root = chromosome.root_mut();
             let replace_rate = ctx.internal_rate(0);
 
-            for idx in random_provider::cond_indices(0..root.size(), ctx.rate()) {
-                if let Some(node) = root.get_mut(idx) {
+            random_provider::bernoulli_indices(ctx.rate(), 0..root.size(), |i| {
+                if let Some(node) = root.get_mut(i) {
                     mutate_node(node, &store, replace_rate, &mut metrics);
                 }
-            }
 
-            ctx.upsert(OP_MUTATED, metrics.op_mutate);
-            ctx.upsert(OP_NEW_INSTANCE, metrics.op_new_instance);
+                ctx.upsert(OP_MUTATED, metrics.op_mutate);
+                ctx.upsert(OP_NEW_INSTANCE, metrics.op_new_instance);
+            });
 
             return metrics.len();
         }
