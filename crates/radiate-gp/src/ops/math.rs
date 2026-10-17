@@ -245,12 +245,6 @@ impl<F: Float> Op<F> {
         })
     }
 
-    pub fn linear() -> Self {
-        Op::Fn(op_names::LINEAR, Arity::Any, |inputs: &[F]| {
-            summed(inputs, clamp)
-        })
-    }
-
     pub fn mish() -> Self {
         Op::Fn(op_names::MISH, Arity::Any, |inputs: &[F]| {
             summed(inputs, mish)
@@ -419,7 +413,7 @@ fn process_op_vectorized<F: Float>(op: &Op<F>, columns: &[&[F]], out: &mut [F]) 
             op_names::COS => unary_columns(columns, out, cos),
             op_names::TAN => unary_columns(columns, out, tan),
 
-            op_names::SUM | op_names::LINEAR => summed_columns(columns, out, clamp),
+            op_names::SUM => summed_columns(columns, out, clamp),
             op_names::SIGMOID => summed_columns(columns, out, sigmoid),
             op_names::TANH => summed_columns(columns, out, tanh),
             op_names::RELU => summed_columns(columns, out, relu),
@@ -858,7 +852,6 @@ pub fn activation_ops<F: Float>() -> Vec<Op<F>> {
         Op::relu(),
         Op::leaky_relu(),
         Op::elu(),
-        Op::linear(),
         Op::mish(),
         Op::swish(),
         Op::softplus(),

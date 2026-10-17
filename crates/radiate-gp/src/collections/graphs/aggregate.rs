@@ -1,4 +1,4 @@
-use super::node::GraphNodeId;
+use super::node::{GraphNodeId, NodeIdx};
 use crate::{
     collections::{Graph, GraphNode, NodeType},
     graphs::node::InnovationId,
@@ -119,6 +119,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
             for (index, node_id) in self.node_order.values().enumerate() {
                 let node = self.nodes[node_id];
 
+                let index = NodeIdx::from_usize(index);
                 trans.push((index, node.node_type(), node.value().clone(), node.arity()));
                 trans.set_innovation(index, Some(InnovationId::new()));
                 id_index_map.insert(*node_id, index);
@@ -454,6 +455,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
 
 #[cfg(test)]
 mod tests {
+    use crate::collections::NodeIdx;
     use crate::{GraphAggregate, GraphNode, Node, NodeType};
     use radiate_core::Valid;
     #[test]
@@ -791,8 +793,8 @@ mod tests {
         let out1 = &graph[1].outgoing();
         assert_eq!(out0.len(), 1);
         assert_eq!(out1.len(), 1);
-        assert!(out0.contains(&2));
-        assert!(out1.contains(&3));
+        assert!(out0.contains(&NodeIdx::new(2)));
+        assert!(out1.contains(&NodeIdx::new(3)));
     }
 
     #[test]
@@ -838,10 +840,10 @@ mod tests {
             .unwrap();
 
         // Inputs 0..1 connect to 2..3
-        assert!(g[0].outgoing().contains(&2));
-        assert!(g[1].outgoing().contains(&3));
-        assert!(g[2].incoming().contains(&0));
-        assert!(g[3].incoming().contains(&1));
+        assert!(g[0].outgoing().contains(&NodeIdx::new(2)));
+        assert!(g[1].outgoing().contains(&NodeIdx::new(3)));
+        assert!(g[2].incoming().contains(&NodeIdx::new(0)));
+        assert!(g[3].incoming().contains(&NodeIdx::new(1)));
         assert!(g.is_valid());
     }
 
@@ -863,13 +865,13 @@ mod tests {
             .unwrap();
 
         // Each input connects to all outputs
-        for i in 0..ins.len() {
+        for i in 0..ins.len() as u32 {
             assert_eq!(g[i].outgoing().len(), outs.len());
         }
 
         // Each output receives from all inputs
-        for j in 0..outs.len() {
-            assert_eq!(g[ins.len() + j].incoming().len(), ins.len());
+        for j in 0..outs.len() as u32 {
+            assert_eq!(g[ins.len() as u32 + j].incoming().len(), ins.len());
         }
 
         assert!(g.is_valid());
@@ -885,9 +887,9 @@ mod tests {
 
         let g = GraphAggregate::new().cycle(&verts).build().unwrap();
 
-        for i in 0..verts.len() {
-            assert!(g[i].outgoing().contains(&i));
-            assert!(g[i].incoming().contains(&i));
+        for i in 0..verts.len() as u32 {
+            assert!(g[i].outgoing().contains(&NodeIdx::new(i)));
+            assert!(g[i].incoming().contains(&NodeIdx::new(i)));
             assert_eq!(g[i].outgoing().len(), 1);
             assert_eq!(g[i].incoming().len(), 1);
         }
@@ -922,10 +924,10 @@ mod tests {
             let o0 = chunk_start;
             let o1 = chunk_start + 1;
 
-            assert!(g[i0].outgoing().contains(&o0));
-            assert!(g[i1].outgoing().contains(&o1));
-            assert!(g[o0].incoming().contains(&i0));
-            assert!(g[o1].incoming().contains(&i1));
+            assert!(g[i0].outgoing().contains(&NodeIdx::new(o0)));
+            assert!(g[i1].outgoing().contains(&NodeIdx::new(o1)));
+            assert!(g[o0].incoming().contains(&NodeIdx::new(i0)));
+            assert!(g[o1].incoming().contains(&NodeIdx::new(i1)));
         }
         assert!(g.is_valid());
     }
@@ -954,10 +956,10 @@ mod tests {
         // Expect pairs of inputs mapping to both outputs by chunks of outs.len()
         // Chunks: [0,1] -> [6,7]; [2,3] -> [6,7]; [4,5] -> [6,7]
         for pair in &[(0, 1), (2, 3), (4, 5)] {
-            assert!(g[pair.0].outgoing().contains(&6));
-            assert!(g[pair.1].outgoing().contains(&7));
-            assert!(g[6].incoming().contains(&pair.0));
-            assert!(g[7].incoming().contains(&pair.1));
+            assert!(g[pair.0].outgoing().contains(&NodeIdx::new(6)));
+            assert!(g[pair.1].outgoing().contains(&NodeIdx::new(7)));
+            assert!(g[6].incoming().contains(&NodeIdx::new(pair.0)));
+            assert!(g[7].incoming().contains(&NodeIdx::new(pair.1)));
         }
         assert!(g.is_valid());
     }

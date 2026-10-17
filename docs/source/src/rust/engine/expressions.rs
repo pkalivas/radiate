@@ -195,8 +195,8 @@ fn main() {
     let store = vec![
         (NodeType::Input, vec![Op::var(0)]),
         (NodeType::Edge, vec![Op::weight()]),
-        (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::linear()]),
-        (NodeType::Output, vec![Op::linear()]),
+        (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::sum()]),
+        (NodeType::Output, vec![Op::sum()]),
     ];
 
     let target_species = 4.0;

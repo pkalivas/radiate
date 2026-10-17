@@ -5,7 +5,7 @@ use crate::{
 };
 use crate::{
     GraphEvaluator,
-    collections::{Direction, GraphNode},
+    collections::{Direction, GraphNode, graphs::NodeIdx},
 };
 use crate::{GraphIterator, NodeType};
 use radiate_core::Valid;
@@ -58,7 +58,7 @@ use std::ops::{Index, IndexMut};
 /// // Create a simple graph with one input and one output node
 /// let mut graph = Graph::<Op<f32>>::default();
 /// let input_idx = graph.insert(NodeType::Input, Op::var(0));
-/// let output_idx = graph.insert(NodeType::Output, Op::linear());
+/// let output_idx = graph.insert(NodeType::Output, Op::sum());
 /// graph.attach(input_idx, output_idx);
 ///
 /// // Create a directed graph with 2 inputs and 2 outputs
@@ -117,8 +117,8 @@ use std::ops::{Index, IndexMut};
 /// * `Debug` - Provides debug formatting
 /// * `AsRef<[GraphNode<T>]>` - Allows treating the graph as a slice of nodes
 /// * `AsMut<[GraphNode<T>]>` - Allows treating the graph as a mutable slice of nodes
-/// * `Index<usize>` - Enables indexing with `graph[index]`
-/// * `IndexMut<usize>` - Enables mutable indexing with `graph[index]`
+/// * `Index<impl Into<NodeIdx>>` - Enables indexing with `graph[index]`
+/// * `IndexMut<impl Into<NodeIdx>>` - Enables mutable indexing with `graph[index]`
 /// * `IntoIterator` - Allows iterating over nodes
 /// * `FromIterator<GraphNode<T>>` - Allows creating a graph from an iterator of nodes
 ///
@@ -165,9 +165,10 @@ impl<T> Graph<T> {
         self.nodes.push(node.into());
     }
 
-    pub fn insert(&mut self, node_type: NodeType, val: T) -> usize {
-        self.push((self.len(), node_type, val));
-        self.len() - 1
+    pub fn insert(&mut self, node_type: NodeType, val: T) -> NodeIdx {
+        let index = NodeIdx::from_usize(self.len());
+        self.push((index, node_type, val));
+        index
     }
 
     pub fn pop(&mut self) -> Option<GraphNode<T>> {
@@ -182,12 +183,12 @@ impl<T> Graph<T> {
         self.nodes.is_empty()
     }
 
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut GraphNode<T>> {
-        self.nodes.get_mut(index)
+    pub fn get_mut(&mut self, index: impl Into<NodeIdx>) -> Option<&mut GraphNode<T>> {
+        self.nodes.get_mut(index.into().as_usize())
     }
 
-    pub fn get(&self, index: usize) -> Option<&GraphNode<T>> {
-        self.nodes.get(index)
+    pub fn get(&self, index: impl Into<NodeIdx>) -> Option<&GraphNode<T>> {
+        self.nodes.get(index.into().as_usize())
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &GraphNode<T>> {
@@ -231,9 +232,14 @@ impl<T> Graph<T> {
     /// # Arguments
     /// - incoming: The index of the node that will have an outgoing connection to the node at the 'outgoing' index.
     /// - outgoing: The index of the node that will have an incoming connection from the node at the 'incoming' index.
-    pub fn attach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
-        self.as_mut()[incoming].insert_outgoing(outgoing);
-        self.as_mut()[outgoing].insert_incoming(incoming);
+    pub fn attach(
+        &mut self,
+        incoming: impl Into<NodeIdx>,
+        outgoing: impl Into<NodeIdx>,
+    ) -> &mut Self {
+        let (incoming, outgoing) = (incoming.into(), outgoing.into());
+        self[incoming].insert_outgoing(outgoing);
+        self[outgoing].insert_incoming(incoming);
         self
     }
     /// Detaches the node at the 'incoming' index from the node at the 'outgoing' index.
@@ -244,13 +250,19 @@ impl<T> Graph<T> {
     /// # Arguments
     /// - incoming: The index of the node that will no longer have an outgoing connection to the node at the 'outgoing' index.
     /// - outgoing: The index of the node that will no longer have an incoming connection from the node at the 'incoming' index.
-    pub fn detach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
-        self.as_mut()[incoming].remove_outgoing(&outgoing);
-        self.as_mut()[outgoing].remove_incoming(&incoming);
+    pub fn detach(
+        &mut self,
+        incoming: impl Into<NodeIdx>,
+        outgoing: impl Into<NodeIdx>,
+    ) -> &mut Self {
+        let (incoming, outgoing) = (incoming.into(), outgoing.into());
+        self[incoming].remove_outgoing(outgoing);
+        self[outgoing].remove_incoming(incoming);
         self
     }
 
-    pub fn are_attached(&self, incoming: usize, outgoing: usize) -> bool {
+    pub fn are_attached(&self, incoming: impl Into<NodeIdx>, outgoing: impl Into<NodeIdx>) -> bool {
+        let (incoming, outgoing) = (incoming.into(), outgoing.into());
         if let Some(src) = self.get(incoming)
             && let Some(dst) = self.get(outgoing)
         {
@@ -260,27 +272,33 @@ impl<T> Graph<T> {
         false
     }
 
-    pub fn iter_node_incoming(&self, index: usize) -> impl Iterator<Item = &GraphNode<T>> + '_ {
+    pub fn iter_node_incoming(
+        &self,
+        index: impl Into<NodeIdx>,
+    ) -> impl Iterator<Item = &GraphNode<T>> + '_ {
         self.get(index)
             .into_iter()
-            .flat_map(|node| node.incoming().iter().map(|&idx| self.get(idx).unwrap()))
+            .flat_map(|node| node.incoming().iter().map(|&idx| &self[idx]))
     }
 
-    pub fn iter_node_outgoing(&self, index: usize) -> impl Iterator<Item = &GraphNode<T>> + '_ {
+    pub fn iter_node_outgoing(
+        &self,
+        index: impl Into<NodeIdx>,
+    ) -> impl Iterator<Item = &GraphNode<T>> + '_ {
         self.get(index)
             .into_iter()
-            .flat_map(|node| node.outgoing().iter().map(|&idx| self.get(idx).unwrap()))
+            .flat_map(|node| node.outgoing().iter().map(|&idx| &self[idx]))
     }
 
-    pub fn node_type(&self, node_idx: usize) -> Option<NodeType> {
+    pub fn node_type(&self, node_idx: impl Into<NodeIdx>) -> Option<NodeType> {
         self.get(node_idx).map(|node| node.node_type())
     }
 
-    pub fn arity(&self, node_idx: usize) -> Option<Arity> {
+    pub fn arity(&self, node_idx: impl Into<NodeIdx>) -> Option<Arity> {
         self.get(node_idx).map(|node| node.arity())
     }
 
-    pub fn is_locked(&self, node_idx: usize) -> bool {
+    pub fn is_locked(&self, node_idx: impl Into<NodeIdx>) -> bool {
         self.get(node_idx)
             .map(|node| node.is_locked())
             .unwrap_or(false)
@@ -306,13 +324,13 @@ impl<T> Graph<T> {
     /// of a cycle, the 'direction' field will be set to [Direction::Forward].
     /// If no indices are provided, the function will set the 'direction' field of all nodes in the graph.
     #[inline]
-    pub fn set_cycles(&mut self, indecies: Vec<usize>) {
+    pub fn set_cycles(&mut self, indecies: Vec<NodeIdx>) {
         if indecies.is_empty() {
             let all_indices = self
                 .as_ref()
                 .iter()
                 .map(|node| node.index())
-                .collect::<Vec<usize>>();
+                .collect::<Vec<NodeIdx>>();
 
             return self.set_cycles(all_indices);
         }
@@ -339,7 +357,7 @@ impl<T> Graph<T> {
     /// # Arguments
     /// - index: The index of the node to get the cycles for.
     #[inline]
-    pub fn get_cycles(&self, from: usize) -> SortedBuffer<usize> {
+    pub fn get_cycles(&self, from: impl Into<NodeIdx>) -> SortedBuffer<NodeIdx> {
         let n = self.len();
         let mut on_stack = vec![false; n];
         let mut visited = vec![false; n];
@@ -358,7 +376,7 @@ impl<T> Graph<T> {
             on_stack[u] = true;
             stack.push(u);
 
-            for &v in g.get(u).unwrap().outgoing() {
+            for v in g.nodes[u].outgoing().iter().map(|v| v.as_usize()) {
                 if !visited[v] {
                     dfs(g, v, visited, on_stack, cycles, stack);
                 } else if on_stack[v] {
@@ -375,7 +393,7 @@ impl<T> Graph<T> {
 
         dfs(
             self,
-            from,
+            from.into().as_usize(),
             &mut visited,
             &mut on_stack,
             &mut cycles,
@@ -385,7 +403,7 @@ impl<T> Graph<T> {
         let mut out = SortedBuffer::new();
         for (i, &c) in cycles.iter().enumerate() {
             if c {
-                SortedBuffer::insert_sorted_unique(&mut out, i);
+                SortedBuffer::insert_sorted_unique(&mut out, NodeIdx::from_usize(i));
             }
         }
         out
@@ -452,17 +470,19 @@ impl<T> AsMut<[GraphNode<T>]> for Graph<T> {
     }
 }
 
-impl<T> Index<usize> for Graph<T> {
+impl<T, I: Into<NodeIdx>> Index<I> for Graph<T> {
     type Output = GraphNode<T>;
 
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.nodes[index]
+    #[inline]
+    fn index(&self, index: I) -> &Self::Output {
+        &self.nodes[index.into().as_usize()]
     }
 }
 
-impl<T> IndexMut<usize> for Graph<T> {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.nodes[index]
+impl<T, I: Into<NodeIdx>> IndexMut<I> for Graph<T> {
+    #[inline]
+    fn index_mut(&mut self, index: I) -> &mut Self::Output {
+        &mut self.nodes[index.into().as_usize()]
     }
 }
 
@@ -558,7 +578,7 @@ mod test {
             GraphNode::new(0, NodeType::Input, Op::var(0)),
             GraphNode::new(1, NodeType::Input, Op::constant("five", 5.0)),
             GraphNode::with_arity(2, NodeType::Vertex, Op::add(), Arity::Exact(2)),
-            GraphNode::new(3, NodeType::Output, Op::linear()),
+            GraphNode::new(3, NodeType::Output, Op::sum()),
         ]);
 
         graph_two.attach(0, 2).attach(1, 2).attach(2, 3);
@@ -875,8 +895,8 @@ mod test {
         let values = vec![
             (NodeType::Input, vec![Op::var(0), Op::var(1)]),
             (NodeType::Edge, vec![Op::weight()]),
-            (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::linear()]),
-            (NodeType::Output, vec![Op::linear()]),
+            (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::sum()]),
+            (NodeType::Output, vec![Op::sum()]),
         ];
 
         let op_graph = Graph::directed(2, 2, values).unwrap();
@@ -901,7 +921,7 @@ mod test {
         let idx_one = graph.insert(NodeType::Input, Op::var(0));
         let idx_two = graph.insert(NodeType::Input, Op::constant("five", 5_f32));
         let idx_three = graph.insert(NodeType::Vertex, Op::add());
-        let idx_four = graph.insert(NodeType::Output, Op::linear());
+        let idx_four = graph.insert(NodeType::Output, Op::sum());
 
         graph
             .attach(idx_one, idx_three)

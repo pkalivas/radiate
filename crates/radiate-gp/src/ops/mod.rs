@@ -46,7 +46,6 @@ pub mod op_names {
     pub const SWISH: &str = "swish";
     pub const ELU: &str = "elu";
     pub const LEAKY_RELU: &str = "l_relu";
-    pub const LINEAR: &str = "linear";
     pub const RELU: &str = "relu";
     pub const SIGMOID: &str = "sigmoid";
     pub const TANH: &str = "tanh";

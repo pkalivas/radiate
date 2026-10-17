@@ -81,17 +81,17 @@ impl<'a, T> Iterator for GraphTopologicalIterator<'a, T> {
 
             let mut degree = node.incoming().len();
             for incoming_index in node.incoming() {
-                let incoming_node = &self.graph[*incoming_index];
-                if self.completed[incoming_node.index()] || incoming_node.is_recurrent() {
+                let incoming_node = &self.graph[incoming_index.as_usize()];
+                if self.completed[incoming_index.as_usize()] || incoming_node.is_recurrent() {
                     degree -= 1;
                 }
             }
 
             if degree == 0 {
-                self.completed[node.index()] = true;
-                self.index_queue.push_back(node.index());
+                self.completed[index] = true;
+                self.index_queue.push_back(index);
             } else {
-                min_pending_index = std::cmp::min(min_pending_index, node.index());
+                min_pending_index = std::cmp::min(min_pending_index, index);
             }
         }
 
@@ -112,7 +112,7 @@ impl<'a, T> Iterator for GraphTopologicalIterator<'a, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::collections::{Graph, GraphNode, NodeType};
+    use crate::collections::{Graph, GraphNode, NodeIdx, NodeType};
     use crate::ops::Op;
 
     #[test]
@@ -123,7 +123,7 @@ mod tests {
             GraphNode::from((2, NodeType::Vertex, Op::add()))
                 .with_incoming([0, 1])
                 .with_outgoing([3]),
-            GraphNode::from((3, NodeType::Output, Op::linear())).with_incoming([2]),
+            GraphNode::from((3, NodeType::Output, Op::sum())).with_incoming([2]),
         ]);
 
         let mut iter = graph.iter_topological();
@@ -142,7 +142,7 @@ mod tests {
             GraphNode::from((1, NodeType::Input, Op::<f64>::var(1), vec![], vec![2])),
             GraphNode::from((2, NodeType::Vertex, Op::<f64>::add(), vec![0, 1], vec![3])),
             GraphNode::from((3, NodeType::Vertex, Op::<f64>::mul(), vec![2], vec![2])),
-            GraphNode::from((4, NodeType::Output, Op::<f64>::linear(), vec![3], vec![])),
+            GraphNode::from((4, NodeType::Output, Op::<f64>::sum(), vec![3], vec![])),
         ];
 
         let graph = Graph::new(nodes);
@@ -162,13 +162,13 @@ mod tests {
             GraphNode::from((0, NodeType::Input, Op::<f64>::var(0))).with_outgoing([2]),
             GraphNode::from((1, NodeType::Input, Op::<f64>::var(1))),
             GraphNode::from((2, NodeType::Vertex, Op::<f64>::add())).with_incoming([0]),
-            GraphNode::from((3, NodeType::Output, Op::<f64>::linear())).with_incoming([2]),
+            GraphNode::from((3, NodeType::Output, Op::<f64>::sum())).with_incoming([2]),
         ];
 
         let results = Graph::new(nodes)
             .iter_topological()
             .map(|node| node.index())
-            .collect::<Vec<usize>>();
+            .collect::<Vec<NodeIdx>>();
 
         assert!(results.is_empty());
     }
@@ -210,7 +210,7 @@ mod tests {
         let results = graph
             .iter_topological()
             .map(|node| node.index())
-            .collect::<Vec<usize>>();
+            .collect::<Vec<NodeIdx>>();
 
         assert_eq!(results, vec![0, 1, 3, 4, 5, 6, 7, 8, 9, 2]);
     }
@@ -223,7 +223,7 @@ mod tests {
             GraphNode::from((2, NodeType::Vertex, Op::add()))
                 .with_incoming([0, 1])
                 .with_outgoing([3]),
-            GraphNode::from((3, NodeType::Output, Op::linear())).with_incoming([2]),
+            GraphNode::from((3, NodeType::Output, Op::sum())).with_incoming([2]),
         ]);
 
         let mut iter = graph.iter_topological();
@@ -250,7 +250,7 @@ mod tests {
             GraphNode::from((0, NodeType::Input, Op::<f64>::var(0))).with_outgoing([2]),
             GraphNode::from((1, NodeType::Input, Op::<f64>::var(1))),
             GraphNode::from((2, NodeType::Vertex, Op::<f64>::add())).with_incoming([0]),
-            GraphNode::from((3, NodeType::Output, Op::<f64>::linear())).with_incoming([2]),
+            GraphNode::from((3, NodeType::Output, Op::<f64>::sum())).with_incoming([2]),
         ];
 
         let graph = Graph::new(nodes);
@@ -296,7 +296,7 @@ mod tests {
         let eval_order = graph
             .iter_topological()
             .map(|n| n.index())
-            .collect::<Vec<usize>>();
+            .collect::<Vec<NodeIdx>>();
 
         assert_eq!(eval_order.len(), graph.len());
         assert_eq!(eval_order.capacity(), eval_order.len());

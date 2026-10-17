@@ -8,7 +8,7 @@ fn main() -> RadiateResult<()> {
     let data = DataSet::cubic();
 
     let set = node_set![
-        Vertex => [Op::add(), Op::sub(), Op::mul(), Op::linear()],
+        Vertex => [Op::add(), Op::sub(), Op::mul(), Op::sum()],
         Leaf => Op::var(0)
     ];
 

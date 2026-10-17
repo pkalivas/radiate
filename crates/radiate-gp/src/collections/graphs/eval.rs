@@ -1,5 +1,5 @@
 use super::{
-    GraphNode,
+    GraphNode, NodeIdx,
     compile::{GraphPlan, Step, When},
 };
 use crate::{Eval, EvalInto, EvalIntoMut, EvalMut, Graph, eval::STACK_INPUTS};
@@ -221,23 +221,23 @@ pub fn process_single_row_into<T, V>(
     } = cache;
 
     for &index in plan.order() {
-        let node = &nodes[index];
+        let node = &nodes[index.as_usize()];
         let incoming = node.incoming();
 
         // No incoming edges means the node reads the sample's features directly.
-        outputs[index] = if incoming.is_empty() {
+        outputs[index.as_usize()] = if incoming.is_empty() {
             node.eval(input)
         } else {
             let buf = &mut inputs[plan.inputs(index)];
             for (dst, &src) in buf.iter_mut().zip(incoming) {
-                *dst = outputs[src];
+                *dst = outputs[src.as_usize()];
             }
             node.eval(buf)
         };
     }
 
     for (out, &index) in buffer.iter_mut().zip(plan.output_indices()) {
-        *out = outputs[index];
+        *out = outputs[index.as_usize()];
     }
 }
 
@@ -289,13 +289,15 @@ pub fn process_batch_column_major<T, V>(
 
     outputs.resize_and_fill(plan.output_indices().len(), cols, V::default());
     for (j, &index) in plan.output_indices().iter().enumerate() {
-        outputs.row_mut(j).copy_from_slice(values.row(index));
+        outputs
+            .row_mut(j)
+            .copy_from_slice(values.row(index.as_usize()));
     }
 }
 
 /// Computes one node's whole column (a node not on a cycle) via its column [EvalInto].
 fn process_column_major<T, V>(
-    index: usize,
+    index: NodeIdx,
     nodes: &[GraphNode<T>],
     plan: &GraphPlan,
     values: &mut Matrix<V>,
@@ -306,15 +308,17 @@ fn process_column_major<T, V>(
     V: Copy + Default,
 {
     let n = values.cols();
-    let node = &nodes[index];
+    let i = index.as_usize();
+    let node = &nodes[i];
     let incoming = node.incoming();
 
-    let (above, out, below) = values.split_row_mut(index);
-    let row = |src: usize| {
-        if src < index {
+    let (above, out, below) = values.split_row_mut(i);
+    let row = |src: NodeIdx| {
+        let src = src.as_usize();
+        if src < i {
             above.row(src)
         } else {
-            below.row(src - index - 1)
+            below.row(src - i - 1)
         }
     };
 
@@ -367,7 +371,7 @@ fn process_column_major<T, V>(
 /// sequential work is the cycle itself. A node on a cycle always has incoming edges, so it
 /// of the edge-indexed `inputs` buffer, the same buffer one-sample-at-a-time evaluation uses.
 fn process_cycle_column_major<T, V>(
-    cycle: &[usize],
+    cycle: &[NodeIdx],
     nodes: &[GraphNode<T>],
     plan: &GraphPlan,
     values: &mut Matrix<V>,
@@ -378,16 +382,17 @@ fn process_cycle_column_major<T, V>(
 {
     for col in 0..values.cols() {
         for &index in cycle {
-            let node = &nodes[index];
+            let node = &nodes[index.as_usize()];
             let buf = &mut inputs[plan.inputs(index)];
             for ((dst, &src), when) in buf.iter_mut().zip(node.incoming()).zip(plan.when(index)) {
+                let src = src.as_usize();
                 *dst = match when {
                     When::Current => values[(src, col)],
                     When::Previous if col > 0 => values[(src, col - 1)],
                     When::Previous => V::default(),
                 };
             }
-            values[(index, col)] = node.eval(buf);
+            values[(index.as_usize(), col)] = node.eval(buf);
         }
     }
 }
@@ -454,7 +459,7 @@ mod tests {
         let idx_one = graph.insert(NodeType::Input, Op::var(0));
         let idx_two = graph.insert(NodeType::Input, Op::constant("five", 5_f32));
         let idx_three = graph.insert(NodeType::Vertex, Op::add());
-        let idx_four = graph.insert(NodeType::Output, Op::linear());
+        let idx_four = graph.insert(NodeType::Output, Op::sum());
 
         graph
             .attach(idx_one, idx_three)
@@ -472,7 +477,7 @@ mod tests {
 
         let x = graph.insert(NodeType::Input, Op::var(0));
         let acc = graph.insert(NodeType::Vertex, Op::sum());
-        let out = graph.insert(NodeType::Output, Op::linear());
+        let out = graph.insert(NodeType::Output, Op::sum());
 
         graph.attach(x, acc).attach(acc, acc).attach(acc, out);
 
@@ -528,7 +533,7 @@ mod tests {
 
         let x = graph.insert(NodeType::Input, Op::var(0));
         let acc = graph.insert(NodeType::Vertex, Op::sum());
-        let out = graph.insert(NodeType::Output, Op::linear());
+        let out = graph.insert(NodeType::Output, Op::sum());
 
         graph.attach(x, acc).attach(acc, acc).attach(acc, out);
 

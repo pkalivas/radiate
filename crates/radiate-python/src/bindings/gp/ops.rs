@@ -213,7 +213,6 @@ where
         op_names::RELU => Op::relu(),
         op_names::LEAKY_RELU => Op::leaky_relu(),
         op_names::ELU => Op::elu(),
-        op_names::LINEAR => Op::linear(),
         op_names::MISH => Op::mish(),
         op_names::SWISH => Op::swish(),
         op_names::SOFTPLUS => Op::softplus(),

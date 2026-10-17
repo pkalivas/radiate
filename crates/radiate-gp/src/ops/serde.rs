@@ -205,7 +205,6 @@ fn parse_float<F: Float>(variant: OpVariant<F>) -> Result<Op<F>, serde::de::valu
                 op_names::RELU => Ok(Op::relu()),
                 op_names::LEAKY_RELU => Ok(Op::leaky_relu()),
                 op_names::ELU => Ok(Op::elu()),
-                op_names::LINEAR => Ok(Op::linear()),
                 op_names::MISH => Ok(Op::mish()),
                 op_names::SWISH => Ok(Op::swish()),
                 op_names::SOFTPLUS => Ok(Op::softplus()),

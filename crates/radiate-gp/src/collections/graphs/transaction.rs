@@ -16,7 +16,7 @@
 //! 1) Build with `push(...)`, `attach(...)`, `detach(...)`, `change_direction(...)`
 //! 2) `commit()`, `commit_with(...)`, or `try_commit()` to finalize
 //! 3) On invalid commit, use returned `replay` to re-apply later with `replay(...)`
-use super::{Direction, Graph, GraphNode};
+use super::{Direction, Graph, GraphNode, NodeIdx};
 use crate::{Arity, NodeType, graphs::node::InnovationId, node::Node};
 use radiate_core::{RdRand, Valid, random_provider};
 use radiate_utils::SortedBuffer;
@@ -34,15 +34,15 @@ const MAX_REJECTION_DRAWS: usize = 8;
 /// reporting back to callers. Reversal is handled by `rollback()` which produces [ReplayStep]s.
 #[derive(Debug, Clone)]
 pub enum MutationStep {
-    AddNode(usize),
-    AddEdge(usize, usize),
-    RemoveEdge(usize, usize),
+    AddNode(NodeIdx),
+    AddEdge(NodeIdx, NodeIdx),
+    RemoveEdge(NodeIdx, NodeIdx),
     DirectionChange {
-        index: usize,
+        index: NodeIdx,
         previous_direction: Direction,
     },
     InnovationChange {
-        node_idx: usize,
+        node_idx: NodeIdx,
         previous_innovation: Option<InnovationId>,
     },
 }
@@ -54,11 +54,11 @@ pub enum MutationStep {
 /// uses the provided [GraphNode] if present.
 #[derive(Clone)]
 pub enum ReplayStep<T> {
-    AddNode(usize, Option<GraphNode<T>>),
-    AddEdge(usize, usize),
-    RemoveEdge(usize, usize),
-    DirectionChange(usize, Direction),
-    InnovationChange(usize, Option<InnovationId>),
+    AddNode(NodeIdx, Option<GraphNode<T>>),
+    AddEdge(NodeIdx, NodeIdx),
+    RemoveEdge(NodeIdx, NodeIdx),
+    DirectionChange(NodeIdx, Direction),
+    InnovationChange(NodeIdx, Option<InnovationId>),
 }
 
 /// Result of finalizing a transaction.
@@ -102,7 +102,7 @@ impl<T> TransactionResult<T> {
 pub struct GraphTransaction<'a, T> {
     graph: &'a mut Graph<T>,
     steps: Vec<MutationStep>,
-    effects: SortedBuffer<usize>,
+    effects: SortedBuffer<NodeIdx>,
 }
 
 impl<'a, T> GraphTransaction<'a, T> {
@@ -152,8 +152,8 @@ impl<'a, T> GraphTransaction<'a, T> {
     }
 
     /// Append a node to the graph and record the change. Returns the new node's index.
-    pub fn push(&mut self, node: impl Into<GraphNode<T>>) -> usize {
-        let index = self.graph.len();
+    pub fn push(&mut self, node: impl Into<GraphNode<T>>) -> NodeIdx {
+        let index = NodeIdx::from_usize(self.graph.len());
         self.steps.push(MutationStep::AddNode(index));
         self.graph.push(node);
         SortedBuffer::insert_sorted_unique(&mut self.effects, index);
@@ -161,7 +161,8 @@ impl<'a, T> GraphTransaction<'a, T> {
     }
 
     /// Create an edge from `from` to `to` and record the change.
-    pub fn attach(&mut self, from: usize, to: usize) {
+    pub fn attach(&mut self, from: impl Into<NodeIdx>, to: impl Into<NodeIdx>) {
+        let (from, to) = (from.into(), to.into());
         self.steps.push(MutationStep::AddEdge(from, to));
         self.graph.attach(from, to);
         SortedBuffer::insert_sorted_unique(&mut self.effects, from);
@@ -172,7 +173,8 @@ impl<'a, T> GraphTransaction<'a, T> {
     ///
     /// Does nothing (and records nothing) if the edge doesn't exist, so a rollback never
     /// attaches an edge that wasn't there to begin with.
-    pub fn detach(&mut self, from: usize, to: usize) {
+    pub fn detach(&mut self, from: impl Into<NodeIdx>, to: impl Into<NodeIdx>) {
+        let (from, to) = (from.into(), to.into());
         if self.graph[from].outgoing().binary_search(&to).is_err() {
             return;
         }
@@ -186,7 +188,8 @@ impl<'a, T> GraphTransaction<'a, T> {
     /// Change the direction of the node at `index` if it differs from its current direction.
     ///
     /// Records the previous direction so the change can be rolled back or replayed.
-    pub fn change_direction(&mut self, index: usize, direction: Direction) {
+    pub fn change_direction(&mut self, index: impl Into<NodeIdx>, direction: Direction) {
+        let index = index.into();
         if let Some(node) = self.graph.get_mut(index) {
             if node.direction() == direction {
                 return;
@@ -210,7 +213,8 @@ impl<'a, T> GraphTransaction<'a, T> {
             match step {
                 MutationStep::AddNode(_) => {
                     let added_node = self.graph.pop();
-                    replay_steps.push(ReplayStep::AddNode(self.graph.len(), added_node));
+                    let index = NodeIdx::from_usize(self.graph.len());
+                    replay_steps.push(ReplayStep::AddNode(index, added_node));
                 }
                 MutationStep::AddEdge(from, to) => {
                     self.graph.detach(from, to);
@@ -295,7 +299,12 @@ impl<'a, T> GraphTransaction<'a, T> {
         }
     }
 
-    pub fn set_innovation(&mut self, node_idx: usize, innovation: Option<InnovationId>) {
+    pub fn set_innovation(
+        &mut self,
+        node_idx: impl Into<NodeIdx>,
+        innovation: Option<InnovationId>,
+    ) {
+        let node_idx = node_idx.into();
         if let Some(node) = self.graph.get_mut(node_idx) {
             let previous_innovation = node.innovation();
             node.set_innovation(innovation);
@@ -341,7 +350,7 @@ impl<'a, T> GraphTransaction<'a, T> {
         &mut self,
         new_node: GraphNode<T>,
         allow_recurrent: bool,
-    ) -> Option<usize> {
+    ) -> Option<NodeIdx> {
         random_provider::with_rng(|rand| {
             self.push_and_fill_with_random(new_node, allow_recurrent, rand)
         })
@@ -352,7 +361,7 @@ impl<'a, T> GraphTransaction<'a, T> {
         new_node: GraphNode<T>,
         allow_recurrent: bool,
         rand: &mut RdRand,
-    ) -> Option<usize> {
+    ) -> Option<NodeIdx> {
         let target_idx = self.random_target_node(rand)?;
         let arity = new_node.arity();
         let node_idx = self.push(new_node);
@@ -445,7 +454,7 @@ impl<'a, T> GraphTransaction<'a, T> {
 
 /// Random access functionality for selecting nodes from the graph.
 impl<'a, T> GraphTransaction<'a, T> {
-    fn random_incoming_from(&self, node_idx: usize, rand: &mut RdRand) -> Option<usize> {
+    fn random_incoming_from(&self, node_idx: NodeIdx, rand: &mut RdRand) -> Option<NodeIdx> {
         let incoming_indicies = self.graph.get(node_idx)?.incoming();
         if incoming_indicies.is_empty() {
             None
@@ -462,7 +471,7 @@ impl<'a, T> GraphTransaction<'a, T> {
     /// Get a random node that can be used as a source node for a connection.
     /// A source node can be either an input or a vertex node.
     #[inline]
-    fn random_source_node(&self, rand: &mut RdRand) -> Option<usize> {
+    fn random_source_node(&self, rand: &mut RdRand) -> Option<NodeIdx> {
         self.random_node_of_type(SOURCE_NODE_TYPES, rand)
             .map(|node| node.index())
     }
@@ -470,7 +479,7 @@ impl<'a, T> GraphTransaction<'a, T> {
     /// Get a random node that can be used as a target node for a connection.
     /// A target node can be either an output or a vertex node.
     #[inline]
-    fn random_target_node(&self, rand: &mut RdRand) -> Option<usize> {
+    fn random_target_node(&self, rand: &mut RdRand) -> Option<NodeIdx> {
         self.random_node_of_type(TARGET_NODE_TYPES, rand)
             .map(|node| node.index())
     }
@@ -551,7 +560,7 @@ impl<'a, T> GraphTransaction<'a, T> {
             .iter()
             .filter(|node| !node.is_valid())
             .map(|n| n.index())
-            .collect::<Vec<usize>>();
+            .collect::<Vec<NodeIdx>>();
 
         for idx in invalid_nodes.iter() {
             let arity = self.graph[*idx].arity();
@@ -569,7 +578,7 @@ impl<'a, T> GraphTransaction<'a, T> {
         repaired
     }
 
-    fn repair_zero_arity_node(&mut self, node_idx: usize) -> bool {
+    fn repair_zero_arity_node(&mut self, node_idx: NodeIdx) -> bool {
         let node = self.graph.get(node_idx).unwrap();
         if node.arity() != Arity::Zero {
             return false;
@@ -593,7 +602,7 @@ impl<'a, T> GraphTransaction<'a, T> {
         false
     }
 
-    fn repair_exact_arity_node(&mut self, node_idx: usize) -> bool {
+    fn repair_exact_arity_node(&mut self, node_idx: NodeIdx) -> bool {
         let arity = self.graph[node_idx].arity();
         if let Arity::Exact(n) = arity {
             let current_incoming = self.graph[node_idx].incoming().len();
@@ -608,7 +617,7 @@ impl<'a, T> GraphTransaction<'a, T> {
                             })
                             .map(|n| n.index())
                         })
-                        .collect::<Vec<usize>>()
+                        .collect::<Vec<NodeIdx>>()
                 });
 
                 for src in available_sources {
@@ -626,7 +635,7 @@ impl<'a, T> GraphTransaction<'a, T> {
                     .iter()
                     .cloned()
                     .filter(|incoming| self.graph[*incoming].outgoing().len() > 1)
-                    .collect::<Vec<usize>>();
+                    .collect::<Vec<NodeIdx>>();
 
                 let rand_indices = random_provider::shuffled_indices(0..valid_incoming.len());
                 let rand_indices = &rand_indices[0..to_detach];
@@ -657,11 +666,12 @@ impl<T> Deref for GraphTransaction<'_, T> {
 #[cfg(test)]
 mod tests {
     use super::{GraphTransaction, MutationStep, TransactionResult};
+    use crate::collections::NodeIdx;
     use crate::collections::graphs::{Direction, Graph, InnovationId};
     use crate::{Arity, Node, NodeType};
     use radiate_core::Valid;
 
-    fn assert_has_direction_change(steps: &[MutationStep], idxs: &[usize]) {
+    fn assert_has_direction_change(steps: &[MutationStep], idxs: &[u32]) {
         let mut seen = vec![];
         for s in steps {
             if let MutationStep::DirectionChange { index, .. } = s {
@@ -670,7 +680,7 @@ mod tests {
         }
         for idx in idxs {
             assert!(
-                seen.contains(idx),
+                seen.contains(&NodeIdx::new(*idx)),
                 "Expected DirectionChange for node {} not found in steps: {:?}",
                 idx,
                 steps
@@ -690,9 +700,9 @@ mod tests {
         match tx.commit() {
             TransactionResult::Valid(steps) => {
                 assert_eq!(steps.len(), 3);
-                assert!(matches!(steps[0], MutationStep::AddNode(0)));
-                assert!(matches!(steps[1], MutationStep::AddNode(1)));
-                assert!(matches!(steps[2], MutationStep::AddEdge(0, 1)));
+                assert!(matches!(steps[0], MutationStep::AddNode(a) if a == 0));
+                assert!(matches!(steps[1], MutationStep::AddNode(a) if a == 1));
+                assert!(matches!(steps[2], MutationStep::AddEdge(a, b) if a == 0 && b == 1));
                 assert!(g.is_valid());
                 assert_eq!(g[0].outgoing().len(), 1);
                 assert_eq!(g[1].incoming().len(), 1);
@@ -733,24 +743,36 @@ mod tests {
         assert_eq!(g[0].node_type(), NodeType::Input);
         assert_eq!(g[1].node_type(), NodeType::Vertex);
         assert_eq!(g[2].node_type(), NodeType::Output);
-        assert!(g[0].outgoing().contains(&1));
-        assert!(g[1].incoming().contains(&0));
-        assert!(g[1].outgoing().contains(&2));
-        assert!(g[2].incoming().contains(&1));
+        assert!(g[0].outgoing().contains(&NodeIdx::new(1)));
+        assert!(g[1].incoming().contains(&NodeIdx::new(0)));
+        assert!(g[1].outgoing().contains(&NodeIdx::new(2)));
+        assert!(g[2].incoming().contains(&NodeIdx::new(1)));
 
         // Sanity: original mutation steps captured structure we tried
-        assert!(steps.iter().any(|s| matches!(s, MutationStep::AddNode(0))));
-        assert!(steps.iter().any(|s| matches!(s, MutationStep::AddNode(1))));
-        assert!(steps.iter().any(|s| matches!(s, MutationStep::AddNode(2))));
         assert!(
             steps
                 .iter()
-                .any(|s| matches!(s, MutationStep::AddEdge(0, 1)))
+                .any(|s| matches!(s, MutationStep::AddNode(a) if *a == 0))
         );
         assert!(
             steps
                 .iter()
-                .any(|s| matches!(s, MutationStep::AddEdge(1, 2)))
+                .any(|s| matches!(s, MutationStep::AddNode(a) if *a == 1))
+        );
+        assert!(
+            steps
+                .iter()
+                .any(|s| matches!(s, MutationStep::AddNode(a) if *a == 2))
+        );
+        assert!(
+            steps
+                .iter()
+                .any(|s| matches!(s, MutationStep::AddEdge(a, b) if *a == 0 && *b == 1))
+        );
+        assert!(
+            steps
+                .iter()
+                .any(|s| matches!(s, MutationStep::AddEdge(a, b) if *a == 1 && *b == 2))
         );
     }
 

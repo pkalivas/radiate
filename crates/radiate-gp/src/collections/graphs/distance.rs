@@ -204,13 +204,13 @@ mod tests {
     use crate::collections::graphs::node::InnovationId;
     use crate::{Arity, GraphNode, NodeType};
 
-    fn vertex(index: usize, op: Op<f32>, innov: u64) -> GraphNode<Op<f32>> {
+    fn vertex(index: u32, op: Op<f32>, innov: u64) -> GraphNode<Op<f32>> {
         let mut node = GraphNode::with_arity(index, NodeType::Vertex, op, Arity::Exact(2));
         node.set_innovation(innov_id(innov));
         node
     }
 
-    fn edge(index: usize, weight: f32, innov: u64) -> GraphNode<Op<f32>> {
+    fn edge(index: u32, weight: f32, innov: u64) -> GraphNode<Op<f32>> {
         let mut node = GraphNode::with_arity(
             index,
             NodeType::Edge,

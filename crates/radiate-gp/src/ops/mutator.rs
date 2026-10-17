@@ -56,7 +56,6 @@ where
         chromosome: &mut GraphChromosome<Op<T>>,
         ctx: &mut AlterContext,
     ) -> usize {
-        // let mutation_indexes = random_provider::cond_indices(0..chromosome.len(), ctx.rate());
         let store = chromosome.store().cloned();
 
         let mut metrics = OpMutateMetrics {
@@ -66,17 +65,6 @@ where
 
         let replace_rate = ctx.internal_rate(0);
 
-        // for i in mutation_indexes.iter() {
-        //     if let Some(node) = chromosome.get_mut(*i) {
-        //         if matches!(node.node_type(), NodeType::Output) {
-        //             continue;
-        //         }
-
-        //         if let Some(store) = store.as_ref() {
-        //             mutate_node(node, store, replace_rate, &mut metrics);
-        //         }
-        //     }
-        // }
         random_provider::bernoulli_indices(ctx.rate(), 0..chromosome.len(), |i| {
             if let Some(node) = chromosome.get_mut(i) {
                 if matches!(node.node_type(), NodeType::Output) {

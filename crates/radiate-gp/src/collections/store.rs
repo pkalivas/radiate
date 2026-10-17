@@ -408,7 +408,7 @@ mod tests {
         let store = NodeSet::new()
             .push(NodeType::Input, [Op::var(0), Op::var(1)])
             .push(NodeType::Vertex, vec![Op::add(), Op::sigmoid()])
-            .push(NodeType::Output, Op::<f32>::linear());
+            .push(NodeType::Output, Op::<f32>::sum());
 
         let arities = |node_type| {
             store

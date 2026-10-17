@@ -12,7 +12,7 @@ pub use factory::*;
 pub use graphs::{
     Direction, Graph, GraphAggregate, GraphChromosome, GraphCodec, GraphCrossover, GraphEvaluator,
     GraphIterator, GraphMutator, GraphNode, GraphNodeId, GraphReplacement, NeatDistance,
-    NodeBuilder, StatefulGraph,
+    NodeBuilder, NodeIdx, StatefulGraph,
 };
 pub use node::{Node, NodeType};
 pub use store::{IntoNodeValues, NodeSet, NodeValue};

@@ -81,7 +81,6 @@ class Op(LazyRsObject):
     weight = _op_factory("w")
     relu = _op_factory("relu")
     tanh = _op_factory("tanh")
-    linear = _op_factory("linear")
     sum = _op_factory("sum")
     prod = _op_factory("prod")
     diff = _op_factory("diff")
@@ -123,7 +122,7 @@ class Op(LazyRsObject):
             Op.cos(dtype=dtype),
             Op.tanh(dtype=dtype),
             Op.relu(dtype=dtype),
-            Op.linear(dtype=dtype),
+            Op.sum(dtype=dtype),
         ]
 
     @staticmethod
