@@ -56,8 +56,8 @@ impl<F: Float> DataSet<F> {
         let mut inputs = Vec::new();
         let mut answers = Vec::new();
 
-        let input_temp = vec![vec![F::ZERO], vec![F::ZERO], vec![F::ZERO], vec![F::ONE]];
-        let answer_temp = vec![vec![F::ZERO], vec![F::ZERO], vec![F::ONE], vec![F::ZERO]];
+        let input_temp = [vec![F::ZERO], vec![F::ZERO], vec![F::ZERO], vec![F::ONE]];
+        let answer_temp = [vec![F::ZERO], vec![F::ZERO], vec![F::ONE], vec![F::ZERO]];
 
         for i in 0..n {
             inputs.push(input_temp[i % 4].clone());

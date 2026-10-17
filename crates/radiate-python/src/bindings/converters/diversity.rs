@@ -109,11 +109,12 @@ impl FromPyEngineInput for NeatDistance {
         let excess = input.extract::<f64>("excess")?;
         let disjoint = input.extract::<f64>("disjoint")?;
         let weight_diff = input.extract::<f64>("weight_diff")?;
-        Ok(NeatDistance::new(
-            excess as f32,
-            disjoint as f32,
-            weight_diff as f32,
-        ))
+        let op_diff = input.extract::<f64>("op_diff")?;
+
+        Ok(
+            NeatDistance::new(excess as f32, disjoint as f32, weight_diff as f32)
+                .with_op_mismatch(op_diff as f32),
+        )
     }
 }
 

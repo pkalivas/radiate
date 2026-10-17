@@ -35,7 +35,10 @@ class Dist(EngineInput):
 
     @staticmethod
     def neat(
-        excess: float = 1.0, disjoint: float = 1.0, weight_diff: float = 3.0
+        excess: float = 1.0,
+        disjoint: float = 1.0,
+        weight_diff: float = 3.0,
+        op_diff: float = 1.0,
     ) -> Dist:
         """
         Initialize the Neat Distance diversity parameter. This follows the same distance metric or algorithm
@@ -45,12 +48,14 @@ class Dist(EngineInput):
         :param excess: Excess coefficient.
         :param disjoint: Disjoint coefficient.
         :param weight_diff: Weight difference coefficient.
+        :param op_diff: Operation difference coefficient.
         """
         return Dist(
             component=components.NEAT_DISTANCE,
             excess=excess,
             disjoint=disjoint,
             weight_diff=weight_diff,
+            op_diff=op_diff,
         )
 
     @staticmethod

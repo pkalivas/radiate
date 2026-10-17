@@ -439,7 +439,7 @@ impl<'a, T> GraphTransaction<'a, T> {
             return None;
         }
 
-        return Some(node_idx);
+        Some(node_idx)
     }
 }
 
