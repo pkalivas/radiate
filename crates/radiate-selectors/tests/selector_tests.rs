@@ -67,8 +67,10 @@ mod selector_tests {
     #[case(TournamentSelector::new(3), Optimize::Maximize, 80)]
     #[case(RankSelector::new(), Optimize::Minimize, 80)]
     #[case(RankSelector::new(), Optimize::Maximize, 80)]
-    #[case(StochasticUniversalSamplingSelector::new(), Optimize::Minimize, 80)]
-    #[case(StochasticUniversalSamplingSelector::new(), Optimize::Maximize, 80)]
+    #[case(LinearRankSelector::new(1.5), Optimize::Minimize, 80)]
+    #[case(LinearRankSelector::new(1.5), Optimize::Maximize, 80)]
+    #[case(SUSSelector::new(), Optimize::Minimize, 80)]
+    #[case(SUSSelector::new(), Optimize::Maximize, 80)]
     fn test_probability_selectors_better_than_random(
         #[case] selector: impl Select<FloatChromosome<f32>>,
         #[case] optimize: Optimize,
@@ -120,7 +122,8 @@ mod selector_tests {
     #[case(RouletteSelector::new())]
     #[case(TournamentSelector::new(3))]
     #[case(RankSelector::new())]
-    #[case(StochasticUniversalSamplingSelector::new())]
+    #[case(LinearRankSelector::new(1.5))]
+    #[case(SUSSelector::new())]
     #[case(RandomSelector::new())]
     fn selector_returns_requested_count(#[case] selector: impl Select<FloatChromosome<f32>>) {
         seeded(7, || {
@@ -144,7 +147,8 @@ mod selector_tests {
     #[case(RouletteSelector::new())]
     #[case(TournamentSelector::new(3))]
     #[case(RankSelector::new())]
-    #[case(StochasticUniversalSamplingSelector::new())]
+    #[case(LinearRankSelector::new(1.5))]
+    #[case(SUSSelector::new())]
     fn selector_indices_in_bounds(#[case] selector: impl Select<FloatChromosome<f32>>) {
         seeded(8, || {
             let population = random_float_population(50);
@@ -417,5 +421,39 @@ mod selector_tests {
                 );
             }
         });
+    }
+
+    /// `pressure` must actually change the distribution: 1.0 is uniform, and
+    /// higher pressure shifts picks toward the best (index 0) individuals.
+    #[test]
+    fn linear_rank_pressure_controls_distribution() {
+        const POP_SIZE: usize = 10;
+        const SAMPLES: usize = 20_000;
+
+        let best_share = |pressure: f32| -> f32 {
+            seeded(21, || {
+                let population = random_float_population(POP_SIZE);
+                let objective = Objective::Single(Optimize::Maximize);
+                let selector = LinearRankSelector::new(pressure);
+
+                let selected = selector.select(population.as_ref(), &objective, SAMPLES);
+                selected.iter().filter(|&&i| i == 0).count() as f32 / SAMPLES as f32
+            })
+        };
+
+        // Expected best share is pressure / N: 0.10, 0.15, 0.20.
+        let uniform = best_share(1.0);
+        let medium = best_share(1.5);
+        let max = best_share(2.0);
+
+        assert!((uniform - 0.10).abs() < 0.01, "pressure 1.0 best share {uniform}");
+        assert!((medium - 0.15).abs() < 0.01, "pressure 1.5 best share {medium}");
+        assert!((max - 0.20).abs() < 0.01, "pressure 2.0 best share {max}");
+    }
+
+    #[test]
+    #[should_panic]
+    fn linear_rank_rejects_out_of_range_pressure() {
+        LinearRankSelector::new(0.5);
     }
 }

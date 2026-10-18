@@ -11,7 +11,7 @@ def test_graph_codec_directed_creation():
         shape=(2, 1),
         vertex=[rd.Op.add(), rd.Op.mul()],
         edge=rd.Op.weight(),
-        output=rd.Op.linear(),
+        output=rd.Op.sum(),
     )
     genotype = codec.encode()
 
@@ -26,7 +26,7 @@ def test_graph_codec_recurrent_creation():
         shape=(2, 1),
         vertex=[rd.Op.add(), rd.Op.mul()],
         edge=rd.Op.weight(),
-        output=rd.Op.linear(),
+        output=rd.Op.sum(),
     )
     genotype = codec.encode()
 
@@ -41,7 +41,7 @@ def test_graph_codec_decode():
         shape=(2, 1),
         vertex=[rd.Op.add(), rd.Op.mul()],
         edge=rd.Op.weight(),
-        output=rd.Op.linear(),
+        output=rd.Op.sum(),
     )
     genotype = codec.encode()
     graph = codec.decode(genotype)
@@ -57,5 +57,5 @@ def test_graph_codec_invalid_shape():
             shape=(0, 1),  # Invalid input size
             vertex=[rd.Op.add()],
             edge=rd.Op.weight(),
-            output=rd.Op.linear(),
+            output=rd.Op.sum(),
         )

@@ -24,9 +24,9 @@ for _ in range(-10, 10):
 # The edges will have a weight operation and the output will be linear
 codec = rd.GraphCodec.directed(
     shape=(1, 1),
-    vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+    vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.sum()],
     edge=rd.Op.weight(),
-    output=rd.Op.linear(),
+    output=rd.Op.sum(),
 )
 
 # All we have to do to create a regression problem is provide the features & targets for our
@@ -80,9 +80,9 @@ engine = (
             2,
             1,
         ),  # <- notice how we have two features now, so the input shape is (2, 1)
-        vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+        vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.sum()],
         edge=rd.Op.weight(),
-        output=rd.Op.linear(),
+        output=rd.Op.sum(),
     )
     .regression(
         df,

@@ -1,4 +1,4 @@
-use super::{GraphNode, NodeSet, NodeType, NodeValue, TreeNode};
+use super::{GraphNode, NodeIdx, NodeSet, NodeType, NodeValue, TreeNode};
 use crate::Arity;
 use radiate_core::random_provider;
 
@@ -38,6 +38,7 @@ impl<T: Default + Clone> Factory<(usize, NodeType), Option<GraphNode<T>>> for No
                 _ => random_provider::choose(values),
             };
 
+            let index = NodeIdx::from_usize(index);
             match node_value {
                 NodeValue::Bounded(value, arity) => {
                     (index, node_type, value.clone(), *arity).into()
@@ -70,6 +71,7 @@ where
                 self.new_instance((index, node_type))
             } else {
                 let node_value = random_provider::choose(&mapped_values);
+                let index = NodeIdx::from_usize(index);
 
                 match node_value {
                     NodeValue::Bounded(value, arity) => Some(GraphNode::with_arity(

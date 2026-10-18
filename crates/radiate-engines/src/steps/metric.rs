@@ -55,9 +55,9 @@ impl MetricStep {
             objective,
             expressions,
             scores_dist_matrix,
-            last_gen_ids: HashSet::with_hasher(rustc_hash::FxBuildHasher::default()),
-            curr_ids: HashSet::with_hasher(rustc_hash::FxBuildHasher::default()),
-            unique_members: HashSet::with_hasher(rustc_hash::FxBuildHasher::default()),
+            last_gen_ids: HashSet::with_hasher(rustc_hash::FxBuildHasher),
+            curr_ids: HashSet::with_hasher(rustc_hash::FxBuildHasher),
+            unique_members: HashSet::with_hasher(rustc_hash::FxBuildHasher),
             ..Default::default()
         }
     }

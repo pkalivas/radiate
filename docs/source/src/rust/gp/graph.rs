@@ -27,7 +27,7 @@ fn main() {
         .attach(idx_three, idx_four)
         .attach(idx_four, idx_two);
 
-    graph.set_cycles(vec![]);
+    graph.set_cycles();
     // --8<-- [end:eval]
 
     // --8<-- [start:variants]
@@ -39,8 +39,8 @@ fn main() {
     let values = vec![
         (NodeType::Input, vec![Op::var(0), Op::var(1)]),
         (NodeType::Edge, vec![Op::weight()]),
-        (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::linear()]),
-        (NodeType::Output, vec![Op::linear()]),
+        (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::sum()]),
+        (NodeType::Output, vec![Op::sum()]),
     ];
 
     // create a directed graph with 2 input nodes and 2 output nodes
@@ -99,7 +99,7 @@ fn main() {
     // Create a mutator that adds vertices and edges with a 10% chance for either
     let mutator = GraphMutator::new(0.1, 0.1);
 
-    let mutator = GraphMutator::new(0.1, 0.1).allow_recurrent(false); // Disallow recurrent connections
+    let mutator = GraphMutator::new(0.1, 0.1).allow_recurrent(); // Allow recurrent connections
     // --8<-- [end:graph_mutator]
 
     // --8<-- [start:graph_crossover]

@@ -86,29 +86,30 @@ where
             }
 
             let [a, b, c] = donors(target, size);
-            let genotypes = [target, a, b, c].map(|i| population[i].genotype());
+            let geno_idxs = [target, a, b, c].map(|i| population[i].genotype());
 
-            let chromosomes = genotypes.iter().map(|g| g.len()).min().unwrap_or(0);
-            for chromosome in 0..chromosomes {
-                let genes = genotypes
+            let chromosomes = geno_idxs.iter().map(|g| g.len()).min().unwrap_or(0);
+            for chrom_idx in 0..chromosomes {
+                let genes = geno_idxs
                     .iter()
-                    .map(|g| g[chromosome].len())
+                    .map(|g| g[chrom_idx].len())
                     .min()
                     .unwrap_or(0);
+
                 if genes == 0 {
                     continue;
                 }
 
-                // `allele(k)` reads this gene from genotypes[k]: 1 = a, 2 = b, 3 = c.
-                let forced = random_provider::range(0..genes);
-                for gene in 0..genes {
-                    if gene != forced && !random_provider::bool(self.crossover_rate) {
+                let forced_idx = random_provider::range(0..genes);
+                for gene_idx in 0..genes {
+                    if gene_idx != forced_idx && !random_provider::bool(self.crossover_rate) {
                         continue;
                     }
 
-                    let allele = |k: usize| *genotypes[k][chromosome].get(gene).unwrap().allele();
+                    let allele =
+                        |k: usize| *geno_idxs[k][chrom_idx].get(gene_idx).unwrap().allele();
                     let value = allele(1) + weight * (allele(2) - allele(3));
-                    changes.push((target, chromosome, gene, value));
+                    changes.push((target, chrom_idx, gene_idx, value));
                 }
             }
         }

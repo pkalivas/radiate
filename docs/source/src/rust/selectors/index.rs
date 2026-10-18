@@ -33,7 +33,7 @@ fn main() {
     // --8<-- [end:tournament_nsga2_selector]
 
     // --8<-- [start:stochastic_sampling_selector]
-    let selector = StochasticUniversalSamplingSelector::new();
+    let selector = SUSSelector::new();
     // --8<-- [end:stochastic_sampling_selector]
 
     // --8<-- [start:rank_selector]
@@ -42,7 +42,7 @@ fn main() {
 
     // --8<-- [start:linear_rank_selector]
     // pressure
-    let selector = LinearRankSelector::new(0.1);
+    let selector = LinearRankSelector::new(1.5);
     // --8<-- [end:linear_rank_selector]
 
     // --8<-- [start:random_selector]

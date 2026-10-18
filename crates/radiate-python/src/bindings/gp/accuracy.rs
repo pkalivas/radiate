@@ -7,8 +7,9 @@ use pyo3::{
     Bound, IntoPyObject, Py, PyAny, PyResult, Python, intern, pyclass, pyfunction, pymethods,
     types::PyAnyMethods,
 };
-use radiate::{Accuracy, AccuracyResult, EvalMut, Loss, ops::OpFloat};
+use radiate::{Accuracy, AccuracyResult, EvalMut, Loss};
 use radiate_error::radiate_py_bail;
+use radiate_utils::Float;
 use radiate_utils::{DataSet, Matrix};
 
 #[pyclass]
@@ -120,7 +121,7 @@ fn run_accuracy<F, E>(
     name: Option<String>,
 ) -> PyResult<PyAccuracy>
 where
-    F: OpFloat,
+    F: Float,
     E: EvalMut<[F], Vec<F>>,
 {
     if features.rows() != targets.rows() {

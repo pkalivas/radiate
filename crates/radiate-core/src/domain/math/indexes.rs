@@ -54,6 +54,7 @@ fn next(max_index: usize, sub_set: &mut [usize], rand: &mut RdRand<'_>) {
         for (i, item) in sub_set.iter_mut().enumerate() {
             *item = i;
         }
+
         return;
     }
 

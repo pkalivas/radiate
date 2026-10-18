@@ -19,9 +19,9 @@ def test_normalize_graph_eval_with_pl_dataframe(random_seed):
 
     codec = rd.GraphCodec.directed(
         shape=(2, 1),
-        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sum()],
         edge=rd.Op.weight(),
-        output=rd.Op.linear(),
+        output=rd.Op.sum(),
     )
 
     graph = codec.decode(codec.encode())
@@ -44,9 +44,9 @@ def test_normalize_graph_eval_with_pandas_dataframe(random_seed):
 
     codec = rd.GraphCodec.directed(
         shape=(2, 1),
-        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sum()],
         edge=rd.Op.weight(),
-        output=rd.Op.linear(),
+        output=rd.Op.sum(),
     )
 
     graph = codec.decode(codec.encode())
@@ -67,9 +67,9 @@ def test_normalize_graph_eval_with_numpy_array(random_seed):
     arr = np.array([[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]], dtype=np.float64)
     codec = rd.GraphCodec.directed(
         shape=(2, 1),
-        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sum()],
         edge=rd.Op.weight(),
-        output=rd.Op.linear(),
+        output=rd.Op.sum(),
     )
 
     graph = codec.decode(codec.encode())
@@ -90,9 +90,9 @@ def test_normalize_graph_eval_with_numpy_1d_array(random_seed):
     arr = np.array([1, 2, 3], dtype=np.float64).reshape(-1, 1)
     codec = rd.GraphCodec.directed(
         shape=(1, 1),
-        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sum()],
         edge=rd.Op.weight(),
-        output=rd.Op.linear(),
+        output=rd.Op.sum(),
     )
 
     graph = codec.decode(codec.encode())

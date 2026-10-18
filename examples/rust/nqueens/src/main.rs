@@ -1,6 +1,6 @@
 use radiate::*;
 
-const N_QUEENS: usize = 32;
+const N_QUEENS: usize = 120;
 
 fn main() {
     random_provider::seed(514);
@@ -8,7 +8,6 @@ fn main() {
     let engine = GeneticEngine::builder()
         .codec(IntChromosome::from((N_QUEENS, 0..N_QUEENS as i8)))
         .minimizing()
-        .offspring_selector(BoltzmannSelector::new(4.0))
         .alter(alters!(
             MultiPointCrossover::new(0.75, 2),
             UniformMutator::new(1.0 / N_QUEENS as f64)

@@ -5,6 +5,7 @@ use crate::{
 use radiate_error::RadiateError;
 use radiate_expr::{ProjectExpr, SelectOp};
 use radiate_utils::{AnyValue, SmallStr};
+use rustc_hash::FxBuildHasher;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{
@@ -38,7 +39,7 @@ pub struct MetricSetSummary {
 #[derive(Clone, Default, PartialEq)]
 pub struct MetricSet {
     metrics: Vec<Metric>,
-    name_lookup: HashMap<SmallStr, MetricIdx, rustc_hash::FxBuildHasher>,
+    name_lookup: HashMap<SmallStr, MetricIdx, FxBuildHasher>,
     meta: Meta,
 }
 
@@ -46,7 +47,7 @@ impl MetricSet {
     pub fn new() -> Self {
         MetricSet {
             metrics: Vec::new(),
-            name_lookup: HashMap::with_hasher(rustc_hash::FxBuildHasher::default()),
+            name_lookup: HashMap::with_hasher(FxBuildHasher),
             meta: Meta::default(),
         }
     }
@@ -228,7 +229,7 @@ impl<'a> ProjectExpr<'a> for MetricSet {
 
 impl From<Vec<Metric>> for MetricSet {
     fn from(metrics: Vec<Metric>) -> Self {
-        let mut by_name = HashMap::with_hasher(rustc_hash::FxBuildHasher::default());
+        let mut by_name = HashMap::with_hasher(FxBuildHasher);
         for (i, m) in metrics.iter().enumerate() {
             by_name.insert(m.name().clone(), MetricIdx::new(i as u32));
         }
@@ -300,7 +301,7 @@ impl<'de> Deserialize<'de> for MetricSet {
         D: serde::Deserializer<'de>,
     {
         let metrics = Vec::<Metric>::deserialize(deserializer)?;
-        let mut by_name = HashMap::with_hasher(rustc_hash::FxBuildHasher::default());
+        let mut by_name = HashMap::with_hasher(FxBuildHasher);
         for (i, m) in metrics.iter().enumerate() {
             by_name.insert(m.name().clone(), MetricIdx::new(i as u32));
         }

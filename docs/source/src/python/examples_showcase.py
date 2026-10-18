@@ -180,9 +180,9 @@ answers = [[0.0], [0.0], [1.0], [1.0]]
 
 codec = rd.GraphCodec.directed(
     shape=(2, 1),
-    vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+    vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sum()],
     edge=rd.Op.weight(),
-    output=rd.Op.linear(),
+    output=rd.Op.sum(),
 )
 
 engine = (
@@ -211,7 +211,7 @@ answers = [[0.0], [0.0], [1.0], [1.0]]
 codec = rd.TreeCodec(
     shape=(2, 1),
     vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.add()],
-    root=rd.Op.linear(),
+    root=rd.Op.sum(),
 )
 
 engine = (

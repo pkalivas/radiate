@@ -63,7 +63,7 @@ impl<T: Clone + Default> Graph<T> {
     ///
     /// let values: Vec<(NodeType, Vec<Op<f32>>)> = vec![
     ///   (NodeType::Input, vec![Op::var(0), Op::var(1), Op::var(2)]),
-    ///   (NodeType::Vertex, vec![Op::linear()]),
+    ///   (NodeType::Vertex, vec![Op::sum()]),
     ///   (NodeType::Output, vec![Op::sigmoid()]),
     /// ];
     ///

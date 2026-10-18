@@ -11,7 +11,7 @@ def test_gp_graph_creation():
         shape=(2, 1),
         vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
         edge=[rd.Op.weight()],
-        output=[rd.Op.linear()],
+        output=[rd.Op.sum()],
     )
 
     graph = codec.decode(codec.encode())
@@ -31,7 +31,7 @@ def test_gp_graph_eval():
         shape=(3, 1),
         vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
         edge=rd.Op.weight(),
-        output=rd.Op.linear(),
+        output=rd.Op.sum(),
     )
 
     graph = codec.decode(codec.encode())
@@ -57,9 +57,9 @@ def test_graph_from_json():
     """Test GP Graph creation from JSON."""
     codec = rd.GraphCodec.directed(
         shape=(2, 1),
-        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sum()],
         edge=rd.Op.weight(),
-        output=rd.Op.linear(),
+        output=rd.Op.sum(),
     )
 
     graph = codec.decode(codec.encode())

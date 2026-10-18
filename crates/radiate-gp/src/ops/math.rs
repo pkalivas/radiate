@@ -1,5 +1,5 @@
+use super::Float;
 use super::Op;
-use super::OpFloat;
 use crate::{
     Arity,
     eval::STACK_INPUTS,
@@ -10,7 +10,7 @@ use radiate_core::random_provider;
 use smallvec::SmallVec;
 use std::hash::Hash;
 
-impl<F: OpFloat> Op<F> {
+impl<F: Float> Op<F> {
     pub fn weight() -> Self {
         Self::weight_with(random_provider::range(-F::ONE..F::ONE))
     }
@@ -67,6 +67,10 @@ impl<F: OpFloat> Op<F> {
 
     /// Ephemeral Random Constant (ERC).
     pub fn erc() -> Self {
+        Self::erc_with(random_provider::range(-F::ONE..F::ONE))
+    }
+
+    pub fn erc_with(value: F) -> Self {
         let supplier = || random_provider::range(-F::ONE..F::ONE);
 
         let modifier = |current: &mut F| {
@@ -77,7 +81,7 @@ impl<F: OpFloat> Op<F> {
         Op::Value(
             op_names::ERC,
             0.into(),
-            Param::new(clamp(supplier()), supplier, modifier),
+            Param::new(clamp(value), supplier, modifier),
             |_: &[F], w: &F| *w,
         )
     }
@@ -181,6 +185,11 @@ impl<F: OpFloat> Op<F> {
         })
     }
 
+    #[deprecated(since = "1.3.2", note = "Use sum() instead")]
+    pub fn linear() -> Self {
+        Self::sum()
+    }
+
     pub fn sum() -> Self {
         Op::Fn(op_names::SUM, Arity::Any, |inputs: &[F]| {
             summed(inputs, clamp)
@@ -201,13 +210,13 @@ impl<F: OpFloat> Op<F> {
 
     pub fn max() -> Self {
         Op::Fn(op_names::MAX, Arity::Any, |inputs: &[F]| {
-            folded(inputs, Some(-F::MAX_VALUE), F::max)
+            folded(inputs, Some(F::MIN), F::max)
         })
     }
 
     pub fn min() -> Self {
         Op::Fn(op_names::MIN, Arity::Any, |inputs: &[F]| {
-            folded(inputs, Some(F::MAX_VALUE), F::min)
+            folded(inputs, Some(F::MAX), F::min)
         })
     }
 
@@ -238,12 +247,6 @@ impl<F: OpFloat> Op<F> {
     pub fn elu() -> Self {
         Op::Fn(op_names::ELU, Arity::Any, |inputs: &[F]| {
             summed(inputs, elu)
-        })
-    }
-
-    pub fn linear() -> Self {
-        Op::Fn(op_names::LINEAR, Arity::Any, |inputs: &[F]| {
-            summed(inputs, clamp)
         })
     }
 
@@ -283,7 +286,7 @@ impl<F: OpFloat> Op<F> {
 /// ```text
 ///   sample r:   row = [ inputs[0][r], inputs[1][r], ... ]  →  buffer[r] = self.eval(row)
 /// ```
-impl<'a, F: OpFloat> EvalInto<[&'a [F]], [F]> for Op<F> {
+impl<'a, F: Float> EvalInto<[&'a [F]], [F]> for Op<F> {
     fn eval_into(&self, inputs: &[&'a [F]], buffer: &mut [F]) {
         if process_op_vectorized(self, inputs, buffer) {
             return;
@@ -361,7 +364,7 @@ impl Hash for Op<f64> {
 /// Ops are identified by name, the same convention deserialization uses (see `ops/serde.rs`),
 /// so a custom op that reuses a built-in name gets the built-in kernel. Each arm uses the same
 /// shape and function as the op's constructor, so results are bit-identical.
-fn process_op_vectorized<F: OpFloat>(op: &Op<F>, columns: &[&[F]], out: &mut [F]) -> bool {
+fn process_op_vectorized<F: Float>(op: &Op<F>, columns: &[&[F]], out: &mut [F]) -> bool {
     match op {
         // Same rules as the scalar ops: a var reads its input at `index`, a const ignores inputs.
         Op::Var(_, index, _) => match columns.get(*index) {
@@ -415,7 +418,7 @@ fn process_op_vectorized<F: OpFloat>(op: &Op<F>, columns: &[&[F]], out: &mut [F]
             op_names::COS => unary_columns(columns, out, cos),
             op_names::TAN => unary_columns(columns, out, tan),
 
-            op_names::SUM | op_names::LINEAR => summed_columns(columns, out, clamp),
+            op_names::SUM => summed_columns(columns, out, clamp),
             op_names::SIGMOID => summed_columns(columns, out, sigmoid),
             op_names::TANH => summed_columns(columns, out, tanh),
             op_names::RELU => summed_columns(columns, out, relu),
@@ -429,8 +432,8 @@ fn process_op_vectorized<F: OpFloat>(op: &Op<F>, columns: &[&[F]], out: &mut [F]
 
             op_names::DIFF => folded_columns(columns, out, None, difference),
             op_names::PROD => folded_columns(columns, out, Some(F::ONE), product),
-            op_names::MAX => folded_columns(columns, out, Some(-F::MAX_VALUE), F::max),
-            op_names::MIN => folded_columns(columns, out, Some(F::MAX_VALUE), F::min),
+            op_names::MAX => folded_columns(columns, out, Some(-F::EXTREMA), F::max),
+            op_names::MIN => folded_columns(columns, out, Some(F::EXTREMA), F::min),
 
             _ => false,
         },
@@ -450,7 +453,7 @@ fn process_op_vectorized<F: OpFloat>(op: &Op<F>, columns: &[&[F]], out: &mut [F]
 // panics on the same inputs, just like row evaluation).
 
 #[inline(always)]
-fn unary_columns<F: OpFloat>(inputs: &[&[F]], out: &mut [F], f: impl Fn(F) -> F) -> bool {
+fn unary_columns<F: Float>(inputs: &[&[F]], out: &mut [F], f: impl Fn(F) -> F) -> bool {
     let [x, ..] = inputs else {
         return false;
     };
@@ -462,7 +465,7 @@ fn unary_columns<F: OpFloat>(inputs: &[&[F]], out: &mut [F], f: impl Fn(F) -> F)
 }
 
 #[inline(always)]
-fn binary_columns<F: OpFloat>(inputs: &[&[F]], out: &mut [F], f: impl Fn(F, F) -> F) -> bool {
+fn binary_columns<F: Float>(inputs: &[&[F]], out: &mut [F], f: impl Fn(F, F) -> F) -> bool {
     let [a, b, ..] = inputs else {
         return false;
     };
@@ -476,7 +479,7 @@ fn binary_columns<F: OpFloat>(inputs: &[&[F]], out: &mut [F], f: impl Fn(F, F) -
 /// Sums the input columns, then applies `f`. The sum matches [aggregate] bit-for-bit:
 /// 1..=5 inputs sum left to right starting from the first input, more fold from zero.
 #[inline(always)]
-fn summed_columns<F: OpFloat>(inputs: &[&[F]], out: &mut [F], f: impl Fn(F) -> F) -> bool {
+fn summed_columns<F: Float>(inputs: &[&[F]], out: &mut [F], f: impl Fn(F) -> F) -> bool {
     match inputs.split_first() {
         None => out.fill(F::ZERO),
         Some((first, rest)) => {
@@ -504,7 +507,7 @@ fn summed_columns<F: OpFloat>(inputs: &[&[F]], out: &mut [F], f: impl Fn(F) -> F
 }
 
 #[inline(always)]
-fn folded_columns<F: OpFloat>(
+fn folded_columns<F: Float>(
     inputs: &[&[F]],
     out: &mut [F],
     seed: Option<F>,
@@ -540,23 +543,23 @@ fn folded_columns<F: OpFloat>(
 // Shapes, scalar form: one sample's inputs in, one value out.
 
 #[inline(always)]
-fn unary<F: OpFloat>(vals: &[F], f: impl Fn(F) -> F) -> F {
+fn unary<F: Float>(vals: &[F], f: impl Fn(F) -> F) -> F {
     f(vals[0])
 }
 
 #[inline(always)]
-fn binary<F: OpFloat>(vals: &[F], f: impl Fn(F, F) -> F) -> F {
+fn binary<F: Float>(vals: &[F], f: impl Fn(F, F) -> F) -> F {
     f(vals[0], vals[1])
 }
 
 #[inline(always)]
-fn summed<F: OpFloat>(vals: &[F], f: impl Fn(F) -> F) -> F {
+fn summed<F: Float>(vals: &[F], f: impl Fn(F) -> F) -> F {
     f(aggregate(vals))
 }
 
 /// `seed` starts the fold; `None` starts it from the first input instead (zero with no inputs).
 #[inline(always)]
-fn folded<F: OpFloat>(vals: &[F], seed: Option<F>, step: impl Fn(F, F) -> F) -> F {
+fn folded<F: Float>(vals: &[F], seed: Option<F>, step: impl Fn(F, F) -> F) -> F {
     let (seed, rest) = match (seed, vals.split_first()) {
         (Some(seed), _) => (seed, vals),
         (None, Some((first, rest))) => (*first, rest),
@@ -581,17 +584,17 @@ fn folded<F: OpFloat>(vals: &[F], seed: Option<F>, step: impl Fn(F, F) -> F) -> 
 /// Clamp a value to the range [-MAX_VALUE, MAX_VALUE]. Without this, values can quickly
 /// become too large or too small to be useful.
 #[inline]
-fn clamp<F: OpFloat>(value: F) -> F {
+fn clamp<F: Float>(value: F) -> F {
     if value.is_nan() {
         return F::ZERO;
     }
-    value.clamp(-F::MAX_VALUE, F::MAX_VALUE)
+    value.clamp(-F::EXTREMA, F::EXTREMA)
 }
 
 /// Aggregate a slice of values by summing them. There usually aren't too many inputs, so we
 /// can use an if statement to handle a few of the common cases - vals with a len <= 5.
 #[inline]
-fn aggregate<F: OpFloat>(vals: &[F]) -> F {
+fn aggregate<F: Float>(vals: &[F]) -> F {
     match vals {
         [] => F::ZERO,
         [a] => *a,
@@ -606,22 +609,22 @@ fn aggregate<F: OpFloat>(vals: &[F]) -> F {
 // Binary ops.
 
 #[inline(always)]
-fn add<F: OpFloat>(a: F, b: F) -> F {
+fn add<F: Float>(a: F, b: F) -> F {
     clamp(a + b)
 }
 
 #[inline(always)]
-fn sub<F: OpFloat>(a: F, b: F) -> F {
+fn sub<F: Float>(a: F, b: F) -> F {
     clamp(a - b)
 }
 
 #[inline(always)]
-fn mul<F: OpFloat>(a: F, b: F) -> F {
+fn mul<F: Float>(a: F, b: F) -> F {
     clamp(a * b)
 }
 
 #[inline(always)]
-fn div<F: OpFloat>(a: F, b: F) -> F {
+fn div<F: Float>(a: F, b: F) -> F {
     if b.abs() < F::EPS {
         F::ONE
     } else {
@@ -630,44 +633,44 @@ fn div<F: OpFloat>(a: F, b: F) -> F {
 }
 
 #[inline(always)]
-fn pow<F: OpFloat>(a: F, b: F) -> F {
+fn pow<F: Float>(a: F, b: F) -> F {
     clamp(a.powf(b))
 }
 
 #[inline(always)]
-fn weight<F: OpFloat>(x: F, w: F) -> F {
+fn weight<F: Float>(x: F, w: F) -> F {
     clamp(x * w)
 }
 
 #[inline(always)]
-fn dot<F: OpFloat>(x1: F, x2: F, w1: F, w2: F) -> F {
+fn dot<F: Float>(x1: F, x2: F, w1: F, w2: F) -> F {
     clamp(x1 * w1 + x2 * w2)
 }
 
 // Unary ops.
 
 #[inline(always)]
-fn neg<F: OpFloat>(x: F) -> F {
+fn neg<F: Float>(x: F) -> F {
     clamp(-x)
 }
 
 #[inline(always)]
-fn abs<F: OpFloat>(x: F) -> F {
+fn abs<F: Float>(x: F) -> F {
     clamp(x.abs())
 }
 
 #[inline(always)]
-fn ceil<F: OpFloat>(x: F) -> F {
+fn ceil<F: Float>(x: F) -> F {
     clamp(x.ceil())
 }
 
 #[inline(always)]
-fn floor<F: OpFloat>(x: F) -> F {
+fn floor<F: Float>(x: F) -> F {
     clamp(x.floor())
 }
 
 #[inline(always)]
-fn reciprocal<F: OpFloat>(x: F) -> F {
+fn reciprocal<F: Float>(x: F) -> F {
     if x.abs() < F::EPS {
         F::ONE
     } else {
@@ -676,7 +679,7 @@ fn reciprocal<F: OpFloat>(x: F) -> F {
 }
 
 #[inline(always)]
-fn sign<F: OpFloat>(x: F) -> F {
+fn sign<F: Float>(x: F) -> F {
     if x > F::ZERO {
         F::ONE
     } else if x < F::ZERO {
@@ -687,58 +690,58 @@ fn sign<F: OpFloat>(x: F) -> F {
 }
 
 #[inline(always)]
-fn sqrt<F: OpFloat>(x: F) -> F {
+fn sqrt<F: Float>(x: F) -> F {
     clamp(x.sqrt())
 }
 
 #[inline(always)]
-fn exp<F: OpFloat>(x: F) -> F {
+fn exp<F: Float>(x: F) -> F {
     clamp(x.exp())
 }
 
 #[inline(always)]
-fn log<F: OpFloat>(x: F) -> F {
+fn log<F: Float>(x: F) -> F {
     if x > F::ZERO { clamp(x.ln()) } else { F::ZERO }
 }
 
 #[inline(always)]
-fn sin<F: OpFloat>(x: F) -> F {
+fn sin<F: Float>(x: F) -> F {
     clamp(x.sin())
 }
 
 #[inline(always)]
-fn cos<F: OpFloat>(x: F) -> F {
+fn cos<F: Float>(x: F) -> F {
     clamp(x.cos())
 }
 
 #[inline(always)]
-fn tan<F: OpFloat>(x: F) -> F {
+fn tan<F: Float>(x: F) -> F {
     clamp(x.tan())
 }
 
 #[inline(always)]
-fn sigmoid<F: OpFloat>(total: F) -> F {
+fn sigmoid<F: Float>(total: F) -> F {
     clamp(F::ONE / (F::ONE + (-total).exp()))
 }
 
 #[inline(always)]
-fn tanh<F: OpFloat>(total: F) -> F {
+fn tanh<F: Float>(total: F) -> F {
     clamp(total.tanh())
 }
 
 #[inline(always)]
-fn relu<F: OpFloat>(total: F) -> F {
+fn relu<F: Float>(total: F) -> F {
     clamp(total.max(F::ZERO))
 }
 
 #[inline(always)]
-fn leaky_relu<F: OpFloat>(total: F) -> F {
+fn leaky_relu<F: Float>(total: F) -> F {
     let x = clamp(total);
     if x > F::ZERO { x } else { clamp(F::HALF * x) }
 }
 
 #[inline(always)]
-fn elu<F: OpFloat>(total: F) -> F {
+fn elu<F: Float>(total: F) -> F {
     let x = clamp(total);
     if x > F::ZERO {
         x
@@ -748,19 +751,19 @@ fn elu<F: OpFloat>(total: F) -> F {
 }
 
 #[inline(always)]
-fn mish<F: OpFloat>(total: F) -> F {
+fn mish<F: Float>(total: F) -> F {
     let x = clamp(total);
     clamp(x * (x.exp().ln_1p().tanh()))
 }
 
 #[inline(always)]
-fn swish<F: OpFloat>(total: F) -> F {
+fn swish<F: Float>(total: F) -> F {
     let x = clamp(total);
     clamp(x / (F::ONE + (-x).exp()))
 }
 
 #[inline(always)]
-fn softplus<F: OpFloat>(total: F) -> F {
+fn softplus<F: Float>(total: F) -> F {
     let x = clamp(total);
     let threshold = F::from(20.0).unwrap();
     if x > threshold {
@@ -773,13 +776,13 @@ fn softplus<F: OpFloat>(total: F) -> F {
 }
 
 #[inline(always)]
-fn gaussian<F: OpFloat>(total: F) -> F {
+fn gaussian<F: Float>(total: F) -> F {
     let x = clamp(total);
     clamp((-x * x).exp())
 }
 
 #[inline(always)]
-fn tooth<F: OpFloat>(total: F) -> F {
+fn tooth<F: Float>(total: F) -> F {
     let x = clamp(total);
     clamp(x % F::ONE)
 }
@@ -787,17 +790,17 @@ fn tooth<F: OpFloat>(total: F) -> F {
 // Folded ops: a running value combined with each input in turn.
 
 #[inline(always)]
-fn product<F: OpFloat>(acc: F, x: F) -> F {
+fn product<F: Float>(acc: F, x: F) -> F {
     acc * x
 }
 
 #[inline(always)]
-fn difference<F: OpFloat>(acc: F, x: F) -> F {
+fn difference<F: Float>(acc: F, x: F) -> F {
     acc - x
 }
 
 #[inline]
-fn logsumexp<F: OpFloat>(xs: &[F]) -> F {
+fn logsumexp<F: Float>(xs: &[F]) -> F {
     let mut m = F::neg_infinity();
     let mut s = F::ZERO;
 
@@ -815,7 +818,7 @@ fn logsumexp<F: OpFloat>(xs: &[F]) -> F {
 }
 
 /// Get a list of all the math operations.
-pub fn arithmetic_ops<F: OpFloat>() -> Vec<Op<F>> {
+pub fn arithmetic_ops<F: Float>() -> Vec<Op<F>> {
     vec![
         Op::add(),
         Op::sub(),
@@ -847,30 +850,29 @@ pub fn arithmetic_ops<F: OpFloat>() -> Vec<Op<F>> {
 }
 
 /// Get a list of all the activation operations.
-pub fn activation_ops<F: OpFloat>() -> Vec<Op<F>> {
+pub fn activation_ops<F: Float>() -> Vec<Op<F>> {
     vec![
         Op::sigmoid(),
         Op::tanh(),
         Op::relu(),
         Op::leaky_relu(),
         Op::elu(),
-        Op::linear(),
         Op::mish(),
         Op::swish(),
         Op::softplus(),
     ]
 }
 
-pub fn edge_ops<F: OpFloat>() -> Vec<Op<F>> {
+pub fn edge_ops<F: Float>() -> Vec<Op<F>> {
     vec![Op::weight(), Op::identity()]
 }
 
-pub fn input_ops<F: OpFloat>() -> Vec<Op<F>> {
+pub fn input_ops<F: Float>() -> Vec<Op<F>> {
     vec![Op::erc()]
 }
 
 /// Get a list of all the operations.
-pub fn all_ops<F: OpFloat>() -> Vec<Op<F>> {
+pub fn all_ops<F: Float>() -> Vec<Op<F>> {
     arithmetic_ops()
         .into_iter()
         .chain(activation_ops())
@@ -937,16 +939,16 @@ mod tests {
     #[test]
     fn clamp_behaves_as_specified_f32() {
         assert_eq!(math::clamp(f32::NAN), 0.0_f32);
-        assert_eq!(math::clamp(1e20_f32), f32::MAX_VALUE);
-        assert_eq!(math::clamp(-1e20_f32), -f32::MAX_VALUE);
+        assert_eq!(math::clamp(1e20_f32), f32::EXTREMA);
+        assert_eq!(math::clamp(-1e20_f32), -f32::EXTREMA);
         assert_eq!(math::clamp(123.456_f32), 123.456_f32);
     }
 
     #[test]
     fn clamp_behaves_as_specified_f64() {
         assert_eq!(math::clamp(f64::NAN), 0.0_f64);
-        assert_eq!(math::clamp(1e20_f64), f64::MAX_VALUE);
-        assert_eq!(math::clamp(-1e20_f64), -f64::MAX_VALUE);
+        assert_eq!(math::clamp(1e20_f64), f64::EXTREMA);
+        assert_eq!(math::clamp(-1e20_f64), -f64::EXTREMA);
         assert_eq!(math::clamp(123.456_f64), 123.456_f64);
     }
 
@@ -964,64 +966,3 @@ mod tests {
         assert_eq!(y, 1.0);
     }
 }
-
-// pub enum AggregateOperations {
-//     Sum,
-//     Prod,
-//     Diff,
-//     Max,
-//     Min,
-//     LogSumExp,
-//     Gaussian,
-//     Tooth,
-// }
-
-// impl AggregateOperations {
-//     pub fn apply<F: OpFloat>(&self, inputs: &[F]) -> F {
-//         match self {
-//             // AggregateOperations::Sum => summed(inputs, clamp),
-//             // x1 - x2 - ... - xn: the first input minus every other input.
-//             // AggregateOperations::Diff => folded(inputs, None, difference),
-//             AggregateOperations::Prod => folded(inputs, Some(F::ONE), product),
-//             AggregateOperations::Max => folded(inputs, Some(-F::MAX_VALUE), F::max),
-//             AggregateOperations::Min => folded(inputs, Some(F::MAX_VALUE), F::min),
-//             AggregateOperations::LogSumExp => clamp(logsumexp(inputs)),
-//             AggregateOperations::Gaussian => summed(inputs, gaussian),
-//             AggregateOperations::Tooth => summed(inputs, tooth),
-//             _ => panic!("Unsupported aggregate operation"),
-//         }
-//     }
-// }
-
-// pub enum ActivationOperation {
-//     Sigmoid,
-//     Tanh,
-//     ReLU,
-//     LeakyReLU,
-//     ELU,
-//     Linear,
-//     Mish,
-//     Swish,
-//     Softplus,
-// }
-
-// /// Implementations of the [ActivationOperation] enum. These are the basic activation functions used
-// /// in neural networks. However, they are particularly useful in this context because they can
-// /// accept any number of inputs. Thus, they act as reducers or aggregates and are a key part of
-// /// being able to define complex 'Graph' and 'Tree' structures.
-// impl ActivationOperation {
-//     #[inline]
-//     pub fn apply<F: OpFloat>(&self, inputs: &[F]) -> F {
-//         match self {
-//             ActivationOperation::Sigmoid => summed(inputs, sigmoid),
-//             ActivationOperation::Tanh => summed(inputs, tanh),
-//             ActivationOperation::ReLU => summed(inputs, relu),
-//             ActivationOperation::LeakyReLU => summed(inputs, leaky_relu),
-//             ActivationOperation::ELU => summed(inputs, elu),
-//             ActivationOperation::Linear => summed(inputs, clamp),
-//             ActivationOperation::Mish => summed(inputs, mish),
-//             ActivationOperation::Swish => summed(inputs, swish),
-//             ActivationOperation::Softplus => summed(inputs, softplus),
-//         }
-//     }
-// }

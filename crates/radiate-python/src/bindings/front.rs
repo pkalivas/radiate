@@ -15,7 +15,7 @@ pub enum PyFrontInner {
     Values(Vec<PyFrontValue>),
 }
 
-#[pyclass(skip_from_py_object)]
+#[pyclass]
 #[derive(Clone, PartialEq)]
 pub struct PyFrontValue {
     pub(crate) genotype: PyGenotype,
@@ -41,7 +41,7 @@ impl Scored for PyFrontValue {
     }
 }
 
-#[pyclass(skip_from_py_object)]
+#[pyclass]
 pub struct PyFront {
     pub(crate) inner: PyFrontInner,
     pub(crate) objective: Objective,

@@ -19,7 +19,7 @@ engine = (
         # each vertex node will pick a random Op<T> from the below list.
         vertex=[rd.Op.add(), rd.Op.mul()],
         # all edge nodes will use this operation - can be a list too
-        edge=rd.Op.identity(),
+        edge=rd.Op.weight(),
         # all output nodes will use this operation - can be a list too
         output=rd.Op.sum(),
         # specify the dtype of the underlying graph node's Op's dtype T (Op<T>) -
@@ -34,7 +34,7 @@ engine = (
     .alter(
         rd.Cross.graph(0.4, 0.5),
         rd.Mutate.op(0.07, 0.05),
-        rd.Mutate.graph(0.1, 0.1, False),
+        rd.Mutate.graph(0.1, 0.1),
     )
     .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))
 )

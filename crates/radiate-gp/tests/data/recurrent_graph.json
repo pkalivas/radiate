@@ -270,7 +270,7 @@
       "value": {
         "type": "Fn",
         "data": {
-          "name": "linear",
+          "name": "sum",
           "arity": "Any"
         }
       },
@@ -326,7 +326,7 @@
       "value": {
         "type": "Fn",
         "data": {
-          "name": "linear",
+          "name": "sum",
           "arity": "Any"
         }
       },
@@ -465,7 +465,7 @@
       "value": {
         "type": "Fn",
         "data": {
-          "name": "linear",
+          "name": "sum",
           "arity": "Any"
         }
       },

@@ -50,7 +50,7 @@ engine = (
         frac=0.5,
     )
     .alter(
-        rd.Cross.sbx(0.8, 20.0),
+        rd.Cross.sbx(0.5, 20.0),
         rd.Cross.differential(rate=0.8, weight=0.8, crossover_rate=0.9),
         rd.Mutate.polynomial(0.1, 20.0),
     )

@@ -12,8 +12,8 @@ fn main() {
     let store = vec![
         (NodeType::Input, vec![Op::var(0)]),
         (NodeType::Edge, vec![Op::weight()]),
-        (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::linear()]),
-        (NodeType::Output, vec![Op::linear()]),
+        (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::sum()]),
+        (NodeType::Output, vec![Op::sum()]),
     ];
 
     let engine = GeneticEngine::builder()
@@ -23,7 +23,7 @@ fn main() {
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
-            GraphMutator::new(0.1, 0.1).allow_recurrent(false)
+            GraphMutator::new(0.1, 0.1)
         ))
         .build();
 

@@ -56,7 +56,6 @@ where
         chromosome: &mut GraphChromosome<Op<T>>,
         ctx: &mut AlterContext,
     ) -> usize {
-        let mutation_indexes = random_provider::cond_indices(0..chromosome.len(), ctx.rate());
         let store = chromosome.store().cloned();
 
         let mut metrics = OpMutateMetrics {
@@ -66,17 +65,18 @@ where
 
         let replace_rate = ctx.internal_rate(0);
 
-        for i in mutation_indexes.iter() {
-            if let Some(node) = chromosome.get_mut(*i) {
+        random_provider::bernoulli_indices(ctx.rate(), 0..chromosome.len(), |i| {
+            if let Some(node) = chromosome.get_mut(i) {
                 if matches!(node.node_type(), NodeType::Output) {
-                    continue;
+                    return;
                 }
 
                 if let Some(store) = store.as_ref() {
                     mutate_node(node, store, replace_rate, &mut metrics);
                 }
             }
-        }
+        });
+        // }
 
         metrics.len()
     }
@@ -102,14 +102,14 @@ where
             let root = chromosome.root_mut();
             let replace_rate = ctx.internal_rate(0);
 
-            for idx in random_provider::cond_indices(0..root.size(), ctx.rate()) {
-                if let Some(node) = root.get_mut(idx) {
+            random_provider::bernoulli_indices(ctx.rate(), 0..root.size(), |i| {
+                if let Some(node) = root.get_mut(i) {
                     mutate_node(node, &store, replace_rate, &mut metrics);
                 }
-            }
 
-            ctx.upsert(OP_MUTATED, metrics.op_mutate);
-            ctx.upsert(OP_NEW_INSTANCE, metrics.op_new_instance);
+                ctx.upsert(OP_MUTATED, metrics.op_mutate);
+                ctx.upsert(OP_NEW_INSTANCE, metrics.op_new_instance);
+            });
 
             return metrics.len();
         }

@@ -53,7 +53,7 @@ where
             let new_chromosomes = (0..self.num_trees)
                 .map(|_| Tree::with_depth(self.depth, store))
                 .filter_map(|tree| tree.take_root())
-                .map(|root| TreeChromosome::new(root, Some(store.clone()), self.max_size.clone()))
+                .map(|root| TreeChromosome::new(root, Some(store.clone()), self.max_size))
                 .collect::<Vec<TreeChromosome<T>>>();
 
             if new_chromosomes.len() != self.num_trees {
@@ -82,7 +82,7 @@ where
         if let Some(store) = &self.store {
             let new_chromosome = Tree::with_depth(self.depth, store)
                 .take_root()
-                .map(|root| TreeChromosome::new(root, Some(store.clone()), self.max_size.clone()));
+                .map(|root| TreeChromosome::new(root, Some(store.clone()), self.max_size));
 
             return match new_chromosome {
                 Some(chrom) => Genotype::from(chrom),

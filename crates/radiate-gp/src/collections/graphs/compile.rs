@@ -48,7 +48,7 @@
 //! - [Step::Cycle] (a component with more than one node, or a self loop): its nodes step
 //!   through the samples together, in the row evaluator's order.
 
-use super::{GraphNode, cycles::Sccs, iter::GraphIterator};
+use super::{GraphNode, NodeIdx, cycles::Sccs, iter::GraphIterator};
 use crate::NodeType;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -59,14 +59,13 @@ use std::ops::Range;
 pub enum When {
     Current,
     Previous,
-    Never,
 }
 
 /// One unit of the column schedule.
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Step {
-    Column(usize),
+    Column(NodeIdx),
     Cycle(Range<usize>),
 }
 
@@ -95,15 +94,15 @@ pub enum Step {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct GraphPlan {
     // Row wise plan
-    order: Vec<usize>,
+    order: Vec<NodeIdx>,
     input_ranges: Vec<(u32, u32)>,
-    output_indices: Vec<usize>,
+    output_indices: Vec<NodeIdx>,
 
     // Column schedule
     has_schedule: bool,
     when: Vec<When>,
     steps: Vec<Step>,
-    cycle_nodes: Vec<usize>,
+    cycle_nodes: Vec<NodeIdx>,
     pos_of: Vec<u32>,
     sccs: Sccs,
 }
@@ -114,15 +113,15 @@ impl GraphPlan {
     /// one sample: a source that already ran gives this sample's value, one that hasn't yet
     /// gives the previous sample's.
     #[inline]
-    pub fn order(&self) -> &[usize] {
+    pub fn order(&self) -> &[NodeIdx] {
         &self.order
     }
 
     /// Node `index`'s edges, as a range into an edge-indexed buffer of length [GraphPlan::edges].
     /// Edge `k` of the range is the node's `k`-th incoming edge.
     #[inline]
-    pub fn inputs(&self, index: usize) -> Range<usize> {
-        let (start, end) = self.input_ranges[index];
+    pub fn inputs(&self, index: NodeIdx) -> Range<usize> {
+        let (start, end) = self.input_ranges[index.as_usize()];
         start as usize..end as usize
     }
 
@@ -133,7 +132,7 @@ impl GraphPlan {
     }
 
     #[inline]
-    pub fn output_indices(&self) -> &[usize] {
+    pub fn output_indices(&self) -> &[NodeIdx] {
         &self.output_indices
     }
 
@@ -143,7 +142,7 @@ impl GraphPlan {
     }
 
     #[inline]
-    pub fn when(&self, index: usize) -> &[When] {
+    pub fn when(&self, index: NodeIdx) -> &[When] {
         &self.when[self.inputs(index)]
     }
 
@@ -153,7 +152,7 @@ impl GraphPlan {
     }
 
     #[inline]
-    pub fn cycle_nodes(&self, range: Range<usize>) -> &[usize] {
+    pub fn cycle_nodes(&self, range: Range<usize>) -> &[NodeIdx] {
         &self.cycle_nodes[range]
     }
 
@@ -181,8 +180,11 @@ impl GraphPlan {
         }));
 
         self.output_indices.clear();
-        self.output_indices
-            .extend(nodes.get_nodes_of_type(NodeType::Output).map(|n| n.index()));
+        self.output_indices.extend(
+            nodes
+                .iter_nodes_of_type(NodeType::Output)
+                .map(|n| n.index()),
+        );
 
         self.has_schedule = false;
     }
@@ -226,7 +228,7 @@ impl GraphPlan {
         pos_of.clear();
         pos_of.resize(nodes.len(), u32::MAX);
         for (pos, &index) in order.iter().enumerate() {
-            pos_of[index] = pos as u32;
+            pos_of[index.as_usize()] = pos as u32;
         }
 
         let edges = self.input_ranges.last().map_or(0, |&(_, e)| e as usize);
@@ -237,10 +239,8 @@ impl GraphPlan {
         for (index, node) in nodes.iter().enumerate() {
             let pos = pos_of[index];
             when.extend(node.incoming().iter().map(|&src| {
-                let src_pos = pos_of[src];
-                if src_pos == u32::MAX {
-                    When::Never
-                } else if src_pos >= pos {
+                let src_pos = pos_of[src.as_usize()];
+                if src_pos >= pos {
                     any_previous = true;
                     When::Previous
                 } else {
@@ -269,8 +269,8 @@ impl GraphPlan {
         sccs.edge_ranges.reserve(nodes.len());
         for &index in order.iter() {
             let start = sccs.edges.len() as u32;
-            for &src in nodes[index].incoming() {
-                let pos = pos_of[src];
+            for &src in nodes[index.as_usize()].incoming() {
+                let pos = pos_of[src.as_usize()];
                 if pos != u32::MAX {
                     sccs.edges.push(pos);
                 }
@@ -282,23 +282,9 @@ impl GraphPlan {
         // 3. The schedule: components in dependency order, each cycle's nodes in the row
         //    evaluator's order (the order they run within a sample).
         cycle_nodes.reserve(nodes.len());
-        for c in 0..sccs.component_ends.len() {
-            let start = if c == 0 {
-                0
-            } else {
-                sccs.component_ends[c - 1]
-            } as usize;
-            let end = sccs.component_ends[c] as usize;
-            let members = &mut sccs.components[start..end];
-            members.sort_unstable();
-
-            let is_cycle = members.len() > 1 || {
-                let p = members[0];
-                let (es, ee) = sccs.edge_ranges[p as usize];
-                sccs.edges[es as usize..ee as usize].contains(&p)
-            };
-
-            if is_cycle {
+        sccs.sort_components();
+        for members in sccs.iter() {
+            if sccs.is_cycle(members) {
                 let first = cycle_nodes.len();
                 cycle_nodes.extend(members.iter().map(|&pos| order[pos as usize]));
                 steps.push(Step::Cycle(first..cycle_nodes.len()));
@@ -320,13 +306,13 @@ mod tests {
     fn test_recompile_in_place() {
         let mut a = Graph::<Op<f32>>::default();
         let x = a.insert(NodeType::Input, Op::var(0));
-        let o = a.insert(NodeType::Output, Op::linear());
+        let o = a.insert(NodeType::Output, Op::sum());
         a.attach(x, o);
 
         let mut b = Graph::<Op<f32>>::default();
         let x = b.insert(NodeType::Input, Op::var(0));
         let v = b.insert(NodeType::Vertex, Op::sum());
-        let o = b.insert(NodeType::Output, Op::linear());
+        let o = b.insert(NodeType::Output, Op::sum());
         b.attach(x, v).attach(v, v).attach(v, o);
 
         let mut plan = GraphPlan::default();
@@ -341,7 +327,7 @@ mod tests {
 
         plan.schedule(b.as_ref());
         assert!(plan.is_cyclic());
-        assert_eq!(plan.when(1), &[When::Current, When::Previous]);
+        assert_eq!(plan.when(NodeIdx::new(1)), &[When::Current, When::Previous]);
         assert_eq!(plan.steps()[1], Step::Cycle(0..1));
         assert_eq!(plan.cycle_nodes(0..1), &[1]);
     }

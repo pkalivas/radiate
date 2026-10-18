@@ -6,7 +6,7 @@ codec = rd.GraphCodec.directed(
     shape=(2, 1),
     vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
     edge=rd.Op.weight(),  # or [rd.Op.weight(), ...]
-    output=rd.Op.linear(),  # or [rd.Op.linear(), ...]
+    output=rd.Op.sum(),  # or [rd.Op.sum(), ...]
 )
 
 graph = codec.decode(codec.encode())
@@ -30,7 +30,7 @@ import radiate as rd
 shape = (2, 1)
 vertex = [rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()]
 edge = [rd.Op.weight()]
-output = [rd.Op.linear()]
+output = [rd.Op.sum()]
 
 codec = rd.GraphCodec.directed(shape, vertex=vertex, edge=edge, output=output)
 
@@ -63,7 +63,7 @@ codec = rd.GraphCodec.directed(
     shape=(2, 1),
     vertex=[rd.Op.add(), rd.Op.mul()],
     edge=rd.Op.weight(),
-    output=rd.Op.linear(),
+    output=rd.Op.sum(),
 )
 
 genotype = codec.encode()
@@ -74,7 +74,7 @@ codec = rd.GraphCodec.recurrent(
     shape=(2, 1),
     vertex=[rd.Op.add(), rd.Op.mul()],
     edge=rd.Op.weight(),
-    output=rd.Op.linear(),
+    output=rd.Op.sum(),
 )
 
 genotype = codec.encode()

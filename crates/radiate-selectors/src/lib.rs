@@ -19,7 +19,7 @@ pub use nsga3::NSGA3Selector;
 pub use random_selector::RandomSelector;
 pub use rank::RankSelector;
 pub use roulette::RouletteSelector;
-pub use stochastic_sampling::StochasticUniversalSamplingSelector;
+pub use stochastic_sampling::SUSSelector;
 pub use tournament::TournamentSelector;
 
 pub(crate) struct ProbabilityWheelIterator {

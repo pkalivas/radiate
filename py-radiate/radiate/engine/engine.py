@@ -437,9 +437,9 @@ class Engine[G, T]:
         ...             2,
         ...             1,
         ...         ),  # <- notice how the shape of the graph is (2, 1) to accommodate our 2 features and 1 output
-        ...         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+        ...         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.sum()],
         ...         edge=rd.Op.weight(),
-        ...         output=rd.Op.linear(),
+        ...         output=rd.Op.sum(),
         ...     )
         ...     .regression(
         ...         features, targets, loss=rd.MSE
@@ -1150,9 +1150,9 @@ class Engine[G, T]:
         >>> engine = (
         ...     rd.Engine.graph(
         ...         shape=(1, 1),
-        ...         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+        ...         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.sum()],
         ...         edge=rd.Op.weight(),
-        ...         output=rd.Op.linear(),
+        ...         output=rd.Op.sum(),
         ...     )
         ...     .regression(..., ...)
         ...     .alter(

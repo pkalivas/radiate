@@ -11,7 +11,7 @@ def test_tree_codec_creation():
         shape=(2, 1),
         vertex=[rd.Op.add(), rd.Op.mul()],
         leaf=[rd.Op.var(0), rd.Op.var(1)],
-        root=rd.Op.linear(),
+        root=rd.Op.sum(),
     )
     genotype = codec.encode()
 
@@ -26,7 +26,7 @@ def test_tree_codec_decode():
         shape=(2, 1),
         vertex=[rd.Op.add(), rd.Op.mul()],
         leaf=[rd.Op.var(0), rd.Op.var(1)],
-        root=rd.Op.linear(),
+        root=rd.Op.sum(),
     )
     genotype = codec.encode()
     tree = codec.decode(genotype)

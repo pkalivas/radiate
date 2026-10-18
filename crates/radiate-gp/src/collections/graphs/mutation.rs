@@ -1,33 +1,33 @@
-use super::transaction::{InsertStep, TransactionResult};
+use super::transaction::TransactionResult;
 use super::{Graph, GraphChromosome};
-use crate::graphs::node::InnovationId;
-use crate::node::Node;
+use crate::graphs::{GraphTransaction, cycles::Sccs, node::InnovationId};
 use crate::{Factory, NodeType};
 use radiate_core::{AlterContext, Chromosome, Expr, RateSet, SmallStr, expr};
 use radiate_core::{Mutate, random_provider};
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Debug};
 
 const SATURATED: SmallStr = SmallStr::from_static("mutator.graph.invalid.saturated");
 const REJECTED: SmallStr = SmallStr::from_static("mutator.graph.invalid");
 const ADD_VERTEX_RATE: SmallStr = SmallStr::from_static("mutator.graph.rate.vertex");
 const ADD_EDGE_RATE: SmallStr = SmallStr::from_static("mutator.graph.rate.edge");
 
+type InnovationKeyItem = Vec<InnovationId>;
+
 #[derive(Hash, Eq, PartialEq, Debug, Clone)]
 struct StructureChange {
-    source_id: Option<InnovationId>,
-    target_id: Option<InnovationId>,
-    node_type: NodeType,
+    source_id: InnovationKeyItem,
+    target_id: InnovationKeyItem,
 }
 
 #[derive(Debug, Clone)]
-struct InnovationContext {
+struct InnovationCache {
     version: usize,
     innovations: HashMap<StructureChange, InnovationId>,
 }
 
-impl InnovationContext {
+impl InnovationCache {
     fn new() -> Self {
-        InnovationContext {
+        InnovationCache {
             version: 0,
             innovations: HashMap::new(),
         }
@@ -42,14 +42,12 @@ impl InnovationContext {
 
     fn get_innovation(
         &mut self,
-        source_id: Option<InnovationId>,
-        target_id: Option<InnovationId>,
-        node_type: NodeType,
+        source_id: InnovationKeyItem,
+        target_id: InnovationKeyItem,
     ) -> InnovationId {
         let change = StructureChange {
             source_id,
             target_id,
-            node_type,
         };
         if let Some(id) = self.innovations.get(&change) {
             *id
@@ -73,7 +71,8 @@ pub struct GraphMutator {
     vertex_rate: Expr,
     edge_rate: Expr,
     allow_recurrent: bool,
-    innov_context: InnovationContext,
+    cache: InnovationCache,
+    sccs: Sccs,
 }
 
 impl GraphMutator {
@@ -86,8 +85,9 @@ impl GraphMutator {
         GraphMutator {
             vertex_rate: vertex_rate.into(),
             edge_rate: edge_rate.into(),
-            allow_recurrent: true,
-            innov_context: InnovationContext::new(),
+            allow_recurrent: false,
+            cache: InnovationCache::new(),
+            sccs: Sccs::default(),
         }
     }
 
@@ -97,8 +97,8 @@ impl GraphMutator {
     /// When a recurrent node is or cycle is created during mutation and `allow_recurrent` is false,
     /// the mutation will be discarded and the changes to the graph will be rolled back resulting in
     /// no changes to the graph.
-    pub fn allow_recurrent(mut self, allow: bool) -> Self {
-        self.allow_recurrent = allow;
+    pub fn allow_recurrent(mut self) -> Self {
+        self.allow_recurrent = true;
         self
     }
 
@@ -156,7 +156,7 @@ where
             return 0;
         }
 
-        self.innov_context.bump(ctx.generation());
+        self.cache.bump(ctx.generation());
 
         // Else, if we are below the maximum number of nodes,
         // attempt to mutate the graph by adding a new node of the determined type.
@@ -168,58 +168,29 @@ where
             };
 
             let mut graph = Graph::new(chromosome.take_nodes());
+            let mut trans = GraphTransaction::new(&mut graph);
+            trans.with_sccs(&mut self.sccs);
 
-            let result = random_provider::with_rng(|rand| {
-                graph.try_modify(|mut trans| {
-                    let target_idx = trans.random_target_node(rand).map(|n| n.index());
-                    let source_idx = trans
-                        .unique_random_source_node(&new_node.arity(), rand)
-                        .map(|nodes| nodes.into_iter().map(|n| n.index()).collect::<Vec<usize>>())
-                        .unwrap_or_default();
+            let result = match trans.push_and_fill(new_node, self.allow_recurrent) {
+                None => trans.commit(),
+                Some(node_idx) => {
+                    let incoming_innov = trans
+                        .iter_node_incoming(node_idx)
+                        .filter_map(|node| node.innovation())
+                        .collect::<InnovationKeyItem>();
+                    let outgoing_innov = trans
+                        .iter_node_outgoing(node_idx)
+                        .filter_map(|node| node.innovation())
+                        .collect::<InnovationKeyItem>();
 
-                    let node_idx = trans.push(new_node);
-
-                    if let Some(trgt) = target_idx {
-                        for src in source_idx {
-                            let insertion_steps =
-                                trans.get_insertion_steps(src, trgt, node_idx, rand);
-
-                            for step in insertion_steps {
-                                match step {
-                                    InsertStep::Connect(source, target) => {
-                                        trans.attach(source, target)
-                                    }
-                                    InsertStep::Detach(source, target) => {
-                                        trans.detach(source, target)
-                                    }
-                                    InsertStep::NewStructure(
-                                        source,
-                                        new_node,
-                                        target,
-                                        node_type,
-                                    ) => {
-                                        let in_innov =
-                                            trans.get(source).and_then(|n| n.innovation());
-                                        let out_innov =
-                                            trans.get(target).and_then(|n| n.innovation());
-
-                                        let innov_id = self
-                                            .innov_context
-                                            .get_innovation(in_innov, out_innov, node_type);
-
-                                        trans.set_innovation(new_node, Some(innov_id));
-                                    }
-                                    _ => {}
-                                }
-                            }
-                        }
-                    }
+                    let innovation_id = self.cache.get_innovation(incoming_innov, outgoing_innov);
+                    trans.set_innovation(node_idx, Some(innovation_id));
 
                     trans.commit_with(|graph: &Graph<T>| {
                         self.allow_recurrent || !graph.iter().any(|node| node.is_recurrent())
                     })
-                })
-            });
+                }
+            };
 
             chromosome.set_nodes(graph.take_nodes());
 
@@ -228,7 +199,7 @@ where
                     ctx.upsert(REJECTED, 1);
                     0
                 }
-                TransactionResult::Valid(steps) => steps.len(),
+                TransactionResult::Valid(_) => 1,
             };
         }
 

@@ -154,12 +154,12 @@ class Select(EngineInput):
 
         A higher `pressure` will result in a stronger bias towards fitter individuals, while a lower value will result in a more uniform selection.
 
-        :param pressure: Pressure for the linear rank selector.
+        :param pressure: Selection pressure in [1.0, 2.0]. 1.0 is uniform, 2.0 never selects the worst individual.
         """
         return Select(components.LINEAR_RANK_SELECTOR, pressure=pressure)
 
     @staticmethod
-    def stochastic_universal_sampling() -> Select:
+    def sus() -> Select:
         """
         Stochastic Universal Sampling (SUS) is a probabilistic selection technique used to ensure that selection is
         proportional to fitness, while maintaining diversity. Some consider it an improvement over roulette wheel selection,

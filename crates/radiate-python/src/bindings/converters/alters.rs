@@ -3,7 +3,7 @@ use crate::{
     bindings::converters::{FromPyEngineInput, Registry},
     registry,
 };
-use radiate::{chromosomes::NumericAllele, ops::OpFloat, *};
+use radiate::{chromosomes::NumericAllele, *};
 use radiate_utils::{Float, Integer};
 
 pub(crate) fn int_alterers<I>() -> Registry<Alterer<IntChromosome<I>>>
@@ -103,7 +103,7 @@ pub(crate) fn perm_alterers() -> Registry<Alterer<PermutationChromosome<usize>>>
     })
 }
 
-pub(crate) fn graph_alterers<F: OpFloat>() -> Registry<Alterer<GraphChromosome<Op<F>>>> {
+pub(crate) fn graph_alterers<F: Float>() -> Registry<Alterer<GraphChromosome<Op<F>>>> {
     use crate::constants::components;
     registry!("alterer", |a| a.into_alterer(); {
         components::GRAPH_CROSSOVER       => GraphCrossover,
@@ -113,7 +113,7 @@ pub(crate) fn graph_alterers<F: OpFloat>() -> Registry<Alterer<GraphChromosome<O
     })
 }
 
-pub(crate) fn tree_alterers<F: OpFloat>() -> Registry<Alterer<TreeChromosome<Op<F>>>> {
+pub(crate) fn tree_alterers<F: Float>() -> Registry<Alterer<TreeChromosome<Op<F>>>> {
     use crate::constants::components;
     registry!("alterer", |a| a.into_alterer(); {
         components::TREE_CROSSOVER        => TreeCrossover,
@@ -345,7 +345,12 @@ impl FromPyEngineInput for GraphMutator {
             .extract::<Option<i64>>("target_size")?
             .map(|s| s as usize);
 
-        let mutator = GraphMutator::new(vertex_rate, edge_rate).allow_recurrent(allow_recurrent);
+        let mutator = GraphMutator::new(vertex_rate, edge_rate);
+        let mutator = if allow_recurrent {
+            mutator.allow_recurrent()
+        } else {
+            mutator
+        };
 
         match target_size {
             Some(size) => Ok(mutator.target_size(size)),

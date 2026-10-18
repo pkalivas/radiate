@@ -47,7 +47,7 @@ where
         T: for<'c> EvalInto<[&'c [V]], [V]>,
     {
         let n = features.cols();
-        outputs.reshape_and_fill(roots.len(), n, V::default());
+        outputs.resize_and_fill(roots.len(), n, V::default());
         if n == 0 {
             return;
         }
@@ -88,7 +88,7 @@ where
     stack.truncate(base + n);
 }
 
-fn process_stack<T, V>(node: &TreeNode<T>, n: usize, base: usize, stack: &mut Vec<V>)
+fn process_stack<T, V>(node: &TreeNode<T>, n: usize, base: usize, stack: &mut [V])
 where
     T: for<'c> EvalInto<[&'c [V]], [V]>,
     V: Copy + Default,
@@ -111,7 +111,7 @@ mod tests {
         let width = samples.first().map_or(0, |s| s.len());
         let mut features = Matrix::default();
 
-        features.reshape_and_fill(width, samples.len(), 0.0);
+        features.resize_and_fill(width, samples.len(), 0.0);
         for (r, sample) in samples.iter().enumerate() {
             for (f, &x) in sample.iter().enumerate() {
                 features[(f, r)] = x;
@@ -201,7 +201,7 @@ mod tests {
         let mut out = Matrix::default();
 
         let mut features = Matrix::default();
-        features.reshape_and_fill(2, 3, 0.0);
+        features.resize_and_fill(2, 3, 0.0);
         for r in 0..3 {
             features[(0, r)] = r as f32;
             features[(1, r)] = 2.0;
@@ -216,7 +216,7 @@ mod tests {
 
         // No samples: an empty `roots × 0` result.
         let mut empty = Matrix::default();
-        empty.reshape_and_fill(2, 0, 0.0);
+        empty.resize_and_fill(2, 0, 0.0);
         cache.eval_columns(&[&deep], &empty, &mut out);
         assert_eq!((out.rows(), out.cols()), (1, 0));
     }

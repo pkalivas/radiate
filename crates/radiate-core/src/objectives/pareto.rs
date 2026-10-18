@@ -141,7 +141,7 @@ where
         return Vec::new();
     }
 
-    let mut dominated_counts = vec![0usize; n];
+    let mut dominated_counts = vec![0; n];
 
     for i in 0..n {
         for j in (i + 1)..n {

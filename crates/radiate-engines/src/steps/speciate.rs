@@ -159,9 +159,7 @@ where
                 let new_species_idx = ecosystem.push_species(new_species);
 
                 for i in 0..pop_len {
-                    if i != idx {
-                        ecosystem.add_species_member(new_species_idx, i);
-                    }
+                    ecosystem.add_species_member(new_species_idx, i);
                 }
             }
         }
@@ -236,54 +234,6 @@ where
                 .collect::<Vec<Phenotype<C>>>(),
         )
     }
-
-    fn calc_species_metrics(
-        &mut self,
-        generation: usize,
-        ecosystem: &Ecosystem<C>,
-        metrics: &mut MetricSet,
-    ) {
-        let Some(species) = ecosystem.species() else {
-            return;
-        };
-
-        let pop_len = ecosystem.population().len().max(1);
-        let mut new_species_count = 0;
-        let mut ages = Vec::with_capacity(species.len());
-        let mut sizes = Vec::with_capacity(species.len());
-        let mut max_size = 0;
-
-        for spec in species.iter() {
-            let age = spec.age(generation);
-            let len = spec.len();
-
-            if age == 0 {
-                new_species_count += 1;
-            }
-
-            ages.push(age);
-            sizes.push(len);
-            max_size = max_size.max(len);
-        }
-
-        let largest_share = max_size as f32 / pop_len as f32;
-        let evenness = distribution::evenness(&sizes);
-        let s_count = species.len();
-
-        let churn = if s_count > 0 {
-            new_species_count as f32 / s_count as f32
-        } else {
-            0.0
-        };
-
-        metrics.upsert(metric_names::SPECIES_AGE, &ages);
-        metrics.upsert(metric_names::SPECIES_SIZE, &sizes);
-        metrics.upsert(metric_names::SPECIES_COUNT, s_count);
-        metrics.upsert(metric_names::SPECIES_CREATED, new_species_count);
-        metrics.upsert(metric_names::SPECIES_EVENNESS, evenness);
-        metrics.upsert(metric_names::SPECIES_NEW_RATIO, churn);
-        metrics.upsert(metric_names::LARGEST_SPECIES_SHARE, largest_share);
-    }
 }
 
 impl<C> EngineStep<C> for SpeciateStep<C>
@@ -326,12 +276,59 @@ where
         let rm_species_count = ecosystem.remove_dead_species();
 
         metrics.upsert(metric_names::SPECIES_DISTANCE_DIST, &self.distances);
-        metrics.upsert(metric_names::SPECIES_DIED, rm_species_count);
+        if rm_species_count > 0 {
+            metrics.upsert(metric_names::SPECIES_DIED, rm_species_count);
+        }
 
-        self.calc_species_metrics(generation, ecosystem, metrics);
+        calc_species_metrics(generation, ecosystem, metrics);
 
-        ecosystem.fitness_share(&self.objective)?;
-
-        Ok(())
+        ecosystem.fitness_share(&self.objective)
     }
+}
+
+fn calc_species_metrics<C: Chromosome>(
+    generation: usize,
+    ecosystem: &Ecosystem<C>,
+    metrics: &mut MetricSet,
+) {
+    let Some(species) = ecosystem.species() else {
+        return;
+    };
+
+    let pop_len = ecosystem.population().len().max(1);
+    let mut new_species_count = 0;
+    let mut ages = Vec::with_capacity(species.len());
+    let mut sizes = Vec::with_capacity(species.len());
+    let mut max_size = 0;
+
+    for spec in species.iter() {
+        let age = spec.age(generation);
+        let len = spec.len();
+
+        if age == 0 {
+            new_species_count += 1;
+        }
+
+        ages.push(age);
+        sizes.push(len);
+        max_size = max_size.max(len);
+    }
+
+    let largest_share = max_size as f32 / pop_len as f32;
+    let evenness = distribution::evenness(&sizes);
+    let s_count = species.len();
+
+    let churn = if s_count > 0 {
+        new_species_count as f32 / s_count as f32
+    } else {
+        0.0
+    };
+
+    metrics.upsert(metric_names::SPECIES_AGE, &ages);
+    metrics.upsert(metric_names::SPECIES_SIZE, &sizes);
+    metrics.upsert(metric_names::SPECIES_COUNT, s_count);
+    metrics.upsert(metric_names::SPECIES_CREATED, new_species_count);
+    metrics.upsert(metric_names::SPECIES_EVENNESS, evenness);
+    metrics.upsert(metric_names::SPECIES_NEW_RATIO, churn);
+    metrics.upsert(metric_names::LARGEST_SPECIES_SHARE, largest_share);
 }

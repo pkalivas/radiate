@@ -71,7 +71,7 @@ def test_tree_from_json():
         shape=(2, 1),
         vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sub()],
         leaf=[rd.Op.var(0), rd.Op.var(1)],
-        root=rd.Op.linear(),
+        root=rd.Op.sum(),
     )
     tree = codec.decode(codec.encode())
     json_data = tree.to_json()

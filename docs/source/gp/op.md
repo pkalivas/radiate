@@ -79,7 +79,7 @@ Provided `Ops` include:
     | `ReLU` | Any | max(0, x) | `Op::relu()` | Fn |
     | `LeakyReLU` | Any | x if x > 0 else 0.5x | `Op::leaky_relu()` | Fn |
     | `ELU` | Any | x if x > 0 else 0.5(e^x - 1) | `Op::elu()` | Fn |
-    | `Linear` | Any | x (sum of inputs, identity activation) | `Op::linear()` | Fn |
+    | `Linear` | Any | x (sum of inputs, identity activation) | `Op::sum()` | Fn |
     | `Softplus` | Any | log(1 + e^x) | `Op::softplus()` | Fn |
     | `Swish` | Any | x / (1 + e^-x) | `Op::swish()` | Fn |
     | `Mish` | Any | x * tanh(ln(1 + e^x)) | `Op::mish()` | Fn |

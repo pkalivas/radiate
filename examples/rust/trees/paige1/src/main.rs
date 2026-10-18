@@ -34,6 +34,7 @@ fn main() -> RadiateResult<()> {
         .codec(codec)
         .fitness_fn(Regression::new(data.clone(), Loss::MSE))
         .minimizing()
+        .offspring_selector(TournamentSelector::new(3))
         .diversity(TreeDistance::new())
         .target_species(5)
         .alter(alters!(

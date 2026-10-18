@@ -26,7 +26,7 @@ pub use eval::{GraphEvalCache, GraphEvaluator};
 pub use graph::Graph;
 pub use iter::GraphIterator;
 pub use mutation::GraphMutator;
-pub use node::{Direction, GraphNode, GraphNodeId, InnovationId};
+pub use node::{Direction, GraphNode, GraphNodeId, InnovationId, NodeIdx};
 pub use replacement::GraphReplacement;
 pub use state::StatefulGraph;
 pub use transaction::GraphTransaction;

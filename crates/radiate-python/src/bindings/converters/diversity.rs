@@ -7,7 +7,7 @@ use radiate::{
     BitChromosome, CharChromosome, CosineDistance, EuclideanDistance, FloatChromosome,
     GraphChromosome, HammingDistance, IntChromosome, NeatDistance, Op, PackedBitChromosome,
     PackedBitHammingDistance, PermutationChromosome, Phenotype, RadiateResult, TreeChromosome,
-    TreeDistance, chromosomes::NumericAllele, distance::Distance, ops::OpFloat,
+    TreeDistance, chromosomes::NumericAllele, distance::Distance,
 };
 use radiate_utils::{Float, Integer};
 
@@ -65,7 +65,7 @@ pub(crate) fn perm_distances() -> Registry<DistanceFor<PermutationChromosome<usi
     })
 }
 
-pub(crate) fn graph_distances<F: OpFloat>() -> Registry<DistanceFor<GraphChromosome<Op<F>>>> {
+pub(crate) fn graph_distances<F: Float>() -> Registry<DistanceFor<GraphChromosome<Op<F>>>> {
     use crate::constants::components;
     registry!("diversity measure", |d| Box::new(d) as DistanceFor<_>; {
         components::NEAT_DISTANCE    => NeatDistance,
@@ -73,7 +73,7 @@ pub(crate) fn graph_distances<F: OpFloat>() -> Registry<DistanceFor<GraphChromos
     })
 }
 
-pub(crate) fn tree_distances<F: OpFloat>() -> Registry<DistanceFor<TreeChromosome<Op<F>>>> {
+pub(crate) fn tree_distances<F: Float>() -> Registry<DistanceFor<TreeChromosome<Op<F>>>> {
     use crate::constants::components;
     registry!("diversity measure", |d| Box::new(d) as DistanceFor<_>; {
         components::TREE_DISTANCE => TreeDistance,
@@ -109,11 +109,12 @@ impl FromPyEngineInput for NeatDistance {
         let excess = input.extract::<f64>("excess")?;
         let disjoint = input.extract::<f64>("disjoint")?;
         let weight_diff = input.extract::<f64>("weight_diff")?;
-        Ok(NeatDistance::new(
-            excess as f32,
-            disjoint as f32,
-            weight_diff as f32,
-        ))
+        let op_diff = input.extract::<f64>("op_diff")?;
+
+        Ok(
+            NeatDistance::new(excess as f32, disjoint as f32, weight_diff as f32)
+                .with_op_mismatch(op_diff as f32),
+        )
     }
 }
 

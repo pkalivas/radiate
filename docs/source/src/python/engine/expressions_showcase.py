@@ -37,9 +37,9 @@ collector = rd.MetricCollector()
 engine = (
     rd.Engine.graph(
         shape=(1, 1),
-        vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+        vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.sum()],
         edge=rd.Op.weight(),
-        output=rd.Op.linear(),
+        output=rd.Op.sum(),
     )
     .regression(inputs, answers, loss=rd.MSE)
     .subscribe(collector)

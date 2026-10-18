@@ -1,7 +1,8 @@
 use crate::{PyGenotype, PyOp, Wrap, bindings::gp::PyTree};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
-use radiate::{Codec, DataType, NodeType, Op, Tree, TreeCodec, dtype_names, ops::OpFloat};
+use radiate::{Codec, DataType, NodeType, Op, Tree, TreeCodec, dtype_names};
 use radiate_error::radiate_py_bail;
+use radiate_utils::Float;
 use std::collections::HashMap;
 
 const LEAF_NODE_TYPE: &str = "leaf";
@@ -90,7 +91,7 @@ impl PyTreeCodec {
 unsafe impl Send for PyTreeCodec {}
 unsafe impl Sync for PyTreeCodec {}
 
-fn build_typed_codec<F: OpFloat>(
+fn build_typed_codec<F: Float>(
     output_size: usize,
     min_depth: usize,
     max_size: usize,

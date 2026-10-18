@@ -13,7 +13,7 @@ def test_engine_tree_regression(squared_dataset, random_seed):
             shape=(1, 1),
             vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sub()],
             leaf=[rd.Op.var(0)],
-            root=rd.Op.linear(),
+            root=rd.Op.sum(),
         )
         .regression(inputs, outputs)
         .select(rd.Select.tournament(3), rd.Select.elite())
