@@ -16,14 +16,7 @@ def fit(x: list[str]) -> int:
     return sum(1 for i in range(len(target)) if x[i] == target[i])
 
 
-engine = (
-    rd.Engine.char(len(target))
-    .fitness(fit)
-    .select(
-        offspring=rd.Select.boltzmann(4.0)
-    )  # <- specifying a selector is not really needed for such a simple problem, just for example purposes
-    .limit(rd.Limit.score(len(target)))
-)
+engine = rd.Engine.char(len(target)).fitness(fit).limit(rd.Limit.score(len(target)))
 
 
 result = engine.run(log=True)

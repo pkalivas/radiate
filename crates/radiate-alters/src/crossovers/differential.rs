@@ -100,7 +100,6 @@ where
                     continue;
                 }
 
-                // `allele(k)` reads this gene from genotypes[k]: 1 = a, 2 = b, 3 = c.
                 let forced_idx = random_provider::range(0..genes);
                 for gene_idx in 0..genes {
                     if gene_idx != forced_idx && !random_provider::bool(self.crossover_rate) {
