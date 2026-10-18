@@ -43,7 +43,7 @@ selector = rd.Select.tournament_nsga2()  # Using the Select dsl syntax
 # --8<-- [start:stochastic_sampling_selector]
 import radiate as rd
 
-selector = rd.Select.stochastic_universal_sampling()  # Using the Select dsl syntax
+selector = rd.Select.sus()  # Using the Select dsl syntax
 # --8<-- [end:stochastic_sampling_selector]
 
 # --8<-- [start:rank_selector]

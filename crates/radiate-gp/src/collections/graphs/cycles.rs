@@ -1,8 +1,7 @@
-use std::fmt::Debug;
-
 use super::{Direction, GraphNode, NodeIdx};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 
 /// Strongly connected components, by Tarjan's algorithm (iterative, so deep graphs can't
 /// overflow the stack). Used by [GraphPlan](super::compile::GraphPlan) to order a graph's nodes

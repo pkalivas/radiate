@@ -202,6 +202,22 @@ impl<'a, T> GraphTransaction<'a, T> {
         }
     }
 
+    pub fn set_innovation(
+        &mut self,
+        node_idx: impl Into<NodeIdx>,
+        innovation: Option<InnovationId>,
+    ) {
+        let node_idx = node_idx.into();
+        if let Some(node) = self.graph.get_mut(node_idx) {
+            let previous_innovation = node.innovation();
+            node.set_innovation(innovation);
+            self.steps.push(MutationStep::InnovationChange {
+                node_idx,
+                previous_innovation,
+            });
+        }
+    }
+
     /// Undo all recorded changes in reverse order, mutating the graph back to its original state.
     ///
     /// Returns a sequence of `ReplayStep`s that can be fed to `replay(...)` on a new transaction
@@ -276,22 +292,6 @@ impl<'a, T> GraphTransaction<'a, T> {
                     self.set_innovation(node_idx, innovation);
                 }
             }
-        }
-    }
-
-    pub fn set_innovation(
-        &mut self,
-        node_idx: impl Into<NodeIdx>,
-        innovation: Option<InnovationId>,
-    ) {
-        let node_idx = node_idx.into();
-        if let Some(node) = self.graph.get_mut(node_idx) {
-            let previous_innovation = node.innovation();
-            node.set_innovation(innovation);
-            self.steps.push(MutationStep::InnovationChange {
-                node_idx,
-                previous_innovation,
-            });
         }
     }
 
