@@ -228,26 +228,31 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
             return;
         }
 
-        if let ConnectionCommand::OneToOne(one, two) = &connection {
-            let one_ids = self.attach(one);
-            let two_ids = self.attach(two);
+        match &connection {
+            ConnectionCommand::OneToOne(one, two) => {
+                let one_ids = self.attach(one);
+                let two_ids = self.attach(two);
 
-            self.one_to_one_connect(&one_ids, &two_ids);
-        } else if let ConnectionCommand::OneToMany(one, two) = &connection {
-            let one_ids = self.attach(one);
-            let two_ids = self.attach(two);
+                self.one_to_one_connect(&one_ids, &two_ids);
+            }
+            ConnectionCommand::OneToMany(one, two) => {
+                let one_ids = self.attach(one);
+                let two_ids = self.attach(two);
 
-            self.one_to_many_connect(&one_ids, &two_ids);
-        } else if let ConnectionCommand::ManyToOne(one, two) = &connection {
-            let one_ids = self.attach(one);
-            let two_ids = self.attach(two);
+                self.one_to_many_connect(&one_ids, &two_ids);
+            }
+            ConnectionCommand::ManyToOne(one, two) => {
+                let one_ids = self.attach(one);
+                let two_ids = self.attach(two);
 
-            self.many_to_one_connect(&one_ids, &two_ids);
-        } else if let ConnectionCommand::AllToAll(one, two) = &connection {
-            let one_ids = self.attach(one);
-            let two_ids = self.attach(two);
+                self.many_to_one_connect(&one_ids, &two_ids);
+            }
+            ConnectionCommand::AllToAll(one, two) => {
+                let one_ids = self.attach(one);
+                let two_ids = self.attach(two);
 
-            self.all_to_all_connect(&one_ids, &two_ids);
+                self.all_to_all_connect(&one_ids, &two_ids);
+            }
         }
     }
 
