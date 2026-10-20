@@ -39,10 +39,9 @@ impl ProbabilityWheelIterator {
             *w = running;
         }
 
-        let total = running;
         Self {
             cdf: weights,
-            total,
+            total: running,
             max_index,
             current: 0,
             n,

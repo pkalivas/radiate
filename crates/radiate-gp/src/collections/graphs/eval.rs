@@ -1,8 +1,8 @@
 use super::{
-    GraphNode, NodeIdx,
+    GraphNode,
     compile::{GraphPlan, Step, When},
 };
-use crate::{Eval, EvalInto, EvalIntoMut, EvalMut, Graph, eval::STACK_INPUTS};
+use crate::{Eval, EvalInto, EvalIntoMut, EvalMut, Graph, NodeIdx, eval::STACK_INPUTS};
 use radiate_utils::Matrix;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};

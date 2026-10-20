@@ -1,13 +1,10 @@
 use super::cycles::Sccs;
 use super::transaction::TransactionResult;
 use crate::{
-    Arity, Eval, EvalInto, EvalIntoMut, EvalMut, Node, Op, StatefulGraph,
+    Arity, Eval, EvalInto, EvalIntoMut, EvalMut, Node, NodeIdx, Op, StatefulGraph,
     collections::graphs::GraphTransaction,
 };
-use crate::{
-    GraphEvaluator,
-    collections::{GraphNode, graphs::NodeIdx},
-};
+use crate::{GraphEvaluator, collections::GraphNode};
 use crate::{GraphIterator, NodeType};
 use radiate_core::Valid;
 #[cfg(feature = "serde")]

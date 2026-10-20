@@ -1,6 +1,7 @@
 use crate::Arity;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 /// [NodeType] is a soft identification for different nodes within a graph or tree structure.
 ///
@@ -90,3 +91,57 @@ pub trait NodeExt: Node {
 }
 
 impl<N: Node> NodeExt for N {}
+
+/// The index of a [GraphNode] within its [Graph](super::Graph): its position in the graph's
+/// node `Vec`, and the value stored in other nodes' `incoming`/`outgoing` buffers.
+///
+/// A distinct type so node indices can't be mixed up with other `usize`s (counts, positions in a
+/// compiled evaluation order, indices into unrelated buffers). Integer literals convert through
+/// `From<u32>`, so `graph[0]` and `GraphNode::new(0, ..)` still work; a `usize` variable has to go
+/// through [NodeIdx::from_usize] explicitly. Keep `From<u32>` the *only* integer conversion: a
+/// second one would make literals ambiguous.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(transparent))]
+#[repr(transparent)]
+pub struct NodeIdx(u32);
+
+impl NodeIdx {
+    #[inline]
+    pub const fn new(index: u32) -> Self {
+        Self(index)
+    }
+
+    #[inline]
+    pub fn from_usize(index: usize) -> Self {
+        debug_assert!(
+            index <= u32::MAX as usize,
+            "node index {index} overflows u32"
+        );
+        Self(index as u32)
+    }
+
+    #[inline]
+    pub const fn as_usize(self) -> usize {
+        self.0 as usize
+    }
+}
+
+impl From<u32> for NodeIdx {
+    #[inline]
+    fn from(value: u32) -> Self {
+        NodeIdx(value)
+    }
+}
+
+impl PartialEq<u32> for NodeIdx {
+    #[inline]
+    fn eq(&self, other: &u32) -> bool {
+        self.0 == *other
+    }
+}
+
+impl Display for NodeIdx {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}

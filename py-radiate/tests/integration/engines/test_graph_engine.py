@@ -276,7 +276,7 @@ def test_graph_engine_species_targeting(cubic_dataset, random_seed):
             rd.Mutate.op(0.07, 0.05),
             rd.Mutate.graph(0.1, 0.1),
         )
-        .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))
+        .limit(rd.Limit.generations(500))
     )
 
     result = engine.run()

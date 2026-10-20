@@ -184,8 +184,8 @@ where
                         .collect::<InnovationKeyItem>();
 
                     let innovation_id = self.cache.get_innovation(incoming_innov, outgoing_innov);
-                    trans.set_innovation(node_idx, Some(innovation_id));
 
+                    trans.set_innovation(node_idx, Some(innovation_id));
                     trans.commit_with(|graph: &Graph<T>| {
                         self.allow_recurrent || !graph.iter().any(|node| node.is_recurrent())
                     })

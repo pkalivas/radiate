@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import radiate as rd
 
-rd.random.seed(500)
+rd.random.seed(514)
 
 data = rd.DataSet.iris()
 train, test = data.split(0.75)

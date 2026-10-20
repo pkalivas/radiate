@@ -1,4 +1,6 @@
-use super::{Direction, GraphNode, NodeIdx};
+use crate::NodeIdx;
+
+use super::{Direction, GraphNode};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;

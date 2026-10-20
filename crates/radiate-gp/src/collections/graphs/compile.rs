@@ -48,8 +48,8 @@
 //! - [Step::Cycle] (a component with more than one node, or a self loop): its nodes step
 //!   through the samples together, in the row evaluator's order.
 
-use super::{GraphNode, NodeIdx, cycles::Sccs, iter::GraphIterator};
-use crate::NodeType;
+use super::{GraphNode, cycles::Sccs, iter::GraphIterator};
+use crate::{NodeIdx, NodeType};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::ops::Range;

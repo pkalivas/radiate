@@ -16,8 +16,8 @@
 //! 1) Build with `push(...)`, `attach(...)`, `detach(...)`, `change_direction(...)`
 //! 2) `commit()`, `commit_with(...)`, or `try_commit()` to finalize
 //! 3) On invalid commit, use returned `replay` to re-apply later with `replay(...)`
-use super::{Direction, Graph, GraphNode, NodeIdx, cycles::Sccs};
-use crate::{Arity, NodeType, graphs::node::InnovationId, node::Node};
+use super::{Direction, Graph, GraphNode, cycles::Sccs};
+use crate::{Arity, NodeIdx, NodeType, graphs::node::InnovationId, node::Node};
 use radiate_core::{RdRand, Valid, random_provider};
 use radiate_utils::SortedBuffer;
 use std::{fmt::Debug, ops::Deref};

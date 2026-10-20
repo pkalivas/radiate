@@ -5,6 +5,33 @@ Regression with Tree Codec
 
 This example demonstrates using the TreeCodec to solve a regression problem.
 We have a simple polynomial function and we want to evolve a graph that approximates it.
+
+The final result (most optimal tree) is this:
+
+└── Fn:   sum
+    ├── Fn:   mul
+    │   ├── Fn:   add
+    │   │   ├── Fn:   add
+    │   │   │   ├── Var:  X0(0)
+    │   │   │   └── Var:  X0(0)
+    │   │   └── Fn:   sub
+    │   │       ├── Var:  X0(0)
+    │   │       └── Var:  X0(0)
+    │   └── Fn:   sub
+    │       ├── Fn:   mul
+    │       │   ├── Fn:   add
+    │       │   │   ├── Var:  X0(0)
+    │       │   │   └── Var:  X0(0)
+    │       │   └── Var:  X0(0)
+    │       └── Var:  X0(0)
+    └── Fn:   sub
+        ├── Var:  X0(0)
+        └── Fn:   mul
+            ├── Var:  X0(0)
+            └── Var:  X0(0)
+
+which when reduced is: f(x) = 4x^3 - 3x^2 + x, which is the exact cubic function used to
+create the dataset.
 """
 
 import numpy as np

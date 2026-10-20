@@ -1,5 +1,6 @@
-use super::node::{GraphNodeId, NodeIdx};
+use super::node::GraphNodeId;
 use crate::{
+    NodeIdx,
     collections::{Graph, GraphNode, NodeType},
     graphs::node::InnovationId,
     node::Node,

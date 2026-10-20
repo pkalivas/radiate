@@ -10,7 +10,9 @@ N_GENES = 2
 TARGET = 1e-6
 
 
-@rd.fitness(batch=True)
+@rd.fitness(
+    batch=True
+)  # <- indicates that the fitness function operates on a batch of individuals
 def fit(population: np.ndarray) -> np.ndarray:
     return A * N_GENES + np.sum(
         population**2 - A * np.cos(2.0 * np.pi * population),
