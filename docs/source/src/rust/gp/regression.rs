@@ -9,15 +9,15 @@ fn main() {
 
     // Define our node set for the graph - the operations that can be used by each
     // node type in the graph during evolution
-    let store = vec![
-        (NodeType::Input, vec![Op::var(0)]),
-        (NodeType::Edge, vec![Op::weight()]),
-        (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::sum()]),
-        (NodeType::Output, vec![Op::sum()]),
-    ];
+    let set = node_set! {
+        Input => Op::var(0),
+        Edge => Op::weight(),
+        Vertex => vec![Op::sub(), Op::mul(), Op::sum()],
+        Output => Op::sum()
+    };
 
     let engine = GeneticEngine::builder()
-        .codec(GraphCodec::directed(1, 1, store).unwrap())
+        .codec(GraphCodec::directed(1, 1, set).unwrap())
         .fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .alter(alters!(
@@ -81,17 +81,22 @@ fn datasets() {
 
     let (samples, n_features, n_labels) = train.shape();
 
-    let store = vec![
-        (NodeType::Input, (0..n_features).map(Op::var).collect()),
-        (NodeType::Edge, vec![Op::weight()]),
-        (NodeType::Vertex, vec![Op::add(), Op::mul(), Op::sigmoid(), Op::relu()]),
-        (NodeType::Output, vec![Op::sigmoid()]),
-    ];
+    let set = node_set! {
+        Input => Op::vars(0..n_features),
+        Edge => Op::weight(),
+        Vertex => vec![Op::add(), Op::mul(), Op::sigmoid(), Op::relu()],
+        Output => Op::sigmoid()
+    };
 
     let engine = GeneticEngine::builder()
-        .codec(GraphCodec::directed(n_features, n_labels, store).unwrap())
+        .codec(GraphCodec::directed(n_features, n_labels, set).unwrap())
         .fitness_fn(Regression::new(train, Loss::MSE))
         .minimizing()
+        .alter(alters!(
+            GraphCrossover::new(0.5, 0.5),
+            OperationMutator::new(0.07, 0.05),
+            GraphMutator::new(0.1, 0.1),
+        ))
         .build();
     // --8<-- [end:datasets]
 }

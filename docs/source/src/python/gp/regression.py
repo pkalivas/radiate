@@ -37,6 +37,9 @@ fitness_func = rd.Fitness.regression(dtype, inputs, answers, loss=loss)
 
 engine = (
     rd.Engine(codec)
+    # Alternative to the `.fitness(fitness_func).minimizing()` approach
+    # is to use `.regression(...)` directly as seen below
+    # .regression(inputs, answers, loss=loss)
     .fitness(fitness_func)
     .minimizing()  # We want to minimize the loss
     .limit(
@@ -121,6 +124,11 @@ engine = (
         output=rd.Op.sigmoid(),
     )
     .regression(features, labels, loss=rd.MSE)
+    .alter(
+        rd.Cross.graph(0.5, 0.5),
+        rd.Mutate.op(0.07, 0.05),
+        rd.Mutate.graph(0.1, 0.1),
+    )
     .limit(rd.Limit.generations(10))
 )
 # --8<-- [end:datasets]

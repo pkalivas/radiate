@@ -26,13 +26,13 @@ import numpy as np
 import radiate as rd
 from numba import jit, uint8
 
-N_QUEENS = 32
+rd.random.seed(514)
+
+N_QUEENS = 100
 
 
-@jit(
-    uint8(uint8[:]), nopython=True
-)  # add this decorator from numba to compile the fitness function to native C code.
-def nqueens_fitness_fn(queens: np.ndarray) -> int:
+@jit(uint8(uint8[:]), nopython=True)
+def fit(queens: np.ndarray) -> int:
     """Calculate the fitness score for the N-Queens problem."""
 
     i_indices, j_indices = np.triu_indices(N_QUEENS, k=1)
@@ -48,17 +48,19 @@ def nqueens_fitness_fn(queens: np.ndarray) -> int:
 
 engine = (
     rd.Engine.int(N_QUEENS, init_range=(0, N_QUEENS), use_numpy=True, dtype=rd.UInt8)
-    .fitness(nqueens_fitness_fn)
+    .fitness(fit)
     .minimizing()
     .alter(
         rd.Cross.multipoint(0.75, 2),
-        rd.Mutate.uniform(0.05),
+        rd.Mutate.uniform(1.0 / float(N_QUEENS)),
     )
-    .limit(rd.Limit.score(0), rd.Limit.generations(1000))
+    .limit(rd.Limit.score(0))
 )
 
-result = engine.run(log=False)
+
+result = engine.run(ui=True)
 print(result)
+
 
 board = result.value
 for i in range(N_QUEENS):
@@ -177,6 +179,8 @@ import radiate as rd
 
 inputs = [[0.0, 0.0], [1.0, 1.0], [1.0, 0.0], [0.0, 1.0]]
 answers = [[0.0], [0.0], [1.0], [1.0]]
+# or use the built in datasets
+inputs, answers = rd.DataSet.xor().pair()
 
 engine = (
     rd.Engine.graph(
@@ -205,6 +209,8 @@ import radiate as rd
 
 inputs = [[0.0, 0.0], [1.0, 1.0], [1.0, 0.0], [0.0, 1.0]]
 answers = [[0.0], [0.0], [1.0], [1.0]]
+# or use the built in datasets
+inputs, answers = rd.DataSet.xor().pair()
 
 engine = (
     rd.Engine.tree(
