@@ -1,21 +1,31 @@
 #!/usr/bin/env python3
 import radiate as rd
 
-rd.random.seed(500)
+rd.random.seed(514)
 
 
 data = rd.DataSet.iris()
 _, in_dims, out_dims = data.shape
 
-train, test = data.split(0.75)
+train, test = data.shuffle().split(0.75)
 train_features, train_targets = train.standardize().pair()
 test_features, test_targets = test.standardize().pair()
 
+vertices = [
+    rd.Op.add(),
+    rd.Op.sub(),
+    rd.Op.mul(),
+    rd.Op.sum(),
+    rd.Op.gaussian(),
+    rd.Op.sigmoid(),
+    rd.Op.tanh(),
+    rd.Op.relu(),
+]
 
 engine = (
     rd.Engine.graph(
         shape=(in_dims, out_dims),
-        vertex=rd.Op.all_ops(),
+        vertex=vertices,
         edge=rd.Op.weight(),
         output=rd.Op.sigmoid(),
     )
