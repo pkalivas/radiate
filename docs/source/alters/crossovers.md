@@ -5,10 +5,12 @@ Crossovers combine genetic material from two parents to create offspring, allowi
 | Crossover | Works on | What it does |
 |---|---|---|
 | [Blend](#blend) | Float | child = parent ± α·(difference); can reach past a parent |
+| [Differential](#differential) | Float | differential evolution: moves genes toward `a + F·(b − c)` from three donors |
 | [Intermediate](#intermediate) | Float | weighted average of the two parents' alleles |
 | [Mean](#mean) | Float, Int | child gene = mean of the two parents' genes |
 | [Multi-Point](#multi-point) | Bit, Char, Float, Int | swaps segments at N cut points (classic GA crossover) |
-| [Partially Mapped (PMX)](#partially-mapped-pmx) | Permutation | order-preserving crossover for permutations |
+| [Partially Mapped (PMX)](#partially-mapped-pmx) | Permutation | preserves absolute positions from both parents |
+| [Order (OX1)](#order-ox1) | Permutation | preserves relative order from both parents |
 | [Edge Recombination](#edge-recombination) | Permutation | preserves adjacency/edges from both parents |
 | [Shuffle](#shuffle) | Bit, Char, Float, Int | shuffles positions, then swaps genes |
 | [Simulated Binary](#simulated-binary) | Float | real-valued analog of binary crossover (contiguity-controlled) |
@@ -46,6 +48,46 @@ $$
     ```rust
     --8<-- "rust/alters/crossovers.rs:blend_crossover"
     ```
+---
+
+## Differential
+
+> Inputs
+>
+>  * `rate`: f32 - Chance each individual becomes a target (0.0 to 1.0)
+>  * `weight`: f32 - How far along the difference vector the donor moves, often called `F`. Must be in (0, 2]
+>  * `crossover_rate`: f32 - Chance each gene takes the donor's value, often called `CR` (0.0 to 1.0)
+
+- **Purpose**: Differential evolution (DE/rand/1/bin) as a crossover
+- **Best for**: Continuous optimization, especially with interacting variables
+- **Compatible with**: `FloatGene`
+
+For each target, three other distinct individuals `a`, `b` and `c` are drawn from the population. Each gene of the target is replaced, with probability `crossover_rate`, by
+
+$$
+v = a + F \cdot (b - c)
+$$
+
+and one randomly chosen gene always takes `v`, so every target changes. Values are clamped to each gene's bounds. All donors are read from the population as it was before the step.
+
+Textbook DE only keeps a trial if it beats its target. An alterer can't evaluate fitness, so here the trial always replaces the target and the engine's survivor selection does the filtering. The population needs at least 4 individuals.
+
+!!! tip "Choosing `weight` and `crossover_rate`"
+
+    A `weight` of `0.5` is the standard starting point; raise it toward `0.8` if the population converges too early. Use a high `crossover_rate` (around `0.9`) when the variables interact and a low one (around `0.1`) when they're independent.
+
+=== ":fontawesome-brands-python: Python"
+
+    ```python
+    --8<-- "python/alters/crossovers.py:differential_crossover"
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    --8<-- "rust/alters/crossovers.rs:differential_crossover"
+    ```
+
 ---
 
 ## Intermediate
@@ -198,6 +240,41 @@ where the order of elements in a solution is significant.
 
 ---
 
+## Order (OX1)
+
+> Inputs
+>
+>  * `rate`: f32 - Crossover rate (0.0 to 1.0)
+
+- **Purpose**: Combines two permutations while keeping the relative order of genes
+- **Best for**: Scheduling and sequencing, where "a comes before b" matters more than absolute position
+- **Compatible with**: `PermutationGene<A>`
+
+The `OrderCrossover` (Davis, 1985) produces two children. Each child keeps a random segment of its own parent in place, then fills the remaining positions with the missing genes in the order they appear in the other parent. Filling starts just after the segment and wraps around.
+
+Where PMX preserves *absolute positions* and edge recombination preserves *adjacency*, order crossover preserves *relative order*.
+
+**Example**: parents `[1,2,3,4,5,6,7,8,9]` and `[4,5,2,1,8,7,6,9,3]` with the segment at positions 3 through 6:
+
+```text
+child one: [2,1,8 | 4,5,6,7 | 9,3]
+child two: [3,4,5 | 1,8,7,6 | 9,2]
+```
+
+=== ":fontawesome-brands-python: Python"
+
+    ```python
+    --8<-- "python/alters/crossovers.py:order_crossover"
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    --8<-- "rust/alters/crossovers.rs:order_crossover"
+    ```
+
+---
+
 ## Edge Recombination
 
 > Inputs
@@ -209,18 +286,17 @@ where the order of elements in a solution is significant.
 - **Example**: Useful for problems where the relationship between genes is important
 - **Compatible with**: `PermutationGene<A>`
 
-The `EdgeRecombinationCrossover` is a specialized crossover operator for permutation problems. It focuses on preserving the connectivity between genes by combining edges from both parents.
+The `EdgeRecombinationCrossover` is a specialized crossover operator for permutation problems. It builds a child that keeps as many of the parents' edges (adjacent pairs) as possible.
 
-1. **Edge List Creation**:
-    * For each parent, create a list of edges representing the connections between genes.
-2. **Edge Selection**:
-    * Randomly select edges from both parents to create a new offspring.
-    * This selection process ensures that the offspring inherits important connections from both parents.
-3. **Child Construction**:
-    * The selected edges are used to construct the offspring's gene sequence.
-    * This process helps maintain the overall structure and relationships present in the parent solutions.
+1. **Edge Table**:
+    * For every gene, list its neighbors in both parents. Each gene has at most four.
+2. **Walk**:
+    * Start from a random gene. At each step, move to the current gene's unvisited neighbor that has the fewest unvisited neighbors left, breaking ties at random.
+    * Picking the most constrained neighbor first keeps the walk from painting itself into a corner.
+3. **Dead Ends**:
+    * If the current gene has no unvisited neighbors, jump to a random unvisited gene.
   
-**Example**: If Parent 1 has edges (A-B, B-C) and Parent 2 has edges (B-C, C-D), the offspring might inherit edges (A-B, C-D).
+Because it follows the parents' edges, the child usually inherits almost all of its adjacencies from one parent or the other, which is why it works well on routing problems like TSP. It produces one child per crossover.
 
 === ":fontawesome-brands-python: Python"
 

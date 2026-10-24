@@ -27,6 +27,12 @@ fn main() {
         Leaf => (0..3).map(Op::var).collect::<Vec<_>>()
     };
 
+    // -- or build it up with `push` --
+    let op_store: NodeSet<Op<f32>> = NodeSet::new()
+        .push(NodeType::Root, [Op::sigmoid()])
+        .push(NodeType::Vertex, vec![Op::add(), Op::mul()])
+        .push(NodeType::Leaf, (0..3).map(Op::var).collect::<Vec<_>>());
+
     // Create a new vertex tree node
     let tree_node: Option<TreeNode<i32>> = tree_store.new_instance(NodeType::Vertex);
 

@@ -60,7 +60,7 @@ engine = (
 result = engine.run(log=False)
 print(result)
 
-board = result.value()
+board = result.value
 for i in range(N_QUEENS):
     for j in range(N_QUEENS):
         if board[j] == i:
@@ -154,12 +154,12 @@ engine = (
 result = engine.run(ui=True)
 
 # When running an MO problem, we can get the resulting pareto from from the
-# engine's epoch result. This is stored in the 'front()' field of the result here:
-front = result.front()
+# engine's epoch result. This is stored in the 'front' property of the result here:
+front = result.front
 
-x = [member.score()[0] for member in front]
-y = [member.score()[1] for member in front]
-z = [member.score()[2] for member in front]
+x = [member.score[0] for member in front]
+y = [member.score[1] for member in front]
+z = [member.score[2] for member in front]
 
 fig = go.Figure(go.Scatter3d(x=x, y=y, z=z, mode="markers"))
 fig.update_layout(
@@ -178,15 +178,13 @@ import radiate as rd
 inputs = [[0.0, 0.0], [1.0, 1.0], [1.0, 0.0], [0.0, 1.0]]
 answers = [[0.0], [0.0], [1.0], [1.0]]
 
-codec = rd.GraphCodec.directed(
-    shape=(2, 1),
-    vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sum()],
-    edge=rd.Op.weight(),
-    output=rd.Op.sum(),
-)
-
 engine = (
-    rd.Engine(codec)
+    rd.Engine.graph(
+        shape=(2, 1),
+        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sum()],
+        edge=rd.Op.weight(),
+        output=rd.Op.sum(),
+    )
     .regression(inputs, answers, loss=rd.MSE)
     .alter(
         rd.Cross.graph(0.5, 0.5),
@@ -199,7 +197,7 @@ engine = (
 result = engine.run(log=True)
 
 for input, target in zip(inputs, answers):
-    print(f"Input: {input}, Target: {target}, Output: {result.value().eval([input])}")
+    print(f"Input: {input}, Target: {target}, Output: {result.value.eval([input])}")
 # --8<-- [end:graph_xor]
 
 # --8<-- [start:tree]
@@ -208,14 +206,12 @@ import radiate as rd
 inputs = [[0.0, 0.0], [1.0, 1.0], [1.0, 0.0], [0.0, 1.0]]
 answers = [[0.0], [0.0], [1.0], [1.0]]
 
-codec = rd.TreeCodec(
-    shape=(2, 1),
-    vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.add()],
-    root=rd.Op.sum(),
-)
-
 engine = (
-    rd.Engine(codec)
+    rd.Engine.tree(
+        shape=(2, 1),
+        vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.add()],
+        root=rd.Op.sum(),
+    )
     .regression(inputs, answers, loss=rd.MSE)
     .alter(rd.Cross.tree(0.7), rd.Mutate.hoist(0.01))
     .limit(rd.Limit.score(0.01), rd.Limit.seconds(1))
@@ -226,5 +222,5 @@ result = engine.run(log=True)
 print(result)
 
 for input, target in zip(inputs, answers):
-    print(f"Input: {input}, Target: {target}, Output: {result.value().eval([input])}")
+    print(f"Input: {input}, Target: {target}, Output: {result.value.eval([input])}")
 # --8<-- [end:tree]

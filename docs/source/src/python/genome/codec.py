@@ -74,6 +74,25 @@ codec = rd.BitCodec((3, 2))
 codec = rd.BitCodec([2, 2, 2])
 # --8<-- [end:bit_codec]
 
+# --8<-- [start:packed_bit_codec]
+import radiate as rd
+
+# 10,000 bits stored 64 per word. Decodes to a list of bools, just like BitCodec
+codec = rd.PackedBitCodec(10_000)
+
+# Decode to the packed 64-bit words instead (a numpy uint64 array here),
+# so the fitness function can work on 64 bits at a time
+codec = rd.PackedBitCodec(10_000, use_numpy=True, words=True)
+
+# Or build the engine directly. Uniform/multi-point crossover, bit-flip mutation and
+# Hamming distance automatically use their packed, bit-level versions.
+engine = (
+    rd.Engine.packed_bit(10_000, use_numpy=True, words=True)
+    .fitness(lambda words: int(sum(int(w).bit_count() for w in words)))
+    .alter(rd.Cross.uniform(0.5), rd.Mutate.bit_flip(0.001))
+)
+# --8<-- [end:packed_bit_codec]
+
 # --8<-- [start:permutation_codec]
 import radiate as rd
 

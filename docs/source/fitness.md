@@ -9,6 +9,16 @@ The fitness function takes a decoded phenotype (the actual data structure) and r
     
     All fitness functions must return a `Score` object or a value that can be converted into a `Score`. Radiate automatically converts common types like `f32`, `f64`, `i32`, `i64`, `Vec<f32>`, etc. into `Score` objects - so those can be returned natively. NaN values are not allowed and will cause a panic. The number of values returned by the fitness function **must** match your objectives. For example, if you have two objectives, your fitness function must return a `Score` with two values.
 
+Simple, batch and raw fitness functions are all given to the engine through the same builder method. The kind is worked out for you:
+
+=== ":fontawesome-brands-python: Python"
+
+    Pass any fitness function to `.fitness(...)`. Mark a batch function with `@rd.fitness(batch=True)` or `rd.Fitness.custom(..., is_batch=True)`.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    Pass any fitness function to `.fitness_fn(...)`; the kind is inferred from its signature. A function over one decoded value is simple, one over a slice of decoded values is batch, and one over a `&Genotype` (or `&[&Genotype]`) is raw. `batch_fitness_fn`, `raw_fitness_fn` and `raw_batch_fitness_fn` are deprecated aliases.
+
 ## Overview
 
 | Fitness Function Type | Purpose | Use Case | Complexity |
@@ -56,7 +66,9 @@ The batch fitness function groups members of the `Population` which need to be e
 If you need access to parts or the whole of a `Population` in order to compute fitness, this is your best bet. Depending on the 
 implementation of your actual fitness logic, this can also be a speed up to your `Engine`. The logic behind the grouping depends on the `Executor` being used. Meaning, if your `Executor` is using 4 workers (threads) the individuals which need to be evaluated will be split into 4 batches. On the flip side, if your `Executor` is using a single thread (Serial), your fitness function will receive a single batch containing all individuals which need evaluation.
 
-Its important to note that other types of fitness functions like `NoveltySearch` & `CompositeFitnessFn` both support batch processing too by simply placing those objects within the call to `.batch_fitness_fn` - just like `.fitness_fn`.
+A batch fitness function must return exactly one score per individual it receives, in the same order. Returning more or fewer is an error.
+
+`NoveltySearch` and `CompositeFitnessFn` evaluate one individual at a time and can't be used as batch fitness functions.
 
 === ":fontawesome-brands-python: Python"
 
@@ -64,10 +76,16 @@ Its important to note that other types of fitness functions like `NoveltySearch`
     --8<-- "python/fitness.py:batch_fitness"
     ```
 
-    Just like simple fitness functions, python lets you opt out of wrapping your fitness function in `rd.BatchFitness` by using the `@rd.fitness` decorator.
+    Just like simple fitness functions, python lets you skip `rd.Fitness.custom` by using the `@rd.fitness` decorator.
 
     ```python
     --8<-- "python/fitness.py:batch_fitness_decorator"
+    ```
+
+    With `use_numpy=True` on an int or float engine, a batch function receives a single numpy array instead of a list: shape `(batch_size, n_genes)` for one chromosome, or `(batch_size, n_chromosomes, n_genes)` for several. It can return a numpy array of scores, shape `(batch_size,)` or `(batch_size, n_objectives)`. This keeps the whole evaluation vectorized.
+
+    ```python
+    --8<-- "python/fitness.py:batch_fitness_numpy"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -150,7 +168,7 @@ Composite fitness functions allow you to combine multiple objectives into a sing
 
 - **Weighted combination**: If using weighted, each objective has a weight that determines its importance
 - **Normalized scoring**: If using weighted, scores are weighted and averaged
-- **Flexible objectives**: Can combine any number of fitness functions
+- **Flexible objectives**: Can combine any number of fitness functions, each returning a single `f32`
 - **Single objective**: Results in a single score for selection
 
 ---

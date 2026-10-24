@@ -7,7 +7,7 @@ fn main() {
     // Set the random seed for reproducibility
     random_provider::seed(1000);
 
-    // Define our node store for the graph - the operations that can be used by each
+    // Define our node set for the graph - the operations that can be used by each
     // node type in the graph during evolution
     let store = vec![
         (NodeType::Input, vec![Op::var(0)]),
@@ -67,3 +67,31 @@ fn compute(x: f32) -> f32 {
     4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x
 }
 // --8<-- [end:graph_regression]
+
+#[allow(dead_code)]
+fn datasets() {
+    // --8<-- [start:datasets]
+    // Built-in datasets come ready to use - here Fisher's iris: 4 features, 3 one-hot labels
+    // `split(0.75)` puts the first 75% of the rows in `train` and the rest in `test`
+    let (mut train, mut test) = DataSet::<f32>::iris().split(0.75);
+
+    // Scale each feature column to mean 0 and standard deviation 1
+    train.standardize();
+    test.standardize();
+
+    let (samples, n_features, n_labels) = train.shape();
+
+    let store = vec![
+        (NodeType::Input, (0..n_features).map(Op::var).collect()),
+        (NodeType::Edge, vec![Op::weight()]),
+        (NodeType::Vertex, vec![Op::add(), Op::mul(), Op::sigmoid(), Op::relu()]),
+        (NodeType::Output, vec![Op::sigmoid()]),
+    ];
+
+    let engine = GeneticEngine::builder()
+        .codec(GraphCodec::directed(n_features, n_labels, store).unwrap())
+        .fitness_fn(Regression::new(train, Loss::MSE))
+        .minimizing()
+        .build();
+    // --8<-- [end:datasets]
+}

@@ -185,7 +185,7 @@ impl<F: Float> Op<F> {
         })
     }
 
-    #[deprecated(since = "1.3.2", note = "Use sum() instead")]
+    #[deprecated(since = "1.4.0", note = "Use sum() instead")]
     pub fn linear() -> Self {
         Self::sum()
     }

@@ -6,6 +6,11 @@ fn main() {
     let crossover = BlendCrossover::new(0.1, 0.5);
     // --8<-- [end:blend_crossover]
 
+    // --8<-- [start:differential_crossover]
+    // rate, weight (F), crossover_rate (CR)
+    let crossover = DifferentialCrossover::new(0.1, 0.5, 0.9);
+    // --8<-- [end:differential_crossover]
+
     // --8<-- [start:intermediate_crossover]
     // rate, alpha
     let crossover = IntermediateCrossover::new(0.1, 0.5);
@@ -25,6 +30,11 @@ fn main() {
     // rate
     let crossover = PMXCrossover::new(0.1);
     // --8<-- [end:pmx_crossover]
+
+    // --8<-- [start:order_crossover]
+    // rate
+    let crossover = OrderCrossover::new(0.1);
+    // --8<-- [end:order_crossover]
 
     // --8<-- [start:edge_recombination_crossover]
     // rate

@@ -37,6 +37,46 @@ Let's take a quick look at how we would put together a regression problem using 
     ```
 
 
-More robust examples can be found in the next section or in the [tree](https://github.com/pkalivas/radiate/tree/master/examples/trees) and [graph](https://github.com/pkalivas/radiate/tree/master/examples/rust/graphs) examples in the git repository.
+---
+
+## Datasets
+
+`radiate` ships a set of small, well-known datasets so you can try out a regression problem without bringing your own data. Datasets that are generated randomly follow the global [random seed](../misc/random.md), so they are reproducible.
+
+| Dataset | Kind | Shape |
+|---|---|---|
+| `iris` | classification | 150 samples, 4 features, 3 one-hot labels (shuffled) |
+| `xor` | classification | the 4-row XOR truth table |
+| `parity(bits)` | classification | every `bits`-wide bit pattern, labelled 1 when an odd number of bits are set |
+| `moons(n, noise)` | classification | two interleaving half circles, 2 features, a 0/1 label |
+| `circles(n, noise)` | classification | two concentric circles, 2 features, a 0/1 label |
+| `spirals(n, noise)` | classification | two intertwined spirals, 2 features, a 0/1 label |
+| `simple_memory(n)` | sequence | `n` steps of a repeating 4-step pattern (input pulses every 4th step, the target the step before), for testing recurrent graphs |
+| `cubic` | regression | `4x³ - 3x² + x` at 20 evenly spaced points |
+| `koza1` | regression | `x⁴ + x³ + x² + x` at 20 random points in [-1, 1) |
+| `nguyen7` | regression | `ln(x + 1) + ln(x² + 1)` at 20 random points in [0, 2) |
+| `pagie1` | regression | `1/(1 + x⁻⁴) + 1/(1 + y⁻⁴)` on a 26 × 26 grid over [-5, 5] |
+
+A dataset can be shuffled, split into two parts, and have its feature columns standardized (mean 0, standard deviation 1) or normalized (scaled to [0, 1]). The two-class datasets (`moons`, `circles`, `spirals`) come out grouped by class, so shuffle them before splitting.
+
+=== ":fontawesome-brands-python: Python"
+
+    `rd.DataSet` exposes its features and labels as numpy arrays (`.features`, `.labels`, or both with `.pair()`), which plug straight into `.regression(...)`. Each builder takes an optional `dtype`.
+
+    ```python
+    --8<-- "python/gp/regression.py:datasets"
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+
+    `DataSet<F>` is generic over `f32`/`f64` and can be passed directly to `Regression::new`. `friedman1(n, noise)` (5 informative features plus 5 noise features) is also available.
+
+    ```rust
+    --8<-- "rust/gp/regression.rs:datasets"
+    ```
+
+---
+
+More robust examples can be found in the next section or in the [tree](https://github.com/pkalivas/radiate/tree/master/examples/rust/trees) and [graph](https://github.com/pkalivas/radiate/tree/master/examples/rust/graphs) examples in the git repository.
 
 ---

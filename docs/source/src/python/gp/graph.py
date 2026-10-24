@@ -81,6 +81,19 @@ genotype = codec.encode()
 recurrent_graph = codec.decode(genotype)
 # --8<-- [end:encode_decode]
 
+# --8<-- [start:batch_eval]
+import numpy as np
+
+# One sample - returns one value per output
+output = graph.eval([0.5, 1.0])
+
+# Many samples - one row per sample in, one row per sample out
+outputs = graph.eval([[0.5, 1.0], [1.0, 2.0]])
+
+# A 2D numpy array in returns a numpy array out
+outputs = graph.eval(np.array([[0.5, 1.0], [1.0, 2.0]]))
+# --8<-- [end:batch_eval]
+
 # --8<-- [start:graph_mutator]
 import radiate as rd
 

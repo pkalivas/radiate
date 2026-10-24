@@ -98,7 +98,7 @@ class Op(LazyRsObject):
     floor = _op_factory("floor")
     max = _op_factory("max")
     min = _op_factory("min")
-    leaky_relu = _op_factory("leaky_relu")
+    leaky_relu = _op_factory("l_relu")
     elu = _op_factory("elu")
     mish = _op_factory("mish")
     swish = _op_factory("swish")

@@ -122,6 +122,27 @@ fn bit_codec() {
     // --8<-- [end:bit_codec]
 }
 
+fn packed_bit_codec() {
+    // --8<-- [start:packed_bit_codec]
+    // 10,000 bits stored 64 per word. Decodes to the raw words: bit `i` is bit `i % 64`
+    // of word `i / 64`, and unused bits in the last word are zero.
+    let codec = PackedBitCodec::new(10_000);
+    let encoded: Genotype<PackedBitChromosome> = codec.encode();
+    let words: Vec<u64> = codec.decode(&encoded);
+
+    // Use the packed, bit-level operators rather than the generic ones,
+    // which would act on whole 64-bit words.
+    let engine = GeneticEngine::builder()
+        .codec(codec)
+        .fitness_fn(|words: Vec<u64>| words.iter().map(|w| w.count_ones() as usize).sum::<usize>())
+        .alter(alters!(
+            PackedBitCrossover::new(0.5),
+            BitFlipMutator::new(0.001)
+        ))
+        .build();
+    // --8<-- [end:packed_bit_codec]
+}
+
 fn subset_codec() {
     // --8<-- [start:subset_codec]
     #[derive(Debug, Clone)]

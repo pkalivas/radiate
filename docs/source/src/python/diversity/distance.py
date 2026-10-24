@@ -22,4 +22,14 @@ import radiate as rd
 # Parameters are: c1, c2, c3 - coefficients for excess genes, disjoint genes,
 # and average weight differences respectively
 diversity = rd.Dist.neat(0.1, 1.0, 0.5)  # using the dsl syntax
+
+# c4 - coefficient for matching genes whose ops differ (default 1.0)
+diversity = rd.Dist.neat(0.1, 1.0, 0.5, op_diff=0.5)
 # --8<-- [end:neat]
+
+# --8<-- [start:tree]
+import radiate as rd
+
+# Each level down counts 1/k as much as the one above (default k = 2)
+diversity = rd.Dist.tree(k=2.0)
+# --8<-- [end:tree]

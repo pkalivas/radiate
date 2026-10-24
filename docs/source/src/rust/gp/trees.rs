@@ -57,7 +57,8 @@ fn main() {
     ];
 
     // Create a single rooted tree codec with a starting (minimum) depth of 3
-    let codec = TreeCodec::single(3, store.clone());
+    // `max_size` caps the number of nodes per tree (default 200)
+    let codec = TreeCodec::single(3, store.clone()).max_size(50);
     let genotype: Genotype<TreeChromosome<Op<f32>>> = codec.encode();
     let tree: Tree<Op<f32>> = codec.decode(&genotype);
 
@@ -73,7 +74,13 @@ fn main() {
     let mutator = HoistMutator::new(0.1);
     // --8<-- [end:hoist_mutator]
 
+    // --8<-- [start:subtree_mutator]
+    // Replace a random subtree with a freshly grown one, at most 3 levels deep
+    let mutator = SubtreeMutator::new(0.1).with_max_depth(3);
+    // --8<-- [end:subtree_mutator]
+
     // --8<-- [start:tree_crossover]
-    let mutator = TreeCrossover::new(0.1);
+    // Offspring larger than `max_size` nodes are rejected (default 500)
+    let crossover = TreeCrossover::new(0.1).with_max_size(50);
     // --8<-- [end:tree_crossover]
 }

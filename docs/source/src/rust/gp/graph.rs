@@ -95,6 +95,19 @@ fn main() {
     let recurrent_graph: Graph<Op<f32>> = recurrent_codec.decode(&recurrent_genotype);
     // --8<-- [end:encode_decode]
 
+    // --8<-- [start:batch_eval]
+    // Evaluate one sample at a time - each call returns one value per output node
+    let outputs: Vec<Vec<f32>> = graph.eval(&[vec![0.5, 1.0], vec![1.0, 2.0]]);
+
+    // Or evaluate a whole batch in one pass. The batch is column-major:
+    // one row per input and one column per sample, so transpose a row-per-sample matrix.
+    let features: Matrix<f32> = Matrix::from(vec![vec![0.5, 1.0], vec![1.0, 2.0]]).transpose();
+
+    // The result has one row per output and one column per sample.
+    let mut evaluator = GraphEvaluator::new(&graph);
+    let batch: Matrix<f32> = evaluator.eval_mut(&features);
+    // --8<-- [end:batch_eval]
+
     // --8<-- [start:graph_mutator]
     // Create a mutator that adds vertices and edges with a 10% chance for either
     let mutator = GraphMutator::new(0.1, 0.1);

@@ -9,7 +9,7 @@ The `op` comes in five flavors, mirroring the variants of the `Op<T>` enum:
 2. **Variable (`Var`)**: Reads from an input vector, returning the value at that index.
 3. **Constant (`Const`)**: A fixed value that does not change - returning the value when called.
 4. **Value (`Value`)**: A stateful operation that holds data (a `Param<T>`) alongside a function, allowing for learnable parameters such as the `Weight` op.
-5. **Pair (`Pair`)**: Like `Value`, but the stored data is a pair of values (a `Param<(T, T)>`), such as the two learnable weights of the `Weight2` op.
+5. **Pair (`Pair`)**: Like `Value`, but the stored data is a pair of values (a `Param<(T, T)>`), such as the two learnable weights of the `Dot` op.
 
 Each `op` has an `arity`, defining the number of inputs it accepts. For example, the `Add` operation has an `arity` of 2 because it takes two inputs and returns their sum. The `Const` operation has an arity of 0 because it does not take any inputs, it just returns its value. The `Var` operation has an arity of 0 because it takes an index as a parameter, and returns the value of the input at that index. 
 
@@ -18,8 +18,9 @@ Provided `Ops` include:
 ??? info "Basic ops"
     | Name | Arity | Description | Initialize | Type |
     |------|-------|-------------|----------|---- |
-    | `const` | 0 | A fixed constant value | `Op::constant(value)` | Const |
-    | `named_const` | 0 | A constant value with an associated name | `Op::named_constant(name, value)` | Const |
+    | `const` | 0 | A fixed, named constant value | `Op::constant(name, value)` | Const |
+    | `one` / `two` / `three` | 0 | The constants 1, 2 and 3 | `Op::one()`, `Op::two()`, `Op::three()` | Const |
+    | `erc` | 0 | Ephemeral random constant: starts at a random value in [-1, 1] that mutation can tune | `Op::erc()` | Value |
     | `var` | 0 | Variable. input[i] - return the value of the input at index `i` | `Op::var(i)` | Var |
     | `vars` | 0 | One `var` for each index in a range | `Op::vars(range)` | Var |
     | `named_var` | 0 | A `var` with a custom name instead of `Xi` | `Op::named_var(name, i)` | Var |
@@ -27,7 +28,7 @@ Provided `Ops` include:
     | `identity` |1| return the input value | `Op::identity()` | Fn |
 
     !!! note "Python"
-        Python provides `const` (as `Op.const(value)`), `var` (as `Op.var(i)`) and `identity`. `named_const`, `vars`, `named_var` and `category` are Rust-only.
+        Python provides `const` (as `Op.const(name, value)`), `var` (as `Op.var(i)`), `erc` and `identity`. `one`/`two`/`three`, `vars`, `named_var` and `category` are Rust-only.
 
 
 ??? info "Basic math operations"
@@ -59,14 +60,14 @@ Provided `Ops` include:
     | `Gaussian` | Any | e^(-x²), where x is the sum of the inputs | `Op::gaussian()` | Fn |
     | `Tooth` | Any | x mod 1 (keeps the sign of x), where x is the sum of the inputs | `Op::tooth()` | Fn |
     | `Weight` | 1 | x * w (input multiplied by a learnable weight) | `Op::weight()` | Value |
-    | `Weight2` | 2 | x * w1 + y * w2 (each input multiplied by its own learnable weight) | `Op::weight2()` | Pair |
+    | `Dot` | 2 | x * w1 + y * w2 (each input multiplied by its own learnable weight) | `Op::dot()` | Pair |
 
-    All of these clamp their output to ±1e10 and return 0 instead of NaN, so an evolved program can't overflow or produce invalid values. "≈ 0" means within 1e-7 of zero.
+    All of these clamp their output and return 0 instead of NaN, so an evolved program can't overflow or produce invalid values. The clamp is ±1e7 for `f32` and ±1e14 for `f64`. "≈ 0" means within 1e-6 of zero for `f32` and 1e-12 for `f64`.
 
-    Learnable weights start at a random value in [-1, 1]. To start from a specific value, use `Op::weight_with(w)` or `Op::weight2_with((w1, w2))`.
+    `Weight` starts at a random value in [-1, 1], and `Dot` starts with both weights at 1. To start from specific values, use `Op::weight_with(w)`, `Op::dot_with((w1, w2))` or `Op::erc_with(v)`.
 
     !!! note "Python"
-        `LogSumExp`, `Op::weight_with` and `Op::weight2_with` are Rust-only. Every other op in this table is available in Python.
+        `LogSumExp` and the `*_with` constructors are Rust-only. Every other op in this table is available in Python.
 
 ??? info "Activation Ops"
 
@@ -109,7 +110,9 @@ Provided `Ops` include:
 
     !!! note "Removed duplicates"
         `eq`, `iff`, `ne` and `le` were removed: they computed the same function as `xnor`, `xnor`,
-        `xor` and `implies`. Trees saved with those names still load, as the replacement op.
+        `xor` and `implies`. Programs saved with those names no longer load; replace them with the
+        equivalent op in the saved file. The same applies to the old `linear` (now `sum`) and `w2`
+        (now `dot`) names.
 
     !!! note "Python"
         The `bool` ops are Rust-only.
@@ -145,7 +148,7 @@ Provided `Ops` include:
 
 - **Purpose**: Randomly mutate an operation within a `TreeNode` or `GraphNode`.
 
-This mutator randomly changes or alters the `op` of a node within a `TreeChromosome` or `GraphChromosome`. It can replace the `op` with a new one from the [store](node.md#store) or modify its parameters.
+This mutator randomly changes or alters the `op` of a node within a `TreeChromosome` or `GraphChromosome`. It can replace the `op` with a new one from the [node set](node.md#node-set) or tune the learnable parameters of `Weight`, `Dot` and `erc` ops.
 
 === ":fontawesome-brands-python: Python"
 

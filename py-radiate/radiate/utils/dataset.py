@@ -119,9 +119,9 @@ class DataSet(RsObject):
         """A copy with the rows in random order."""
         return DataSet.from_rust(self.__backend__().shuffle())
 
-    def split(self, test_size: float) -> tuple[DataSet, DataSet]:
+    def split(self, split_pct: float) -> tuple[DataSet, DataSet]:
         """Splits the rows into ``(train, test)``, in their current order."""
-        train, test = self.__backend__().split(test_size)
+        train, test = self.__backend__().split(split_pct)
         return DataSet.from_rust(train), DataSet.from_rust(test)
 
     def standardize(self) -> DataSet:

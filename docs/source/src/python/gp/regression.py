@@ -21,7 +21,7 @@ for _ in range(-10, 10):
 
 # Create a simple GraphCodec which takes one input and produces one output
 # The graph will have vertex nodes that can add, subtract, or multiply
-# The edges will have a weight operation and the output will be linear
+# The edges will have a weight operation and the output will sum its inputs
 codec = rd.GraphCodec.directed(
     shape=(1, 1),
     vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.sum()],
@@ -31,7 +31,6 @@ codec = rd.GraphCodec.directed(
 
 # All we have to do to create a regression problem is provide the features & targets for our
 # dataset. Optionally, we can provide a loss function as well - the default is mean squared error (MSE).
-# The last argument is whether to use batch evaluation or not - the default is False. This has minimal impact on performance.
 loss = rd.MSE  # Options are: rd.MSE, rd.MAE, rd.XEnt (CrossEntropy), rd.Diff.
 dtype = rd.Float64
 fitness_func = rd.Fitness.regression(dtype, inputs, answers, loss=loss)
@@ -100,3 +99,28 @@ engine = (
 
 result = engine.run(log=True)
 # --8<-- [end:dataframe_regression]
+
+# --8<-- [start:datasets]
+import radiate as rd
+
+rd.random.seed(518)
+
+# Built-in datasets come ready to use - here Fisher's iris: 4 features, 3 one-hot labels
+data = rd.DataSet.iris()
+samples, n_features, n_labels = data.shape
+
+# Scale each feature column to mean 0 and standard deviation 1,
+# then take the features and labels as numpy arrays
+features, labels = data.standardize().pair()
+
+engine = (
+    rd.Engine.graph(
+        shape=(n_features, n_labels),
+        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sigmoid(), rd.Op.relu()],
+        edge=rd.Op.weight(),
+        output=rd.Op.sigmoid(),
+    )
+    .regression(features, labels, loss=rd.MSE)
+    .limit(rd.Limit.generations(10))
+)
+# --8<-- [end:datasets]

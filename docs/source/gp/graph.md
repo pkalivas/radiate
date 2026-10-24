@@ -14,7 +14,7 @@ With these rules in mind, we can begin to build and evolve graphs. The graph typ
 </figure> 
 
 
-Radiate provides a few basic graph architectures, but it is also possible to construct your own graph through either the built in graph functions or by using the architect. In most cases building a graph requires a vec of tuples (or a `NodeStore`) where the first element is the `NodeType` and the second element is a vec of values that the `GraphNode` can take. The `NodeType` is either `Input`, `Output`, `Vertex`, or `Edge`. The value of the `GraphNode` is picked at random from the vec of its `NodeType`.
+Radiate provides a few basic graph architectures, but it is also possible to construct your own graph through either the built in graph functions or by using the architect. In most cases building a graph requires a vec of tuples (or a `NodeSet`) where the first element is the `NodeType` and the second element is a vec of values that the `GraphNode` can take. The `NodeType` is either `Input`, `Output`, `Vertex`, or `Edge`. The value of the `GraphNode` is picked at random from the vec of its `NodeType`.
 
 **Key Properties:**
 
@@ -41,7 +41,7 @@ Radiate provides a few basic graph architectures, but it is also possible to con
     --8<-- "rust/gp/graph.rs:eval"
     ```
 
-Now, the above works just fine, but can become cumbersome quickly. To ease the process of creating a `graph`, we can use the default `graph` types to create graphs in a better way. All we need to do is define a `NodeStore` that contains the possible values for each node given a `NodeType`. 
+Now, the above works just fine, but can become cumbersome quickly. To ease the process of creating a `graph`, we can use the default `graph` types to create graphs in a better way. All we need to do is define a `NodeSet` that contains the possible values for each node given a `NodeType`. 
 
 === ":fontawesome-brands-python: Python"
 
@@ -155,6 +155,28 @@ The `GraphCodec` is a codec that encodes a `GraphChromosome` and decodes it back
 
 ---
 
+## Evaluating a Graph
+
+A graph can be evaluated on one sample at a time or on a whole batch of samples at once. Before evaluating, a graph is compiled into a plan (the order to visit its nodes, and which nodes form cycles) that is reused for every sample. Recurrent graphs carry their state from one sample to the next, and a batch always starts from a fresh state.
+
+Evaluating a batch processes the samples column by column, which is much faster than looping over them one at a time. [Regression](regression.md) problems use this automatically.
+
+=== ":fontawesome-brands-python: Python"
+
+    ```python
+    --8<-- "python/gp/graph.py:batch_eval"
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+
+    `GraphEvaluator` keeps its evaluation buffers between calls, so reuse one evaluator when evaluating the same graph many times.
+
+    ```rust
+    --8<-- "rust/gp/graph.rs:batch_eval"
+    ```
+
+---
+
 ## Alters
 
 ### GraphMutator
@@ -163,7 +185,7 @@ The `GraphCodec` is a codec that encodes a `GraphChromosome` and decodes it back
 > 
 >   * `vertex_rate`: f32 - Probability of adding a vertex to the graph (0.0 to 1.0)
 >   * `edge_rate`: f32 - Probability of adding an edge to the graph (0.0 to 1.0)
->   * `allow_recurrent`: bool - Whether to allow recurrent connections in the graph. The default is `true`, meaning the graph can have cycles.
+>   * `allow_recurrent`: bool - Whether to allow recurrent connections in the graph. The default is `false`, so the mutator only adds feed-forward connections. Turn it on to let the graph grow cycles (recurrent connections).
 
 - **Purpose**: Randomly adds vertices and edges to the graph.
 

@@ -14,6 +14,7 @@ Below we see the built-in measurements `radiate` provides.
 | **Euclidean** | root-mean-squared difference | `0` → unbounded (scales with allele range) | numeric genes where the *magnitude* of difference matters |
 | **Cosine** | `1 − cosine similarity` | `[0, 2]` (`[0, 1]` for non-negative values) | high-dimensional numeric genes where *direction* matters more than magnitude |
 | **NEAT** | weighted structural + weight distance | `0` → unbounded | evolving graph/neural-network topologies |
+| **Tree** | depth-weighted structural mismatch | `[0, 1]` | evolving trees (symbolic regression, programs) |
 
 !!! tip "Threshold follows the measure"
 
@@ -115,15 +116,16 @@ Best for:
 
 **Compatible with**: `GraphNode<Op<f32>>`
 
-The NEAT [compatibility distance](https://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) for evolving graph topologies. It aligns two graphs by their genes' historical *innovation* markers and combines three quantities, following Stanley's formula:
+The NEAT [compatibility distance](https://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) for evolving graph topologies. It aligns two graphs by their genes' historical *innovation* markers and follows Stanley's formula, with one extra term for the ops:
 
 $$
-D = c_1\frac{E}{N} + c_2\frac{D}{N} + c_3\,\overline{W}
+D = c_1\frac{E}{N} + c_2\frac{D}{N} + c_3\,\overline{W} + c_4\,\frac{M}{K}
 $$
 
 - **`E` — excess** genes (innovations beyond the other parent's newest gene), weighted by `c₁`
 - **`D` — disjoint** genes (misaligned innovations within the shared range), weighted by `c₂`
 - **`W̄` — average weight difference** across matching genes, weighted by `c₃`
+- **`M / K` — op mismatch**: the fraction of the `K` matching genes whose ops differ (e.g. `add` vs `mul`), weighted by `c₄` (default `1.0`)
 - **`N`** normalizes the structural terms by the larger genome's size
 
 This lets the engine separate genuinely different architectures from ones that merely differ in their connection weights.
@@ -140,4 +142,34 @@ This lets the engine separate genuinely different architectures from ones that m
 
 		```rust
 		--8<-- "rust/diversity/distance.rs:neat_distance"
+		```
+
+---
+
+## Tree Distance
+
+**Compatible with**: `TreeNode<T>`
+
+A structural distance for trees, based on Ekárt & Németh's structural alignment distance. The two trees are laid over each other from the root, children matched by position, and compared node by node:
+
+- a node in both trees with the same value costs `0`
+- a node in both trees with different values costs `2`
+- a node in only one tree costs `1`
+
+Each level down counts `1/k` as much as the level above (`k` defaults to `2`), so a different root weighs more than a different leaf. The total is normalized to `[0, 1]`: identical trees are `0`, and trees that match at no aligned position are `1`. For multi-tree genotypes the distance is the average over the tree pairs.
+
+It runs in time linear in the trees' size, which makes it cheap enough for speciation. Setting `k` to `1` weighs every node equally.
+
+=== ":fontawesome-brands-python: Python"
+
+	```python
+	--8<-- "python/diversity/distance.py:tree"
+	```
+
+=== ":fontawesome-brands-rust: Rust"
+
+	!!! note "requires the `gp` feature flag"
+
+		```rust
+		--8<-- "rust/diversity/distance.rs:tree_distance"
 		```

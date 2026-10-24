@@ -28,6 +28,8 @@ This is the primary, owned type — the default epoch for the engine, and the on
 
 === ":fontawesome-brands-python: Python"
 
+    The fields of a `Generation` are properties: `result.value`, `result.score`, `result.index` and so on, with no parentheses.
+
     ```python
     --8<-- "python/engine/generations.py:single_objective"
     ```

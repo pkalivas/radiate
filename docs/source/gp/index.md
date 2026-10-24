@@ -25,7 +25,7 @@ This section is organized as:
 | Page | Covers |
 |---|---|
 | [Ops](op.md) | the operation catalog — functions, variables, constants — and writing custom ops |
-| [Node](node.md) | the roles a node can play in a tree or graph, and the `NodeStore` |
+| [Node](node.md) | the roles a node can play in a tree or graph, and the `NodeSet` |
 | [Tree](trees.md) | tree structure, its codec, and tree-specific alterers |
 | [Graph](graph.md) | graph structure, architectures (directed / weighted / recurrent / LSTM / GRU), codec, and alterers |
 | [Regression](regression.md) | evolving a tree or graph to fit input/output data |
