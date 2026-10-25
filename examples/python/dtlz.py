@@ -57,7 +57,6 @@ engine = (
     .limit(rd.Limit.generations(2000))
 )
 
-
 result = engine.run(ui=True)
 hypervolume = result.front.hypervolume([1.0, 1.0, 1.0])
 

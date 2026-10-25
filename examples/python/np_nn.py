@@ -16,22 +16,7 @@ ROOT = Path(__file__).parent.parent
 WRITE_DIR = ROOT / "data" / "scratch"
 READ_DIR = ROOT / "data" / "scratch" / "chckpnt_50.json"
 
-
-def compute(x: float) -> float:
-    return 4.0 * x**3 - 3.0 * x**2 + x
-
-
-inputs = []
-answers = []
-
-x = -1.0
-for _ in range(20):
-    x += 0.1
-    inputs.append([x])
-    answers.append([compute(x)])
-
-X = np.array(inputs, dtype=np.float32)  # (N, 1)
-Y = np.array(answers, dtype=np.float32)  # (N, 1)
+X, Y = rd.DataSet.cubic(dtype=rd.Float32).pair()
 
 # Add bias term: (N, 2) = [x, 1]
 Xb = np.concatenate([X, np.ones((X.shape[0], 1), dtype=np.float32)], axis=1)
