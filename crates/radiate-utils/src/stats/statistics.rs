@@ -5,8 +5,8 @@ use std::{fmt::Debug, hash::Hash};
 
 use crate::{Float, Primitive};
 
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Adder<F: Float = f32> {
     compensation: F,
     simple_sum: F,

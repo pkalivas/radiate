@@ -49,33 +49,33 @@ const FOOD_POSITIONS: LazyLock<[(i32, i32); 1000]> = LazyLock::new(|| {
     positions
 });
 
-fn main() {
+fn main() -> RadiateResult<()> {
     let mut args = std::env::args();
     args.next();
     let engine_type = args.next().unwrap_or_else(|| "g".to_string());
 
     match engine_type.as_str() {
-        "g" => run_graph_engine(),
-        "n" => run_neural_net_engine(),
+        "g" => run_graph_engine()?,
+        "n" => run_neural_net_engine()?,
         _ => {
             eprintln!("Unknown engine type: {}", engine_type);
             std::process::exit(1);
         }
     }
+
+    Ok(())
 }
 
-fn run_graph_engine() {
-    let store = vec![
-        (NodeType::Input, Op::vars(0..INPUT_SIZE)),
-        (NodeType::Edge, vec![Op::weight()]),
-        (NodeType::Vertex, ops::all_ops()),
-        (NodeType::Output, vec![Op::sigmoid()]),
+fn run_graph_engine() -> RadiateResult<()> {
+    let set = node_set![
+        Input => Op::vars(0..INPUT_SIZE),
+        Edge => Op::weight(),
+        Vertex => ops::all_ops(),
+        Output => Op::sigmoid()
     ];
 
     // only allow graphs to evolve +10 more nodes than inputs * outputs
-    let codec = GraphCodec::weighted_directed(INPUT_SIZE, OUTPUT_SIZE, store)
-        .unwrap()
-        .with_max_nodes(10);
+    let codec = GraphCodec::weighted_directed(INPUT_SIZE, OUTPUT_SIZE, set)?.with_max_nodes(10);
 
     let engine = GeneticEngine::builder()
         .codec(codec)
@@ -102,9 +102,11 @@ fn run_graph_engine() {
             println!("{}", generation.metrics().dashboard());
         })
         .unwrap();
+
+    Ok(())
 }
 
-fn run_neural_net_engine() {
+fn run_neural_net_engine() -> RadiateResult<()> {
     let shapes = vec![(INPUT_SIZE, 16), (16, 16), (16, OUTPUT_SIZE)];
     let engine = GeneticEngine::builder()
         .codec(FloatCodec::tensor(shapes, -1.0..1.0).with_bounds(-5.0..5.0))
@@ -130,6 +132,8 @@ fn run_neural_net_engine() {
             println!("{}", generation.metrics().dashboard());
         })
         .unwrap();
+
+    Ok(())
 }
 
 fn snake_fitness<'a>(ai: &mut SnakeAI<'a>) -> f32 {

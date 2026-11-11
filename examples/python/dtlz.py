@@ -41,9 +41,9 @@ engine = (
     .objective(rd.MIN, rd.MIN, rd.MIN)
     .front_range(200, 250)
     # NSGA-III for 3+ objectives: crowded-comparison tournament for parents, reference-point
+    # niching for survivors. A lower offspring fraction keeps more of the evaluated front.
     # rd.Select.nsga3(points=12),
     # NSGA-II also works honestly just fine for this example
-    # niching for survivors. A lower offspring fraction keeps more of the evaluated front.
     .select(
         rd.Select.tournament_nsga2(),
         rd.Select.nsga2(),
