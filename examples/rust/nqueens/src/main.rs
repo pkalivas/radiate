@@ -1,8 +1,8 @@
-use radiate::*;
+use radiate::prelude::*;
 
 const N_QUEENS: usize = 120;
 
-fn main() {
+fn main() -> RadiateResult<()> {
     random_provider::seed(514);
 
     let engine = GeneticEngine::builder()
@@ -31,7 +31,7 @@ fn main() {
         })
         .build();
 
-    let result = engine.iter().logging().until_score(0).last().unwrap();
+    let result = engine.iter().logging().until_score(0).last()?;
 
     println!("Best Score: {result:?}");
     println!("\nResult Queens Board ({:.3?}):", result.time());
@@ -47,4 +47,6 @@ fn main() {
         }
         println!();
     }
+
+    Ok(())
 }

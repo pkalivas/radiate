@@ -177,6 +177,9 @@ class MetricCollector(EventHandler):
         )
 
     def plot(self, *names: str):
+        self.plot_titled("Metrics over Epochs", list(names))
+
+    def plot_titled(self, title: str, names: list[str]):
         from .._dependancies import _PLOTLY_AVAILABLE
 
         if not _PLOTLY_AVAILABLE:
@@ -210,7 +213,7 @@ class MetricCollector(EventHandler):
         fig.update_layout(
             xaxis_title="Epoch",
             yaxis_title="Value",
-            title="Metrics over Epochs",
+            title=title,
             hovermode="x unified",
         )
 

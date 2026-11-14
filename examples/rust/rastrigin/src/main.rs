@@ -6,7 +6,7 @@ const A: f32 = 10.0;
 const RANGE: f32 = 5.12;
 const N_GENES: usize = 2;
 
-fn main() {
+fn main() -> RadiateResult<()> {
     let engine = GeneticEngine::builder()
         .codec(FloatChromosome::from((N_GENES, -RANGE..RANGE)))
         .minimizing()
@@ -28,7 +28,9 @@ fn main() {
     let result = engine.run(|view| {
         println!("[ {:?} ]: {:?}", view.index(), view.score().as_f32());
         view.score().as_f32() <= MIN_SCORE || view.seconds() > MAX_SECONDS
-    });
+    })?;
 
     println!("{result:?}");
+
+    Ok(())
 }
