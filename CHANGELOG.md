@@ -10,6 +10,17 @@ For all code examples and further explanations, refer to the [documentation](htt
 
 ## [1.3.3] - 2026-11-14
 
+I feel the need, the need for speed.
+
+### Highlights
+
+- Built-in datasets for classification and regression.
+- New crossover and mutation operators for permutations, floats, and trees.
+- Batch evaluation for graphs and trees.
+- Packed bit chromosomes for large bit strings.
+- Novelty search now supports any descriptor type.
+- Less `random_provider` locking - performance, performance, performance.
+
 ### Added
 
 - **Built-in datasets.** `DataSet` (Rust) and `rd.DataSet` (Python) come with ready-made problems: classification (`iris`, `xor`, `parity`, `moons`, `circles`, `spirals`, `simple_memory`) and regression (`cubic`, `koza1`, `nguyen7`, `pagie1`; `friedman1` is Rust only). Random datasets respect the global seed. `DataSet` moved from `radiate_gp` to `radiate_utils` and is re-exported from `radiate`. `standardize()`/`normalize()` now take `&mut self`.
