@@ -2,7 +2,13 @@
 
 ___
 
-The engine can be driven two ways: as a plain iterator, or through `run()`/`.last()` against attached [`Limit`s](limits.md). Prefer limits whenever you only care about the final result — they're checked against the engine's live state directly, with no per-generation `Generation` snapshot built along the way. Reach for the iterator when you actually need to observe or act on every generation as it happens — see the [Example](example.md) page for a case where that's genuinely necessary.
+The engine runtime is a light wrapper around an engine which uses the engine's trait methods to drive. It runs _as much as possible_ in place, meaning it avoids unnecessary cloning, allocating, and recomputation. That being said, because its intent is primarily to provide the user with a dynamic and interactive way to run an engine, it will only run in place as long as the operations being called on it, allow it (more on this later). To actually execute the engine, you either iterate over it or use one of the convenience methods like `run()` or `last()` against attached [`Limit`s](limits.md). 
+
+### Running
+
+I mentioned above that the runtime tries to run the engine in place as much as possible, lets dive into what that really means. In technical terms, it means the runtime will attempt to reuse existing memory, computation, and references wherever it can by simply looping over the engine's operations using mutable state. The reason this boundary is drawn, is because a `Generation` is the main output of the engine, and the `Generation` contains data that, when cloned or modified frequently, can be expensive to maintain (quite expensive, in some cases). When the user specifies an operation(s) that require a fresh `Generation` or modify the engine's state in a way that prevents in-place execution, the runtime will fall back to creating new snapshots and performing the necessary recomputation. This 'swap' between the in-place and snapshot-based execution is handled automatically by the runtime and is transparent to the user. So, what would cause the runtime to fall back to snapshot-based execution? Any operation that needs to see a consistent view or an owned copy of the engine's state across multiple generations, or that modifies the state in a way that cannot be done in place, will trigger this behavior. Things like looping over the engine in a for loop, or calling `next(engine)` repeatedly, will force the runtime to create new `Generation` snapshots for each iteration. So, prefer using radiate's limit-driven methods whenever possible.
+
+Common iterator methods like `take(n)` can be transformed into limit-driven operations under the hood, allowing in-place execution. This same sort of optimization is applied in many other iterator-like methods provided by the runtime, such as `until_generation(n)` or `until_seconds(t)`.
 
 === ":fontawesome-brands-python: Python"
 
