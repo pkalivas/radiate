@@ -6,7 +6,7 @@ hide:
   - toc
 hero:
   badge:
-    text: v1.3.2 released 09/27/26 · multi-objective fixes and a faster PMX
+    text: v1.3.3 released 11/14/26 · GP speed, Differential evolution, and real bit string support
     link: source/releases/
   title: radiate
   # Optional: `banner: {light: <image>, dark: <image>}` shows images instead of the text title.

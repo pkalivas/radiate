@@ -8,6 +8,19 @@ For all code examples and further explanations, refer to the [documentation](htt
 
 ## [Unreleased]
 
+## [1.3.3] - 2026-11-14
+
+I feel the need, the need for speed.
+
+### Highlights
+
+- Built-in datasets for classification and regression.
+- New crossover and mutation operators for permutations, floats, and trees.
+- Batch evaluation for graphs and trees.
+- Packed bit chromosomes for large bit strings.
+- Novelty search now supports any descriptor type.
+- Less `random_provider` locking - performance, performance, performance.
+
 ### Added
 
 - **Built-in datasets.** `DataSet` (Rust) and `rd.DataSet` (Python) come with ready-made problems: classification (`iris`, `xor`, `parity`, `moons`, `circles`, `spirals`, `simple_memory`) and regression (`cubic`, `koza1`, `nguyen7`, `pagie1`; `friedman1` is Rust only). Random datasets respect the global seed. `DataSet` moved from `radiate_gp` to `radiate_utils` and is re-exported from `radiate`. `standardize()`/`normalize()` now take `&mut self`.
@@ -24,7 +37,7 @@ For all code examples and further explanations, refer to the [documentation](htt
 
 ### Changed
 
-- **One `fitness_fn` for every kind of fitness function.** The builder infers single, batch, or raw-genotype evaluation from the function's signature. `batch_fitness_fn`, `raw_fitness_fn` and `raw_batch_fitness_fn` are deprecated. Closures no longer implement `FitnessFunction`/`BatchFitnessFunction` directly. A batch function returning the wrong number of scores is now an error instead of silently dropping individuals. In reality, this should be a relatively small change and a nice API cleanup.
+- **One `fitness_fn` to rule them all.** The builder infers single, batch, or raw-genotype evaluation from the function's signature. `batch_fitness_fn`, `raw_fitness_fn` and `raw_batch_fitness_fn` are deprecated. Closures no longer implement `FitnessFunction`/`BatchFitnessFunction` directly. A batch function returning the wrong number of scores is now an error instead of silently dropping individuals. In reality, this should be a relatively small change and a nice API cleanup.
 - **Python: `Generation` getters are properties** (breaking). `result.value()`, `result.score()`, `result.index()` etc. become `result.value`, `result.score`, `result.index`.
 - **Python: numpy batch fitness gets a single array** of shape `(n, genes)` (or `(n, chromosomes, genes)`) instead of a list of arrays, and may return a numpy array of scores. Decode errors and invalid limits, filters or distances now raise instead of being silently ignored.
 - **GP op changes** (breaking). `weight2` is renamed to `dot`, `linear` is replaced by `sum`, `Op::constant` takes a name, and the bool ops `eq`, `ne`, `le` and `iff` are removed. Saved graphs or trees that use the old names will no longer deserialize. Op outputs are now clamped to ±1e7 for `f32` (was ±1e10).
