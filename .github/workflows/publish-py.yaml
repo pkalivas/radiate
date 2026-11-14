@@ -48,18 +48,26 @@ jobs:
       fail-fast: false
       matrix:
         platform:
+          # ft: free-threaded interpreters to build for. 32-bit targets only
+          # support free-threading from CPython 3.15.
           - runner: ubuntu-22.04
             target: x86_64
+            ft: python3.14t python3.15t
           - runner: ubuntu-22.04
             target: x86
+            ft: python3.15t
           - runner: ubuntu-22.04
             target: aarch64
+            ft: python3.14t python3.15t
           - runner: ubuntu-22.04
             target: armv7
+            ft: python3.15t
           - runner: ubuntu-22.04
             target: s390x
+            ft: python3.14t python3.15t
           - runner: ubuntu-22.04
             target: ppc64le
+            ft: python3.14t python3.15t
     steps:
       - uses: actions/checkout@v4
         if: ${{ github.event_name != 'workflow_dispatch' }}
@@ -88,10 +96,9 @@ jobs:
         with:
           working-directory: ${{ env.PY_RADIATE_DIR }}
           target: ${{ matrix.platform.target }}
-          # Free-threaded targets 3.14t: the free-threaded stable ABI (abi3)
-          # only exists from CPython 3.14, so abi3-py39 + 3.13t cannot build.
-          # python3.14t is provided by the manylinux container image.
-          args: --release --out dist -i python3.14t
+          # abi3 doesn't cover free-threaded builds, so each version gets its
+          # own wheel. The interpreters are provided by the manylinux container image.
+          args: --release --out dist -i ${{ matrix.platform.ft }}
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
           manylinux: auto
 
@@ -108,14 +115,20 @@ jobs:
       fail-fast: false
       matrix:
         platform:
+          # ft: free-threaded interpreters to build for. 32-bit targets only
+          # support free-threading from CPython 3.15.
           - runner: ubuntu-22.04
             target: x86_64
+            ft: python3.14t python3.15t
           - runner: ubuntu-22.04
             target: x86
+            ft: python3.15t
           - runner: ubuntu-22.04
             target: aarch64
+            ft: python3.14t python3.15t
           - runner: ubuntu-22.04
             target: armv7
+            ft: python3.15t
     steps:
       - uses: actions/checkout@v4
         if: ${{ github.event_name != 'workflow_dispatch' }}
@@ -144,10 +157,9 @@ jobs:
         with:
           working-directory: ${{ env.PY_RADIATE_DIR }}
           target: ${{ matrix.platform.target }}
-          # Free-threaded targets 3.14t: the free-threaded stable ABI (abi3)
-          # only exists from CPython 3.14, so abi3-py39 + 3.13t cannot build.
-          # python3.14t is provided by the musllinux container image.
-          args: --release --out dist -i python3.14t
+          # abi3 doesn't cover free-threaded builds, so each version gets its
+          # own wheel. The interpreters are provided by the musllinux container image.
+          args: --release --out dist -i ${{ matrix.platform.ft }}
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
           manylinux: musllinux_1_2
 
@@ -164,10 +176,17 @@ jobs:
       fail-fast: false
       matrix:
         platform:
+          # ft: free-threaded interpreters to build for, ft_setup: the same
+          # versions for setup-python. 32-bit targets only support
+          # free-threading from CPython 3.15.
           - runner: windows-latest
             target: x64
+            ft: python3.14t python3.15t
+            ft_setup: "3.14t\n3.15t"
           - runner: windows-latest
             target: x86
+            ft: python3.15t
+            ft_setup: "3.15t"
     steps:
       - uses: actions/checkout@v4
         if: ${{ github.event_name != 'workflow_dispatch' }}
@@ -193,7 +212,7 @@ jobs:
       - uses: actions/setup-python@v5
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.free_threaded }}
         with:
-          python-version: 3.14t
+          python-version: ${{ matrix.platform.ft_setup }}
           architecture: ${{ matrix.platform.target }}
 
       - name: Build free-threaded wheels
@@ -202,9 +221,8 @@ jobs:
         with:
           working-directory: ${{ env.PY_RADIATE_DIR }}
           target: ${{ matrix.platform.target }}
-          # Free-threaded targets 3.14t: the free-threaded stable ABI (abi3)
-          # only exists from CPython 3.14, so abi3-py39 + 3.13t cannot build.
-          args: --release --out dist -i python3.14t
+          # abi3 doesn't cover free-threaded builds, so each version gets its own wheel.
+          args: --release --out dist -i ${{ matrix.platform.ft }}
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
       - name: Upload wheels
@@ -220,8 +238,10 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - runner: macos-14
+          - runner: macos-15
             target: aarch64
+            ft: python3.14t python3.15t
+            ft_setup: "3.14t\n3.15t"
     steps:
       - uses: actions/checkout@v4
         if: ${{ github.event_name != 'workflow_dispatch' }}
@@ -246,7 +266,7 @@ jobs:
       - uses: actions/setup-python@v5
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.free_threaded }}
         with:
-          python-version: 3.14t
+          python-version: ${{ matrix.platform.ft_setup }}
 
       - name: Build free-threaded wheels
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.free_threaded }}
@@ -254,9 +274,8 @@ jobs:
         with:
           working-directory: ${{ env.PY_RADIATE_DIR }}
           target: ${{ matrix.platform.target }}
-          # Free-threaded targets 3.14t: the free-threaded stable ABI (abi3)
-          # only exists from CPython 3.14, so abi3-py39 + 3.13t cannot build.
-          args: --release --out dist -i python3.14t
+          # abi3 doesn't cover free-threaded builds, so each version gets its own wheel.
+          args: --release --out dist -i ${{ matrix.platform.ft }}
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
       - name: Upload wheels
