@@ -159,7 +159,7 @@ engine = (
 
 # These metrics are now available in every generation result
 result = engine.run()
-metrics = result.metrics()
+metrics = result.metrics
 print(metrics["score_trend"].value_last())
 print(metrics["score_cv"].value_last())
 # --8<-- [end:derived_metrics]

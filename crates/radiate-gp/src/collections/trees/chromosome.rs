@@ -1,40 +1,36 @@
-use crate::{NodeStore, TreeNode};
+use crate::{Factory, NodeSet, Tree, TreeIterator, TreeNode};
 use radiate_core::{Chromosome, Valid};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::{fmt::Debug, hash::Hash, sync::Arc};
+use std::{fmt::Debug, hash::Hash};
 
-type Constraint<N> = Arc<dyn Fn(&N) -> bool + Send + Sync>;
+pub(crate) const DEFAULT_MAX_SIZE: u32 = 200;
 
 #[derive(Clone, Default)]
 pub struct TreeChromosome<T> {
-    nodes: Vec<TreeNode<T>>,
-    store: Option<NodeStore<T>>,
-    constraint: Option<Constraint<TreeNode<T>>>,
+    root: TreeNode<T>,
+    store: Option<NodeSet<T>>,
+    max_size: Option<u32>,
 }
 
 impl<T> TreeChromosome<T> {
-    pub fn new(
-        nodes: Vec<TreeNode<T>>,
-        store: Option<NodeStore<T>>,
-        constraint: Option<Constraint<TreeNode<T>>>,
-    ) -> Self {
+    pub fn new(root: TreeNode<T>, store: Option<NodeSet<T>>, max_size: Option<u32>) -> Self {
         TreeChromosome {
-            nodes,
+            root,
             store,
-            constraint,
+            max_size,
         }
     }
 
     pub fn root(&self) -> &TreeNode<T> {
-        &self.nodes[0]
+        &self.root
     }
 
     pub fn root_mut(&mut self) -> &mut TreeNode<T> {
-        &mut self.nodes[0]
+        &mut self.root
     }
 
-    pub fn get_store(&self) -> Option<NodeStore<T>> {
+    pub fn get_store(&self) -> Option<NodeSet<T>> {
         self.store.clone()
     }
 }
@@ -46,40 +42,53 @@ where
     type Gene = TreeNode<T>;
 
     fn get(&self, index: usize) -> Option<&Self::Gene> {
-        self.nodes.get(index)
+        if index != 0 {
+            return None;
+        }
+
+        Some(&self.root)
     }
 
     fn get_mut(&mut self, index: usize) -> Option<&mut Self::Gene> {
-        self.nodes.get_mut(index)
+        if index != 0 {
+            return None;
+        }
+
+        Some(&mut self.root)
     }
 
     fn set(&mut self, index: usize, gene: Self::Gene) {
-        if let Some(slot) = self.nodes.get_mut(index) {
-            *slot = gene;
+        if index != 0 {
+            return;
         }
+
+        self.root = gene;
     }
 
     fn iter(&self) -> impl Iterator<Item = &Self::Gene> {
-        self.nodes.iter()
+        std::iter::once(&self.root)
     }
 
     fn iter_mut(&mut self) -> impl Iterator<Item = &mut Self::Gene> {
-        self.nodes.iter_mut()
+        std::iter::once(&mut self.root)
     }
 
     fn len(&self) -> usize {
-        self.nodes.len()
+        1
     }
 }
 
 impl<T> Valid for TreeChromosome<T> {
     fn is_valid(&self) -> bool {
-        for gene in &self.nodes {
-            if let Some(constraint) = &self.constraint {
-                if !constraint(gene) {
-                    return false;
-                }
-            } else if !gene.is_valid() {
+        let max_size = self.max_size.unwrap_or(DEFAULT_MAX_SIZE);
+        let mut valid = true;
+        let mut count = 0_u32;
+
+        for node in self.root.iter_breadth_first() {
+            count += 1;
+            valid &= node.arity_matches_children();
+
+            if !valid || count > max_size {
                 return false;
             }
         }
@@ -88,42 +97,58 @@ impl<T> Valid for TreeChromosome<T> {
     }
 }
 
-impl<T> From<Vec<TreeNode<T>>> for TreeChromosome<T> {
-    fn from(nodes: Vec<TreeNode<T>>) -> Self {
+impl<T> Factory<Option<NodeSet<T>>, TreeChromosome<T>> for TreeChromosome<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    fn new_instance(&self, input: Option<NodeSet<T>>) -> TreeChromosome<T> {
+        input
+            .or_else(|| self.store.clone())
+            .map(|store| {
+                TreeChromosome::new(
+                    Tree::with_depth(self.root.height(), &store)
+                        .take_root()
+                        .unwrap_or_else(|| self.root.clone()),
+                    Some(store.clone()),
+                    self.max_size,
+                )
+            })
+            .map(|chrom| {
+                if chrom.len() != self.len() {
+                    self.clone()
+                } else {
+                    chrom
+                }
+            })
+            .unwrap_or_else(|| self.clone())
+    }
+}
+
+impl<T> From<TreeNode<T>> for TreeChromosome<T> {
+    fn from(node: TreeNode<T>) -> Self {
         TreeChromosome {
-            nodes,
+            root: node,
             store: None,
-            constraint: None,
+            max_size: Some(DEFAULT_MAX_SIZE),
         }
     }
 }
 
-impl<T> FromIterator<TreeNode<T>> for TreeChromosome<T> {
-    fn from_iter<I: IntoIterator<Item = TreeNode<T>>>(iter: I) -> Self {
-        let nodes: Vec<TreeNode<T>> = iter.into_iter().collect();
-        TreeChromosome {
-            nodes,
-            store: None,
-            constraint: None,
-        }
+impl<T> AsRef<TreeNode<T>> for TreeChromosome<T> {
+    fn as_ref(&self) -> &TreeNode<T> {
+        &self.root
     }
 }
 
-impl<T> AsRef<[TreeNode<T>]> for TreeChromosome<T> {
-    fn as_ref(&self) -> &[TreeNode<T>] {
-        &self.nodes
-    }
-}
-
-impl<T> AsMut<[TreeNode<T>]> for TreeChromosome<T> {
-    fn as_mut(&mut self) -> &mut [TreeNode<T>] {
-        &mut self.nodes
+impl<T> AsMut<TreeNode<T>> for TreeChromosome<T> {
+    fn as_mut(&mut self) -> &mut TreeNode<T> {
+        &mut self.root
     }
 }
 
 impl<T: PartialEq> PartialEq for TreeChromosome<T> {
     fn eq(&self, other: &Self) -> bool {
-        self.nodes == other.nodes
+        self.root == other.root
     }
 }
 
@@ -132,24 +157,22 @@ impl<T> IntoIterator for TreeChromosome<T> {
     type IntoIter = std::vec::IntoIter<TreeNode<T>>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.nodes.into_iter()
+        vec![self.root].into_iter()
     }
 }
 
 impl<T: Hash> Hash for TreeChromosome<T> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        for node in self.as_ref() {
-            node.hash(state);
-        }
+        self.root.hash(state);
     }
 }
 
 impl<T: Debug> Debug for TreeChromosome<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("TreeChromosome")
-            .field("nodes", &self.nodes)
+            .field("nodes", &self.root)
             .field("store", &self.store)
-            .field("constraint", &self.constraint.is_some())
+            .field("max_size", &self.max_size)
             .finish()
     }
 }
@@ -163,7 +186,7 @@ where
     where
         S: Serializer,
     {
-        (&self.nodes, &self.store).serialize(serializer)
+        (&self.root, &self.store).serialize(serializer)
     }
 }
 
@@ -176,13 +199,13 @@ where
     where
         D: Deserializer<'de>,
     {
-        let (nodes, store): (Vec<TreeNode<T>>, Option<NodeStore<T>>) =
+        let (node, store): (TreeNode<T>, Option<NodeSet<T>>) =
             Deserialize::deserialize(deserializer)?;
 
         Ok(TreeChromosome {
-            nodes,
+            root: node,
             store,
-            constraint: None, // There is no good way to serialize constraints directly
+            max_size: Some(DEFAULT_MAX_SIZE),
         })
     }
 }
@@ -193,7 +216,7 @@ mod tests {
     use crate::{Node, NodeType};
 
     fn create_test_chromosome() -> TreeChromosome<i32> {
-        let mut store = NodeStore::new();
+        let mut store = NodeSet::new();
         store.insert(NodeType::Vertex, vec![1, 2, 3]);
         store.insert(NodeType::Leaf, vec![4, 5]);
 
@@ -206,16 +229,15 @@ mod tests {
             ],
         );
 
-        TreeChromosome::new(vec![root], Some(store), None)
+        TreeChromosome::new(root, Some(store), None)
     }
 
     #[test]
     fn test_new_chromosome() {
-        let chromosome = TreeChromosome::new(vec![TreeNode::new(42)], None, None);
+        let chromosome = TreeChromosome::new(TreeNode::new(42), None, None);
 
-        assert_eq!(chromosome.nodes.len(), 1);
         assert_eq!(chromosome.store, None);
-        assert!(chromosome.constraint.is_none());
+        assert!(chromosome.max_size.is_none());
         assert_eq!(chromosome.root().value(), &42);
     }
 
@@ -249,25 +271,18 @@ mod tests {
 
     #[test]
     fn test_constraint_validation() {
-        let constraint = Arc::new(|node: &TreeNode<i32>| node.value() % 2 == 0);
         let chromosome = TreeChromosome::new(
-            vec![TreeNode::with_children(
-                2,
-                vec![TreeNode::new(4), TreeNode::new(6)],
-            )],
+            TreeNode::with_children(2, vec![TreeNode::new(4), TreeNode::new(6)]),
             None,
-            Some(constraint.clone()),
+            Some(DEFAULT_MAX_SIZE),
         );
 
         assert!(chromosome.is_valid());
 
         let invalid_chromosome = TreeChromosome::new(
-            vec![TreeNode::with_children(
-                1,
-                vec![TreeNode::new(4), TreeNode::new(6)],
-            )],
+            TreeNode::with_children(1, vec![TreeNode::new(4), TreeNode::new(6)]),
             None,
-            Some(constraint),
+            Some(1),
         );
         assert!(!invalid_chromosome.is_valid());
     }
@@ -276,7 +291,7 @@ mod tests {
     fn test_partial_eq() {
         let chromosome1 = create_test_chromosome();
         let chromosome2 = create_test_chromosome();
-        let chromosome3 = TreeChromosome::new(vec![TreeNode::new(42)], None, None);
+        let chromosome3 = TreeChromosome::new(TreeNode::new(42), None, None);
 
         assert_eq!(chromosome1, chromosome2);
         assert_ne!(chromosome1, chromosome3);
@@ -290,50 +305,47 @@ mod tests {
         let serialized = serde_json::to_string(&chromosome).unwrap();
         let deserialized: TreeChromosome<i32> = serde_json::from_str(&serialized).unwrap();
 
-        assert_eq!(chromosome.nodes, deserialized.nodes);
+        assert_eq!(chromosome.root, deserialized.root);
         assert!(deserialized.store.is_some());
 
         let store = deserialized.store.unwrap();
 
         assert!(store.contains_type(NodeType::Vertex));
         assert!(store.contains_type(NodeType::Leaf));
-        assert!(deserialized.constraint.is_none());
+        assert!(deserialized.max_size.is_some());
     }
 
     #[test]
     #[cfg(feature = "serde")]
     fn test_serialize_deserialize_with_complex_type() {
         use crate::Op;
-        let mut store = NodeStore::new();
+        let mut store = NodeSet::new();
         store.insert(NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]);
-        store.insert(NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]);
+        store.insert(NodeType::Leaf, vec![Op::one(), Op::two()]);
 
         let root = TreeNode::with_children(
             Op::add(),
             vec![
                 TreeNode::with_children(
                     Op::mul(),
-                    vec![
-                        TreeNode::new(Op::constant(1.0)),
-                        TreeNode::new(Op::constant(2.0)),
-                    ],
+                    vec![TreeNode::new(Op::one()), TreeNode::new(Op::two())],
                 ),
-                TreeNode::new(Op::constant(3.0)),
+                TreeNode::new(Op::three()),
             ],
         );
 
-        let chromosome = TreeChromosome::new(vec![root], Some(store), None);
+        let chromosome = TreeChromosome::new(root, Some(store), None);
 
         let serialized = serde_json::to_string(&chromosome).unwrap();
         let deserialized: TreeChromosome<Op<f32>> = serde_json::from_str(&serialized).unwrap();
 
-        assert_eq!(chromosome.nodes, deserialized.nodes);
+        assert_eq!(chromosome.root, deserialized.root);
     }
 
     #[test]
     #[cfg(feature = "serde")]
     fn test_serialize_deserialize_empty() {
-        let chromosome: TreeChromosome<i32> = TreeChromosome::new(vec![], None, None);
+        let chromosome: TreeChromosome<i32> = TreeChromosome::new(TreeNode::new(0), None, None);
 
         let serialized = serde_json::to_string(&chromosome).unwrap();
         let deserialized: TreeChromosome<i32> = serde_json::from_str(&serialized).unwrap();
@@ -344,13 +356,12 @@ mod tests {
     #[test]
     #[cfg(feature = "serde")]
     fn test_serialize_deserialize_with_constraint() {
-        let constraint = Arc::new(|node: &TreeNode<i32>| node.value() > &0);
-        let chromosome = TreeChromosome::new(vec![TreeNode::new(42)], None, Some(constraint));
+        let chromosome = TreeChromosome::new(TreeNode::new(42), None, Some(DEFAULT_MAX_SIZE));
 
         let serialized = serde_json::to_string(&chromosome).unwrap();
         let deserialized: TreeChromosome<i32> = serde_json::from_str(&serialized).unwrap();
 
-        assert_eq!(chromosome.nodes, deserialized.nodes);
-        assert!(deserialized.constraint.is_none());
+        assert_eq!(chromosome.root, deserialized.root);
+        assert!(deserialized.max_size.is_some());
     }
 }

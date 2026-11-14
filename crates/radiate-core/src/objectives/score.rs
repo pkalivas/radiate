@@ -1,11 +1,11 @@
-use radiate_error::RadiateError;
+use crate::error::RadiateResult;
+use radiate_error::{RadiateError, radiate_bail};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
 use std::hash::Hash;
-use std::iter::Sum;
-use std::ops::{Add, Div, Index, Mul, Sub};
+use std::ops::Index;
 use std::sync::Arc;
+use std::{borrow::Borrow, fmt::Debug};
 
 /// A trait for types that can be scored.
 /// We can use this for a common interface for all scored types.
@@ -16,93 +16,171 @@ pub trait Scored {
 /// A [Score] is a value that can be used to compare the fitness of two individuals and represents
 /// the 'fitness' of an individual within the genetic algorithm.
 /// The [Score] can be a single value or multiple values, depending on the problem being solved.
-/// For ease of use the [Score] struct provides methods
-/// to convert the score to a single value, an integer, a string, or a vector of `f32` values.
-///
-/// Note: The reason it is a Vec is for multi-objective optimization problems. This allows for multiple
-/// fitness values to be returned from the fitness function.
-#[derive(Clone, PartialEq, Default)]
-#[repr(transparent)]
-pub struct Score {
-    values: Arc<[f32]>,
+#[derive(Clone, PartialEq)]
+pub enum Score {
+    Single(f32),
+    Multi(Arc<[f32]>),
 }
 
 impl Score {
     pub fn from_vec(values: Vec<f32>) -> Self {
-        Score {
-            values: Arc::from(values),
+        if values.len() == 1 {
+            Score::Single(values[0])
+        } else {
+            Score::Multi(Arc::from(values))
         }
     }
 
     pub fn is_multi_objective(&self) -> bool {
-        self.values.len() > 1
+        match &self {
+            Score::Single(_) => false,
+            Score::Multi(v) => v.len() > 1,
+        }
     }
 
     pub fn is_single_objective(&self) -> bool {
-        self.values.len() == 1
+        match &self {
+            Score::Single(_) => true,
+            Score::Multi(v) => v.len() == 1,
+        }
     }
 
-    pub fn objective(&self, idx: usize) -> Option<&f32> {
-        self.values.get(idx)
+    pub fn dims(&self) -> usize {
+        match &self {
+            Score::Single(_) => 1,
+            Score::Multi(v) => v.len(),
+        }
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &f32> + '_ {
+        match &self {
+            Score::Single(v) => std::slice::from_ref(v).iter(),
+            Score::Multi(v) => v.iter(),
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        match &self {
+            Score::Single(_) => 1,
+            Score::Multi(v) => v.len(),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        match &self {
+            Score::Single(_) => false,
+            Score::Multi(v) => v.is_empty(),
+        }
     }
 
     #[inline]
     pub fn first(&self) -> Option<f32> {
-        self.values.first().cloned()
+        match &self {
+            Score::Single(v) => Some(*v),
+            Score::Multi(v) => v.first().cloned(),
+        }
     }
 
     pub fn as_slice(&self) -> &[f32] {
-        &self.values
+        match &self {
+            Score::Single(v) => std::slice::from_ref(v),
+            Score::Multi(v) => v,
+        }
     }
 
     pub fn as_f32(&self) -> f32 {
-        self.values.first().cloned().unwrap_or(f32::NAN)
+        match &self {
+            Score::Single(v) => *v,
+            Score::Multi(v) => v.first().cloned().unwrap_or(f32::NAN),
+        }
     }
 
     pub fn as_f64(&self) -> f64 {
-        self.values.first().cloned().unwrap_or(f32::NAN) as f64
+        self.first().unwrap_or(f32::NAN) as f64
     }
 
     pub fn as_i32(&self) -> i32 {
-        self.values[0] as i32
-    }
-
-    pub fn as_string(&self) -> String {
-        self.values[0].to_string()
+        match &self {
+            Score::Single(v) => *v as i32,
+            Score::Multi(v) => v[0] as i32,
+        }
     }
 
     pub fn as_usize(&self) -> usize {
-        self.values[0] as usize
+        match &self {
+            Score::Single(v) => *v as usize,
+            Score::Multi(v) => v[0] as usize,
+        }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &f32> + '_ {
-        self.values.iter()
+    pub fn scale<F>(&self, func: F) -> Score
+    where
+        F: Fn(f32) -> f32,
+    {
+        match &self {
+            Score::Single(v) => Score::from(func(*v)),
+            Score::Multi(v) => Score::from(v.iter().map(|x| func(*x)).collect::<Vec<f32>>()),
+        }
     }
 
-    pub fn len(&self) -> usize {
-        self.values.len()
-    }
+    pub fn merge<F>(&self, other: &Score, func: F) -> RadiateResult<Score>
+    where
+        F: Fn(f32, f32) -> f32,
+    {
+        match (&self, &other) {
+            (Score::Single(a), Score::Single(b)) => Ok(Score::from(func(*a, *b))),
+            (Score::Multi(a), Score::Multi(b)) => {
+                if a.len() != b.len() {
+                    radiate_bail!(Fitness: "Mismatched lengths when combining scores: {} vs {}", a.len(), b.len());
+                }
 
-    pub fn is_empty(&self) -> bool {
-        self.values.is_empty()
+                Ok(Score::from(
+                    a.iter()
+                        .zip(b.iter())
+                        .map(|(x, y)| func(*x, *y))
+                        .collect::<Vec<f32>>(),
+                ))
+            }
+            _ => {
+                radiate_bail!(Fitness:
+                     "Mismatched score types when combining scores: {:?} vs {:?}", &self, &other)
+            }
+        }
+    }
+}
+
+impl Default for Score {
+    fn default() -> Self {
+        Score::Multi(Vec::new().into())
     }
 }
 
 impl AsRef<[f32]> for Score {
     fn as_ref(&self) -> &[f32] {
-        &self.values
+        match &self {
+            Score::Single(v) => std::slice::from_ref(v),
+            Score::Multi(v) => v,
+        }
     }
 }
 
 impl PartialOrd for Score {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.values.partial_cmp(&other.values)
+        match (&self, &other) {
+            (Score::Single(a), Score::Single(b)) => a.partial_cmp(b),
+            (Score::Single(a), Score::Multi(b)) => a.partial_cmp(&b[0]),
+            (Score::Multi(a), Score::Single(b)) => a[0].partial_cmp(b),
+            (Score::Multi(a), Score::Multi(b)) => a[0].partial_cmp(&b[0]),
+        }
     }
 }
 
 impl Debug for Score {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.values)
+        match &self {
+            Score::Single(v) => write!(f, "{:?}", v),
+            Score::Multi(v) => write!(f, "{:?}", v),
+        }
     }
 }
 
@@ -110,34 +188,76 @@ impl Eq for Score {}
 
 impl Hash for Score {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        let mut hash: usize = 0;
-
-        for value in self.values.iter() {
-            let value_hash = value.to_bits();
-            hash = hash.wrapping_add(value_hash as usize);
+        match &self {
+            Score::Single(v) => {
+                if *v == 0.0 {
+                    0_u32.hash(state);
+                } else {
+                    v.to_bits().hash(state);
+                }
+            }
+            Score::Multi(v) => {
+                v.len().hash(state);
+                for value in v.iter() {
+                    if *value == 0.0 {
+                        0_u32.hash(state);
+                    } else {
+                        value.to_bits().hash(state);
+                    }
+                }
+            }
         }
-
-        hash.hash(state);
     }
 }
 
 impl Index<usize> for Score {
     type Output = f32;
     fn index(&self, index: usize) -> &Self::Output {
-        &self.values[index]
+        match &self {
+            Score::Single(v) => v,
+            Score::Multi(v) => &v[index],
+        }
     }
 }
 
-impl From<Score> for Vec<f32> {
-    fn from(score: Score) -> Vec<f32> {
-        score.values.to_vec()
-    }
-}
+impl<I, S, F> TryFrom<(I, F)> for Score
+where
+    I: Iterator<Item = S>,
+    S: Borrow<Score>,
+    F: Fn(f32, f32) -> f32,
+{
+    type Error = RadiateError;
 
-impl From<f32> for Score {
-    fn from(value: f32) -> Self {
-        Score {
-            values: Arc::from(vec![value]),
+    fn try_from((scores, func): (I, F)) -> Result<Self, Self::Error> {
+        let mut peekable = scores.peekable();
+        if peekable.peek().is_none() {
+            radiate_bail!(Fitness: "Cannot aggregate an empty list of scores");
+        }
+
+        let dims = peekable.peek().map_or_default(|val| val.borrow().dims());
+
+        if dims == 0 {
+            radiate_bail!(Fitness: "Cannot aggregate Vec<Score> with zero dimensions");
+        } else if dims == 1 {
+            let sum = peekable.fold(0.0, |acc, score| match &score.borrow() {
+                Score::Single(v) => func(acc, *v),
+                Score::Multi(v) => func(acc, v[0]),
+            });
+            Ok(Score::from(sum))
+        } else {
+            let sum = peekable.fold(vec![0.0; dims], |mut acc, score| {
+                match &score.borrow() {
+                    Score::Single(v) => acc[0] = func(acc[0], *v),
+                    Score::Multi(v) => {
+                        for (i, value) in v.iter().enumerate() {
+                            acc[i] = func(acc[i], *value);
+                        }
+                    }
+                }
+                acc
+            });
+
+            Ok(Score::Multi(sum.into()))
         }
     }
 }
@@ -146,61 +266,46 @@ impl TryFrom<i16> for Score {
     type Error = RadiateError;
 
     fn try_from(value: i16) -> Result<Self, Self::Error> {
-        Ok(Score {
-            values: Arc::from(vec![value as f32]),
-        })
+        Ok(Score::Single(value as f32))
+    }
+}
+
+impl From<Score> for Vec<f32> {
+    fn from(score: Score) -> Vec<f32> {
+        match score {
+            Score::Single(v) => vec![v],
+            Score::Multi(v) => v.to_vec(),
+        }
+    }
+}
+
+impl From<f32> for Score {
+    fn from(value: f32) -> Self {
+        Score::Single(value)
     }
 }
 
 impl From<f64> for Score {
     fn from(value: f64) -> Self {
-        Score {
-            values: Arc::from(vec![value as f32]),
-        }
+        Score::Single(value as f32)
     }
 }
 
 impl From<i32> for Score {
     fn from(value: i32) -> Self {
-        Score {
-            values: Arc::from(vec![value as f32]),
-        }
+        Score::Single(value as f32)
     }
 }
 
 impl From<i64> for Score {
     fn from(value: i64) -> Self {
-        Score {
-            values: Arc::from(vec![value as f32]),
-        }
+        Score::Single(value as f32)
     }
 }
 
 impl From<usize> for Score {
     fn from(value: usize) -> Self {
-        Score {
-            values: Arc::from(vec![value as f32]),
-        }
-    }
-}
-
-impl From<String> for Score {
-    fn from(value: String) -> Self {
-        Score {
-            values: Arc::from(vec![
-                value.parse::<f32>().expect("Failed to parse string to f32"),
-            ]),
-        }
-    }
-}
-
-impl From<&str> for Score {
-    fn from(value: &str) -> Self {
-        Score {
-            values: Arc::from(vec![
-                value.parse::<f32>().expect("Failed to parse string to f32"),
-            ]),
-        }
+        Score::Single(value as f32)
     }
 }
 
@@ -246,248 +351,13 @@ impl From<Vec<usize>> for Score {
     }
 }
 
-impl From<Vec<String>> for Score {
-    fn from(value: Vec<String>) -> Self {
-        Score::from_vec(
-            value
-                .into_iter()
-                .map(|v| v.parse::<f32>().unwrap())
-                .collect(),
-        )
-    }
-}
-
-impl From<Vec<&str>> for Score {
-    fn from(value: Vec<&str>) -> Self {
-        Score::from_vec(
-            value
-                .into_iter()
-                .map(|v| v.parse::<f32>().unwrap())
-                .collect(),
-        )
-    }
-}
-
-impl Add for Score {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self {
-        if self.values.is_empty() {
-            return other;
-        }
-
-        let mut values = Vec::with_capacity(self.values.len());
-
-        for i in 0..self.values.len() {
-            values.push(self.values[i] + other.values[i]);
-        }
-
-        Score {
-            values: Arc::from(values),
-        }
-    }
-}
-
-impl Add<f32> for Score {
-    type Output = Self;
-
-    fn add(self, other: f32) -> Self {
-        if self.values.is_empty() {
-            return Score::from(other);
-        }
-
-        let mut values = Vec::with_capacity(self.values.len());
-        for i in 0..self.values.len() {
-            values.push(self.values[i] + other);
-        }
-
-        Score {
-            values: values.into(),
-        }
-    }
-}
-
-impl Sub for Score {
-    type Output = Self;
-
-    fn sub(self, other: Self) -> Self {
-        if self.values.is_empty() {
-            return other;
-        }
-
-        let mut values = Vec::with_capacity(self.values.len());
-
-        for i in 0..self.values.len() {
-            values.push(self.values[i] - other.values[i]);
-        }
-
-        Score {
-            values: Arc::from(values),
-        }
-    }
-}
-
-impl Sub<f32> for Score {
-    type Output = Self;
-
-    fn sub(self, other: f32) -> Self {
-        if self.values.is_empty() {
-            return Score::from(-other);
-        }
-
-        let mut values = Vec::with_capacity(self.values.len());
-        for i in 0..self.values.len() {
-            values.push(self.values[i] - other);
-        }
-
-        Score {
-            values: Arc::from(values),
-        }
-    }
-}
-
-impl Mul for Score {
-    type Output = Self;
-
-    fn mul(self, other: Self) -> Self {
-        if self.values.is_empty() {
-            return other;
-        }
-
-        let mut values = Vec::with_capacity(self.values.len());
-        for i in 0..self.values.len() {
-            values.push(self.values[i] * other.values[i]);
-        }
-
-        Score {
-            values: Arc::from(values),
-        }
-    }
-}
-
-impl Mul<f32> for Score {
-    type Output = Self;
-
-    fn mul(self, other: f32) -> Self {
-        if self.values.is_empty() {
-            return Score::from(other);
-        }
-
-        let mut values = Vec::with_capacity(self.values.len());
-        for i in 0..self.values.len() {
-            values.push(self.values[i] * other);
-        }
-
-        Score {
-            values: Arc::from(values),
-        }
-    }
-}
-
-impl Mul<Score> for f32 {
-    type Output = Score;
-
-    fn mul(self, other: Score) -> Score {
-        if other.values.is_empty() {
-            return Score::from(self);
-        }
-
-        let mut values = Vec::with_capacity(other.values.len());
-        for i in 0..other.values.len() {
-            values.push(other.values[i] * self);
-        }
-
-        Score {
-            values: Arc::from(values),
-        }
-    }
-}
-
-impl Div for Score {
-    type Output = Self;
-
-    fn div(self, other: Self) -> Self {
-        if self.values.is_empty() {
-            return other;
-        }
-
-        let mut values = Vec::with_capacity(self.values.len());
-        for i in 0..self.values.len() {
-            values.push(self.values[i] / other.values[i]);
-        }
-
-        Score {
-            values: Arc::from(values),
-        }
-    }
-}
-
-impl Div<f32> for Score {
-    type Output = Self;
-
-    fn div(self, other: f32) -> Self {
-        if self.values.is_empty() {
-            return Score::from(other);
-        }
-
-        let mut values = Vec::with_capacity(self.values.len());
-        for i in 0..self.values.len() {
-            values.push(self.values[i] / other);
-        }
-
-        Score {
-            values: Arc::from(values),
-        }
-    }
-}
-
-impl Sum for Score {
-    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        let mut values = vec![];
-
-        for score in iter {
-            for (i, value) in score.values.iter().enumerate() {
-                if values.len() <= i {
-                    values.push(*value);
-                } else {
-                    values[i] += value;
-                }
-            }
-        }
-
-        Score {
-            values: Arc::from(values),
-        }
-    }
-}
-
-impl<'a> Sum<&'a Score> for Score {
-    fn sum<I: Iterator<Item = &'a Score>>(iter: I) -> Self {
-        let mut values = vec![];
-
-        for score in iter {
-            for (i, value) in score.values.iter().enumerate() {
-                if values.len() <= i {
-                    values.push(*value);
-                } else {
-                    values[i] += value;
-                }
-            }
-        }
-
-        Score {
-            values: Arc::from(values),
-        }
-    }
-}
-
 #[cfg(feature = "serde")]
 impl Serialize for Score {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        self.values.as_ref().serialize(serializer)
+        self.as_slice().serialize(serializer)
     }
 }
 
@@ -504,8 +374,10 @@ impl<'de> Deserialize<'de> for Score {
             }
         }
 
-        Ok(Score {
-            values: Arc::from(vec),
+        Ok(match vec.len() {
+            0 => Score::Single(0.0),
+            1 => Score::Single(vec[0]),
+            _ => Score::Multi(vec.into()),
         })
     }
 }
@@ -517,13 +389,13 @@ mod tests {
     #[test]
     fn test_score_from_vec() {
         let score = Score::from(vec![1.0, 2.0, 3.0]);
-        assert_eq!(score.values.len(), 3);
+        assert_eq!(score.len(), 3);
     }
 
     #[test]
     fn test_score_from_usize() {
         let score = Score::from(3);
-        assert_eq!(score.values.len(), 1);
+        assert_eq!(score.len(), 1);
         assert_eq!(score.as_f32(), 3.0);
         assert_eq!(score.as_i32(), 3);
     }
@@ -546,9 +418,9 @@ mod tests {
     fn test_score_add() {
         let score1 = Score::from(vec![1.0, 2.0, 3.0]);
         let score2 = Score::from(vec![4.0, 5.0, 6.0]);
-        let score3 = score1 + score2;
+        let score3 = score1.merge(&score2, |a, b| a + b).unwrap();
 
-        assert_eq!(score3.values.len(), 3);
+        assert_eq!(score3.len(), 3);
         assert_eq!(score3.as_f32(), 5.0);
         assert_eq!(score3[0], 5.0);
         assert_eq!(score3[1], 7.0);
@@ -559,8 +431,8 @@ mod tests {
     fn test_score_sub() {
         let score1 = Score::from(vec![5.0, 7.0, 9.0]);
         let score2 = Score::from(vec![4.0, 5.0, 6.0]);
-        let score3 = score1 - score2;
-        assert_eq!(score3.values.len(), 3);
+        let score3 = score1.merge(&score2, |a, b| a - b).unwrap();
+        assert_eq!(score3.len(), 3);
         assert_eq!(score3.as_f32(), 1.0);
         assert_eq!(score3[0], 1.0);
         assert_eq!(score3[1], 2.0);
@@ -571,8 +443,8 @@ mod tests {
     fn test_score_mul() {
         let score1 = Score::from(vec![1.0, 2.0, 3.0]);
         let score2 = Score::from(vec![4.0, 5.0, 6.0]);
-        let score3 = score1 * score2;
-        assert_eq!(score3.values.len(), 3);
+        let score3 = score1.merge(&score2, |a, b| a * b).unwrap();
+        assert_eq!(score3.len(), 3);
         assert_eq!(score3.as_f32(), 4.0);
         assert_eq!(score3[0], 4.0);
         assert_eq!(score3[1], 10.0);
@@ -583,8 +455,8 @@ mod tests {
     fn test_score_div() {
         let score1 = Score::from(vec![4.0, 8.0, 12.0]);
         let score2 = Score::from(vec![2.0, 4.0, 6.0]);
-        let score3 = score1 / score2;
-        assert_eq!(score3.values.len(), 3);
+        let score3 = score1.merge(&score2, |a, b| a / b).unwrap();
+        assert_eq!(score3.len(), 3);
         assert_eq!(score3.as_f32(), 2.0);
         assert_eq!(score3[0], 2.0);
         assert_eq!(score3[1], 2.0);

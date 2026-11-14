@@ -1,11 +1,11 @@
-use crate::{InputTransform, PyEngineInput, PyEngineInputType, PyGeneType, PyPopulation};
-use pyo3::{PyResult, pyfunction};
+use crate::{PyEngineInput, PyEngineInputType, PyGeneType, PyPopulation, Wrap};
+use pyo3::{PyResult, Python, pyfunction, types::PyAnyMethods};
 use radiate::prelude::*;
 use radiate_error::radiate_py_err;
 
 #[pyfunction]
-pub fn py_alter(
-    gene_type: PyGeneType,
+pub fn py_alter<'py>(
+    py: Python<'py>,
     alterer: PyEngineInput,
     population: PyPopulation,
     generation: usize,
@@ -17,111 +17,104 @@ pub fn py_alter(
         )));
     }
 
-    if !alterer.allowed_genes.contains(&gene_type) {
-        return Err(radiate_py_err!(format!(
-            "Alterer {} does not allow gene type {:?}",
-            alterer.component(),
-            gene_type
-        )));
-    }
+    let dtype = population.dtype(py)?.extract::<Wrap<DataType>>()?;
 
-    match gene_type {
-        PyGeneType::Float => {
-            let alterer =
-                InputTransform::<RadiateResult<Vec<Alterer<FloatChromosome<f64>>>>>::transform(
-                    &alterer,
-                )?;
-
-            Ok(PyPopulation::from(&alter(
-                alterer,
-                population.into(),
-                generation,
-            )?))
-        }
-        PyGeneType::Int => {
-            let alterer =
-                InputTransform::<RadiateResult<Vec<Alterer<IntChromosome<i64>>>>>::transform(
-                    &alterer,
-                )?;
-
-            Ok(PyPopulation::from(&alter(
-                alterer,
-                population.into(),
-                generation,
-            )?))
-        }
+    match population.gene_type() {
+        PyGeneType::Float => match dtype.0 {
+            DataType::Float32 => {
+                alter::<FloatChromosome<f32>>(alterer.convert()?, population.into(), generation)
+            }
+            DataType::Float64 => {
+                alter::<FloatChromosome<f64>>(alterer.convert()?, population.into(), generation)
+            }
+            _ => Err(radiate_py_err!(format!(
+                "Unsupported data type for Float gene type: {:?}",
+                dtype.0
+            ))),
+        },
+        PyGeneType::Int => match dtype.0 {
+            DataType::UInt8 => {
+                alter::<IntChromosome<u8>>(alterer.convert()?, population.into(), generation)
+            }
+            DataType::UInt16 => {
+                alter::<IntChromosome<u16>>(alterer.convert()?, population.into(), generation)
+            }
+            DataType::UInt32 => {
+                alter::<IntChromosome<u32>>(alterer.convert()?, population.into(), generation)
+            }
+            DataType::UInt64 => {
+                alter::<IntChromosome<u64>>(alterer.convert()?, population.into(), generation)
+            }
+            DataType::Int8 => {
+                alter::<IntChromosome<i8>>(alterer.convert()?, population.into(), generation)
+            }
+            DataType::Int16 => {
+                alter::<IntChromosome<i16>>(alterer.convert()?, population.into(), generation)
+            }
+            DataType::Int32 => {
+                alter::<IntChromosome<i32>>(alterer.convert()?, population.into(), generation)
+            }
+            DataType::Int64 => {
+                alter::<IntChromosome<i64>>(alterer.convert()?, population.into(), generation)
+            }
+            _ => Err(radiate_py_err!(format!(
+                "Unsupported data type for Int gene type: {:?}",
+                dtype.0
+            ))),
+        },
         PyGeneType::Char => {
-            let alterer =
-                InputTransform::<RadiateResult<Vec<Alterer<CharChromosome>>>>::transform(&alterer)?;
-
-            Ok(PyPopulation::from(&alter(
-                alterer,
-                population.into(),
-                generation,
-            )?))
+            alter::<CharChromosome>(alterer.convert()?, population.into(), generation)
         }
         PyGeneType::Bit => {
-            let alterer =
-                InputTransform::<RadiateResult<Vec<Alterer<BitChromosome>>>>::transform(&alterer)?;
-
-            Ok(PyPopulation::from(&alter(
-                alterer,
-                population.into(),
-                generation,
-            )?))
+            alter::<BitChromosome>(alterer.convert()?, population.into(), generation)
         }
         PyGeneType::Permutation => {
-            let alterer = InputTransform::<
-                RadiateResult<Vec<Alterer<PermutationChromosome<usize>>>>,
-            >::transform(&alterer)?;
-
-            Ok(PyPopulation::from(&alter(
-                alterer,
-                population.into(),
-                generation,
-            )?))
+            alter::<PermutationChromosome<usize>>(alterer.convert()?, population.into(), generation)
         }
-        PyGeneType::GraphNode => {
-            let alterer =
-                InputTransform::<RadiateResult<Vec<Alterer<GraphChromosome<Op<f32>>>>>>::transform(
-                    &alterer,
-                )?;
-
-            Ok(PyPopulation::from(&alter(
-                alterer,
-                population.into(),
-                generation,
-            )?))
-        }
-        PyGeneType::TreeNode => {
-            let alterer =
-                InputTransform::<RadiateResult<Vec<Alterer<TreeChromosome<Op<f32>>>>>>::transform(
-                    &alterer,
-                )?;
-
-            Ok(PyPopulation::from(&alter(
-                alterer,
-                population.into(),
-                generation,
-            )?))
-        }
+        PyGeneType::GraphNode => match dtype.0 {
+            DataType::Float64 => {
+                alter::<GraphChromosome<Op<f64>>>(alterer.convert()?, population.into(), generation)
+            }
+            DataType::Float32 => {
+                alter::<GraphChromosome<Op<f32>>>(alterer.convert()?, population.into(), generation)
+            }
+            _ => Err(radiate_py_err!(format!(
+                "Unsupported data type for GraphNode gene type: {:?}",
+                dtype.0
+            ))),
+        },
+        PyGeneType::TreeNode => match dtype.0 {
+            DataType::Float64 => {
+                alter::<TreeChromosome<Op<f64>>>(alterer.convert()?, population.into(), generation)
+            }
+            DataType::Float32 => {
+                alter::<TreeChromosome<Op<f32>>>(alterer.convert()?, population.into(), generation)
+            }
+            _ => Err(radiate_py_err!(format!(
+                "Unsupported data type for TreeNode gene type: {:?}",
+                dtype.0
+            ))),
+        },
         _ => Err(radiate_py_err!(format!(
             "Gene type {:?} not supported for alteration",
-            gene_type
+            population.gene_type()
         ))),
     }
 }
 
-fn alter<C: Chromosome>(
-    mut alterers: Vec<Alterer<C>>,
+fn alter<C>(
+    mut alterers: Alterer<C>,
     mut population: Population<C>,
     generation: usize,
-) -> RadiateResult<Population<C>> {
+) -> PyResult<PyPopulation>
+where
+    C: Chromosome,
+    PyPopulation: for<'a> From<&'a Population<C>>,
+{
     let mut metrics = MetricSet::default();
     let pop = population.as_mut();
-    for alterer in alterers.iter_mut() {
-        alterer.alter(pop, &mut metrics, generation)?;
-    }
 
-    Ok(population)
+    alterers.alter(pop, &mut metrics, generation)?;
+
+    Ok(PyPopulation::from(&population))
 }

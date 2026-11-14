@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from .._rd import components
-from ..genome import GENE_TYPE_MAPPING
 from ..genome.population import Population
 from .input import EngineInput, EngineInputType
 
@@ -26,8 +25,6 @@ class Select(EngineInput):
         """
         from radiate.radiate import py_select
 
-        gene_type = population.gene_type()
-
         objectives = objective if isinstance(objective, list) else [objective]
 
         objective_input = EngineInput(
@@ -37,7 +34,6 @@ class Select(EngineInput):
 
         return Population.from_rust(
             py_select(
-                gene_type=GENE_TYPE_MAPPING["rs"][gene_type],
                 selector=self.to_offspring_selector().__backend__(),
                 objective=objective_input,
                 population=population.__backend__(),
@@ -158,12 +154,12 @@ class Select(EngineInput):
 
         A higher `pressure` will result in a stronger bias towards fitter individuals, while a lower value will result in a more uniform selection.
 
-        :param pressure: Pressure for the linear rank selector.
+        :param pressure: Selection pressure in [1.0, 2.0]. 1.0 is uniform, 2.0 never selects the worst individual.
         """
         return Select(components.LINEAR_RANK_SELECTOR, pressure=pressure)
 
     @staticmethod
-    def stochastic_universal_sampling() -> Select:
+    def sus() -> Select:
         """
         Stochastic Universal Sampling (SUS) is a probabilistic selection technique used to ensure that selection is
         proportional to fitness, while maintaining diversity. Some consider it an improvement over roulette wheel selection,

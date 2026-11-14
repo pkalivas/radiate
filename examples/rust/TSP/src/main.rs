@@ -37,14 +37,16 @@ fn main() -> io::Result<()> {
         .run()
         .unwrap();
 
-    plot_tsp_solution(&result.value(), &distance_points).unwrap();
+    plot_tsp_solution(result.value(), &distance_points).unwrap();
 
     println!("{:?}", result.metrics());
 
     Ok(())
 }
 
-fn read_tsp_file(file_content: &str) -> io::Result<(Vec<Vec<f32>>, Vec<(f32, f32)>)> {
+type TspData = (Vec<Vec<f32>>, Vec<(f32, f32)>);
+
+fn read_tsp_file(file_content: &str) -> io::Result<TspData> {
     let lines = file_content.lines();
 
     let mut dimension = 0;

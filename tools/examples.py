@@ -11,6 +11,8 @@ ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES_DIR = ROOT / "examples"
 PY_EXAMPLES_DIR = EXAMPLES_DIR / "python"
 RS_EXAMPLES_DIR = EXAMPLES_DIR / "rust"
+PY_GRAPH_EXAMPLES_DIR = PY_EXAMPLES_DIR / "graphs"
+PY_TREE_EXAMPLES_DIR = PY_EXAMPLES_DIR / "trees"
 
 
 @dataclass
@@ -21,19 +23,35 @@ class Example:
 
 
 def load_py_examples() -> list[Example]:
-    return list(
-        map(
-            lambda py_file: Example(
-                name=py_file.stem,
-                path=py_file,
-                lang="python",
-            ),
-            filter(
-                lambda py_file: py_file.is_file() and not py_file.name.startswith("_"),
-                PY_EXAMPLES_DIR.glob("*.py"),
-            ),
-        )
-    )
+    result = []
+    for py_file in PY_EXAMPLES_DIR.rglob("*.py"):
+        if py_file.is_file() and not py_file.name.startswith("_"):
+            if py_file.parent == PY_GRAPH_EXAMPLES_DIR:
+                result.append(
+                    Example(
+                        name=f"graph-{py_file.stem}",
+                        path=py_file,
+                        lang="python",
+                    )
+                )
+            elif py_file.parent == PY_TREE_EXAMPLES_DIR:
+                result.append(
+                    Example(
+                        name=f"tree-{py_file.stem}",
+                        path=py_file,
+                        lang="python",
+                    )
+                )
+            else:
+                result.append(
+                    Example(
+                        name=py_file.stem,
+                        path=py_file,
+                        lang="python",
+                    )
+                )
+
+    return result
 
 
 def load_rs_examples() -> list[Example]:

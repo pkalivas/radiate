@@ -43,15 +43,15 @@ Each node type is defined by the `NodeType` enum:
 
 ---
 
-## Store
+## Node Set
 
-The `NodeStore<T>` manages available values for different node types, providing a centralized way to define what values can be used in each position of your genetic program. This makes it super easy to create `trees` or `graphs` from a specific template or with a specific structure.
+The `NodeSet<T>` manages available values for different node types, providing a centralized way to define what values can be used in each position of your genetic program. This makes it super easy to create `trees` or `graphs` from a specific template or with a specific structure.
 
 **Usage Examples:**
 
 === ":fontawesome-brands-python: Python"
 
-    There is no node store for python - it isn't necessary for the api. Instead, the types of nodes are directly given by their codec or structure.
+    There is no node set for python - it isn't necessary for the api. Instead, the types of nodes are directly given by their codec or structure.
 
 === ":fontawesome-brands-rust: Rust"
 
@@ -64,8 +64,8 @@ The `NodeStore<T>` manages available values for different node types, providing 
 - **Tree**: `Root`, `Vertex`, `Leaf`
 - **Graph**: `Input`, `Output`, `Vertex`, `Edge`
 
-**Store Validation:**
-The node store ensures that:
+**Validation:**
+The node set ensures that:
 
 - Each node type has appropriate values
 - Values have compatible arity for their node type

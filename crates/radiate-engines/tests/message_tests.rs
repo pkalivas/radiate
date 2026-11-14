@@ -158,7 +158,7 @@ mod event_stream_tests {
         let pongs = Arc::new(AtomicUsize::new(0));
 
         stream
-            .attatch(Both {
+            .attach(Both {
                 pings: Arc::clone(&pings),
                 pongs: Arc::clone(&pongs),
             })

@@ -153,7 +153,7 @@ where
                 params.optimization_params.front.clone().unwrap(),
             )),
             offspring_fraction: params.selection_params.offspring_fraction,
-            evaluator: params.evaluation_params.evaluator.clone(),
+            evaluator: params.evaluation_params.evaluator.clone().unwrap(),
             executor: params.evaluation_params.clone(),
             generation: params.generation.clone(),
             exprs: params.exprs.clone(),

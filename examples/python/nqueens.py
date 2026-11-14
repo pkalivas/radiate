@@ -13,7 +13,7 @@ from numba import jit, uint8
 
 rd.random.seed(514)
 
-N_QUEENS = 40
+N_QUEENS = 100
 
 
 @jit(uint8(uint8[:]), nopython=True)
@@ -37,7 +37,7 @@ engine = (
     .minimizing()
     .alter(
         rd.Cross.multipoint(0.75, 2),
-        rd.Mutate.uniform(0.05),
+        rd.Mutate.uniform(1.0 / float(N_QUEENS)),
     )
     .limit(rd.Limit.score(0))
 )
@@ -47,7 +47,7 @@ result = engine.run(ui=True)
 print(result)
 
 
-board = result.value()
+board = result.value
 for i in range(N_QUEENS):
     for j in range(N_QUEENS):
         if board[j] == i:

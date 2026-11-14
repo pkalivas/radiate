@@ -20,7 +20,7 @@ def test_handler_integration(simple_float_engine, random_seed):
         simple_float_engine.subscribe(test_handler).limit(rd.Limit.generations(5)).run()
     )
 
-    assert result.index() == 5
+    assert result.index == 5
     assert change is True
 
 
@@ -48,7 +48,7 @@ def test_handler_integration_with_multiple_handlers(simple_float_engine, random_
         .limit(rd.Limit.generations(50))
         .run()
     )
-    assert result.index() == 50
+    assert result.index == 50
     assert change1 is True
     assert change2 is True
 
@@ -71,11 +71,11 @@ def test_receives_all_events(simple_float_engine, random_seed):
 
     for key, value in events.items():
         if key == rd.EventType.EPOCH_START:
-            assert len(value) == result.index()
+            assert len(value) == result.index
         elif key == rd.EventType.ENGINE_IMPROVEMENT:
             assert len(value) >= 1
         elif key == rd.EventType.EPOCH_COMPLETE:
-            assert len(value) == result.index()
+            assert len(value) == result.index
         elif key == rd.EventType.LIMIT_TRIGGERED:
             assert len(value) == 1
         elif key == rd.EventType.STOP:

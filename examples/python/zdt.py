@@ -39,18 +39,18 @@ engine = (
 )
 
 result = engine.run(ui=True)
-front = result.front()
+front = result.front
 hypervolume = front.hypervolume([1.1, 1.1])
 
-print(result.metrics().dashboard())
+print(result.metrics.dashboard())
 print()
 # ZDT3's Pareto front is five disconnected pieces with f1 in [0, ~0.85] and f2 in [~-0.77, 1].
 # With the standard reference point of 1.1 in both objectives, the best achievable
 # hypervolume is ≈ 1.332.
 print(f"Hypervolume: {hypervolume}")
 
-x = [member.score()[0] for member in front]
-y = [member.score()[1] for member in front]
+x = [member.score[0] for member in front]
+y = [member.score[1] for member in front]
 
 fig = go.Figure(go.Scatter(x=x, y=y, mode="markers"))
 fig.show()

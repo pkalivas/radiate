@@ -9,7 +9,7 @@ def test_generations_limit(simple_float_engine):
     limit = rd.Limit.generations(10)
     result = simple_float_engine.limit(limit).run()
 
-    assert result.index() == 10
+    assert result.index == 10
 
 
 @pytest.mark.unit
@@ -27,7 +27,7 @@ def test_score_limit(simple_float_engine):
     limit = rd.Limit.score(0.01)
     result = simple_float_engine.limit(limit).run()
 
-    assert result.score()[0] <= 0.01
+    assert result.score[0] <= 0.01
 
 
 @pytest.mark.unit
@@ -67,4 +67,4 @@ def test_expr_limit(simple_float_engine):
 
     result = simple_float_engine.limit(rd.Limit.expr(limit)).run()
 
-    assert result.index() == 10, "Expression limit should stop at index >= 10"
+    assert result.index == 10, "Expression limit should stop at index >= 10"

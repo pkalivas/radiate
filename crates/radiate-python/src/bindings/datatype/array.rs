@@ -1,4 +1,4 @@
-use numpy::{PyArrayDyn, PyArrayMethods, PyUntypedArrayMethods, ndarray::s};
+use numpy::{Element, PyArray1, PyArrayDyn, PyArrayMethods, PyUntypedArrayMethods};
 use pyo3::{
     Bound, PyAny, PyResult, Python,
     prelude::FromPyObjectOwned,
@@ -72,14 +72,11 @@ where
             radiate_py_bail!("Expected a 2D NumPy array",);
         }
 
-        let rows = array.shape()[0];
+        let shape = array.shape();
+        let rows = shape[0];
+        let cols = shape[1];
 
-        let mut matrix = Matrix::empty();
-        for i in 0..rows {
-            matrix.append_row(array.as_array().slice(s![i, ..]).to_vec());
-        }
-
-        return Ok(matrix);
+        return Ok(Matrix::from(array.as_slice()?.to_vec()).reshape(rows, cols));
     } else if let Ok(py_list) = obj.cast::<pyo3::types::PyList>() {
         let mut matrix = Matrix::empty();
         for item in py_list.try_iter()? {
@@ -97,7 +94,17 @@ where
     }
 
     Err(pyo3::exceptions::PyTypeError::new_err(format!(
-        "Input must be either a 2D NumPy array or a list of lists but found: {:?}",
+        "Input must be either a 2D NumPy array or a list of lists but found: {:?}\n
+         Please ensure your input is correctly formatted and your DataType is correct.",
         obj
     )))
+}
+
+pub(crate) fn matrix_to_numpy<'py, T: Element>(
+    py: Python<'py>,
+    matrix: &Matrix<T>,
+) -> PyResult<Bound<'py, PyAny>> {
+    Ok(PyArray1::from_slice(py, matrix.data())
+        .reshape([matrix.rows(), matrix.cols()])?
+        .into_any())
 }

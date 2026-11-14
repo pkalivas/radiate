@@ -21,16 +21,22 @@ class OpBuilder:
     def __init__(self, dtype: RdDataType, **kwargs):
         self.dtype = dtype
         self.ops = {}
+        self._seen = {key: set() for key in kwargs}
 
         for key, op in kwargs.items():
             if op is not None:
                 if isinstance(op, Op):
                     op._dtype = dtype
                     self.ops[key] = [op]
+                    self._seen[key].add(op.name())
                 elif isinstance(op, (list, tuple)):
+                    values = self.ops.get(key, [])
                     for o in op:
                         o._dtype = dtype
-                    self.ops[key] = list(op)
+                        if o.name() not in self._seen[key]:
+                            values.append(o)
+                            self._seen[key].add(o.name())
+                    self.ops[key] = values
 
 
 class Op(LazyRsObject):
@@ -43,6 +49,9 @@ class Op(LazyRsObject):
         self._name = name
         self._dtype = dtype if dtype is not None else Float64
         self._args = kwargs
+
+    def __repr__(self) -> str:
+        return self.__backend__().__repr__()
 
     def _initialize(self) -> Callable[[], Any]:
         def build():
@@ -61,18 +70,17 @@ class Op(LazyRsObject):
         return Op("var", dtype=dtype, index=idx)
 
     @staticmethod
-    def const(value: float, dtype: RdDataType | None = None) -> Op:
-        return Op("constant", dtype=dtype, value=value)
+    def const(name: str, value: float, dtype: RdDataType | None = None) -> Op:
+        return Op("constant", dtype=dtype, title=name, value=value)
 
     add = _op_factory("add")
     sub = _op_factory("sub")
     mul = _op_factory("mul")
     div = _op_factory("div")
     sigmoid = _op_factory("sigmoid")
-    weight = _op_factory("weight")
+    weight = _op_factory("w")
     relu = _op_factory("relu")
     tanh = _op_factory("tanh")
-    linear = _op_factory("linear")
     sum = _op_factory("sum")
     prod = _op_factory("prod")
     diff = _op_factory("diff")
@@ -90,16 +98,17 @@ class Op(LazyRsObject):
     floor = _op_factory("floor")
     max = _op_factory("max")
     min = _op_factory("min")
-    leaky_relu = _op_factory("leaky_relu")
+    leaky_relu = _op_factory("l_relu")
     elu = _op_factory("elu")
     mish = _op_factory("mish")
     swish = _op_factory("swish")
     softplus = _op_factory("softplus")
     gaussian = _op_factory("gaussian")
-    weight2 = _op_factory("weight2")
+    dot = _op_factory("dot")
     tooth = _op_factory("tooth")
     sign = _op_factory("sign")
     reciprocal = _op_factory("reciprocal")
+    erc = _op_factory("erc")
 
     @staticmethod
     def default_vertex_ops(dtype: RdDataType | None = None) -> list[Op]:
@@ -113,7 +122,7 @@ class Op(LazyRsObject):
             Op.cos(dtype=dtype),
             Op.tanh(dtype=dtype),
             Op.relu(dtype=dtype),
-            Op.linear(dtype=dtype),
+            Op.sum(dtype=dtype),
         ]
 
     @staticmethod

@@ -1,5 +1,5 @@
-use radiate_core::random_provider;
-use radiate_utils::{Float, Matrix};
+use crate::random_provider;
+use crate::{Float, Matrix};
 
 #[derive(Default, Clone)]
 pub struct DataSet<T> {
@@ -21,6 +21,16 @@ impl<T> DataSet<T> {
 
     pub fn len(&self) -> usize {
         self.features.rows()
+    }
+
+    /// The features as a row-major matrix: one row per sample.
+    pub fn feature_matrix(&self) -> &Matrix<T> {
+        &self.features
+    }
+
+    /// The labels as a row-major matrix: one row per sample.
+    pub fn label_matrix(&self) -> &Matrix<T> {
+        &self.labels
     }
 
     pub fn is_empty(&self) -> bool {
@@ -75,7 +85,6 @@ impl<T: Clone> DataSet<T> {
         DataSet { features, labels }
     }
 
-    #[inline]
     pub fn split(self, ratio: f32) -> (Self, Self) {
         let ratio = ratio.clamp(0.0, 1.0);
         let split = (self.len() as f32 * ratio).round() as usize;
@@ -96,12 +105,12 @@ impl<T: Clone> DataSet<T> {
 }
 
 impl<F: Float> DataSet<F> {
-    pub fn standardize(mut self) -> Self {
+    pub fn standardize(&mut self) -> &mut Self {
         self.features.standardize();
         self
     }
 
-    pub fn normalize(mut self) -> Self {
+    pub fn normalize(&mut self) -> &mut Self {
         self.features.normalize();
         self
     }

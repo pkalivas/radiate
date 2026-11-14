@@ -1,11 +1,27 @@
 use radiate_core::{
-    AlterContext, Chromosome, Crossover, Expr, PermutationChromosome, RateSet, random_provider,
+    AlterContext, Chromosome, ContiguousChromosome, Crossover, Expr, PermutationChromosome,
+    PermutationGene, RateSet, RdRand, random_provider,
 };
-use std::collections::{HashMap, HashSet};
 
-// Example: Parents [1,2,3,4,5] and [1,3,5,2,4]
-// Edge table: 1->[2,3], 2->[1,4], 3->[2,5], 4->[5,2], 5->[4,3]
-// Offspring: [1,2,4,5,3] (following edges when possible)
+/// Each node has at most two neighbours per parent, so at most four in the union.
+const MAX_EDGES: usize = 4;
+
+/// Edge Recombination Crossover (ERX, Whitley et al.). Builds an offspring that inherits
+/// as many adjacencies as possible from both parents - the operator of choice for
+/// tour-like permutations (TSP, routing) where *which genes are neighbours* matters
+/// more than where they sit.
+///
+/// Starting from a random node, the walk repeatedly moves to the current node's unvisited
+/// neighbour (in either parent) with the fewest unvisited neighbours of its own, breaking
+/// ties at random. Only when the current node has no unvisited neighbours left does it
+/// jump to a random unvisited node.
+///
+/// Example: parents `[1,2,3,4,5]` and `[1,3,5,2,4]`
+/// ```text
+/// edge table: 1->[2,5,3,4]  2->[1,3,5,4]  3->[2,4,1,5]  4->[3,5,2,1]  5->[4,1,3,2]
+/// ```
+///
+/// The offspring replaces the first chromosome; the second is left untouched.
 #[derive(Debug, Clone, PartialEq)]
 pub struct EdgeRecombinationCrossover {
     rate: Expr,
@@ -14,68 +30,6 @@ pub struct EdgeRecombinationCrossover {
 impl EdgeRecombinationCrossover {
     pub fn new(rate: impl Into<Expr>) -> Self {
         EdgeRecombinationCrossover { rate: rate.into() }
-    }
-
-    fn build_edge_table(&self, parent1: &[usize], parent2: &[usize]) -> HashMap<usize, Vec<usize>> {
-        let mut edge_table = HashMap::new();
-
-        for i in 0..parent1.len() {
-            let current = parent1[i];
-            let next = parent1[(i + 1) % parent1.len()];
-            let prev = parent1[(i + parent1.len() - 1) % parent1.len()];
-
-            edge_table
-                .entry(current)
-                .or_insert_with(Vec::new)
-                .push(next);
-            edge_table
-                .entry(current)
-                .or_insert_with(Vec::new)
-                .push(prev);
-        }
-
-        for i in 0..parent2.len() {
-            let current = parent2[i];
-            let next = parent2[(i + 1) % parent2.len()];
-            let prev = parent2[(i + parent2.len() - 1) % parent2.len()];
-
-            if !edge_table[&current].contains(&next) {
-                edge_table.get_mut(&current).unwrap().push(next);
-            }
-            if !edge_table[&current].contains(&prev) {
-                edge_table.get_mut(&current).unwrap().push(prev);
-            }
-        }
-
-        edge_table
-    }
-
-    fn select_next(
-        &self,
-        edge_table: &HashMap<usize, Vec<usize>>,
-        used: &HashSet<usize>,
-    ) -> Option<usize> {
-        let mut candidates = Vec::new();
-        let mut min_edges = usize::MAX;
-
-        for (node, edges) in edge_table {
-            if !used.contains(node) {
-                let available_edges = edges.iter().filter(|e| !used.contains(e)).count();
-                if available_edges < min_edges {
-                    min_edges = available_edges;
-                    candidates.clear();
-                    candidates.push(*node);
-                } else if available_edges == min_edges {
-                    candidates.push(*node);
-                }
-            }
-        }
-
-        if candidates.is_empty() {
-            None
-        } else {
-            Some(candidates[random_provider::range(0..candidates.len())])
-        }
     }
 }
 
@@ -94,350 +48,290 @@ where
         chrom_two: &mut PermutationChromosome<T>,
         _: &mut AlterContext,
     ) -> usize {
-        let parent1 = chrom_one.iter().map(|g| g.index()).collect::<Vec<usize>>();
-        let parent2 = chrom_two.iter().map(|g| g.index()).collect::<Vec<usize>>();
+        let n = chrom_one.len();
+        debug_assert_eq!(
+            n,
+            chrom_two.len(),
+            "parents must be permutations of the same set"
+        );
 
-        let edge_table = self.build_edge_table(&parent1, &parent2);
+        if n < 2 {
+            return 0;
+        }
 
-        let mut offspring = Vec::new();
-        let mut used = HashSet::new();
+        let mut table = build_edge_table([chrom_one.as_slice(), chrom_two.as_slice()]);
 
-        // Start with a random element
-        let start = parent1[random_provider::range(0..parent1.len())];
-        offspring.push(start);
-        used.insert(start);
+        random_provider::with_rng(|rand| {
+            let mut current = chrom_one.as_slice()[rand.range(0..n)].index();
+            place(&mut table, current, 0);
 
-        while offspring.len() < parent1.len() {
-            if let Some(next) = self.select_next(&edge_table, &used) {
-                offspring.push(next);
-                used.insert(next);
-            } else {
-                // If no valid next element, pick any unused element
-                for i in 0..parent1.len() {
-                    if !used.contains(&i) {
-                        offspring.push(i);
-                        used.insert(i);
-                        break;
-                    }
-                }
+            for rank in 1..n {
+                current = select_next(&table, current, n - rank, rand);
+                place(&mut table, current, rank);
             }
-        }
+        });
 
-        for (i, allele) in offspring.iter().enumerate() {
-            chrom_one.set(i, chrom_one.get(i).unwrap().with_index(*allele));
-        }
+        // The offspring is a reordering of chrom_one's own genes, so sort them into place
+        // rather than rebuilding each gene.
+        chrom_one
+            .as_mut_slice()
+            .sort_unstable_by_key(|gene| table[gene.index()].rank);
 
         1
+    }
+}
+
+/// One row of the edge table, indexed by [`PermutationGene::index`].
+#[derive(Clone, Copy, Default)]
+struct Node {
+    edges: [usize; MAX_EDGES],
+    len: u8,
+    /// Neighbours not yet placed in the offspring. Edges are symmetric, so placing a node
+    /// decrements this on each of its neighbours.
+    degree: u8,
+    used: bool,
+    /// Position in the offspring, once placed.
+    rank: usize,
+}
+
+impl Node {
+    fn edges(&self) -> &[usize] {
+        &self.edges[..self.len as usize]
+    }
+
+    fn link(&mut self, other: usize) {
+        if !self.edges().contains(&other) {
+            self.edges[self.len as usize] = other;
+            self.len += 1;
+        }
+    }
+}
+
+/// Union of both parents' cyclic adjacency, one [`Node`] per gene index.
+fn build_edge_table<T: PartialEq + Clone>(parents: [&[PermutationGene<T>]; 2]) -> Vec<Node> {
+    let n = parents[0].len();
+    let mut table = vec![Node::default(); n];
+
+    for parent in parents {
+        for i in 0..n {
+            let current = parent[i].index();
+            let next = parent[(i + 1) % n].index();
+            table[current].link(next);
+            table[next].link(current);
+        }
+    }
+
+    for node in &mut table {
+        node.degree = node.len;
+    }
+
+    table
+}
+
+/// Mark `node` as placed at `rank` and drop it from its neighbours' degrees.
+fn place(table: &mut [Node], node: usize, rank: usize) {
+    let Node { edges, len, .. } = table[node];
+    table[node].used = true;
+    table[node].rank = rank;
+
+    for &neighbour in &edges[..len as usize] {
+        table[neighbour].degree -= 1;
+    }
+}
+
+/// The unused neighbour of `current` with the fewest unused neighbours (ties broken at
+/// random), or a random unused node if `current` has none. `remaining` is the number
+/// of unused nodes and must be non-zero.
+fn select_next(table: &[Node], current: usize, remaining: usize, rand: &mut RdRand) -> usize {
+    let mut candidates = [0; MAX_EDGES];
+    let mut count = 0;
+    let mut min_degree = u8::MAX;
+
+    for &neighbour in table[current].edges() {
+        let node = &table[neighbour];
+        if node.used {
+            continue;
+        }
+
+        if node.degree < min_degree {
+            min_degree = node.degree;
+            count = 0;
+        }
+
+        if node.degree == min_degree {
+            candidates[count] = neighbour;
+            count += 1;
+        }
+    }
+
+    match count {
+        0 => {
+            let pick = rand.range(0..remaining);
+            table
+                .iter()
+                .enumerate()
+                .filter(|(_, node)| !node.used)
+                .nth(pick)
+                .map(|(index, _)| index)
+                .expect("remaining must match the number of unused nodes")
+        }
+        1 => candidates[0],
+        _ => candidates[rand.range(0..count)],
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use radiate_core::{
-        alter::AlterUpdates,
-        genome::{PermutationChromosome, PermutationGene},
-    };
+    use radiate_core::alter::AlterUpdates;
     use std::sync::Arc;
 
+    fn chromosome(order: &[usize]) -> PermutationChromosome<usize> {
+        let alleles: Arc<[usize]> = (0..order.len()).collect::<Vec<_>>().into();
+        let genes = order
+            .iter()
+            .map(|&i| PermutationGene::new(i, Arc::clone(&alleles)))
+            .collect();
+        PermutationChromosome::new(genes, alleles)
+    }
+
+    fn cross(one: &[usize], two: &[usize]) -> (Vec<usize>, usize) {
+        let (mut chrom_one, mut chrom_two) = (chromosome(one), chromosome(two));
+        let mut updates = AlterUpdates::default();
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
+
+        let count = EdgeRecombinationCrossover::new(1.0).cross_chromosomes(
+            &mut chrom_one,
+            &mut chrom_two,
+            &mut ctx,
+        );
+
+        (chrom_one.iter().map(|g| g.index()).collect(), count)
+    }
+
+    fn cyclic_edges(order: &[usize]) -> Vec<(usize, usize)> {
+        let n = order.len();
+        (0..n)
+            .map(|i| {
+                let (a, b) = (order[i], order[(i + 1) % n]);
+                (a.min(b), a.max(b))
+            })
+            .collect()
+    }
+
+    fn assert_permutation(values: &[usize]) {
+        let mut sorted = values.to_vec();
+        sorted.sort_unstable();
+        assert_eq!(sorted, (0..values.len()).collect::<Vec<_>>());
+    }
+
     #[test]
-    fn test_build_edge_table() {
-        let crossover = EdgeRecombinationCrossover::new(0.5);
-        let parent1 = vec![0, 1, 2, 3, 4];
-        let parent2 = vec![0, 2, 4, 1, 3];
+    fn edge_table_is_symmetric_union_of_parent_cycles() {
+        let (one, two) = (chromosome(&[0, 1, 2, 3, 4]), chromosome(&[0, 2, 4, 1, 3]));
+        let table = build_edge_table([one.as_slice(), two.as_slice()]);
 
-        let edge_table = crossover.build_edge_table(&parent1, &parent2);
+        let mut edges_1 = table[1].edges().to_vec();
+        edges_1.sort_unstable();
+        assert_eq!(edges_1, vec![0, 2, 3, 4]);
 
-        // Check that all elements have edges
-        assert!(edge_table.contains_key(&0));
-        assert!(edge_table.contains_key(&1));
-        assert!(edge_table.contains_key(&2));
-        assert!(edge_table.contains_key(&3));
-        assert!(edge_table.contains_key(&4));
-
-        // Check specific edges for element 1
-        let edges_1 = &edge_table[&1];
-        assert!(edges_1.contains(&0)); // from parent1: 1->0 (prev)
-        assert!(edges_1.contains(&2)); // from parent1: 1->2 (next)
-        assert!(edges_1.contains(&4)); // from parent2: 1->4 (next)
-        assert!(edges_1.contains(&2)); // from parent2: 1->2 (prev)
-
-        // Check that edges are unique
-        for edges in edge_table.values() {
-            let unique_edges: Vec<&usize> = edges.iter().collect();
-            assert_eq!(unique_edges.len(), edges.len());
+        for (node, row) in table.iter().enumerate() {
+            assert_eq!(row.degree, row.len);
+            for &neighbour in row.edges() {
+                assert!(table[neighbour].edges().contains(&node));
+            }
         }
     }
 
     #[test]
-    fn test_select_next_with_available_edges() {
-        let crossover = EdgeRecombinationCrossover::new(0.5);
-        let mut edge_table = HashMap::new();
-        edge_table.insert(0, vec![1, 2]);
-        edge_table.insert(1, vec![0, 3]);
-        edge_table.insert(2, vec![0, 3]);
-        edge_table.insert(3, vec![1, 2]);
+    fn edge_table_deduplicates_shared_edges() {
+        let (one, two) = (chromosome(&[0, 1, 2, 3]), chromosome(&[3, 2, 1, 0]));
+        let table = build_edge_table([one.as_slice(), two.as_slice()]);
 
-        let mut used = HashSet::new();
-        used.insert(0);
-        used.insert(1);
+        // Reversed tour shares every edge, so each node keeps exactly two neighbours.
+        assert!(table.iter().all(|row| row.len == 2));
+    }
 
-        // Should select 2 or 3 (both have 1 available edge)
-        let next = crossover.select_next(&edge_table, &used);
-        assert!(next.is_some());
-        let next_val = next.unwrap();
-        assert!(next_val == 2 || next_val == 3);
+    /// 0 - 1, 0 - 2, 2 - 3, 2 - 4: node 2 is a hub, node 1 a leaf.
+    fn star_table() -> Vec<Node> {
+        let mut table = vec![Node::default(); 5];
+        for (a, b) in [(0, 1), (0, 2), (2, 3), (2, 4)] {
+            table[a].link(b);
+            table[b].link(a);
+        }
+        for node in &mut table {
+            node.degree = node.len;
+        }
+        table
     }
 
     #[test]
-    fn test_select_next_no_available_edges() {
-        let crossover = EdgeRecombinationCrossover::new(0.5);
-        let mut edge_table = HashMap::new();
-        edge_table.insert(0, vec![1, 2]);
-        edge_table.insert(1, vec![0, 2]);
-        edge_table.insert(2, vec![0, 1]);
+    fn select_next_prefers_fewest_remaining_edges() {
+        let mut table = star_table();
+        place(&mut table, 0, 0);
 
-        let mut used = HashSet::new();
-        used.insert(0);
-        used.insert(1);
-        used.insert(2);
-
-        // No elements left to select
-        let next = crossover.select_next(&edge_table, &used);
-        assert!(next.is_none());
+        // From 0: leaf 1 has no unused neighbours left, hub 2 still has two.
+        assert_eq!(table[1].degree, 0);
+        assert_eq!(table[2].degree, 2);
+        let next = random_provider::with_rng(|rand| select_next(&table, 0, 4, rand));
+        assert_eq!(next, 1);
     }
 
     #[test]
-    fn test_cross_chromosomes_basic() {
-        let crossover = EdgeRecombinationCrossover::new(0.5);
+    fn select_next_falls_back_to_an_unused_node() {
+        let mut table = star_table();
+        place(&mut table, 0, 0);
+        place(&mut table, 1, 1);
 
-        let alleles: Arc<[usize]> = vec![0, 1, 2, 3, 4].into_boxed_slice().into();
-        let genes1 = vec![
-            PermutationGene::new(0, Arc::clone(&alleles)),
-            PermutationGene::new(1, Arc::clone(&alleles)),
-            PermutationGene::new(2, Arc::clone(&alleles)),
-            PermutationGene::new(3, Arc::clone(&alleles)),
-            PermutationGene::new(4, Arc::clone(&alleles)),
-        ];
-        let genes2 = vec![
-            PermutationGene::new(0, Arc::clone(&alleles)),
-            PermutationGene::new(2, Arc::clone(&alleles)),
-            PermutationGene::new(4, Arc::clone(&alleles)),
-            PermutationGene::new(1, Arc::clone(&alleles)),
-            PermutationGene::new(3, Arc::clone(&alleles)),
-        ];
-
-        let mut chrom_one = PermutationChromosome::new(genes1, Arc::clone(&alleles));
-        let mut chrom_two = PermutationChromosome::new(genes2, Arc::clone(&alleles));
-
-        let mut updates = AlterUpdates::default();
-        let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
-
-        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
-
-        // Should perform 1 crossover operation
-        assert_eq!(result, 1);
-
-        // Check that the chromosome is still valid (no duplicates)
-        let values: Vec<usize> = chrom_one.iter().map(|g| g.index()).collect();
-        let unique_values: Vec<usize> = values
-            .iter()
-            .cloned()
-            .collect::<std::collections::HashSet<_>>()
-            .into_iter()
-            .collect();
-        assert_eq!(values.len(), unique_values.len());
-
-        // Check that all values are in range
-        for value in values {
-            assert!(value < alleles.len());
+        // 1's only neighbour is used, so the walk must jump.
+        for _ in 0..20 {
+            let next = random_provider::with_rng(|rand| select_next(&table, 1, 3, rand));
+            assert!([2, 3, 4].contains(&next), "jumped to used node {next}");
         }
     }
 
     #[test]
-    fn test_cross_chromosomes_identical_parents() {
-        let crossover = EdgeRecombinationCrossover::new(0.5);
+    fn identical_parents_reproduce_the_tour() {
+        let parent = [3, 0, 4, 1, 5, 2, 6];
+        for _ in 0..50 {
+            let (child, count) = cross(&parent, &parent);
+            assert_eq!(count, 1);
 
-        let alleles: Arc<[usize]> = vec![0, 1, 2, 3, 4].into_boxed_slice().into();
-        let genes = vec![
-            PermutationGene::new(0, Arc::clone(&alleles)),
-            PermutationGene::new(1, Arc::clone(&alleles)),
-            PermutationGene::new(2, Arc::clone(&alleles)),
-            PermutationGene::new(3, Arc::clone(&alleles)),
-            PermutationGene::new(4, Arc::clone(&alleles)),
-        ];
-
-        let mut chrom_one = PermutationChromosome::new(genes.clone(), Arc::clone(&alleles));
-        let mut chrom_two = PermutationChromosome::new(genes, Arc::clone(&alleles));
-
-        let mut updates = AlterUpdates::default();
-        let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
-
-        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
-
-        // Should still perform crossover even with identical parents
-        assert_eq!(result, 1);
-
-        // The result should still be a valid permutation
-        let values: Vec<usize> = chrom_one.iter().map(|g| g.index()).collect();
-        let unique_values: Vec<usize> = values
-            .iter()
-            .cloned()
-            .collect::<std::collections::HashSet<_>>()
-            .into_iter()
-            .collect();
-        assert_eq!(values.len(), unique_values.len());
+            let mut expected = cyclic_edges(&parent);
+            let mut actual = cyclic_edges(&child);
+            expected.sort_unstable();
+            actual.sort_unstable();
+            assert_eq!(actual, expected, "child {child:?} broke a parent edge");
+        }
     }
 
     #[test]
-    fn test_cross_chromosomes_edge_cases() {
-        let crossover = EdgeRecombinationCrossover::new(0.5);
-
-        // Test with single element
-        let alleles: Arc<[usize]> = vec![0].into_boxed_slice().into();
-        let genes = vec![PermutationGene::new(0, Arc::clone(&alleles))];
-
-        let mut chrom_one = PermutationChromosome::new(genes.clone(), Arc::clone(&alleles));
-        let mut chrom_two = PermutationChromosome::new(genes, Arc::clone(&alleles));
-
-        let mut updates = AlterUpdates::default();
-        let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
-
-        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
-        assert_eq!(result, 1);
-
-        // Test with two elements
-        let alleles: Arc<[usize]> = vec![0, 1].into_boxed_slice().into();
-        let genes = vec![
-            PermutationGene::new(0, Arc::clone(&alleles)),
-            PermutationGene::new(1, Arc::clone(&alleles)),
-        ];
-
-        let mut chrom_one = PermutationChromosome::new(genes.clone(), Arc::clone(&alleles));
-        let mut chrom_two = PermutationChromosome::new(genes, Arc::clone(&alleles));
-
-        let mut updates = AlterUpdates::default();
-        let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
-
-        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
-        assert_eq!(result, 1);
-    }
-
-    #[test]
-    fn test_edge_recombination_property_based() {
-        let crossover = EdgeRecombinationCrossover::new(0.5);
-
-        // Test multiple random combinations
+    fn offspring_are_valid_permutations() {
         for _ in 0..100 {
-            let alleles: Arc<[usize]> = vec![0, 1, 2, 3, 4, 5, 6, 7].into_boxed_slice().into();
+            let one = random_provider::shuffled_indices(0..8);
+            let two = random_provider::shuffled_indices(0..8);
 
-            // Create random permutations
-            let mut indices1: Vec<usize> = (0..alleles.len()).collect();
-            let mut indices2: Vec<usize> = (0..alleles.len()).collect();
-
-            // Shuffle to create random permutations
-            for i in 0..indices1.len() {
-                let j = random_provider::range(i..indices1.len());
-                indices1.swap(i, j);
-            }
-            for i in 0..indices2.len() {
-                let j = random_provider::range(i..indices2.len());
-                indices2.swap(i, j);
-            }
-
-            let genes1: Vec<PermutationGene<usize>> = indices1
-                .iter()
-                .map(|&i| PermutationGene::new(i, Arc::clone(&alleles)))
-                .collect();
-            let genes2: Vec<PermutationGene<usize>> = indices2
-                .iter()
-                .map(|&i| PermutationGene::new(i, Arc::clone(&alleles)))
-                .collect();
-
-            let mut chrom_one = PermutationChromosome::new(genes1, Arc::clone(&alleles));
-            let mut chrom_two = PermutationChromosome::new(genes2, Arc::clone(&alleles));
-
-            let mut updates = AlterUpdates::default();
-            let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
-
-            let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
-
-            // Should always perform exactly 1 crossover
-            assert_eq!(result, 1);
-
-            // Result should be a valid permutation
-            let values: Vec<usize> = chrom_one.iter().map(|g| g.index()).collect();
-            let unique_values: Vec<usize> = values
-                .iter()
-                .cloned()
-                .collect::<std::collections::HashSet<_>>()
-                .into_iter()
-                .collect();
-            assert_eq!(values.len(), unique_values.len());
-
-            // All values should be in range
-            for value in values {
-                assert!(value < alleles.len());
-            }
+            let (child, count) = cross(&one, &two);
+            assert_eq!(count, 1);
+            assert_permutation(&child);
         }
     }
 
     #[test]
-    fn test_edge_table_construction_edge_cases() {
-        let crossover = EdgeRecombinationCrossover::new(0.5);
+    fn tiny_chromosomes() {
+        assert_eq!(cross(&[0], &[0]), (vec![0], 0));
 
-        // Test with circular permutations
-        let parent1 = vec![0, 1, 2, 3];
-        let parent2 = vec![3, 2, 1, 0];
-
-        let edge_table = crossover.build_edge_table(&parent1, &parent2);
-
-        // Each element should have edges to its neighbors in both parents
-        for i in 0..4 {
-            let edges = &edge_table[&i];
-            assert!(edges.len() >= 2); // At least prev and next from each parent
-        }
+        let (child, count) = cross(&[0, 1], &[1, 0]);
+        assert_eq!(count, 1);
+        assert_permutation(&child);
     }
 
     #[test]
-    fn test_edge_recombination_convergence() {
-        let crossover = EdgeRecombinationCrossover::new(0.5);
+    fn same_seed_same_offspring() {
+        let one = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let two = [9, 3, 7, 1, 5, 0, 8, 2, 6, 4];
 
-        // Test that the algorithm always produces a complete permutation
-        let alleles = vec![0, 1, 2, 3, 4, 5].into_boxed_slice().into();
-        let genes1 = vec![
-            PermutationGene::new(0, Arc::clone(&alleles)),
-            PermutationGene::new(1, Arc::clone(&alleles)),
-            PermutationGene::new(2, Arc::clone(&alleles)),
-            PermutationGene::new(3, Arc::clone(&alleles)),
-            PermutationGene::new(4, Arc::clone(&alleles)),
-            PermutationGene::new(5, Arc::clone(&alleles)),
-        ];
-        let genes2 = vec![
-            PermutationGene::new(5, Arc::clone(&alleles)),
-            PermutationGene::new(4, Arc::clone(&alleles)),
-            PermutationGene::new(3, Arc::clone(&alleles)),
-            PermutationGene::new(2, Arc::clone(&alleles)),
-            PermutationGene::new(1, Arc::clone(&alleles)),
-            PermutationGene::new(0, Arc::clone(&alleles)),
-        ];
-
-        let mut chrom_one = PermutationChromosome::new(genes1, Arc::clone(&alleles));
-        let mut chrom_two = PermutationChromosome::new(genes2, Arc::clone(&alleles));
-
-        let mut updates = AlterUpdates::default();
-        let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
-
-        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
-
-        assert_eq!(result, 1);
-
-        // Verify the result is a complete permutation
-        let values: Vec<usize> = chrom_one.iter().map(|g| g.index()).collect();
-        assert_eq!(values.len(), alleles.len());
-
-        let mut sorted_values = values.clone();
-        sorted_values.sort();
-        assert_eq!(sorted_values, (0..alleles.len()).collect::<Vec<usize>>());
+        let first = random_provider::scoped_seed(11, || cross(&one, &two));
+        let second = random_provider::scoped_seed(11, || cross(&one, &two));
+        assert_eq!(first, second);
     }
 }

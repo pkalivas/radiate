@@ -4,6 +4,13 @@ import radiate as rd
 crossover = rd.Cross.blend(rate=0.1, alpha=0.5)  # Using the Cross dsl syntax
 # --8<-- [end:blend_crossover]
 
+# --8<-- [start:differential_crossover]
+import radiate as rd
+
+# rate, weight (F), crossover_rate (CR)
+crossover = rd.Cross.differential(rate=0.1, weight=0.5, crossover_rate=0.9)
+# --8<-- [end:differential_crossover]
+
 # --8<-- [start:intermediate_crossover]
 import radiate as rd
 
@@ -27,6 +34,12 @@ import radiate as rd
 
 crossover = rd.Cross.pmx(rate=0.1)  # Using the Cross dsl syntax
 # --8<-- [end:pmx_crossover]
+
+# --8<-- [start:order_crossover]
+import radiate as rd
+
+crossover = rd.Cross.order(rate=0.1)  # Using the Cross dsl syntax
+# --8<-- [end:order_crossover]
 
 # --8<-- [start:edge_recombination_crossover]
 import radiate as rd

@@ -8,6 +8,11 @@ use radiate_error::Result;
 use radiate_utils::VersionedCounts;
 use std::sync::Arc;
 
+/// Floor added to every species' (if configured) weight so the worst species still gets a share of
+/// offspring instead of a hard zero. Weights are normalized to [0, 1] per objective,
+/// so this is relative to the best-to-worst spread.
+const GOODNESS_FLOOR: f32 = 0.1;
+
 #[derive(Clone)]
 pub struct SelectConfig<C: Chromosome> {
     pub(crate) count: usize,
@@ -177,6 +182,18 @@ where
             radiate_err!(Step: self.name(), "Species population is None during recombination"),
         )?;
 
+        // Population arrives sorted best -> worst: select survivors on that order.
+        let s_indices = self.timed_select(s_selector, population.as_ref(), metrics);
+
+        // Stable sort by species. Each species' range stays in fitness order.
+        let mut perm = (0..population.len()).collect::<Vec<usize>>();
+        perm.sort_by_key(|&i| population[i].species());
+
+        let mut new_pos = vec![0; perm.len()];
+        for (new, &old) in perm.iter().enumerate() {
+            new_pos[old] = new;
+        }
+
         population.sort_by(|a, b| a.species().cmp(&b.species()));
 
         let mut start = 0;
@@ -187,16 +204,19 @@ where
             start += chunk.len();
         }
 
-        let mut species_scores = species
+        let raw = species
             .iter()
-            .filter_map(|spec| spec.adj_score())
-            .collect::<Vec<_>>();
+            .map(|spec| spec.adj_score())
+            .collect::<Option<Vec<_>>>()
+            .ok_or(
+                radiate_err!(Step: self.name(), "Failed to collect adjusted scores for species"),
+            )?;
+        let quotas = self.quotas_from_scores(&raw);
 
-        if let Objective::Single(Optimize::Minimize) = &self.objective {
-            species_scores.reverse();
+        self.survivor_counts.begin(population.len());
+        for &idx in s_indices.iter() {
+            self.survivor_counts.bump(new_pos[idx]);
         }
-
-        let quotas = self.quotas_from_scores(&species_scores);
 
         self.offspring_counts.begin(population.len());
         for (species, count) in species.iter().zip(quotas.iter()) {
@@ -214,13 +234,6 @@ where
             for &idx in offspring.iter() {
                 self.offspring_counts.bump(range.start + idx);
             }
-        }
-
-        let s_indices = self.timed_select(s_selector, population.as_ref(), metrics);
-
-        self.survivor_counts.begin(population.len());
-        for &idx in s_indices.iter() {
-            self.survivor_counts.bump(idx);
         }
 
         let (survivors, mut offspring) = self.unioned_walk(ecosystem);
@@ -336,18 +349,8 @@ where
             return vec![0; n];
         }
 
-        let raw_scores = scores.iter().map(|s| s.as_f32()).collect::<Vec<f32>>();
-        let mut min_score = raw_scores.iter().cloned().fold(f32::INFINITY, f32::min);
-        if !min_score.is_finite() {
-            min_score = 0.0;
-        }
-
-        let shifted = raw_scores
-            .iter()
-            .map(|s| (s - min_score).max(0.0))
-            .collect::<Vec<f32>>();
-
-        let sum = shifted.iter().sum::<f32>();
+        let weights = goodness(scores, &self.objective);
+        let sum = weights.iter().sum::<f32>();
 
         if sum <= f32::EPSILON {
             let base = self.offspring.select.count / n;
@@ -369,7 +372,7 @@ where
         let mut fracs = Vec::with_capacity(n);
         let mut assigned = 0;
 
-        for (idx, w) in shifted.iter().enumerate() {
+        for (idx, w) in weights.iter().enumerate() {
             let p = *w / sum;
             let exact = p * total;
             let base = exact.floor() as usize;
@@ -389,4 +392,46 @@ where
 
         quotas
     }
+}
+
+/// Turn species scores into positive, direction-aware weights. Each objective is
+/// normalized across species to [0, 1] (1 = best) and the objectives are averaged.
+/// An objective where every species scores the same is skipped; if all are, the
+/// weights come out uniform.
+fn goodness(scores: &[&Score], objective: &Objective) -> Vec<f32> {
+    let directions = match objective {
+        Objective::Single(opt) => std::slice::from_ref(opt),
+        Objective::Multi(opts) => opts.as_slice(),
+    };
+
+    let mut weights = vec![0.0_f32; scores.len()];
+    for (k, opt) in directions.iter().enumerate() {
+        let value = |s: &Score| s.as_slice().get(k).copied().filter(|v| v.is_finite());
+
+        let (lo, hi) = scores
+            .iter()
+            .filter_map(|s| value(s))
+            .fold((f32::INFINITY, f32::NEG_INFINITY), |(lo, hi), v| {
+                (lo.min(v), hi.max(v))
+            });
+
+        if hi <= lo {
+            continue;
+        }
+
+        for (w, s) in weights.iter_mut().zip(scores) {
+            if let Some(v) = value(s) {
+                *w += match opt {
+                    Optimize::Minimize => hi - v,
+                    Optimize::Maximize => v - lo,
+                } / (hi - lo);
+            }
+        }
+    }
+
+    let dims = directions.len().max(1) as f32;
+    weights
+        .iter_mut()
+        .map(|w| *w / dims + GOODNESS_FLOOR)
+        .collect()
 }

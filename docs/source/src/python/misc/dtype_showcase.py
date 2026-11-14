@@ -41,7 +41,7 @@ result = engine.run(ui=True)
 print(result)
 
 
-board = result.value()
+board = result.value
 for i in range(N_QUEENS):
     for j in range(N_QUEENS):
         if board[j] == i:

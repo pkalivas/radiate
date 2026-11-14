@@ -28,6 +28,7 @@ class _Components:
     EUCLIDEAN_DISTANCE: Final[str]
     COSINE_DISTANCE: Final[str]
     NEAT_DISTANCE: Final[str]
+    TREE_DISTANCE: Final[str]
 
     MULTI_POINT_CROSSOVER: Final[str]
     UNIFORM_CROSSOVER: Final[str]
@@ -39,6 +40,8 @@ class _Components:
     GRAPH_CROSSOVER: Final[str]
     PARTIALLY_MAPPED_CROSSOVER: Final[str]
     EDGE_RECOMBINE_CROSSOVER: Final[str]
+    DIFFERENTIAL_CROSSOVER: Final[str]
+    ORDER_CROSSOVER: Final[str]
 
     UNIFORM_MUTATOR: Final[str]
     SCRAMBLE_MUTATOR: Final[str]
@@ -48,6 +51,7 @@ class _Components:
     GRAPH_MUTATOR: Final[str]
     OPERATION_MUTATOR: Final[str]
     TREE_CROSSOVER: Final[str]
+    SUBTREE_MUTATOR: Final[str]
     HOIST_MUTATOR: Final[str]
     INVERSION_MUTATOR: Final[str]
     POLYNOMIAL_MUTATOR: Final[str]
@@ -123,7 +127,6 @@ class PyEngineInput:
         self,
         input_type: PyEngineInputType,
         component: str | None,
-        allowed_genes: set[str],
         args: dict[str, object] | None = None,
     ): ...
 
@@ -134,12 +137,12 @@ class PyEngineBuilder:
 class PyEngine:
     def __iter__(self) -> "PyEngine": ...
     def __next__(self) -> "PyGeneration": ...
-    def run(self, options: list[PyEngineInput]) -> PyGeneration: ...
+    def run(self, log: bool = False, ui: bool = False) -> PyGeneration: ...
 
 class PyFitnessFn[T]:
     @staticmethod
     def novelty_search(
-        distance_fn: str,
+        distance_fn: PyEngineInput,
         descriptor: Callable[[T], object],
         k: int,
         threshold: float,
@@ -154,5 +157,42 @@ class PyFitnessFn[T]:
         features: list[list[float]] | "np.ndarray",
         targets: list[list[float]] | "np.ndarray",
         loss: str,
-        is_batch: bool,
     ) -> PyFitnessFn: ...
+
+class PyDataSet:
+    @staticmethod
+    def cubic(dtype: str | None = None) -> PyDataSet: ...
+    @staticmethod
+    def iris(dtype: str | None = None) -> PyDataSet: ...
+    @staticmethod
+    def simple_memory(n: int = 10, dtype: str | None = None) -> PyDataSet: ...
+    @staticmethod
+    def parity(bits: int = 3, dtype: str | None = None) -> PyDataSet: ...
+    @staticmethod
+    def xor(dtype: str | None = None) -> PyDataSet: ...
+    @staticmethod
+    def koza1(dtype: str | None = None) -> PyDataSet: ...
+    @staticmethod
+    def nguyen7(dtype: str | None = None) -> PyDataSet: ...
+    @staticmethod
+    def pagie1(dtype: str | None = None) -> PyDataSet: ...
+    @staticmethod
+    def moons(
+        n: int = 100, noise: float = 0.1, dtype: str | None = None
+    ) -> PyDataSet: ...
+    @staticmethod
+    def circles(
+        n: int = 100, noise: float = 0.1, dtype: str | None = None
+    ) -> PyDataSet: ...
+    @staticmethod
+    def spirals(
+        n: int = 100, noise: float = 0.1, dtype: str | None = None
+    ) -> PyDataSet: ...
+    def features(self) -> "np.ndarray": ...
+    def labels(self) -> "np.ndarray": ...
+    def dtype(self) -> RdDataType: ...
+    def shape(self) -> tuple[int, int, int]: ...
+    def shuffle(self) -> PyDataSet: ...
+    def split(self, test_size: float) -> tuple[PyDataSet, PyDataSet]: ...
+    def standardize(self) -> PyDataSet: ...
+    def normalize(self) -> PyDataSet: ...

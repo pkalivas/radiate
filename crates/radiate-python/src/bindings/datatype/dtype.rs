@@ -2,10 +2,6 @@ use crate::Wrap;
 use pyo3::{intern, prelude::*, pybacked::PyBackedStr, types::PyList};
 use radiate_utils::{DataType, SmallStr};
 
-const GRAPH_NODE_NAME: SmallStr = SmallStr::from_static("GraphNode");
-const TREE_NODE_NAME: SmallStr = SmallStr::from_static("TreeNode");
-const OP_FIELD_NAME: SmallStr = SmallStr::from_static("op");
-
 #[derive(Clone, Debug)]
 struct Field {
     name: SmallStr,
@@ -82,14 +78,6 @@ pub fn dtype_from_str(value: &str) -> DataType {
     }
 
     DataType::from(value.to_string())
-}
-
-pub fn graph_node_dtype(inner: DataType) -> DataType {
-    DataType::Struct(GRAPH_NODE_NAME, vec![(OP_FIELD_NAME, inner)])
-}
-
-pub fn tree_node_dtype(inner: DataType) -> DataType {
-    DataType::Struct(TREE_NODE_NAME, vec![(OP_FIELD_NAME, inner)])
 }
 
 impl<'py> IntoPyObject<'py> for &Wrap<DataType> {

@@ -26,8 +26,10 @@ members = [
     "examples/rust/graphs/simple-memory-graph",
     "examples/rust/graphs/neat-graph",
 
+    "examples/rust/trees/paige1",
     "examples/rust/trees/regression-tree",
-    "examples/rust/trees/iris-tree"
+    "examples/rust/trees/iris-tree",
+    "examples/rust/trees/multiplexer-tree",
 ]
 default-members = [
     "crates/*"
@@ -56,6 +58,7 @@ exclude = [
 
     "examples/rust/trees/regression-tree",
     "examples/rust/trees/iris-tree",    
+    "examples/rust/trees/multiplexer-tree",
 ]
 
 [workspace.package]
@@ -72,13 +75,13 @@ homepage = "https://radiate.rs/"
 
 [workspace.dependencies]
 rand = "0.10.3"
-pyo3 = "0.29.3"
-numpy ="0.29.0"
+pyo3 = "0.30.1"
+numpy ="0.30.0"
 rayon = "1.12.0"
-smallvec = { version = "1.16.2", features = ["serde"] }
+smallvec = { version = "1.16.5", features = ["serde"] }
 thiserror = "2.0.21"
 serde = { version = "1.0.229", features = ["derive", "rc"] }
-serde_json = { version = "1.0.151" }
+serde_json = { version = "1.0.154" }
 serde-pickle = "1.1"
 compact_str = { version = "0.10.0" }
 foldhash = "0.2.0"
@@ -86,13 +89,14 @@ slotmap = "1.0"
 hashbrown = { version = "0.17.1" }
 crossterm = "0.29"
 ratatui = { version = "0.30.2", default-features = false, features = ["crossterm"] }
-tui-piechart = "1.0.2"
+tui-piechart = "1.4.4"
 color-eyre = "0.6.3"
 num-traits = "0.2.19"
 num-order = "1.2.0"
 tracing = "0.1.44"
 dotenvy = "0.15.7"
 crossbeam = "0.8.5"
+rustc-hash = "2.1.3"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt", "json"] }
 radiate = { version = "1.3.2", path = "crates/radiate", default-features = false }
 radiate-core = { version = "1.3.2", path = "crates/radiate-core", default-features = false }

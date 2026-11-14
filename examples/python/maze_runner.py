@@ -12,7 +12,6 @@ and we need to find the shortest path through a set of waypoints.
 import math
 
 import plotly.graph_objects as go
-
 import radiate as rd
 
 START_POINT = (0, 0)
@@ -177,4 +176,4 @@ result = engine.run(log=True)
 print(result)
 
 print("\nBest solution found:")
-print(f"  Path: Start → {' → '.join([wp.name for wp in result.value()])} → End")
+print(f"  Path: Start → {' → '.join([wp.name for wp in result.value])} → End")

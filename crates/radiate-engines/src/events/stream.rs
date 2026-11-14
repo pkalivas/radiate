@@ -40,7 +40,7 @@ impl EventStream {
         self.executor = executor;
     }
 
-    pub fn attatch<H: EventHandler>(&self, handler: H) -> RadiateResult<Subscriber<H>> {
+    pub fn attach<H: EventHandler>(&self, handler: H) -> RadiateResult<Subscriber<H>> {
         let subscriber = Subscriber::new(handler, Arc::clone(&self.executor), self.clone());
         subscriber.start()?;
         Ok(subscriber)

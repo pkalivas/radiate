@@ -28,7 +28,7 @@ def test_engine_regression_polars_df_target_and_feature_cols_smoke(graph_1x1_eng
     ).limit(rd.Limit.generations(10))
 
     res = next(engine)
-    assert res.index() == 1
+    assert res.index == 1
 
 
 @pytest.mark.skipif(not rd._POLARS_AVAILABLE, reason="polars not installed")
@@ -41,7 +41,7 @@ def test_engine_regression_polars_df_default_target_last_col_smoke(graph_1x1_eng
         rd.Limit.generations(10)
     )
 
-    assert next(engine).index() == 1
+    assert next(engine).index == 1
 
 
 @pytest.mark.skipif(not rd._PANDAS_AVAILABLE, reason="pandas not installed")
@@ -57,7 +57,7 @@ def test_engine_regression_pandas_df_target_and_feature_cols_smoke(graph_1x1_eng
         df, target_cols="x", feature_cols=["dd"], loss=rd.MSE
     ).limit(rd.Limit.generations(10))
 
-    assert next(engine).index() == 1
+    assert next(engine).index == 1
 
 
 @pytest.mark.skipif(not rd._NUMPY_AVAILABLE, reason="numpy not installed")
@@ -74,7 +74,7 @@ def test_engine_regression_numpy_arrays_smoke(graph_1x1_engine):
     assert X.shape == (4, 1)
     assert y.shape == (4,)
 
-    assert next(engine).index() == 1
+    assert next(engine).index == 1
 
 
 @pytest.mark.skipif(not rd._NUMPY_AVAILABLE, reason="numpy not installed")
@@ -86,7 +86,7 @@ def test_engine_regression_python_lists_smoke(graph_1x1_engine):
         rd.Limit.generations(10)
     )
 
-    assert next(engine).index() == 1
+    assert next(engine).index == 1
 
 
 @pytest.mark.skipif(not rd._POLARS_AVAILABLE, reason="polars not installed")

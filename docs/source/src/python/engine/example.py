@@ -8,7 +8,9 @@ def loop_fit(x):
 import radiate as rd
 
 engine = (
-    rd.Engine.float(init_range=(0.0, 1.0)).fitness(loop_fit).limit(rd.Limit.generations(50))
+    rd.Engine.float(init_range=(0.0, 1.0))
+    .fitness(loop_fit)
+    .limit(rd.Limit.generations(50))
 )
 
 result = engine.run()
@@ -38,12 +40,14 @@ import radiate as rd
 # Collecting the score history needs the real Generation at every step, which means
 # iterating, not run().
 iter_engine = (
-    rd.Engine.float(init_range=(0.0, 1.0)).fitness(loop_fit).limit(rd.Limit.generations(50))
+    rd.Engine.float(init_range=(0.0, 1.0))
+    .fitness(loop_fit)
+    .limit(rd.Limit.generations(50))
 )
 
 score_history: list[list[float]] = []
 for epoch in iter_engine:
-    score_history.append(epoch.score())
+    score_history.append(epoch.score)
 
 assert len(score_history) == 50
 # --8<-- [end:iterator_fallback]

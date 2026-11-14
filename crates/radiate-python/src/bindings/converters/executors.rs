@@ -1,21 +1,40 @@
-use crate::{InputTransform, PyEngineInput, PyEngineInputType};
+use crate::{
+    PyEngineInput, PyEngineInputType,
+    bindings::converters::{FromPyEngineInput, Registry},
+};
 use radiate::{Executor, RadiateResult};
-use radiate_error::radiate_bail;
 
-impl InputTransform<RadiateResult<Executor>> for PyEngineInput {
-    fn transform(&self) -> RadiateResult<Executor> {
-        if self.input_type != PyEngineInputType::Executor {
-            radiate_bail!(Builder: "Expected Executor input, got {:?}", self.input_type);
-        }
-
-        Ok(match self.component() {
-            crate::constants::components::SERIAL_EXECUTOR => Executor::Serial,
-            crate::constants::components::FIXED_SIZED_WORKER_POOL_EXECUTOR => {
-                let num_workers = self.extract::<i64>("num_workers")?;
-                Executor::FixedSizedWorkerPool(num_workers as usize)
-            }
-            crate::constants::components::WORKER_POOL_EXECUTOR => Executor::WorkerPool,
-            _ => radiate_bail!(Builder: "Unknown executor type: {}", self.component()),
-        })
+fn executors() -> Registry<Executor> {
+    use crate::constants::components;
+    Registry {
+        kind: "executor",
+        entries: &[
+            (components::SERIAL_EXECUTOR, serial),
+            (components::WORKER_POOL_EXECUTOR, worker_pool),
+            (
+                components::FIXED_SIZED_WORKER_POOL_EXECUTOR,
+                fixed_sized_worker_pool,
+            ),
+        ],
     }
+}
+
+impl FromPyEngineInput for Executor {
+    fn from_input(input: &PyEngineInput) -> RadiateResult<Self> {
+        input.expect_type(PyEngineInputType::Executor)?;
+        executors().convert(input)
+    }
+}
+
+fn serial(_: &PyEngineInput) -> RadiateResult<Executor> {
+    Ok(Executor::Serial)
+}
+
+fn worker_pool(_: &PyEngineInput) -> RadiateResult<Executor> {
+    Ok(Executor::WorkerPool)
+}
+
+fn fixed_sized_worker_pool(input: &PyEngineInput) -> RadiateResult<Executor> {
+    let num_workers = input.extract::<i64>("num_workers")?;
+    Ok(Executor::FixedSizedWorkerPool(num_workers as usize))
 }

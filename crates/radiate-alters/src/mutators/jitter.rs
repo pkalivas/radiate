@@ -42,15 +42,13 @@ where
         let mut count = 0;
         let mag = F::from(self.magnitude).unwrap();
 
-        random_provider::with_rng(|rand| {
-            for gene in chromosome.iter_mut() {
-                if rand.bool(ctx.rate()) {
-                    let change = rand.range(-F::ONE..F::ONE) * mag;
-                    let new_allele = *gene.allele() + change;
+        random_provider::bernoulli_indices(ctx.rate(), chromosome.len(), |index| {
+            if let Some(gene) = chromosome.get_mut(index) {
+                let change = random_provider::range(-F::ONE..F::ONE) * mag;
+                let new_allele = *gene.allele() + change;
 
-                    gene.set_allele(new_allele);
-                    count += 1;
-                }
+                gene.set_allele(new_allele);
+                count += 1;
             }
         });
 

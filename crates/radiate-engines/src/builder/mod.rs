@@ -37,11 +37,11 @@ use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::{Alterer, Ecosystem, Expr, FitnessEvaluator, Valid, metric_names};
 use radiate_core::{ExprSet, ThreadSync};
-use radiate_core::{RadiateError, ensure, radiate_err};
+use radiate_core::{RadiateError, radiate_err};
 use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
 use radiate_core::{
     expr,
-    problem::{BatchEngineProblem, EngineProblem},
+    problem::{EngineProblem, FitnessKind},
 };
 use radiate_utils::VersionedCounts;
 #[cfg(feature = "serde")]
@@ -190,7 +190,7 @@ where
 
         let handler =
             CheckpointWriterHandler::<C, T>::new(interval, path_without_extension.into(), writer);
-        let attached = self.params.event_stream.attatch(handler);
+        let attached = self.params.event_stream.attach(handler);
 
         if attached.is_err() {
             self.add_error_if(
@@ -231,6 +231,7 @@ where
 
         self.build_event_stream()?;
         self.build_problem()?;
+        self.build_evaluator();
         self.build_population()?;
         self.build_alterer()?;
         self.build_front()?;
@@ -269,56 +270,57 @@ where
         Ok(())
     }
 
-    /// Build the problem of the genetic engine. This will create a new problem
-    /// using the codec and fitness function if the problem is not set. If the
-    /// problem is already set, this function will do nothing. Else, if the fitness function is
-    /// a batch fitness function, it will create a new [BatchEngineProblem] and swap the evaluator
-    /// to use a [BatchFitnessEvaluator].
+    /// Build the problem of the genetic engine. If a problem is already set, this does
+    /// nothing. Otherwise it creates an [EngineProblem] from the codec and the fitness
+    /// function.
     fn build_problem(&mut self) -> Result<()> {
         if self.params.problem_params.problem.is_some() {
             return Ok(());
         }
 
-        ensure!(
-            self.params.problem_params.codec.is_some(),
-            Builder: "Codec not set"
-        );
+        let Some(codec) = self.params.problem_params.codec.clone() else {
+            return Err(radiate_err!(Builder: "Codec not set"));
+        };
 
-        let raw_fitness_fn = self.params.problem_params.raw_fitness_fn.clone();
-        let fitness_fn = self.params.problem_params.fitness_fn.clone();
-        let batch_fitness_fn = self.params.problem_params.batch_fitness_fn.clone();
-        let raw_batch_fitness_fn = self.params.problem_params.raw_batch_fitness_fn.clone();
+        let Some(fitness_kind) = self.params.problem_params.fitness_kind.clone() else {
+            return Err(radiate_err!(Builder: "Fitness function not set"));
+        };
 
-        if batch_fitness_fn.is_some() || raw_batch_fitness_fn.is_some() {
-            self.params.problem_params.problem = Some(Arc::new(BatchEngineProblem {
-                objective: self.params.optimization_params.objectives.clone(),
-                codec: self.params.problem_params.codec.clone().unwrap(),
-                batch_fitness_fn,
-                raw_batch_fitness_fn,
-            }));
+        self.params.problem_params.problem = Some(Arc::new(EngineProblem {
+            objective: self.params.optimization_params.objectives.clone(),
+            codec,
+            fitness_kind,
+        }));
 
-            // Replace the evaluator with BatchFitnessEvaluator
-            self.params.evaluation_params.evaluator = Arc::new(BatchFitnessEvaluator::new(
-                self.params
-                    .evaluation_params
-                    .fitness_executor
-                    .executor
-                    .clone(),
-            ));
+        Ok(())
+    }
 
-            Ok(())
-        } else if fitness_fn.is_some() || raw_fitness_fn.is_some() {
-            self.params.problem_params.problem = Some(Arc::new(EngineProblem {
-                objective: self.params.optimization_params.objectives.clone(),
-                codec: self.params.problem_params.codec.clone().unwrap(),
-                fitness_fn,
-                raw_fitness_fn,
-            }));
-
-            Ok(())
-        } else {
-            Err(radiate_err!(Builder: "Fitness function not set"))
+    /// Build the evaluator of the genetic engine. If an evaluator is already set, this
+    /// does nothing. Otherwise it picks a [BatchFitnessEvaluator] for a batch fitness
+    /// function and a [FitnessEvaluator] for everything else, both on the fitness executor.
+    fn build_evaluator(&mut self) {
+        if self.params.evaluation_params.evaluator.is_some() {
+            return;
         }
+
+        let executor = self
+            .params
+            .evaluation_params
+            .fitness_executor
+            .executor
+            .clone();
+        let is_batch = self
+            .params
+            .problem_params
+            .fitness_kind
+            .as_ref()
+            .is_some_and(FitnessKind::is_batch);
+
+        self.params.evaluation_params.evaluator = Some(if is_batch {
+            Arc::new(BatchFitnessEvaluator::new(executor))
+        } else {
+            Arc::new(FitnessEvaluator::new(executor))
+        });
     }
 
     /// Build the population of the genetic engine. This will create a new population
@@ -561,7 +563,7 @@ where
                     target_species_count: None,
                 },
                 evaluation_params: EvaluationParams {
-                    evaluator: Arc::new(FitnessEvaluator::default()),
+                    evaluator: None,
                     fitness_executor: ExecutorParams::default(),
                     species_executor: ExecutorParams::default(),
                     event_stream_executor: ExecutorParams::default(),
@@ -580,10 +582,7 @@ where
                 problem_params: ProblemParams {
                     codec: None,
                     problem: None,
-                    fitness_fn: None,
-                    batch_fitness_fn: None,
-                    raw_fitness_fn: None,
-                    raw_batch_fitness_fn: None,
+                    fitness_kind: None,
                 },
                 filter_params: FilterParams {
                     filters: Vec::new(),

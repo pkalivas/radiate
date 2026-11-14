@@ -7,8 +7,8 @@ import radiate as rd
 
 
 @pytest.mark.integration
-def test_load_checkpoint(example_1x1_regression_dataset, random_seed):
-    inputs, answers = example_1x1_regression_dataset
+def test_load_checkpoint(cubic_dataset, random_seed):
+    inputs, answers = cubic_dataset
     path = Path(__file__).parent.parent / "data" / "chckpnt_50.json"
 
     X = np.array(inputs, dtype=np.float32)  # (N, 1)
@@ -47,7 +47,7 @@ def test_load_checkpoint(example_1x1_regression_dataset, random_seed):
     )
 
     for epoch in engine:
-        assert epoch.index() > 50
+        assert epoch.index > 50
 
 
 # @pytest.mark.integration

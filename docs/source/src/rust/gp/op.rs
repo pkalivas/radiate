@@ -7,7 +7,7 @@ fn main() {
     let result = fn_op.eval(&[1.0, 2.0]); // result is 3.0
 
     // Example usage of a constant Op
-    let const_op = Op::constant(42.0);
+    let const_op = Op::constant("fourty-two", 42.0);
     let result = const_op.eval(&[]); // result is 42.0
 
     // Example usage of a variable Op

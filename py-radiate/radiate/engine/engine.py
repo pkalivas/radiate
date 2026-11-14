@@ -41,7 +41,6 @@ from ..operators.limit import Limit
 from ..operators.selector import Select
 from .builder import EngineBuilder
 from .generation import Generation
-from .option import LogParam, UiParam
 
 if TYPE_CHECKING:
     from radiate._rd import PyEngine
@@ -69,18 +68,7 @@ class EngineRuntime[G, T]:
         ui: bool = False,
     ) -> Generation[G, T]:
         """Run the engine and return the resulting generation."""
-        log_option = LogParam(enable=log)
-        ui_option = UiParam() if ui else None
-
-        return Generation.from_rust(
-            self._engine.run(
-                [
-                    opt.__backend__()
-                    for opt in [log_option, ui_option]
-                    if opt is not None
-                ]
-            )
-        )
+        return Generation.from_rust(self._engine.run(log, ui))
 
 
 class Engine[G, T]:
@@ -404,7 +392,6 @@ class Engine[G, T]:
         target_cols: str | list[str] | None = None,
         feature_cols: list[str] | None = None,
         loss: RdLossType = MSE,
-        batch: bool = False,
     ) -> Engine[G, T]:
         """
         Set the fitness function for regression problems.
@@ -450,9 +437,9 @@ class Engine[G, T]:
         ...             2,
         ...             1,
         ...         ),  # <- notice how the shape of the graph is (2, 1) to accommodate our 2 features and 1 output
-        ...         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+        ...         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.sum()],
         ...         edge=rd.Op.weight(),
-        ...         output=rd.Op.linear(),
+        ...         output=rd.Op.sum(),
         ...     )
         ...     .regression(
         ...         features, targets, loss=rd.MSE
@@ -497,7 +484,6 @@ class Engine[G, T]:
                 target_cols=target_cols,
                 feature_cols=feature_cols,
                 loss=loss,
-                batch=batch,
             )
         )
         self._builder.set_objective("min")
@@ -1164,9 +1150,9 @@ class Engine[G, T]:
         >>> engine = (
         ...     rd.Engine.graph(
         ...         shape=(1, 1),
-        ...         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+        ...         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.sum()],
         ...         edge=rd.Op.weight(),
-        ...         output=rd.Op.linear(),
+        ...         output=rd.Op.sum(),
         ...     )
         ...     .regression(..., ...)
         ...     .alter(

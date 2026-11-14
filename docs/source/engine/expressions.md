@@ -228,7 +228,7 @@ An expression can also drive an alterer's rate, a species threshold, or any othe
 
 ## Example
 
-So, what does all this do in practice? Well, let's say you opt-in to using speciation and as you test, you discover that ideally, your problem gets solved best with ~4 species. Well, radiate doesn't offer a 'target species' option out of the box, but using expressions you can build a dynamic rate (threshold in this case) that encourages the engine to maintain that number of species. Below we build a distance metric that acts as a feedback loop which combines several species-level metrics, then use it as the distance function for speciation. We also register two derived metrics to track the average distance and species count over time. 
+So, what does all this do in practice? Well, let's say you opt-in to using speciation and as you test, you discover that ideally, your problem gets solved best with ~4 species. Well, speciation can jump around quite a bit sometimes and if we _know_ that 4 is ideal, it would make sense that we want to maintain around 4 species consistently. Now, radiate does offer a `target_species` parameter out of the box, but lets pretend it didnt. Using expressions you can build a dynamic rate (threshold in this case) that encourages the engine to maintain that number of species. Lets see what it would look like to build a dynamic species threshold, we'll build the exact same feedback loop that radiate uses for it's `target_species` internally.
 
 === ":fontawesome-brands-python: Python"
 
@@ -244,11 +244,29 @@ So, what does all this do in practice? Well, let's say you opt-in to using speci
     --8<-- "rust/engine/expressions.rs:example"
     ```
 
-The above engine will produce something (this was produced in python) like the following. We can see that the rolling 10 generation species threshold (orange) is adjusting dynamically according to the species count, resulting in an average of around 4 species (green) and a corresponding species count (blue).
+The above engine will produce something (this was produced in python) like the following. We can see two lines, the `species_count_mean` which is a rolling 25 mean of the species count, and the actual `species.count` which is the raw species count. Notice how the mean occillates around the target for the first several generations before beginning to stabilize at our exact target number of species. Expressions are pretty cool!
 
 <figure markdown="span">
     ![expr_spec_threshold](../../assets/rates/expr_spec_threshold.png){ width="600" }
 </figure>
+
+I mentioned earlier that radiate has this sort of target species functionality built in (sweeeeeet!). So for completeness, below is how we'd set the target number of species using the built-in `target_species` parameter.
+
+=== ":fontawesome-brands-python: Python"
+
+    Then, using radiate's built-in `MetricCollector` subscriber, we plot those metrics over time to see how our registered distance signal correlates with species count and overall diversity.
+
+    ```python
+    --8<-- "python/engine/expressions_showcase.py:all_else_same"
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    --8<-- "rust/engine/expressions.rs:all_else_same"
+    ```
+
+--- 
 
 This same sort of logic (combining multiple signals into a single metric/rate/signal) can be applied to other aspects of the engine as well, like alterer rates. For example, you might want to start with a high mutation rate to encourage exploration, but then dial it back as the population converges. By building a dynamic rate that combines several metrics of convergence (e.g., score volatility, species count, etc.) you can get a more robust signal for when to dial back mutation than just using generation count or best score alone.
 

@@ -1,8 +1,8 @@
 use crate::Arity;
-#[cfg(feature = "serde")]
-use crate::ops::OpFloat;
 use crate::ops::op_names;
 use crate::ops::operation::Op;
+#[cfg(feature = "serde")]
+use radiate_utils::Float;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize, de::Deserializer, ser::Serializer};
 
@@ -49,12 +49,25 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<'de, F: OpFloat + Serialize + Deserialize<'de>> Deserialize<'de> for Op<F> {
+impl<'de> Deserialize<'de> for Op<f64> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        let variant = OpVariant::<F>::deserialize(deserializer)?;
+        let variant = OpVariant::<f64>::deserialize(deserializer)?;
+        Result::from(variant).map_err(|e| {
+            serde::de::Error::custom(format!("Failed to convert OpVariant to Op: {}", e))
+        })
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for Op<f32> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let variant = OpVariant::<f32>::deserialize(deserializer)?;
         Result::from(variant).map_err(|e| {
             serde::de::Error::custom(format!("Failed to convert OpVariant to Op: {}", e))
         })
@@ -104,84 +117,15 @@ impl<T: Clone> From<Op<T>> for OpVariant<T> {
     }
 }
 
-impl<F: OpFloat> From<OpVariant<F>> for Result<Op<F>, serde::de::value::Error> {
-    fn from(variant: OpVariant<F>) -> Self {
-        match variant {
-            OpVariant::Fn { name, .. } => {
-                let name: &'static str = Box::leak(name.into_boxed_str());
-                match name {
-                    op_names::ADD => Ok(Op::add()),
-                    op_names::SUB => Ok(Op::sub()),
-                    op_names::MUL => Ok(Op::mul()),
-                    op_names::DIV => Ok(Op::div()),
-                    op_names::SUM => Ok(Op::sum()),
-                    op_names::PROD => Ok(Op::prod()),
-                    op_names::DIFF => Ok(Op::diff()),
-                    op_names::NEG => Ok(Op::neg()),
-                    op_names::POW => Ok(Op::pow()),
-                    op_names::SQRT => Ok(Op::sqrt()),
-                    op_names::ABS => Ok(Op::abs()),
-                    op_names::EXP => Ok(Op::exp()),
-                    op_names::LOG => Ok(Op::log()),
-                    op_names::SIN => Ok(Op::sin()),
-                    op_names::COS => Ok(Op::cos()),
-                    op_names::TAN => Ok(Op::tan()),
-                    op_names::CEIL => Ok(Op::ceil()),
-                    op_names::FLOOR => Ok(Op::floor()),
-                    op_names::MAX => Ok(Op::max()),
-                    op_names::MIN => Ok(Op::min()),
-                    op_names::SIGMOID => Ok(Op::sigmoid()),
-                    op_names::TANH => Ok(Op::tanh()),
-                    op_names::RELU => Ok(Op::relu()),
-                    op_names::LEAKY_RELU => Ok(Op::leaky_relu()),
-                    op_names::ELU => Ok(Op::elu()),
-                    op_names::LINEAR => Ok(Op::linear()),
-                    op_names::MISH => Ok(Op::mish()),
-                    op_names::SWISH => Ok(Op::swish()),
-                    op_names::SOFTPLUS => Ok(Op::softplus()),
-                    op_names::IDENTITY => Ok(Op::identity()),
-                    op_names::LOGSUMEXP => Ok(Op::logsumexp()),
-                    op_names::GAUSSIAN => Ok(Op::gaussian()),
-                    op_names::TOOTH => Ok(Op::tooth()),
-                    op_names::SIGN => Ok(Op::sign()),
-                    op_names::RECIPROCAL => Ok(Op::reciprocal()),
-                    _ => Err(serde::de::Error::custom(format!(
-                        "Unknown function name: {}",
-                        name
-                    ))),
-                }
-            }
-            OpVariant::Var { name, index, card } => {
-                let name = radiate_utils::intern!(name);
-                Ok(Op::Var(name, index, card))
-            }
-            OpVariant::Const { name, value } => {
-                let name = radiate_utils::intern!(name);
-                Ok(Op::Const(name, value))
-            }
-            OpVariant::Value {
-                name,
-                arity: _,
-                value,
-            } => match name.as_str() {
-                "w" => Ok(Op::weight_with(value)),
-                _ => Err(serde::de::Error::custom(format!(
-                    "Unknown mutable constant name: {}",
-                    name
-                ))),
-            },
-            OpVariant::Pair {
-                name,
-                arity: _,
-                value,
-            } => match name.as_str() {
-                "w2" => Ok(Op::weight2_with(value)),
-                _ => Err(serde::de::Error::custom(format!(
-                    "Unknown pair weight name: {}",
-                    name
-                ))),
-            },
-        }
+impl From<OpVariant<f32>> for Result<Op<f32>, serde::de::value::Error> {
+    fn from(variant: OpVariant<f32>) -> Self {
+        parse_float(variant)
+    }
+}
+
+impl From<OpVariant<f64>> for Result<Op<f64>, serde::de::value::Error> {
+    fn from(variant: OpVariant<f64>) -> Self {
+        parse_float(variant)
     }
 }
 
@@ -195,12 +139,9 @@ impl From<OpVariant<bool>> for Result<Op<bool>, serde::de::value::Error> {
                     op_names::OR => Ok(Op::or()),
                     op_names::NOT => Ok(Op::not()),
                     op_names::XOR => Ok(Op::xor()),
-                    op_names::EQ => Ok(Op::eq()),
-                    op_names::NE => Ok(Op::ne()),
                     op_names::GT => Ok(Op::gt()),
                     op_names::GE => Ok(Op::ge()),
                     op_names::LT => Ok(Op::lt()),
-                    op_names::LE => Ok(Op::le()),
                     op_names::IF_ELSE => Ok(Op::if_else()),
                     op_names::AND_THEN => Ok(Op::and_then()),
                     op_names::OR_ELSE => Ok(Op::or_else()),
@@ -208,7 +149,6 @@ impl From<OpVariant<bool>> for Result<Op<bool>, serde::de::value::Error> {
                     op_names::NOR => Ok(Op::nor()),
                     op_names::XNOR => Ok(Op::xnor()),
                     op_names::IMPLIES => Ok(Op::implies()),
-                    op_names::IFF => Ok(Op::iff()),
                     _ => Err(serde::de::Error::custom(format!(
                         "Unknown boolean function name: {}",
                         name
@@ -235,6 +175,85 @@ impl From<OpVariant<bool>> for Result<Op<bool>, serde::de::value::Error> {
     }
 }
 
+fn parse_float<F: Float>(variant: OpVariant<F>) -> Result<Op<F>, serde::de::value::Error> {
+    match variant {
+        OpVariant::Fn { name, .. } => {
+            let name: &'static str = Box::leak(name.into_boxed_str());
+            match name {
+                op_names::ADD => Ok(Op::add()),
+                op_names::SUB => Ok(Op::sub()),
+                op_names::MUL => Ok(Op::mul()),
+                op_names::DIV => Ok(Op::div()),
+                op_names::SUM => Ok(Op::sum()),
+                op_names::PROD => Ok(Op::prod()),
+                op_names::DIFF => Ok(Op::diff()),
+                op_names::NEG => Ok(Op::neg()),
+                op_names::POW => Ok(Op::pow()),
+                op_names::SQRT => Ok(Op::sqrt()),
+                op_names::ABS => Ok(Op::abs()),
+                op_names::EXP => Ok(Op::exp()),
+                op_names::LOG => Ok(Op::log()),
+                op_names::SIN => Ok(Op::sin()),
+                op_names::COS => Ok(Op::cos()),
+                op_names::TAN => Ok(Op::tan()),
+                op_names::CEIL => Ok(Op::ceil()),
+                op_names::FLOOR => Ok(Op::floor()),
+                op_names::MAX => Ok(Op::max()),
+                op_names::MIN => Ok(Op::min()),
+                op_names::SIGMOID => Ok(Op::sigmoid()),
+                op_names::TANH => Ok(Op::tanh()),
+                op_names::RELU => Ok(Op::relu()),
+                op_names::LEAKY_RELU => Ok(Op::leaky_relu()),
+                op_names::ELU => Ok(Op::elu()),
+                op_names::MISH => Ok(Op::mish()),
+                op_names::SWISH => Ok(Op::swish()),
+                op_names::SOFTPLUS => Ok(Op::softplus()),
+                op_names::IDENTITY => Ok(Op::identity()),
+                op_names::LOGSUMEXP => Ok(Op::logsumexp()),
+                op_names::GAUSSIAN => Ok(Op::gaussian()),
+                op_names::TOOTH => Ok(Op::tooth()),
+                op_names::SIGN => Ok(Op::sign()),
+                op_names::RECIPROCAL => Ok(Op::reciprocal()),
+                _ => Err(serde::de::Error::custom(format!(
+                    "Unknown function name: {}",
+                    name
+                ))),
+            }
+        }
+        OpVariant::Var { name, index, card } => {
+            let name = radiate_utils::intern!(name);
+            Ok(Op::Var(name, index, card))
+        }
+        OpVariant::Const { name, value } => {
+            let name = radiate_utils::intern!(name);
+            Ok(Op::Const(name, value))
+        }
+        OpVariant::Value {
+            name,
+            arity: _,
+            value,
+        } => match name.as_str() {
+            op_names::WEIGHT => Ok(Op::weight_with(value)),
+            op_names::ERC => Ok(Op::erc_with(value)),
+            _ => Err(serde::de::Error::custom(format!(
+                "Unknown mutable constant name: {}",
+                name
+            ))),
+        },
+        OpVariant::Pair {
+            name,
+            arity: _,
+            value,
+        } => match name.as_str() {
+            op_names::DOT => Ok(Op::dot_with(value)),
+            _ => Err(serde::de::Error::custom(format!(
+                "Unknown pair weight name: {}",
+                name
+            ))),
+        },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::Eval;
@@ -244,7 +263,7 @@ mod tests {
 
     #[test]
     fn test_serialize_deserialize_const() {
-        let op = Op::constant(42.0);
+        let op = Op::constant("42.0", 42.0);
         let serialized = serde_json::to_string(&op).unwrap();
         let deserialized: Op<f32> = serde_json::from_str(&serialized).unwrap();
         assert_eq!(op.name(), deserialized.name());

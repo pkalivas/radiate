@@ -1,11 +1,14 @@
+use super::cycles::Sccs;
 use super::transaction::TransactionResult;
-use crate::collections::graphs::GraphTransaction;
-use crate::collections::{Direction, GraphNode};
+use crate::{
+    Arity, Eval, EvalInto, EvalIntoMut, EvalMut, Node, NodeIdx, Op, StatefulGraph,
+    collections::graphs::GraphTransaction,
+};
+use crate::{GraphEvaluator, collections::GraphNode};
 use crate::{GraphIterator, NodeType};
 use radiate_core::Valid;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::{Index, IndexMut};
@@ -35,7 +38,7 @@ use std::ops::{Index, IndexMut};
 /// while still maintaining the ability to represent traditional graphs.
 ///
 /// By default, a [Graph] is a directed acyclic graph (DAG). However, it is possible to create
-/// cycles in the graph by setting the 'direction' field of a [GraphNode] to [Direction::Backward].
+/// cycles in the graph by setting the 'direction' field of a [GraphNode] to [Direction::Backward](super::Direction::Backward).
 /// The [Graph] struct provides methods for attaching and detaching nodes from one another.
 /// It also provides methods for iterating over the nodes in the graph in a pseudo-topological order.
 ///
@@ -52,7 +55,7 @@ use std::ops::{Index, IndexMut};
 /// // Create a simple graph with one input and one output node
 /// let mut graph = Graph::<Op<f32>>::default();
 /// let input_idx = graph.insert(NodeType::Input, Op::var(0));
-/// let output_idx = graph.insert(NodeType::Output, Op::linear());
+/// let output_idx = graph.insert(NodeType::Output, Op::sum());
 /// graph.attach(input_idx, output_idx);
 ///
 /// // Create a directed graph with 2 inputs and 2 outputs
@@ -60,7 +63,7 @@ use std::ops::{Index, IndexMut};
 ///     (NodeType::Input, vec![Op::var(0), Op::var(1)]),
 ///     (NodeType::Output, vec![Op::sigmoid(), Op::tanh()]),
 /// ];
-/// let graph = Graph::directed(2, 2, values);
+/// let graph = Graph::directed(2, 2, values).unwrap();
 /// ```
 ///
 /// # Graph Types
@@ -111,8 +114,8 @@ use std::ops::{Index, IndexMut};
 /// * `Debug` - Provides debug formatting
 /// * `AsRef<[GraphNode<T>]>` - Allows treating the graph as a slice of nodes
 /// * `AsMut<[GraphNode<T>]>` - Allows treating the graph as a mutable slice of nodes
-/// * `Index<usize>` - Enables indexing with `graph[index]`
-/// * `IndexMut<usize>` - Enables mutable indexing with `graph[index]`
+/// * `Index<impl Into<NodeIdx>>` - Enables indexing with `graph[index]`
+/// * `IndexMut<impl Into<NodeIdx>>` - Enables mutable indexing with `graph[index]`
 /// * `IntoIterator` - Allows iterating over nodes
 /// * `FromIterator<GraphNode<T>>` - Allows creating a graph from an iterator of nodes
 ///
@@ -159,9 +162,10 @@ impl<T> Graph<T> {
         self.nodes.push(node.into());
     }
 
-    pub fn insert(&mut self, node_type: NodeType, val: T) -> usize {
-        self.push((self.len(), node_type, val));
-        self.len() - 1
+    pub fn insert(&mut self, node_type: NodeType, val: T) -> NodeIdx {
+        let index = NodeIdx::from_usize(self.len());
+        self.push((index, node_type, val));
+        index
     }
 
     pub fn pop(&mut self) -> Option<GraphNode<T>> {
@@ -176,12 +180,12 @@ impl<T> Graph<T> {
         self.nodes.is_empty()
     }
 
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut GraphNode<T>> {
-        self.nodes.get_mut(index)
+    pub fn get_mut(&mut self, index: impl Into<NodeIdx>) -> Option<&mut GraphNode<T>> {
+        self.nodes.get_mut(index.into().as_usize())
     }
 
-    pub fn get(&self, index: usize) -> Option<&GraphNode<T>> {
-        self.nodes.get(index)
+    pub fn get(&self, index: impl Into<NodeIdx>) -> Option<&GraphNode<T>> {
+        self.nodes.get(index.into().as_usize())
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &GraphNode<T>> {
@@ -193,19 +197,19 @@ impl<T> Graph<T> {
     }
 
     pub fn inputs(&self) -> impl Iterator<Item = &GraphNode<T>> {
-        self.get_nodes_of_type(NodeType::Input)
+        self.iter_nodes_of_type(NodeType::Input)
     }
 
     pub fn outputs(&self) -> impl Iterator<Item = &GraphNode<T>> {
-        self.get_nodes_of_type(NodeType::Output)
+        self.iter_nodes_of_type(NodeType::Output)
     }
 
     pub fn vertices(&self) -> impl Iterator<Item = &GraphNode<T>> {
-        self.get_nodes_of_type(NodeType::Vertex)
+        self.iter_nodes_of_type(NodeType::Vertex)
     }
 
     pub fn edges(&self) -> impl Iterator<Item = &GraphNode<T>> {
-        self.get_nodes_of_type(NodeType::Edge)
+        self.iter_nodes_of_type(NodeType::Edge)
     }
 
     /// Attach and detach nodes from one another. This is the primary way to modify the graph.
@@ -225,9 +229,14 @@ impl<T> Graph<T> {
     /// # Arguments
     /// - incoming: The index of the node that will have an outgoing connection to the node at the 'outgoing' index.
     /// - outgoing: The index of the node that will have an incoming connection from the node at the 'incoming' index.
-    pub fn attach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
-        self.as_mut()[incoming].insert_outgoing(outgoing);
-        self.as_mut()[outgoing].insert_incoming(incoming);
+    pub fn attach(
+        &mut self,
+        incoming: impl Into<NodeIdx>,
+        outgoing: impl Into<NodeIdx>,
+    ) -> &mut Self {
+        let (incoming, outgoing) = (incoming.into(), outgoing.into());
+        self[incoming].insert_outgoing(outgoing);
+        self[outgoing].insert_incoming(incoming);
         self
     }
     /// Detaches the node at the 'incoming' index from the node at the 'outgoing' index.
@@ -238,10 +247,58 @@ impl<T> Graph<T> {
     /// # Arguments
     /// - incoming: The index of the node that will no longer have an outgoing connection to the node at the 'outgoing' index.
     /// - outgoing: The index of the node that will no longer have an incoming connection from the node at the 'incoming' index.
-    pub fn detach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
-        self.as_mut()[incoming].remove_outgoing(&outgoing);
-        self.as_mut()[outgoing].remove_incoming(&incoming);
+    pub fn detach(
+        &mut self,
+        incoming: impl Into<NodeIdx>,
+        outgoing: impl Into<NodeIdx>,
+    ) -> &mut Self {
+        let (incoming, outgoing) = (incoming.into(), outgoing.into());
+        self[incoming].remove_outgoing(outgoing);
+        self[outgoing].remove_incoming(incoming);
         self
+    }
+
+    pub fn are_attached(&self, incoming: impl Into<NodeIdx>, outgoing: impl Into<NodeIdx>) -> bool {
+        let (incoming, outgoing) = (incoming.into(), outgoing.into());
+        if let Some(src) = self.get(incoming)
+            && let Some(dst) = self.get(outgoing)
+        {
+            return src.outgoing().contains(&outgoing) && dst.incoming().contains(&incoming);
+        }
+
+        false
+    }
+
+    pub fn iter_node_incoming(
+        &self,
+        index: impl Into<NodeIdx>,
+    ) -> impl Iterator<Item = &GraphNode<T>> + '_ {
+        self.get(index)
+            .into_iter()
+            .flat_map(|node| node.incoming().iter().map(|&idx| &self[idx]))
+    }
+
+    pub fn iter_node_outgoing(
+        &self,
+        index: impl Into<NodeIdx>,
+    ) -> impl Iterator<Item = &GraphNode<T>> + '_ {
+        self.get(index)
+            .into_iter()
+            .flat_map(|node| node.outgoing().iter().map(|&idx| &self[idx]))
+    }
+
+    pub fn node_type(&self, node_idx: impl Into<NodeIdx>) -> Option<NodeType> {
+        self.get(node_idx).map(|node| node.node_type())
+    }
+
+    pub fn arity(&self, node_idx: impl Into<NodeIdx>) -> Option<Arity> {
+        self.get(node_idx).map(|node| node.arity())
+    }
+
+    pub fn is_locked(&self, node_idx: impl Into<NodeIdx>) -> bool {
+        self.get(node_idx)
+            .map(|node| node.is_locked())
+            .unwrap_or(false)
     }
 
     /// tries to modify the graph using a [GraphTransaction]. If the transaction is successful,
@@ -259,94 +316,58 @@ impl<T> Graph<T> {
         mutation(GraphTransaction::new(self))
     }
 
-    /// Given a list of node indices, this function will set the 'direction' field of the nodes
-    /// at those indices to [Direction::Backward] if they are part of a cycle. If they are not part
-    /// of a cycle, the 'direction' field will be set to [Direction::Forward].
-    /// If no indices are provided, the function will set the 'direction' field of all nodes in the graph.
+    /// Sets every node's 'direction' field from one pass over the graph's strongly connected
+    /// components: [Direction::Backward](super::Direction::Backward) if the node sits on a
+    /// cycle, [Direction::Forward](super::Direction::Forward) otherwise. The whole graph is recomputed, so no flag outlives the cycle that set it.
     #[inline]
-    pub fn set_cycles(&mut self, indecies: Vec<usize>) {
-        if indecies.is_empty() {
-            let all_indices = self
-                .as_ref()
-                .iter()
-                .map(|node| node.index())
-                .collect::<Vec<usize>>();
+    pub fn set_cycles(&mut self) {
+        let mut sccs = Sccs::default();
+        sccs.find_in(self.as_ref());
 
-            return self.set_cycles(all_indices);
-        }
-
-        for idx in indecies {
-            let cycles = self.get_cycles(idx);
-
-            if cycles.is_empty() {
-                if let Some(node) = self.get_mut(idx) {
-                    node.set_direction(Direction::Forward);
-                }
-            } else {
-                for cycle in cycles {
-                    if let Some(node) = self.get_mut(cycle) {
-                        node.set_direction(Direction::Backward);
-                    }
-                }
-            }
+        for (index, direction) in sccs.directions() {
+            self.nodes[index.as_usize()].set_direction(direction);
         }
     }
+}
 
-    /// Get the cycles in the graph that include the node at the specified index.
+impl<T> Graph<Op<T>> {
+    pub fn compile(self) -> StatefulGraph<Op<T>, T> {
+        StatefulGraph::new(self)
+    }
+}
+
+impl<T, V> EvalInto<[Vec<V>], Vec<Vec<V>>> for Graph<T>
+where
+    T: Eval<[V], V>,
+    V: Copy + Default,
+{
+    /// Evaluates the [Graph] with the given input `Vec<Vec<T>>`, one sample at a time and in
+    /// order, into `buffer`.
     ///
     /// # Arguments
-    /// - index: The index of the node to get the cycles for.
+    /// * `input` - A `Vec<Vec<T>>` to evaluate the [Graph] with.
+    /// * `buffer` - One output `Vec` per input, each sized to the number of output nodes.
     #[inline]
-    pub fn get_cycles(&self, from: usize) -> std::collections::HashSet<usize> {
-        let n = self.len();
-        let mut on_stack = vec![false; n];
-        let mut visited = vec![false; n];
-        let mut cycles = vec![false; n];
-        let mut stack = Vec::with_capacity(n.min(64));
-
-        fn dfs<T>(
-            g: &Graph<T>,
-            u: usize,
-            visited: &mut [bool],
-            on_stack: &mut [bool],
-            cycles: &mut [bool],
-            stack: &mut Vec<usize>,
-        ) {
-            visited[u] = true;
-            on_stack[u] = true;
-            stack.push(u);
-
-            for &v in g.get(u).unwrap().outgoing() {
-                if !visited[v] {
-                    dfs(g, v, visited, on_stack, cycles, stack);
-                } else if on_stack[v] {
-                    let start = stack.iter().rposition(|&x| x == v).unwrap();
-                    for &w in &stack[start..] {
-                        cycles[w] = true;
-                    }
-                }
-            }
-
-            stack.pop();
-            on_stack[u] = false;
+    fn eval_into(&self, input: &[Vec<V>], buffer: &mut Vec<Vec<V>>) {
+        let mut evaluator = GraphEvaluator::new(self);
+        for (input, output) in input.iter().zip(buffer.iter_mut()) {
+            evaluator.eval_into_mut(input, output);
         }
+    }
+}
 
-        dfs(
-            self,
-            from,
-            &mut visited,
-            &mut on_stack,
-            &mut cycles,
-            &mut stack,
-        );
-
-        let mut out = HashSet::with_capacity(stack.len());
-        for (i, &c) in cycles.iter().enumerate() {
-            if c {
-                out.insert(i);
-            }
-        }
-        out
+impl<T, V> Eval<[Vec<V>], Vec<Vec<V>>> for Graph<T>
+where
+    T: Eval<[V], V>,
+    V: Copy + Default,
+{
+    #[inline]
+    fn eval(&self, input: &[Vec<V>]) -> Vec<Vec<V>> {
+        let mut evaluator = GraphEvaluator::new(self);
+        input
+            .iter()
+            .map(|input| evaluator.eval_mut(input))
+            .collect()
     }
 }
 
@@ -369,17 +390,19 @@ impl<T> AsMut<[GraphNode<T>]> for Graph<T> {
     }
 }
 
-impl<T> Index<usize> for Graph<T> {
+impl<T, I: Into<NodeIdx>> Index<I> for Graph<T> {
     type Output = GraphNode<T>;
 
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.nodes[index]
+    #[inline]
+    fn index(&self, index: I) -> &Self::Output {
+        &self.nodes[index.into().as_usize()]
     }
 }
 
-impl<T> IndexMut<usize> for Graph<T> {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.nodes[index]
+impl<T, I: Into<NodeIdx>> IndexMut<I> for Graph<T> {
+    #[inline]
+    fn index_mut(&mut self, index: I) -> &mut Self::Output {
+        &mut self.nodes[index.into().as_usize()]
     }
 }
 
@@ -427,7 +450,7 @@ impl<T: Debug> Debug for Graph<T> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{Arity, Node, Op};
+    use crate::{Arity, Direction, Node, Op};
 
     #[test]
     fn test_graph_is_valid() {
@@ -473,9 +496,9 @@ mod test {
 
         let mut graph_two = Graph::new(vec![
             GraphNode::new(0, NodeType::Input, Op::var(0)),
-            GraphNode::new(1, NodeType::Input, Op::constant(5.0)),
+            GraphNode::new(1, NodeType::Input, Op::constant("five", 5.0)),
             GraphNode::with_arity(2, NodeType::Vertex, Op::add(), Arity::Exact(2)),
-            GraphNode::new(3, NodeType::Output, Op::linear()),
+            GraphNode::new(3, NodeType::Output, Op::sum()),
         ]);
 
         graph_two.attach(0, 2).attach(1, 2).attach(2, 3);
@@ -558,7 +581,7 @@ mod test {
             .attach(idx_three, idx_four)
             .attach(idx_four, idx_two);
 
-        graph.set_cycles(vec![]);
+        graph.set_cycles();
 
         assert_eq!(graph.len(), 4);
 
@@ -584,6 +607,36 @@ mod test {
     }
 
     #[test]
+    fn test_set_cycles_clears_stale_flag_upstream_of_cycle() {
+        let mut graph = Graph::<Op<f32>>::default();
+        let x = graph.insert(NodeType::Input, Op::var(0));
+        let v1 = graph.insert(NodeType::Vertex, Op::sum());
+        let v2 = graph.insert(NodeType::Vertex, Op::sum());
+        let v3 = graph.insert(NodeType::Vertex, Op::sum());
+        let o = graph.insert(NodeType::Output, Op::sum());
+        graph
+            .attach(x, v1)
+            .attach(v1, v1)
+            .attach(v1, v2)
+            .attach(v2, v3)
+            .attach(v3, v2)
+            .attach(v3, o);
+
+        graph.set_cycles();
+        assert_eq!(graph[v1].direction(), Direction::Backward);
+
+        // v1 is no longer on a cycle, but still reaches the v2 <-> v3 cycle downstream.
+        graph.detach(v1, v1);
+        graph.set_cycles();
+
+        assert_eq!(graph[x].direction(), Direction::Forward);
+        assert_eq!(graph[v1].direction(), Direction::Forward);
+        assert_eq!(graph[v2].direction(), Direction::Backward);
+        assert_eq!(graph[v3].direction(), Direction::Backward);
+        assert_eq!(graph[o].direction(), Direction::Forward);
+    }
+
+    #[test]
     fn test_graph_set_cycles() {
         let mut graph = Graph::<i32>::default();
 
@@ -603,7 +656,7 @@ mod test {
             assert_eq!(node.direction(), Direction::Forward);
         }
 
-        graph.set_cycles(vec![]);
+        graph.set_cycles();
 
         for node in graph.iter() {
             assert!(node.is_valid());
@@ -792,17 +845,17 @@ mod test {
         let values = vec![
             (NodeType::Input, vec![Op::var(0), Op::var(1)]),
             (NodeType::Edge, vec![Op::weight()]),
-            (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::linear()]),
-            (NodeType::Output, vec![Op::linear()]),
+            (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::sum()]),
+            (NodeType::Output, vec![Op::sum()]),
         ];
 
-        let op_graph = Graph::directed(2, 2, values);
-        let eval_one = op_graph.eval(&vec![vec![0.5, 1.5]]);
+        let op_graph = Graph::directed(2, 2, values).unwrap();
+        let eval_one = op_graph.eval(&[vec![0.5, 1.5]]);
 
         let serialized_op = serde_json::to_string(&op_graph).unwrap();
         let deserialized_op: Graph<Op<f32>> = serde_json::from_str(&serialized_op).unwrap();
 
-        let deserialized_eval = deserialized_op.eval(&vec![vec![0.5, 1.5]]);
+        let deserialized_eval = deserialized_op.eval(&[vec![0.5, 1.5]]);
 
         assert_eq!(eval_one, deserialized_eval);
         assert_eq!(op_graph, deserialized_op);
@@ -816,18 +869,18 @@ mod test {
         let mut graph = Graph::<Op<f32>>::default();
 
         let idx_one = graph.insert(NodeType::Input, Op::var(0));
-        let idx_two = graph.insert(NodeType::Input, Op::constant(5_f32));
+        let idx_two = graph.insert(NodeType::Input, Op::constant("five", 5_f32));
         let idx_three = graph.insert(NodeType::Vertex, Op::add());
-        let idx_four = graph.insert(NodeType::Output, Op::linear());
+        let idx_four = graph.insert(NodeType::Output, Op::sum());
 
         graph
             .attach(idx_one, idx_three)
             .attach(idx_two, idx_three)
             .attach(idx_three, idx_four);
 
-        let eval_to_six_one = graph.eval(&vec![vec![1_f32]]);
-        let eval_to_seven_one = graph.eval(&vec![vec![2_f32]]);
-        let eval_to_eight_one = graph.eval(&vec![vec![3_f32]]);
+        let eval_to_six_one = graph.eval(&[vec![1_f32]]);
+        let eval_to_seven_one = graph.eval(&[vec![2_f32]]);
+        let eval_to_eight_one = graph.eval(&[vec![3_f32]]);
 
         assert_eq!(eval_to_six_one, &[&[6_f32]]);
         assert_eq!(eval_to_seven_one, &[&[7_f32]]);
@@ -839,9 +892,9 @@ mod test {
 
         assert_eq!(graph, deserialized);
 
-        let eval_to_six_two = deserialized.eval(&vec![vec![1_f32]]);
-        let eval_to_seven_two = deserialized.eval(&vec![vec![2_f32]]);
-        let eval_to_eight_two = deserialized.eval(&vec![vec![3_f32]]);
+        let eval_to_six_two = deserialized.eval(&[vec![1_f32]]);
+        let eval_to_seven_two = deserialized.eval(&[vec![2_f32]]);
+        let eval_to_eight_two = deserialized.eval(&[vec![3_f32]]);
 
         assert_eq!(eval_to_six_two, &[&[6_f32]]);
         assert_eq!(eval_to_seven_two, &[&[7_f32]]);

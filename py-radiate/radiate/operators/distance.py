@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from .._rd import components
-from ..genome import GeneType
 from .input import EngineInput, EngineInputType
 
 
@@ -21,7 +20,7 @@ class Dist(EngineInput):
         The distance is calculated using the formula:
         """
         return Dist(
-            component=components.EUCLIDEAN_DISTANCE, allowed_genes=GeneType.FLOAT
+            component=components.EUCLIDEAN_DISTANCE,
         )
 
     @staticmethod
@@ -32,11 +31,14 @@ class Dist(EngineInput):
         D(u, v) = 1 - (u . v) / (||u|| * ||v||)
         where u and v are the two vectors, and ||u|| and ||v|| are their magnitudes.
         """
-        return Dist(component=components.COSINE_DISTANCE, allowed_genes=GeneType.FLOAT)
+        return Dist(component=components.COSINE_DISTANCE)
 
     @staticmethod
     def neat(
-        excess: float = 1.0, disjoint: float = 1.0, weight_diff: float = 3.0
+        excess: float = 1.0,
+        disjoint: float = 1.0,
+        weight_diff: float = 3.0,
+        op_diff: float = 1.0,
     ) -> Dist:
         """
         Initialize the Neat Distance diversity parameter. This follows the same distance metric or algorithm
@@ -46,13 +48,30 @@ class Dist(EngineInput):
         :param excess: Excess coefficient.
         :param disjoint: Disjoint coefficient.
         :param weight_diff: Weight difference coefficient.
+        :param op_diff: Operation difference coefficient.
         """
         return Dist(
             component=components.NEAT_DISTANCE,
             excess=excess,
             disjoint=disjoint,
             weight_diff=weight_diff,
-            allowed_genes={GeneType.GRAPH},
+            op_diff=op_diff,
+        )
+
+    @staticmethod
+    def tree(k: float = 2.0) -> Dist:
+        """
+        Structural distance between trees, based on Ekart & Nemeth's structural alignment distance.
+        The two trees are laid over each other from the root and compared node by node, with each
+        level down counting `1 / k` as much as the one above, so a different root weighs more than
+        a different leaf. The result is in [0, 1]: 0 for identical trees, 1 when no aligned
+        position matches. Multi-tree genotypes average over their trees.
+
+        :param k: How fast deeper levels fade. 2.0 by default; 1.0 weighs every node equally.
+        """
+        return Dist(
+            component=components.TREE_DISTANCE,
+            k=k,
         )
 
     @staticmethod

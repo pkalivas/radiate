@@ -1,4 +1,4 @@
-use super::{GraphNode, NodeStore, NodeType, NodeValue, TreeNode};
+use super::{GraphNode, NodeIdx, NodeSet, NodeType, NodeValue, TreeNode};
 use crate::Arity;
 use radiate_core::random_provider;
 
@@ -18,7 +18,7 @@ where
     }
 }
 
-impl<T> Factory<NodeType, T> for NodeStore<T>
+impl<T> Factory<NodeType, T> for NodeSet<T>
 where
     T: Factory<(), T> + Default,
 {
@@ -30,7 +30,7 @@ where
     }
 }
 
-impl<T: Default + Clone> Factory<(usize, NodeType), Option<GraphNode<T>>> for NodeStore<T> {
+impl<T: Default + Clone> Factory<(usize, NodeType), Option<GraphNode<T>>> for NodeSet<T> {
     fn new_instance(&self, (index, node_type): (usize, NodeType)) -> Option<GraphNode<T>> {
         self.map_by_type(node_type, |values| {
             let node_value = match node_type {
@@ -38,6 +38,7 @@ impl<T: Default + Clone> Factory<(usize, NodeType), Option<GraphNode<T>>> for No
                 _ => random_provider::choose(values),
             };
 
+            let index = NodeIdx::from_usize(index);
             match node_value {
                 NodeValue::Bounded(value, arity) => {
                     (index, node_type, value.clone(), *arity).into()
@@ -48,7 +49,7 @@ impl<T: Default + Clone> Factory<(usize, NodeType), Option<GraphNode<T>>> for No
     }
 }
 
-impl<T, F> Factory<(usize, NodeType, F), Option<GraphNode<T>>> for NodeStore<T>
+impl<T, F> Factory<(usize, NodeType, F), Option<GraphNode<T>>> for NodeSet<T>
 where
     T: Default + Clone,
     F: Fn(Arity) -> bool,
@@ -70,6 +71,7 @@ where
                 self.new_instance((index, node_type))
             } else {
                 let node_value = random_provider::choose(&mapped_values);
+                let index = NodeIdx::from_usize(index);
 
                 match node_value {
                     NodeValue::Bounded(value, arity) => Some(GraphNode::with_arity(
@@ -88,7 +90,7 @@ where
     }
 }
 
-impl<T, F> Factory<F, Option<TreeNode<T>>> for NodeStore<T>
+impl<T, F> Factory<F, Option<TreeNode<T>>> for NodeSet<T>
 where
     T: Default + Clone,
     F: Fn(Arity) -> bool,
@@ -117,7 +119,7 @@ where
     }
 }
 
-impl<T: Clone + Default> Factory<NodeType, Option<TreeNode<T>>> for NodeStore<T> {
+impl<T: Clone + Default> Factory<NodeType, Option<TreeNode<T>>> for NodeSet<T> {
     fn new_instance(&self, input: NodeType) -> Option<TreeNode<T>> {
         self.map_by_type(input, |values| {
             let node_value = random_provider::choose(values);

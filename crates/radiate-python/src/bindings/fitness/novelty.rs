@@ -1,7 +1,24 @@
+use crate::{
+    PyEngineInput, PyEngineInputType,
+    bindings::converters::{FromPyEngineInput, Registry},
+    registry,
+};
 use pyo3::{
     Py, PyAny, PyResult, Python, exceptions::PyTypeError, pyclass, pymethods, types::PyAnyMethods,
 };
 use radiate::{CosineDistance, EuclideanDistance, FitnessFunction, HammingDistance, NoveltySearch};
+
+/// Novelty compares descriptors (`Vec<f32>`), not genotypes, so only the vector distances
+/// apply. `NoveltySearch::new` needs a concrete distance type, so the registry builds the
+/// search itself rather than a boxed distance.
+fn novelty_searches() -> Registry<NoveltySearch<Vec<f32>>> {
+    use crate::constants::components;
+    registry!("novelty distance", |d| NoveltySearch::new(|v: &Vec<f32>| v.clone(), d); {
+        components::EUCLIDEAN_DISTANCE => EuclideanDistance,
+        components::COSINE_DISTANCE    => CosineDistance,
+        components::HAMMING_DISTANCE   => HammingDistance,
+    })
+}
 
 #[pyclass]
 pub struct PyNoveltySearch {
@@ -17,23 +34,15 @@ impl PyNoveltySearch {
         k: usize,
         threshold: f32,
         archive_size: usize,
-        distance: String,
-    ) -> Self {
-        // The Python descriptor runs in `__call__`, so the inner search receives the
-        // finished descriptor and only needs to pass it through.
-        let identity = |described: &Vec<f32>| described.clone();
-        let search = if distance == crate::constants::components::EUCLIDEAN_DISTANCE {
-            NoveltySearch::new(identity, EuclideanDistance)
-        } else if distance == crate::constants::components::COSINE_DISTANCE {
-            NoveltySearch::new(identity, CosineDistance)
-        } else {
-            NoveltySearch::new(identity, HammingDistance)
-        };
+        distance: PyEngineInput,
+    ) -> PyResult<Self> {
+        distance.expect_type(PyEngineInputType::Diversity)?;
+        let search = novelty_searches().convert(&distance)?;
 
-        PyNoveltySearch {
+        Ok(PyNoveltySearch {
             descriptor,
             inner: search.k(k).threshold(threshold).archive_size(archive_size),
-        }
+        })
     }
 
     pub fn __call__<'py>(&self, py: Python<'py>, genotype: Py<PyAny>) -> PyResult<f32> {

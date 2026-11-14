@@ -192,48 +192,84 @@ fn main() {
     // --8<-- [start:example]
     random_provider::seed(90);
 
-    let store = vec![
-        (NodeType::Input, vec![Op::var(0)]),
-        (NodeType::Edge, vec![Op::weight()]),
-        (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::linear()]),
-        (NodeType::Output, vec![Op::linear()]),
+    let set = node_set![
+        Input => Op::var(0),
+        Edge => Op::weight(),
+        Vertex => [Op::sub(), Op::mul(), Op::sum()],
+        Output => Op::sum()
     ];
 
-    let target_species = 4.0;
-    let rolling = target_species as usize;
+    // Define a few parameters we'll need
+    // 1. Define the target number of species we want (4)
+    let target_species = 4;
+    // 2. Define a few constants for scaling the signals - remember this is a feedback loop
+    const KP: f32 = 0.05_f32; // Proportional gain
+    const KI: f32 = 0.005_f32; // Integral gain
+    const KD: f32 = 0.02_f32; // Derivative gain
+    // 3. Define an initial threshold value that we will start at
+    let initial_threshold = 0.5_f32;
 
-    let spec_count_signal = Expr::select("species.count")
-        .rolling(rolling)
+    // Now, lets build our expression
+    // 1. We want an error signal to say how far we are from our desired target
+    let raw_error = Expr::select(metric_names::SPECIES_COUNT).error(target_species as f32);
+    // 2. Now we need a proportional signal based on the raw error, smoothed by the proportional gain
+    let proportional = Expr::select(metric_names::SPECIES_COUNT)
+        .rolling(3)
         .mean()
-        .div(target_species);
+        .error(target_species as f32)
+        * KP;
 
-    let spec_dist_signal = Expr::select("species.distance")
-        .mean()
-        .rolling(rolling)
-        .mean()
-        .div(target_species);
+    // 3. Next, we need to define our integral and derivative signals for the PID controller
+    // Integral: accumulated recent error over a rolling window
+    // Derivative: velocity of the error — anticipates rising/falling count
+    let integral = raw_error.clone().rolling(20).sum() * KI;
+    let derivative = raw_error.rolling(5).slope() * KD;
 
-    let spec_thresh_signal = Expr::select("species.threshold").rolling(rolling).mean();
-    let spec_evenness_signal = Expr::select("species.evenness").rolling(rolling).mean();
+    // 4. Finally, combine the proportional, integral, and derivative signals to form the PID control signal.
+    // However, we need to make sure that the engine _has_ values in it's metric set to use (again, this is a feedback loop),
+    // so we want to wait at least one generation before our PID control signal is applied
+    let pid_control_signal = Expr::when(Expr::select(metric_names::INDEX).lt(2_i32))
+        .then(initial_threshold) // Use the initial threshold for the first generation
+        .otherwise(
+            Expr::select("Our.PID") + proportional + integral + derivative, // Notice the feedback! (the PID control signal depends on its own previous value)
+        )
+        .clamp(0.0_f32, (target_species as f32) * 2.5_f32)
+        .alias("Our.PID"); // Give our PID control signal a name in the metric set
 
-    let distance_signal = spec_count_signal
-        .mul(0.9)
-        .add(spec_dist_signal.mul(0.4))
-        .add(spec_thresh_signal.mul(0.2))
-        .add(spec_evenness_signal.mul(0.1))
-        .clamp(0.01, 10.0);
-
+    // Now, lets plug in our PID control signal into the engine's species threshold!
     let engine = GeneticEngine::builder()
-        .codec(GraphCodec::directed(1, 1, store))
-        .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
+        .codec(GraphCodec::directed(1, 1, set).unwrap())
+        .fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .diversity(NeatDistance::new(1.0, 1.0, 3.0))
-        .species_threshold(distance_signal)
+        .species_threshold(pid_control_signal)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
-            GraphMutator::new(0.1, 0.1).allow_recurrent(false)
+            GraphMutator::new(0.1, 0.1)
         ))
         .build();
     // --8<-- [end:example]
+
+    // --8<-- [start:all_else_same]
+    let set = node_set![
+        Input => Op::var(0),
+        Edge => Op::weight(),
+        Vertex => [Op::sub(), Op::mul(), Op::sum()],
+        Output => Op::sum()
+    ];
+
+    let engine = GeneticEngine::builder()
+        .codec(GraphCodec::directed(1, 1, set).unwrap())
+        .fitness_fn(Regression::new(dataset(), Loss::MSE))
+        .minimizing()
+        .diversity(NeatDistance::new(1.0, 1.0, 3.0))
+        .target_species(4) // <- Set the target number of species to 4
+        .alter(alters!(
+            GraphCrossover::new(0.5, 0.5),
+            OperationMutator::new(0.07, 0.05),
+            GraphMutator::new(0.1, 0.1)
+        ))
+        .build();
+    // --8<-- [end:all_else_same]
 }

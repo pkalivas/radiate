@@ -1,4 +1,4 @@
-use radiate::*;
+use radiate::prelude::*;
 
 const MIN_SCORE: f32 = 0.00;
 const MAX_SECONDS: f64 = 5.0;
@@ -6,7 +6,7 @@ const A: f32 = 10.0;
 const RANGE: f32 = 5.12;
 const N_GENES: usize = 2;
 
-fn main() {
+fn main() -> RadiateResult<()> {
     let engine = GeneticEngine::builder()
         .codec(FloatChromosome::from((N_GENES, -RANGE..RANGE)))
         .minimizing()
@@ -17,8 +17,8 @@ fn main() {
         ))
         .fitness_fn(move |genotype: Vec<f32>| {
             let mut value = A * N_GENES as f32;
-            for i in 0..N_GENES {
-                value += genotype[i].powi(2) - A * (2.0 * std::f32::consts::PI * genotype[i]).cos();
+            for x in &genotype {
+                value += x.powi(2) - A * (2.0 * std::f32::consts::PI * x).cos();
             }
 
             value
@@ -28,7 +28,9 @@ fn main() {
     let result = engine.run(|view| {
         println!("[ {:?} ]: {:?}", view.index(), view.score().as_f32());
         view.score().as_f32() <= MIN_SCORE || view.seconds() > MAX_SECONDS
-    });
+    })?;
 
     println!("{result:?}");
+
+    Ok(())
 }

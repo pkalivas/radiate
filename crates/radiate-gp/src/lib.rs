@@ -3,8 +3,8 @@ pub mod ops;
 pub mod regression;
 
 pub use collections::*;
-pub use ops::{Op, OperationMutator, activation_ops, all_ops, math_ops};
-pub use regression::{Accuracy, AccuracyResult, DataSet, Loss, Regression};
+pub use ops::{Op, OperationMutator, activation_ops, all_ops, arithmetic_ops, bool_ops};
+pub use regression::{Accuracy, AccuracyResult, Loss, Regression};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};

@@ -14,8 +14,9 @@ pub use graphs::{
     GraphIterator, GraphMutator, GraphNode, GraphNodeId, GraphReplacement, NeatDistance,
     NodeBuilder, StatefulGraph,
 };
-pub use node::{Node, NodeType};
-pub use store::{NodeStore, NodeValue};
+pub use node::{Node, NodeIdx, NodeType};
+pub use store::{IntoNodeValues, NodeSet, NodeValue};
 pub use trees::{
-    Format, HoistMutator, Tree, TreeChromosome, TreeCodec, TreeCrossover, TreeIterator, TreeNode,
+    Format, HoistMutator, SubtreeMutator, Tree, TreeChromosome, TreeCodec, TreeCrossover,
+    TreeDistance, TreeIterator, TreeNode,
 };

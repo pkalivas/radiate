@@ -1,5 +1,5 @@
 use crate::{
-    EngineBuilderHandle, FreeThreadPyEvaluator, InputTransform, PyCodec, PyEngine, PyEngineInput,
+    EngineBuilderHandle, FreeThreadPyEvaluator, PyCodec, PyEngine, PyEngineInput,
     PyEngineInputType, PyExpr, PyFitnessFn, PyFitnessInner, PyPermutationCodec, PyPopulation,
     prelude::*, radiate,
 };
@@ -17,10 +17,9 @@ use crate::{
 use crate::{PyGeneration, PySubscriber};
 use core::panic;
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
-use radiate::{distance::Distance, prelude::*};
+use radiate::prelude::*;
 use radiate_error::{ResultExt, radiate_py_bail, radiate_py_err};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 
 macro_rules! dispatch_builder_typed {
     // ------------------------------------------------------------
@@ -93,7 +92,14 @@ impl PyEngineBuilder {
 
         let limits = input_groups
             .get(&PyEngineInputType::Limit)
-            .map(|inputs| inputs.transform())
+            .map(|inputs| {
+                inputs
+                    .iter()
+                    .map(PyEngineInput::convert)
+                    .collect::<RadiateResult<Vec<Limit>>>()
+                    .context("Failed to transform limit input")
+            })
+            .transpose()?
             .unwrap_or_default();
 
         Ok(PyEngine::new(limits, inner.try_build()?))
@@ -177,11 +183,13 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_many_typed(|typed_builder, inputs| {
-                let filters = InputTransform::<
-                    RadiateResult<Vec<Arc<Mutex<dyn EcosystemFilter<_>>>>>,
-                >::transform(&inputs)
-                .context("Failed to transform filter input")?;
-                Ok(typed_builder.filters(filters))
+                Ok(typed_builder.filters(
+                    inputs
+                        .iter()
+                        .map(PyEngineInput::convert)
+                        .collect::<RadiateResult<Vec<_>>>()
+                        .context("Failed to transform filter input")?,
+                ))
             })
         )
     }
@@ -395,9 +403,9 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let selector =
-                    InputTransform::<RadiateResult<Box<dyn Select<_>>>>::transform(input)
-                        .context("Failed to transform selector input")?;
+                let selector = input
+                    .convert()
+                    .context("Failed to transform selector input")?;
 
                 Ok(match input.input_type() {
                     SurvivorSelector => typed_builder.boxed_survivor_selector(selector),
@@ -418,10 +426,13 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_many_typed(|typed_builder, alter_inputs| {
-                let alters =
-                    InputTransform::<RadiateResult<Vec<Alterer<_>>>>::transform(&alter_inputs)
-                        .context("Failed to transform alterers input")?;
-                Ok(typed_builder.alter(alters))
+                Ok(typed_builder.alter(
+                    alter_inputs
+                        .iter()
+                        .map(PyEngineInput::convert)
+                        .collect::<RadiateResult<Vec<_>>>()
+                        .context("Failed to transform alterer input")?,
+                ))
             })
         )
     }
@@ -434,11 +445,11 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let diversity =
-                    InputTransform::<RadiateResult<Box<dyn Distance<_>>>>::transform(input)
-                        .context("Failed to transform diversity input")?;
-
-                Ok(typed_builder.boxed_diversity(Some(diversity)))
+                Ok(typed_builder.boxed_diversity(Some(
+                    input
+                        .convert()
+                        .context("Failed to transform diversity input")?,
+                )))
             })
         )
     }
@@ -595,7 +606,7 @@ impl PyEngineBuilder {
         use EngineBuilderHandle::*;
         use PyFitnessInner::Regression32;
 
-        let Regression32(regression, is_batch) = regression else {
+        let Regression32(regression) = regression else {
             radiate_py_bail!("init_regression_builder only supports Regression fitness functions")
         };
 
@@ -605,13 +616,10 @@ impl PyEngineBuilder {
                     .codec(c)
                     .executor(executor)
                     .stream_executor(Executor::default())
-                    .replace_strategy(GraphReplacement);
+                    .replace_strategy(GraphReplacement)
+                    .fitness_fn(regression);
 
-                if is_batch {
-                    Ok(Graph32(base_engine.raw_batch_fitness_fn(regression)))
-                } else {
-                    Ok(Graph32(base_engine.raw_fitness_fn(regression)))
-                }
+                Ok(Graph32(base_engine))
             } else {
                 radiate_py_bail!("F64 GraphCodec not supported for F32 Regression Fitness.");
             }
@@ -620,13 +628,10 @@ impl PyEngineBuilder {
                 let base_engine = GeneticEngine::builder()
                     .codec(c)
                     .executor(executor)
-                    .stream_executor(Executor::default());
+                    .stream_executor(Executor::default())
+                    .fitness_fn(regression);
 
-                if is_batch {
-                    Ok(Tree32(base_engine.raw_batch_fitness_fn(regression)))
-                } else {
-                    Ok(Tree32(base_engine.raw_fitness_fn(regression)))
-                }
+                Ok(Tree32(base_engine))
             } else {
                 radiate_py_bail!("F64 TreeCodec not supported for F32 Regression Fitness.");
             }
@@ -643,7 +648,7 @@ impl PyEngineBuilder {
         use EngineBuilderHandle::*;
         use PyFitnessInner::Regression64;
 
-        let Regression64(regression, is_batch) = regression else {
+        let Regression64(regression) = regression else {
             radiate_py_bail!("init_regression_builder64 only supports Regression fitness functions")
         };
 
@@ -653,13 +658,10 @@ impl PyEngineBuilder {
                     .codec(c)
                     .executor(executor)
                     .stream_executor(Executor::default())
-                    .replace_strategy(GraphReplacement);
+                    .replace_strategy(GraphReplacement)
+                    .fitness_fn(regression);
 
-                if is_batch {
-                    Ok(Graph64(base_engine.raw_batch_fitness_fn(regression)))
-                } else {
-                    Ok(Graph64(base_engine.raw_fitness_fn(regression)))
-                }
+                Ok(Graph64(base_engine))
             } else {
                 radiate_py_bail!("F32 GraphCodec not supported for F64 Regression Fitness.");
             }
@@ -668,13 +670,10 @@ impl PyEngineBuilder {
                 let base_engine = GeneticEngine::builder()
                     .codec(c)
                     .executor(executor)
-                    .stream_executor(Executor::default());
+                    .stream_executor(Executor::default())
+                    .fitness_fn(regression);
 
-                if is_batch {
-                    Ok(Tree64(base_engine.raw_batch_fitness_fn(regression)))
-                } else {
-                    Ok(Tree64(base_engine.raw_fitness_fn(regression)))
-                }
+                Ok(Tree64(base_engine))
             } else {
                 radiate_py_bail!("F32 TreeCodec not supported for F64 Regression Fitness.");
             }
@@ -827,24 +826,20 @@ impl PyEngineBuilder {
             .extract::<bool>(py)?;
 
         let codec = Self::get_input_of_type(inputs, PyEngineInputType::Codec)
-            .map(|codec| codec.extract::<Py<PyAny>>("codec"))
-            .unwrap_or(Err(radiate_py_err!(
-                "EngineBuilder requires a Codec input."
-            )))?;
+            .ok_or_else(|| radiate_py_err!("EngineBuilder requires a Codec input."))?
+            .extract::<Py<PyAny>>("codec")?;
 
         let problem = Self::get_input_of_type(inputs, PyEngineInputType::FitnessFunction)
-            .map(|fitness| fitness.extract::<PyFitnessFn>("fitness"))
-            .unwrap_or(Err(radiate_py_err!(
-                "EngineBuilder requires a FitnessFunction input."
-            )))?;
+            .ok_or_else(|| radiate_py_err!("EngineBuilder requires a FitnessFunction input."))?
+            .extract::<PyFitnessFn>("fitness")?;
 
         let executor = Self::get_input_of_type(inputs, PyEngineInputType::Executor)
-            .map(InputTransform::<RadiateResult<Executor>>::transform)
+            .map(PyEngineInput::convert)
             .unwrap_or(Ok(Executor::Serial))?;
 
         if executor.is_parallel()
             && gil_enabled
-            && !matches!(problem.inner, Regression32(_, _) | Regression64(_, _))
+            && !matches!(problem.inner, Regression32(_) | Regression64(_))
         {
             radiate_py_bail!(
                 "Parallel execution is not supported for non-regression fitness functions

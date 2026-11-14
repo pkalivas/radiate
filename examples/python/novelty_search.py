@@ -22,9 +22,8 @@ import math
 
 import numpy as np
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-
 import radiate as rd
+from plotly.subplots import make_subplots
 
 rd.random.seed(34)
 np.random.seed(23)
@@ -236,12 +235,12 @@ def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
 
 def analyze_diverse_behaviors(result: rd.Generation, num_behaviors: int = 6):
     """Analyze and visualize diverse behaviors found by novelty search."""
-    population = result.population()
+    population = result.population
 
     sorted_population = sorted(population, key=lambda x: x.score(), reverse=True)  # type: ignore
 
     print("\n=== Novelty Search Results ===")
-    print(f"Generations completed: {result.index()}")
+    print(f"Generations completed: {result.index}")
     print(f"Population size: {len(population)}")
     print(f"Best novelty score: {sorted_population[0].score()[0]:.3f}")
 
@@ -329,7 +328,7 @@ if __name__ == "__main__":
 
     # Show individual behaviors in detail
     print("\n=== Detailed Behavior Analysis ===")
-    population = result.population()
+    population = result.population
     top_individuals = sorted(population, key=lambda x: x.score(), reverse=True)[:3]  # type: ignore
 
     for i, individual in enumerate(top_individuals):

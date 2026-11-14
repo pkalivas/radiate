@@ -1,8 +1,9 @@
 use super::aggregate::GraphAggregate;
 use crate::{
-    Arity, Factory, NodeStore,
+    Arity, Factory, NodeSet,
     collections::{Graph, GraphNode, NodeType},
 };
+use radiate_core::{error::RadiateResult, radiate_err};
 
 impl<T: Clone + Default> Graph<T> {
     /// Creates a directed graph with the given input, output sizes and values.
@@ -17,7 +18,7 @@ impl<T: Clone + Default> Graph<T> {
     ///     (NodeType::Output, vec![Op::sigmoid()]),
     /// ];
     ///
-    /// let graph = Graph::directed(3, 3, values);
+    /// let graph = Graph::directed(3, 3, values).unwrap();
     ///
     /// assert_eq!(graph.len(), 6);
     /// ```
@@ -38,8 +39,8 @@ impl<T: Clone + Default> Graph<T> {
     pub fn directed(
         input_size: usize,
         output_size: usize,
-        values: impl Into<NodeStore<T>>,
-    ) -> Graph<T> {
+        values: impl Into<NodeSet<T>>,
+    ) -> RadiateResult<Graph<T>> {
         let builder = NodeBuilder::new(values);
 
         let input_nodes = builder.input(input_size);
@@ -62,11 +63,11 @@ impl<T: Clone + Default> Graph<T> {
     ///
     /// let values: Vec<(NodeType, Vec<Op<f32>>)> = vec![
     ///   (NodeType::Input, vec![Op::var(0), Op::var(1), Op::var(2)]),
-    ///   (NodeType::Vertex, vec![Op::linear()]),
+    ///   (NodeType::Vertex, vec![Op::sum()]),
     ///   (NodeType::Output, vec![Op::sigmoid()]),
     /// ];
     ///
-    /// let graph = Graph::recurrent(3, 3, values);
+    /// let graph = Graph::recurrent(3, 3, values).unwrap();
     ///
     /// assert_eq!(graph.len(), 9);
     /// ```
@@ -90,8 +91,8 @@ impl<T: Clone + Default> Graph<T> {
     pub fn recurrent(
         input_size: usize,
         output_size: usize,
-        values: impl Into<NodeStore<T>>,
-    ) -> Graph<T> {
+        values: impl Into<NodeSet<T>>,
+    ) -> RadiateResult<Graph<T>> {
         let builder = NodeBuilder::new(values);
 
         let input = builder.input(input_size);
@@ -119,8 +120,8 @@ impl<T: Clone + Default> Graph<T> {
     pub fn weighted_directed(
         input_size: usize,
         output_size: usize,
-        values: impl Into<NodeStore<T>>,
-    ) -> Graph<T> {
+        values: impl Into<NodeSet<T>>,
+    ) -> RadiateResult<Graph<T>> {
         let builder = NodeBuilder::new(values);
 
         let input = builder.input(input_size);
@@ -146,8 +147,8 @@ impl<T: Clone + Default> Graph<T> {
     pub fn weighted_recurrent(
         input_size: usize,
         output_size: usize,
-        values: impl Into<NodeStore<T>>,
-    ) -> Graph<T> {
+        values: impl Into<NodeSet<T>>,
+    ) -> RadiateResult<Graph<T>> {
         let builder = NodeBuilder::new(values);
 
         let input = builder.input(input_size);
@@ -181,7 +182,11 @@ impl<T: Clone + Default> Graph<T> {
     ///
     /// # Returns
     /// A new LSTM graph.
-    pub fn lstm(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Graph<T> {
+    pub fn lstm(
+        input_size: usize,
+        output_size: usize,
+        store: impl Into<NodeSet<T>>,
+    ) -> RadiateResult<Graph<T>> {
         let builder = NodeBuilder::new(store);
 
         let input = builder.input(input_size);
@@ -232,7 +237,11 @@ impl<T: Clone + Default> Graph<T> {
     ///
     /// # Returns
     /// A new GRU graph.
-    pub fn gru(input_size: usize, output_size: usize, values: impl Into<NodeStore<T>>) -> Graph<T> {
+    pub fn gru(
+        input_size: usize,
+        output_size: usize,
+        values: impl Into<NodeSet<T>>,
+    ) -> RadiateResult<Graph<T>> {
         let builder = NodeBuilder::new(values);
 
         let input = builder.input(input_size);
@@ -276,12 +285,20 @@ impl<T: Clone + Default> Graph<T> {
         output_size: usize,
         width: usize,
         height: usize,
-        values: impl Into<NodeStore<T>>,
-    ) -> Graph<T> {
+        values: impl Into<NodeSet<T>>,
+    ) -> RadiateResult<Graph<T>> {
         let builder = NodeBuilder::new(values);
 
         let inputs = builder.input(input_size);
         let outputs = builder.output(output_size);
+        if width == 0 || height == 0 {
+            return Err(radiate_err!(
+                Builder: "mesh - Width and height must be non-zero, got {}x{}",
+                width,
+                height
+            ));
+        }
+
         let nodes = (0..width * height)
             .map(|_| builder.vertex())
             .collect::<Vec<Vec<GraphNode<T>>>>();
@@ -315,11 +332,11 @@ impl<T: Clone + Default> Graph<T> {
 /// A simple builder struct for constructing nodes of a certain type. This is pretty much just a
 /// quality of life struct that removes boilerplate code when creating collections of nodes.
 pub struct NodeBuilder<T> {
-    store: NodeStore<T>,
+    store: NodeSet<T>,
 }
 
 impl<T: Clone + Default> NodeBuilder<T> {
-    pub fn new(store: impl Into<NodeStore<T>>) -> Self {
+    pub fn new(store: impl Into<NodeSet<T>>) -> Self {
         NodeBuilder {
             store: store.into(),
         }
@@ -386,12 +403,12 @@ impl<T: Clone + Default> NodeBuilder<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Node, Op, node_store};
+    use crate::{Node, Op, node_set};
     use radiate_core::Valid;
 
     #[test]
     fn test_graph_builder() {
-        let graph = Graph::directed(3, 3, Op::<f32>::sigmoid());
+        let graph = Graph::directed(3, 3, Op::<f32>::sigmoid()).unwrap();
 
         assert_eq!(graph.len(), 6);
 
@@ -411,7 +428,7 @@ mod tests {
 
     #[test]
     fn test_graph_builder_recurrent() {
-        let graph = Graph::recurrent(3, 3, Op::<f32>::sigmoid());
+        let graph = Graph::recurrent(3, 3, Op::<f32>::sigmoid()).unwrap();
 
         assert_eq!(graph.len(), 9);
 
@@ -435,7 +452,7 @@ mod tests {
 
     #[test]
     fn test_graph_builder_with_no_any() {
-        let graph = Graph::directed(3, 3, Op::<f32>::add());
+        let graph = Graph::directed(3, 3, Op::<f32>::add()).unwrap();
 
         assert_eq!(graph.len(), 6);
         assert!(graph.is_valid());
@@ -449,7 +466,7 @@ mod tests {
             (NodeType::Edge, vec![Op::weight_with(1.0)]),
         ];
 
-        let graph = Graph::weighted_directed(3, 3, store);
+        let graph = Graph::weighted_directed(3, 3, store).unwrap();
 
         assert_eq!(graph.len(), 15);
         assert!(graph.is_valid());
@@ -475,13 +492,13 @@ mod tests {
 
     #[test]
     fn test_graph_builder_weighted_recurrent() {
-        let store = node_store![
+        let store = node_set![
             Input => vec![Op::var(0), Op::var(1), Op::var(2)],
             Output => vec![Op::sigmoid()],
             Edge => vec![Op::weight_with(1.0)]
         ];
 
-        let graph = Graph::weighted_recurrent(3, 3, store);
+        let graph = Graph::weighted_recurrent(3, 3, store).unwrap();
 
         assert_eq!(graph.len(), 18);
         assert!(graph.is_valid());
@@ -511,14 +528,14 @@ mod tests {
 
     #[test]
     fn test_graph_builder_lstm() {
-        let store = node_store![
+        let store = node_set![
             Input => vec![Op::var(0)],
             Output => vec![Op::sigmoid()],
             Vertex => vec![Op::sigmoid(), Op::tanh(), Op::mul(), Op::add()],
             Edge => vec![Op::weight_with(1.0)]
         ];
 
-        let graph = Graph::lstm(1, 1, store);
+        let graph = Graph::lstm(1, 1, store).unwrap();
         assert_eq!(graph.len(), 8);
         assert!(graph.is_valid());
 
@@ -534,9 +551,7 @@ mod tests {
                 assert_eq!(node.value(), &Op::sigmoid());
             } else if node.node_type() == NodeType::Vertex {
                 assert_eq!(node.arity(), Arity::Any);
-                assert!(
-                    vec![Op::sigmoid(), Op::tanh(), Op::mul(), Op::add()].contains(&node.value())
-                );
+                assert!([Op::sigmoid(), Op::tanh(), Op::mul(), Op::add()].contains(node.value()));
             } else if node.node_type() == NodeType::Edge {
                 assert_eq!(node.arity(), Arity::Exact(1));
                 assert_eq!(node.incoming().iter().count(), 1);
@@ -548,14 +563,14 @@ mod tests {
 
     #[test]
     fn test_graph_builder_gru() {
-        let store = node_store![
+        let store = node_set![
             Input => vec![Op::var(0)],
             Output => vec![Op::sigmoid()],
             Vertex => vec![Op::sigmoid(), Op::tanh(), Op::mul(), Op::add()],
             Edge => vec![Op::weight_with(1.0)]
         ];
 
-        let graph = Graph::gru(1, 1, store);
+        let graph = Graph::gru(1, 1, store).unwrap();
 
         assert_eq!(graph.len(), 8);
         assert!(graph.is_valid());
@@ -572,9 +587,7 @@ mod tests {
                 assert_eq!(node.value(), &Op::sigmoid());
             } else if node.node_type() == NodeType::Vertex {
                 assert_eq!(node.arity(), Arity::Any);
-                assert!(
-                    vec![Op::sigmoid(), Op::tanh(), Op::mul(), Op::add()].contains(&node.value())
-                );
+                assert!([Op::sigmoid(), Op::tanh(), Op::mul(), Op::add()].contains(node.value()));
             } else if node.node_type() == NodeType::Edge {
                 assert_eq!(node.arity(), Arity::Exact(1));
                 assert_eq!(node.incoming().iter().count(), 1);

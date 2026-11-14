@@ -3,6 +3,7 @@ use crate::{GetPairMut, Phenotype};
 use crate::{RateSet, error::RadiateResult};
 pub use radiate_expr::*;
 use radiate_utils::{SmallStr, generate_metric_key};
+use rustc_hash::FxBuildHasher;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -20,11 +21,11 @@ macro_rules! alters {
 }
 
 #[derive(Clone, Default)]
-pub struct AlterUpdates(pub HashMap<SmallStr, usize>);
+pub struct AlterUpdates(pub HashMap<SmallStr, usize, FxBuildHasher>);
 
 impl AlterUpdates {
     pub fn new() -> Self {
-        AlterUpdates(HashMap::new())
+        AlterUpdates(HashMap::default())
     }
 
     pub fn clear(&mut self) {

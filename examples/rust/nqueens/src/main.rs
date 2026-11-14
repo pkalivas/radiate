@@ -1,17 +1,16 @@
-use radiate::*;
+use radiate::prelude::*;
 
-const N_QUEENS: usize = 32;
+const N_QUEENS: usize = 120;
 
-fn main() {
+fn main() -> RadiateResult<()> {
     random_provider::seed(514);
 
     let engine = GeneticEngine::builder()
         .codec(IntChromosome::from((N_QUEENS, 0..N_QUEENS as i8)))
         .minimizing()
-        .offspring_selector(BoltzmannSelector::new(4.0))
         .alter(alters!(
             MultiPointCrossover::new(0.75, 2),
-            UniformMutator::new(0.05)
+            UniformMutator::new(1.0 / N_QUEENS as f64)
         ))
         .fitness_fn(|queens: Vec<i8>| {
             let mut score = 0;
@@ -32,7 +31,7 @@ fn main() {
         })
         .build();
 
-    let result = engine.iter().logging().until_score(0).last().unwrap();
+    let result = engine.iter().logging().until_score(0).last()?;
 
     println!("Best Score: {result:?}");
     println!("\nResult Queens Board ({:.3?}):", result.time());
@@ -48,4 +47,6 @@ fn main() {
         }
         println!();
     }
+
+    Ok(())
 }

@@ -217,6 +217,6 @@ mod tests {
 
         let decoded = codec.decode(&genotype);
 
-        assert!(vec![true, false].contains(&decoded));
+        assert!([true, false].contains(&decoded));
     }
 }

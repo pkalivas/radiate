@@ -23,18 +23,14 @@ impl<C: ContiguousChromosome> Mutate<C> for SwapMutator {
     fn mutate_chromosome(&mut self, chromosome: &mut C, ctx: &mut AlterContext) -> usize {
         let mut mutations = 0;
 
-        random_provider::with_rng(|rand| {
-            for i in 0..chromosome.len() {
-                if rand.bool(ctx.rate()) {
-                    let swap_index = rand.range(0..chromosome.len());
-                    if swap_index == i {
-                        continue;
-                    }
-
-                    chromosome.swap(i, swap_index);
-                    mutations += 1;
-                }
+        random_provider::bernoulli_indices(ctx.rate(), chromosome.len(), |index| {
+            let swap_index = random_provider::range(0..chromosome.len());
+            if swap_index == index {
+                return;
             }
+
+            chromosome.swap(index, swap_index);
+            mutations += 1;
         });
 
         mutations

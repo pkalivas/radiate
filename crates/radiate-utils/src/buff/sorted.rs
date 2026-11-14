@@ -53,6 +53,33 @@ impl<T> SortedBuffer<T> {
     }
 
     #[inline]
+    pub fn insert(&mut self, value: T) -> bool
+    where
+        T: Ord,
+    {
+        match self.inner.binary_search(&value) {
+            Ok(_) => false,
+            Err(pos) => {
+                self.inner.insert(pos, value);
+                true
+            }
+        }
+    }
+
+    #[inline]
+    pub fn remove(&mut self, value: &T) -> bool
+    where
+        T: Ord,
+    {
+        if let Ok(pos) = self.inner.binary_search(value) {
+            self.inner.remove(pos);
+            return true;
+        }
+
+        false
+    }
+
+    #[inline]
     pub fn insert_sorted_unique(v: &mut SortedBuffer<T>, value: T)
     where
         T: Ord,

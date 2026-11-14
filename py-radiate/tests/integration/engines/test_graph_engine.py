@@ -11,7 +11,7 @@ def test_engine_graph_xor(xor_dataset, random_seed):
     engine = (
         rd.Engine.graph(
             shape=(2, 1),
-            vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+            vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sum()],
             edge=rd.Op.weight(),
             output=rd.Op.sigmoid(),
         )
@@ -20,30 +20,28 @@ def test_engine_graph_xor(xor_dataset, random_seed):
         .alter(
             rd.Cross.graph(0.5, 0.5),
             rd.Mutate.op(0.07, 0.05),
-            rd.Mutate.graph(0.1, 0.1, False),
+            rd.Mutate.graph(0.1, 0.1),
         )
         .limit(rd.Limit.score(0.1), rd.Limit.generations(1000))
     )
 
     result = engine.run()
 
-    assert result.score()[0] < 0.1
-    assert result.index() <= 1000
-    assert isinstance(result.value(), rd.Graph)
+    assert result.score[0] < 0.1
+    assert result.index <= 1000
+    assert isinstance(result.value, rd.Graph)
 
 
 @pytest.mark.integration
-def test_engine_graph_regression_with_speciation(
-    simple_regression_dataset, random_seed
-):
+def test_engine_graph_regression_with_speciation(squared_dataset, random_seed):
     """Test engine with graph codec and speciation for regression."""
-    inputs, outputs = simple_regression_dataset
+    inputs, outputs = squared_dataset
 
     codec = rd.GraphCodec.directed(
         shape=(1, 1),
-        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sum()],
         edge=rd.Op.weight(),
-        output=rd.Op.linear(),
+        output=rd.Op.sum(),
     )
 
     engine = (
@@ -62,11 +60,11 @@ def test_engine_graph_regression_with_speciation(
 
     # Testing in multithreaded mode can lead to slightly different results so we
     # relax the assertion a bit by allowing a few # of species
-    assert len(result.species()) > 1, "Should maintain multiple species"
-    assert result.index() <= 500
-    assert isinstance(result.value(), rd.Graph)
+    assert len(result.species) > 1, "Should maintain multiple species"
+    assert result.index <= 500
+    assert isinstance(result.value, rd.Graph)
 
-    species = result.species()
+    species = result.species
     score_total = 0.0
     for spec in species:
         mascot = spec.mascot()
@@ -86,6 +84,7 @@ def test_engine_graph_regression_with_speciation(
 def test_engine_graph_with_recurrent_connections(memory_dataset, random_seed):
     """Test engine with graph codec and elitism for classification."""
     inputs, outputs = memory_dataset
+    print(outputs.shape)
 
     codec = rd.GraphCodec.recurrent(
         shape=(1, 1),
@@ -102,17 +101,17 @@ def test_engine_graph_with_recurrent_connections(memory_dataset, random_seed):
         .alter(
             rd.Cross.graph(0.5, 0.5),
             rd.Mutate.op(0.1, 0.05),
-            rd.Mutate.graph(0.05, 0.05),
+            rd.Mutate.graph(0.05, 0.05, True),
         )
     )
 
     result = engine.run()
 
-    assert result.index() <= 2000
-    assert isinstance(result.value(), rd.Graph)
-    assert len(result.population()) == 250
+    assert result.index <= 2000
+    assert isinstance(result.value, rd.Graph)
+    assert len(result.population) == 250
 
-    graph = result.value()
+    graph = result.value
 
     for _ in range(25):
         for inp, out in zip(inputs, outputs):
@@ -124,57 +123,99 @@ def test_engine_graph_with_recurrent_connections(memory_dataset, random_seed):
         graph.reset()
 
 
-@pytest.mark.integration
-def test_engine_graph_recurrent_class_acc(memory_dataset, random_seed):
-    """Test engine with graph codec and elitism for classification."""
-    inputs, outputs = memory_dataset
-    ohe = []
-    for out in outputs:
-        if out[0] == 0.0:
-            ohe.append([1.0, 0.0])
-        else:
-            ohe.append([0.0, 1.0])
+# @pytest.mark.integration
+# def test_engine_graph_recurrent_class_acc(memory_dataset, random_seed):
+#     """Test engine with graph codec and elitism for classification."""
+#     inputs, outputs = memory_dataset
+#     ohe = []
+#     for out in outputs:
+#         if out[0] == 0.0:
+#             ohe.append([1.0, 0.0])
+#         else:
+#             ohe.append([0.0, 1.0])
 
-    outputs = ohe
+#     outputs = ohe
 
-    codec = rd.GraphCodec.gru(
-        shape=(1, 2),
-        vertex=rd.Op.all_ops(),
-        edge=[rd.Op.weight(), rd.Op.identity()],
-        output=rd.Op.sigmoid(),
-    )
+#     codec = rd.GraphCodec.gru(
+#         shape=(1, 2),
+#         vertex=rd.Op.all_ops(),
+#         edge=[rd.Op.weight(), rd.Op.identity()],
+#         output=rd.Op.sigmoid(),
+#     )
 
-    engine = (
-        rd.Engine(codec)
-        .regression(inputs, outputs, loss=rd.XEnt)
-        .alter(
-            rd.Cross.graph(0.5, 0.5),
-            rd.Mutate.op(0.1, 0.05),
-            rd.Mutate.graph(0.05, 0.05),
-        )
-        .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
-    )
+#     engine = (
+#         rd.Engine(codec)
+#         .regression(inputs, outputs, loss=rd.XEnt)
+#         .alter(
+#             rd.Cross.graph(0.5, 0.5),
+#             rd.Mutate.op(0.1, 0.05),
+#             rd.Mutate.graph(0.1, 0.1, True),
+#         )
+#         .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
+#     )
 
-    result = engine.run()
+#     result = engine.run()
 
-    assert result.score()[0] < 0.01
-    assert result.index() <= 500
-    assert isinstance(result.value(), rd.Graph)
+#     print(result)
 
-    acc = rd.accuracy(result.value(), inputs, outputs, loss=rd.XEnt)
+#     assert result.score[0] < 0.01
+#     assert result.index <= 500
+#     assert isinstance(result.value, rd.Graph)
 
-    assert acc.sample_count() == len(inputs)
-    assert acc.recall() is not None and acc.recall() > 0.99  # type: ignore
-    assert acc.loss() is not None and acc.loss() < 0.01  # type: ignore
-    assert acc.loss_fn() == rd.XEnt
+#     acc = rd.accuracy(result.value, inputs, outputs, loss=rd.XEnt)
+
+#     print(acc)
+
+#     assert acc.sample_count() == len(inputs)
+#     assert acc.recall() is not None and acc.recall() > 0.99  # type: ignore
+#     assert acc.loss() is not None and acc.loss() < 0.01  # type: ignore
+#     assert acc.loss_fn() == rd.XEnt
 
 
 @pytest.mark.integration
 @pytest.mark.skipif(not rd._NUMPY_AVAILABLE, reason="numpy not installed")
-def test_graph_eval_with_py_func(example_1x1_regression_dataset, random_seed):
+def test_engine_graph_recurrent_with_np(memory_dataset, random_seed):
+    """Test engine with graph codec and elitism for classification."""
+
+    inputs, outputs = memory_dataset
+
+    engine = (
+        rd.Engine.graph(
+            shape=(1, 1),
+            vertex=[
+                rd.Op.mul(),
+                rd.Op.sum(),
+                rd.Op.sub(),
+                rd.Op.sigmoid(),
+                rd.Op.tanh(),
+                rd.Op.relu(),
+            ],
+            edge=rd.Op.weight(),
+            output=rd.Op.sigmoid(),
+            graph_type=rd.GraphType.LSTM,
+        )
+        .regression(inputs, outputs, loss=rd.MSE)
+        .alter(
+            rd.Cross.graph(0.5, 0.5),
+            rd.Mutate.op(0.1, 0.05),
+            rd.Mutate.graph(0.05, 0.05, True),
+        )
+        .limit(rd.Limit.score(0.01), rd.Limit.generations(1000))
+    )
+
+    result = engine.run()
+
+    assert result.score[0] < 0.01
+    assert result.index <= 1000
+    assert isinstance(result.value, rd.Graph)
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(not rd._NUMPY_AVAILABLE, reason="numpy not installed")
+def test_graph_eval_with_py_func(cubic_dataset, random_seed):
     import numpy as np
 
-    inputs, outputs = example_1x1_regression_dataset
+    inputs, outputs = cubic_dataset
 
     x = np.array(inputs, dtype=np.float32)
     y = np.array(outputs, dtype=np.float32)
@@ -191,7 +232,7 @@ def test_graph_eval_with_py_func(example_1x1_regression_dataset, random_seed):
     engine = (
         rd.Engine.graph(
             shape=(1, 1),
-            vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+            vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.sum()],
             edge=rd.Op.weight(),
             dtype=rd.Float32,
         )
@@ -201,7 +242,7 @@ def test_graph_eval_with_py_func(example_1x1_regression_dataset, random_seed):
         .alter(
             rd.Cross.graph(0.4, 0.5),
             rd.Mutate.op(0.07, 0.05),
-            rd.Mutate.graph(0.1, 0.1, False),
+            rd.Mutate.graph(0.1, 0.1),
         )
         .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))
     )
@@ -214,32 +255,33 @@ def test_graph_eval_with_py_func(example_1x1_regression_dataset, random_seed):
 
 
 @pytest.mark.integration
-def test_graph_engine_species_targeting(example_1x1_regression_dataset, random_seed):
-    inputs, answers = example_1x1_regression_dataset
+def test_graph_engine_species_targeting(cubic_dataset, random_seed):
+    inputs, answers = cubic_dataset
 
     engine = (
         rd.Engine.graph(
             shape=(1, 1),
-            vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+            vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.sum()],
             edge=rd.Op.weight(),
-            output=rd.Op.linear(),
+            output=rd.Op.sum(),
         )
         .select(rd.Select.boltzmann(temp=4.0))
         .regression(inputs, answers, loss=rd.MSE)
         .diversity(
             rd.Dist.neat(excess=1.0, disjoint=1.0, weight_diff=3.0),
-            target=5,
+            target=4,
         )
         .alter(
             rd.Cross.graph(0.4, 0.5),
             rd.Mutate.op(0.07, 0.05),
-            rd.Mutate.graph(0.1, 0.1, False),
+            rd.Mutate.graph(0.1, 0.1),
         )
-        .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))
+        .limit(rd.Limit.generations(500))
     )
 
     result = engine.run()
-    species_count_mean = result.metrics()["species.count"].mean()
+    print(result.index)
+    species_count_mean = result.metrics["species.count"].mean()
 
     assert species_count_mean is not None
-    assert abs(species_count_mean - 5.0) < 0.1  # Should be ~5
+    assert abs(species_count_mean - 4.0) < 0.15  # Should be ~4

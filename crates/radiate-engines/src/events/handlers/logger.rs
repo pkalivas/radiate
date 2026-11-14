@@ -31,7 +31,6 @@ where
 {
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
         ctx.subscribe::<LimitTriggered>();
-        // ctx.subscribe::<Warning>();
         ctx.subscribe::<CheckpointSaved>();
         ctx.subscribe::<EpochComplete<T>>();
         ctx.subscribe::<EngineStateChange>();
@@ -50,15 +49,6 @@ where
         ));
     }
 }
-
-// impl<T> Handler<Warning> for EngineLogger<T>
-// where
-//     T: Send + Sync + 'static,
-// {
-//     fn handle(&mut self, message: &Warning, ctx: &EventContext<'_, Self>) {
-//         ctx.publish(LogEvent(LogLevel::Warn, message.0.clone()));
-//     }
-// }
 
 impl<T> Handler<CheckpointSaved> for EngineLogger<T>
 where
@@ -132,10 +122,20 @@ pub enum LogLevel {
 pub struct LogEvent(pub LogLevel, pub String);
 
 #[derive(Clone, Default)]
-pub struct LoggingHandler;
+pub struct LoggingHandler(bool);
+
+impl LoggingHandler {
+    pub fn new() -> Self {
+        Self(crate::logging_enabled())
+    }
+}
 
 impl Handler<LogEvent> for LoggingHandler {
     fn handle(&mut self, message: &LogEvent, _ctx: &EventContext<'_, Self>) {
+        if !self.0 {
+            return;
+        }
+
         match message.0 {
             LogLevel::Info => tracing::info!("{}", message.1),
             LogLevel::Warn => tracing::warn!("{}", message.1),

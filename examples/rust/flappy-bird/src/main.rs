@@ -7,12 +7,12 @@ use bevy::prelude::*;
 use radiate::ops;
 use radiate::prelude::*;
 use render::{
-    SimSpeedRes, SnapshotReceiver, background_color, handle_speed_input, setup,
-    sync_snapshot_to_entities,
+    background_color, handle_speed_input, setup, sync_snapshot_to_entities, SimSpeedRes,
+    SnapshotReceiver,
 };
 use speed::SimSpeed;
-use std::sync::Mutex;
 use std::sync::mpsc;
+use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 use swarm::{FlappySwarm, Snapshot};
@@ -63,7 +63,9 @@ fn run_evolution(tx: mpsc::Sender<Snapshot>, speed: SimSpeed) {
         (NodeType::Output, vec![Op::sigmoid()]),
     ];
 
-    let codec = GraphCodec::weighted_directed(INPUT_SIZE, OUTPUT_SIZE, store).with_max_nodes(30); // Should only need ~10 nodes total, this is just for demonstration.
+    let codec = GraphCodec::weighted_directed(INPUT_SIZE, OUTPUT_SIZE, store)
+        .unwrap()
+        .with_max_nodes(30); // Should only need ~10 nodes total, this is just for demonstration.
 
     let engine = GeneticEngine::builder()
         .codec(codec)
@@ -85,7 +87,7 @@ fn run_evolution(tx: mpsc::Sender<Snapshot>, speed: SimSpeed) {
         // This means that you will not see every bird in a generation fly in the Bevy window, only the ones that
         // need evaluation (ie: the birds that were mutated/crossed over). This is intentional, and is a good demonstration
         // of how to use radiate to run a simulation in one thread and visualize it in another.
-        .batch_fitness_fn(FlappySwarm::new(tx.clone(), speed.clone()))
+        .fitness_fn(FlappySwarm::new(tx.clone(), speed.clone()))
         .build();
 
     let result = engine

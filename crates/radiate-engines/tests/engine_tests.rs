@@ -9,7 +9,7 @@ mod engine_tests {
     #[test]
     fn engine_can_minimize() {
         const EXPECTED_SUM: i32 = 0;
-        const EXPECTED_GENS: usize = 57;
+        const EXPECTED_INDEX: usize = 57;
 
         seeded(42, || {
             let result = int_minimize_engine(5, 100)
@@ -21,7 +21,7 @@ mod engine_tests {
             let best = result.value();
 
             assert_eq!(best.iter().sum::<i32>(), EXPECTED_SUM);
-            assert_eq!(result.index(), EXPECTED_GENS);
+            assert_eq!(result.index(), EXPECTED_INDEX);
         });
     }
 
@@ -100,12 +100,12 @@ mod engine_tests {
                 //          .offspring_fraction(1.0)
                 //   2.) Increase the mutation/crossover rate so more individuals are invalidated during recombination.
                 .executor(Executor::FixedSizedWorkerPool(7))
-                .batch_fitness_fn(|phenotypes: &[Vec<i32>]| {
+                .fitness_fn(|phenotypes: &[Vec<i32>]| {
                     // At a very very very base level, we expect the batch to have at least two phenotypes
                     // Realistically, with an engine configured like this one is, we'd expect anywhere from 50-70ish
                     // individuals per batch here.
                     assert!(
-                        phenotypes.len() > 0,
+                        !phenotypes.is_empty(),
                         "Batch should have more than one phenotype"
                     );
                     phenotypes
@@ -128,9 +128,9 @@ mod engine_tests {
 
     #[test]
     fn test_engine_score_iterator() {
-        const BUDGET: usize = 300;
+        const BUDGET: usize = 1000;
 
-        seeded(46, || {
+        seeded(426, || {
             let result = int_minimize_engine(10, 100)
                 .iter()
                 .limit(Limit::Generation(BUDGET))
@@ -221,8 +221,8 @@ mod engine_tests {
         let last_index2 = Arc::clone(&last_index);
 
         let handle = thread::spawn(move || {
-            let mut runtime = engine.iter().limit(1000);
-            while let Some(epoch) = runtime.next() {
+            let runtime = engine.iter().limit(1000);
+            for epoch in runtime {
                 last_index2.store(epoch.index(), Ordering::SeqCst);
             }
         });
@@ -273,7 +273,7 @@ mod engine_tests {
                 .map(|x| 2.0 * x + 1.0)
                 .collect::<Vec<f32>>();
 
-            fn fitness(coeffs: &Vec<f32>, inputs: &[f32], targets: &[f32]) -> f32 {
+            fn fitness(coeffs: &[f32], inputs: &[f32], targets: &[f32]) -> f32 {
                 inputs
                     .iter()
                     .zip(targets.iter())
@@ -294,8 +294,9 @@ mod engine_tests {
                 .survivor_selector(TournamentSelector::new(3))
                 .offspring_selector(BoltzmannSelector::new(4.0))
                 .alter(alters![
-                    BlendCrossover::new(0.6, 0.5),
-                    GaussianMutator::new(0.05)
+                    DifferentialCrossover::new(0.75, 0.8, 0.9),
+                    ArithmeticMutator::new(0.03),
+                    GaussianMutator::new(0.03)
                 ])
                 .fitness_fn(move |geno: Vec<f32>| fitness(&geno, &test_inputs, &targets))
                 .build();

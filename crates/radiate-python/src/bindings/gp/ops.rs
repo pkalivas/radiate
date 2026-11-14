@@ -3,9 +3,10 @@ use pyo3::{PyAny, PyResult, pyclass, types::PyAnyMethods};
 use pyo3::{exceptions::PyValueError, prelude::FromPyObjectOwned};
 use radiate::{
     Arity, DataType, Eval, Factory, Op,
-    ops::{OpFloat, math},
+    ops::{math, op_names},
 };
 use radiate_error::radiate_py_bail;
+use radiate_utils::Float;
 
 fn _op_collection<F>(ops: Vec<Op<F>>) -> PyResult<Vec<PyOp>>
 where
@@ -44,7 +45,7 @@ pub fn _edge_ops(dtype: &str) -> PyResult<Vec<PyOp>> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Hash)]
 pub enum PyOpInner {
     F32(Op<f32>),
     F64(Op<f64>),
@@ -81,7 +82,7 @@ impl From<Op<f64>> for PyOp {
 }
 
 #[pyclass(from_py_object)]
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Hash)]
 pub struct PyOp(pub PyOpInner);
 
 #[pymethods]
@@ -104,6 +105,13 @@ impl PyOp {
             Arity::Zero => Ok(intern!(py, "Zero").to_string()),
             Arity::Exact(n) => Ok(radiate_utils::intern!(format!("Exact({:?})", n)).to_string()),
             Arity::Any => Ok(intern!(py, "Any").to_string()),
+        }
+    }
+
+    pub fn __repr__(&self) -> String {
+        match &self.0 {
+            PyOpInner::F32(op) => format!("{:?}", op),
+            PyOpInner::F64(op) => format!("{:?}", op),
         }
     }
 
@@ -154,19 +162,23 @@ pub fn _create_op<'py>(
 fn build_typed_op<'py, F>(py: Python<'py>, name: &str, params: Option<Py<PyAny>>) -> PyResult<PyOp>
 where
     PyOp: From<Op<F>>,
-    F: FromPyObjectOwned<'py> + OpFloat,
+    F: FromPyObjectOwned<'py> + Float,
 {
     let op = match name {
-        "constant" => {
-            let value = params
-                .ok_or_else(|| PyValueError::new_err("Missing parameters for constant Op"))?
-                .bind(py)
-                .get_item("value")?
-                .extract::<F>()
-                .map_err(|_| PyValueError::new_err("Invalid value for constant Op"))?;
-            Op::constant(value)
+        op_names::CONSTANT => {
+            if let Some(params) = params {
+                let value = params
+                    .bind(py)
+                    .get_item("value")?
+                    .extract::<F>()
+                    .map_err(|_| PyValueError::new_err("Invalid value for constant Op"))?;
+                let name = params.bind(py).get_item("title")?.extract::<String>()?;
+                Op::constant(radiate_utils::intern!(name), value)
+            } else {
+                radiate_py_bail!("Missing parameters for constant Op")
+            }
         }
-        "var" => {
+        op_names::VAR => {
             let index = params
                 .ok_or_else(|| PyValueError::new_err("Missing parameters for var Op"))?
                 .bind_borrowed(py)
@@ -174,42 +186,42 @@ where
                 .extract::<usize>()?;
             Op::var(index)
         }
-        "identity" => Op::identity(),
-        "weight" => Op::weight(),
-        "add" => Op::add(),
-        "sub" => Op::sub(),
-        "mul" => Op::mul(),
-        "div" => Op::div(),
-        "sum" => Op::sum(),
-        "prod" => Op::prod(),
-        "diff" => Op::diff(),
-        "pow" => Op::pow(),
-        "sqrt" => Op::sqrt(),
-        "neg" => Op::neg(),
-        "exp" => Op::exp(),
-        "log" => Op::log(),
-        "sin" => Op::sin(),
-        "cos" => Op::cos(),
-        "tan" => Op::tan(),
-        "ceil" => Op::ceil(),
-        "floor" => Op::floor(),
-        "max" => Op::max(),
-        "min" => Op::min(),
-        "abs" => Op::abs(),
-        "sigmoid" => Op::sigmoid(),
-        "tanh" => Op::tanh(),
-        "relu" => Op::relu(),
-        "leaky_relu" => Op::leaky_relu(),
-        "elu" => Op::elu(),
-        "linear" => Op::linear(),
-        "mish" => Op::mish(),
-        "swish" => Op::swish(),
-        "softplus" => Op::softplus(),
-        "gaussian" => Op::gaussian(),
-        "weight2" => Op::weight2(),
-        "tooth" => Op::tooth(),
-        "sign" => Op::sign(),
-        "reciprocal" => Op::reciprocal(),
+        op_names::IDENTITY => Op::identity(),
+        op_names::WEIGHT => Op::weight(),
+        op_names::ADD => Op::add(),
+        op_names::SUB => Op::sub(),
+        op_names::MUL => Op::mul(),
+        op_names::DIV => Op::div(),
+        op_names::SUM => Op::sum(),
+        op_names::PROD => Op::prod(),
+        op_names::DIFF => Op::diff(),
+        op_names::POW => Op::pow(),
+        op_names::SQRT => Op::sqrt(),
+        op_names::NEG => Op::neg(),
+        op_names::EXP => Op::exp(),
+        op_names::LOG => Op::log(),
+        op_names::SIN => Op::sin(),
+        op_names::COS => Op::cos(),
+        op_names::TAN => Op::tan(),
+        op_names::CEIL => Op::ceil(),
+        op_names::FLOOR => Op::floor(),
+        op_names::MAX => Op::max(),
+        op_names::MIN => Op::min(),
+        op_names::ABS => Op::abs(),
+        op_names::SIGMOID => Op::sigmoid(),
+        op_names::TANH => Op::tanh(),
+        op_names::RELU => Op::relu(),
+        op_names::LEAKY_RELU => Op::leaky_relu(),
+        op_names::ELU => Op::elu(),
+        op_names::MISH => Op::mish(),
+        op_names::SWISH => Op::swish(),
+        op_names::SOFTPLUS => Op::softplus(),
+        op_names::GAUSSIAN => Op::gaussian(),
+        op_names::DOT => Op::dot(),
+        op_names::TOOTH => Op::tooth(),
+        op_names::SIGN => Op::sign(),
+        op_names::RECIPROCAL => Op::reciprocal(),
+        op_names::ERC => Op::erc(),
         _ => radiate_py_bail!(format!("Unknown Op name: {:?}", name)),
     };
 

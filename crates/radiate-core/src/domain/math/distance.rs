@@ -1,6 +1,5 @@
-use radiate_utils::Float;
-
 use crate::bits::WORD_SIZE;
+use radiate_utils::Float;
 
 #[inline]
 pub fn hamming<T>(one: &[T], two: &[T]) -> f32

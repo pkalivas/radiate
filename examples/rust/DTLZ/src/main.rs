@@ -27,7 +27,12 @@ fn main() {
         ))
         .build();
 
-    let result = engine.iter().limit(1000).logging().last().unwrap();
+    let result = radiate::ui(engine)
+        .iter()
+        .logging()
+        .limit(1000)
+        .last()
+        .unwrap();
 
     println!("{:?}", result);
     println!("{}", result.metrics().dashboard());
@@ -77,21 +82,21 @@ fn plot_front(front: &Front<Phenotype<FloatChromosome<f32>>>) {
 
 pub fn dtlz_1(values: &[f32]) -> Vec<f32> {
     let mut g = 0.0;
-    for i in VARIABLES - K..VARIABLES {
-        g += (values[i] - 0.5).powi(2) - (20.0 * std::f32::consts::PI * (values[i] - 0.5)).cos();
+    for x in &values[VARIABLES - K..VARIABLES] {
+        g += (x - 0.5).powi(2) - (20.0 * std::f32::consts::PI * (x - 0.5)).cos();
     }
 
     g = 100.0 * (K as f32 + g);
 
     let mut f = vec![0.0; OBJECTIVES];
-    for i in 0..OBJECTIVES {
-        f[i] = 0.5 * (1.0 + g);
-        for j in 0..OBJECTIVES - 1 - i {
-            f[i] *= values[j];
+    for (i, fi) in f.iter_mut().enumerate() {
+        *fi = 0.5 * (1.0 + g);
+        for x in &values[..OBJECTIVES - 1 - i] {
+            *fi *= x;
         }
 
         if i != 0 {
-            f[i] *= 1.0 - values[OBJECTIVES - 1 - i];
+            *fi *= 1.0 - values[OBJECTIVES - 1 - i];
         }
     }
 
@@ -105,13 +110,13 @@ pub fn dtlz_2(values: &[f32]) -> Vec<f32> {
         .sum::<f32>();
 
     let mut f = vec![1.0 + g; OBJECTIVES];
-    for i in 0..OBJECTIVES {
-        for j in 0..OBJECTIVES - (i + 1) {
-            f[i] *= (values[j] * 0.5 * std::f32::consts::PI).cos();
+    for (i, fi) in f.iter_mut().enumerate() {
+        for x in &values[..OBJECTIVES - (i + 1)] {
+            *fi *= (x * 0.5 * std::f32::consts::PI).cos();
         }
         if i != 0 {
             let aux = OBJECTIVES - (i + 1);
-            f[i] *= (values[aux] * 0.5 * std::f32::consts::PI).sin();
+            *fi *= (values[aux] * 0.5 * std::f32::consts::PI).sin();
         }
     }
 
@@ -125,13 +130,13 @@ pub fn dtlz_6(values: &[f32]) -> Vec<f32> {
     let mut f = vec![1.0 + g; OBJECTIVES];
     let theta = std::f32::consts::PI / (4.0 * (1.0 + g));
 
-    for i in 0..OBJECTIVES {
-        for j in 0..OBJECTIVES - (i + 1) {
-            f[i] *= (values[j] * theta).cos();
+    for (i, fi) in f.iter_mut().enumerate() {
+        for x in &values[..OBJECTIVES - (i + 1)] {
+            *fi *= (x * theta).cos();
         }
         if i != 0 {
             let aux = OBJECTIVES - (i + 1);
-            f[i] *= (values[aux] * theta).sin();
+            *fi *= (values[aux] * theta).sin();
         }
     }
 
@@ -144,9 +149,7 @@ pub fn dtlz_7(values: &[f32]) -> Vec<f32> {
 
     let mut f = vec![0.0; OBJECTIVES];
 
-    for i in 0..OBJECTIVES - 1 {
-        f[i] = values[i];
-    }
+    f[..OBJECTIVES - 1].copy_from_slice(&values[..OBJECTIVES - 1]);
 
     let h: f32 = OBJECTIVES as f32
         - values[..OBJECTIVES - 1]

@@ -69,8 +69,8 @@ impl<F: Float> Quantile<F> {
             if self.count == 5 {
                 self.heights
                     .sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
-                for i in 0..5 {
-                    self.positions[i] = F::from(i + 1).unwrap_or(F::ZERO);
+                for (i, pos) in self.positions.iter_mut().enumerate() {
+                    *pos = F::from(i + 1).unwrap_or(F::ZERO);
                 }
                 self.desired[0] = F::ONE;
                 self.desired[1] = F::ONE + F::TWO * self.q;
@@ -83,8 +83,8 @@ impl<F: Float> Quantile<F> {
 
         let k = self.find_cell(x);
 
-        for i in (k + 1)..5 {
-            self.positions[i] = self.positions[i] + F::ONE;
+        for pos in &mut self.positions[(k + 1)..] {
+            *pos = *pos + F::ONE;
         }
 
         for i in 0..5 {
@@ -238,8 +238,8 @@ mod tests {
     #[test]
     fn single_sample_returns_that_sample() {
         let mut q = Quantile::<f32>::new(0.5);
-        q.add(3.14);
-        assert_eq!(q.value().unwrap(), 3.14);
+        q.add(2.5);
+        assert_eq!(q.value().unwrap(), 2.5);
     }
 
     #[test]

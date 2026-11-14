@@ -89,8 +89,8 @@ fn rastrigin() {
         ))
         .fitness_fn(move |genotype: Vec<f32>| {
             let mut value = A * N_GENES as f32;
-            for i in 0..N_GENES {
-                value += genotype[i].powi(2) - A * (2.0 * std::f32::consts::PI * genotype[i]).cos();
+            for x in &genotype {
+                value += x.powi(2) - A * (2.0 * std::f32::consts::PI * x).cos();
             }
 
             value
@@ -114,22 +114,21 @@ fn dtlz1() {
 
     fn dtlz_1(values: &[f32]) -> Vec<f32> {
         let mut g = 0.0;
-        for i in VARIABLES - K..VARIABLES {
-            g +=
-                (values[i] - 0.5).powi(2) - (20.0 * std::f32::consts::PI * (values[i] - 0.5)).cos();
+        for x in &values[VARIABLES - K..VARIABLES] {
+            g += (x - 0.5).powi(2) - (20.0 * std::f32::consts::PI * (x - 0.5)).cos();
         }
 
         g = 100.0 * (K as f32 + g);
 
         let mut f = vec![0.0; OBJECTIVES];
-        for i in 0..OBJECTIVES {
-            f[i] = 0.5 * (1.0 + g);
-            for j in 0..OBJECTIVES - 1 - i {
-                f[i] *= values[j];
+        for (i, fi) in f.iter_mut().enumerate() {
+            *fi = 0.5 * (1.0 + g);
+            for x in &values[..OBJECTIVES - 1 - i] {
+                *fi *= x;
             }
 
             if i != 0 {
-                f[i] *= 1.0 - values[OBJECTIVES - 1 - i];
+                *fi *= 1.0 - values[OBJECTIVES - 1 - i];
             }
         }
 
@@ -181,7 +180,7 @@ fn graph_xor() {
         (NodeType::Output, vec![Op::sigmoid()]),
     ];
 
-    let graph_codec = GraphCodec::directed(2, 1, store);
+    let graph_codec = GraphCodec::directed(2, 1, store).unwrap();
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::builder()
@@ -191,7 +190,7 @@ fn graph_xor() {
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.05, 0.05),
-            GraphMutator::new(0.06, 0.01).allow_recurrent(false),
+            GraphMutator::new(0.06, 0.01)
         ))
         .build();
 
@@ -205,14 +204,14 @@ fn graph_xor() {
         .expect("No result from engine run");
 
     fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
-        let mut reducer = GraphEvaluator::new(result.value());
-        for sample in get_dataset().iter() {
-            let output = &reducer.eval_mut(&sample.0)[0];
-            println!(
-                "{:?} -> expected: {:?}, actual: {:.3?}",
-                sample.0, sample.1, output
-            );
-        }
+        // let mut reducer = GraphEvaluator::new(result.value());
+        // for sample in get_dataset().iter() {
+        //     let output = &reducer.eval_mut(&sample.0)[0];
+        //     println!(
+        //         "{:?} -> expected: {:?}, actual: {:.3?}",
+        //         sample.0, sample.1, output
+        //     );
+        // }
 
         println!("{result:?}");
     }
@@ -244,7 +243,7 @@ fn tree() {
         (NodeType::Leaf, vec![Op::var(0)]),
     ];
 
-    let tree_codec = TreeCodec::single(3, store).constraint(|root| root.size() < 30);
+    let tree_codec = TreeCodec::single(3, store).max_size(30);
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::builder()

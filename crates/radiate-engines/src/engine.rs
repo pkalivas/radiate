@@ -245,6 +245,10 @@ where
     where
         Self: 'a;
 
+    /// Runs the genetic engine until the provided limit function returns false.
+    /// The limit function receives a view of the current generation and should return true to continue or false to stop.
+    /// In this case the view is a [GenerationView] of the current generation - providing access to all needed
+    /// information about the current generation.
     fn run<F>(self, limit: F) -> Result<Self::Epoch>
     where
         F: Fn(Self::View<'_>) -> bool + 'static,

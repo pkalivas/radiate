@@ -1,5 +1,13 @@
-use radiate_core::{Chromosome, Objective, Phenotype, Select, random_provider};
+use crate::ProbabilityWheelIterator;
+use radiate_core::{Chromosome, Objective, Phenotype, Select};
 
+/// Linear ranking (Baker, 1985). The population is assumed to be sorted best-first by
+/// the engine, so index 0 is the best. The best individual is selected with
+/// probability `pressure / N`, the worst with `(2 - pressure) / N`, and everything
+/// in between is interpolated linearly by rank.
+///
+/// `pressure` must be in `[1.0, 2.0]`: `1.0` is uniform selection, `2.0` gives the
+/// worst individual zero chance of being selected.
 #[derive(Debug, Clone)]
 pub struct LinearRankSelector {
     selection_pressure: f32,
@@ -7,6 +15,11 @@ pub struct LinearRankSelector {
 
 impl LinearRankSelector {
     pub fn new(selection_pressure: f32) -> Self {
+        assert!(
+            (1.0..=2.0).contains(&selection_pressure),
+            "LinearRankSelector pressure must be in [1.0, 2.0], got {selection_pressure}"
+        );
+
         LinearRankSelector { selection_pressure }
     }
 }
@@ -18,26 +31,18 @@ impl<C: Chromosome> Select<C> for LinearRankSelector {
             return Vec::new();
         }
 
-        // Population is pre-sorted best-first by the engine, so index 0 = best.
-        // Assign weight (n - i) to index i so the best individual gets weight n
-        // and the worst gets weight 1. Scale by selection_pressure so that
-        // total_rank == max cumulative rank and the inner loop always terminates.
-        let total_rank = (1..=n).map(|i| i as f32).sum::<f32>() * self.selection_pressure;
-        let mut selected = Vec::with_capacity(count);
-
-        for _ in 0..count {
-            let target = random_provider::range(0.0..total_rank);
-            let mut cumulative = 0.0;
-
-            for i in 0..n {
-                cumulative += (n - i) as f32 * self.selection_pressure;
-                if cumulative > target {
-                    selected.push(i);
-                    break;
-                }
-            }
+        if n == 1 {
+            return vec![0; count];
         }
 
-        selected
+        let n_plus = self.selection_pressure;
+        let n_minus = 2.0 - n_plus;
+        let step = (n_plus - n_minus) / (n - 1) as f32;
+
+        let weights = (0..n)
+            .map(|i| (n_plus - step * i as f32) / n as f32)
+            .collect::<Vec<_>>();
+
+        ProbabilityWheelIterator::new(weights, count).collect()
     }
 }

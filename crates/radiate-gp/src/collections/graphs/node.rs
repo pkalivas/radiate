@@ -1,5 +1,5 @@
-use crate::node::Node;
-use crate::{Arity, NodeType};
+use crate::{Arity, EvalInto, NodeIdx, NodeType};
+use crate::{Eval, node::Node};
 use radiate_core::{Gene, Valid};
 use radiate_utils::SortedBuffer;
 use radiate_utils::sentry_id;
@@ -121,13 +121,13 @@ pub enum Direction {
 pub struct GraphNode<T> {
     value: T,
     id: GraphNodeId,
-    index: usize,
+    index: NodeIdx,
     direction: Direction,
     node_type: Option<NodeType>,
     arity: Option<Arity>,
     innovation: Option<InnovationId>,
-    incoming: SortedBuffer<usize>,
-    outgoing: SortedBuffer<usize>,
+    incoming: SortedBuffer<NodeIdx>,
+    outgoing: SortedBuffer<NodeIdx>,
 }
 
 impl<T> GraphNode<T> {
@@ -135,10 +135,10 @@ impl<T> GraphNode<T> {
     ///
     /// This is the most basic constructor for a graph node, initializing it with
     /// default direction (Forward) and no specific arity or node type.
-    pub fn new(index: usize, node_type: NodeType, value: T) -> Self {
+    pub fn new(index: impl Into<NodeIdx>, node_type: NodeType, value: T) -> Self {
         GraphNode {
             id: GraphNodeId::new(),
-            index,
+            index: index.into(),
             value,
             direction: Direction::Forward,
             node_type: Some(node_type),
@@ -154,10 +154,15 @@ impl<T> GraphNode<T> {
     /// This constructor allows for more control over the node's behavior by specifying
     /// the arity, which defines how many incoming connections the node can accept - if the
     /// number of connections does not match the arity, the node will be considered invalid.
-    pub fn with_arity(index: usize, node_type: NodeType, value: T, arity: Arity) -> Self {
+    pub fn with_arity(
+        index: impl Into<NodeIdx>,
+        node_type: NodeType,
+        value: T,
+        arity: Arity,
+    ) -> Self {
         GraphNode {
             id: GraphNodeId::new(),
-            index,
+            index: index.into(),
             value,
             direction: Direction::Forward,
             node_type: Some(node_type),
@@ -168,13 +173,21 @@ impl<T> GraphNode<T> {
         }
     }
 
-    pub fn with_incoming<I: IntoIterator<Item = usize>>(mut self, incoming: I) -> Self {
-        SortedBuffer::set_sorted_unique(&mut self.incoming, incoming);
+    pub fn with_incoming<I>(mut self, incoming: I) -> Self
+    where
+        I: IntoIterator,
+        I::Item: Into<NodeIdx>,
+    {
+        SortedBuffer::set_sorted_unique(&mut self.incoming, incoming.into_iter().map(Into::into));
         self
     }
 
-    pub fn with_outgoing<O: IntoIterator<Item = usize>>(mut self, outgoing: O) -> Self {
-        SortedBuffer::set_sorted_unique(&mut self.outgoing, outgoing);
+    pub fn with_outgoing<O>(mut self, outgoing: O) -> Self
+    where
+        O: IntoIterator,
+        O::Item: Into<NodeIdx>,
+    {
+        SortedBuffer::set_sorted_unique(&mut self.outgoing, outgoing.into_iter().map(Into::into));
         self
     }
 
@@ -194,7 +207,7 @@ impl<T> GraphNode<T> {
         self.innovation = innovation;
     }
 
-    pub fn index(&self) -> usize {
+    pub fn index(&self) -> NodeIdx {
         self.index
     }
 
@@ -208,19 +221,19 @@ impl<T> GraphNode<T> {
             || self.outgoing.contains(&self.index)
     }
 
-    pub fn incoming(&self) -> &[usize] {
+    pub fn incoming(&self) -> &[NodeIdx] {
         self.incoming.as_slice()
     }
 
-    pub fn outgoing(&self) -> &[usize] {
+    pub fn outgoing(&self) -> &[NodeIdx] {
         self.outgoing.as_slice()
     }
 
-    pub fn incoming_mut(&mut self) -> &mut [usize] {
+    pub fn incoming_mut(&mut self) -> &mut [NodeIdx] {
         self.incoming.as_mut_slice()
     }
 
-    pub fn outgoing_mut(&mut self) -> &mut [usize] {
+    pub fn outgoing_mut(&mut self) -> &mut [NodeIdx] {
         self.outgoing.as_mut_slice()
     }
 
@@ -231,20 +244,20 @@ impl<T> GraphNode<T> {
         }
     }
 
-    pub fn insert_incoming(&mut self, value: usize) {
-        SortedBuffer::insert_sorted_unique(&mut self.incoming, value);
+    pub fn insert_incoming(&mut self, value: impl Into<NodeIdx>) {
+        SortedBuffer::insert_sorted_unique(&mut self.incoming, value.into());
     }
 
-    pub fn remove_incoming(&mut self, value: &usize) {
-        SortedBuffer::remove_sorted(&mut self.incoming, value);
+    pub fn remove_incoming(&mut self, value: impl Into<NodeIdx>) {
+        SortedBuffer::remove_sorted(&mut self.incoming, &value.into());
     }
 
-    pub fn insert_outgoing(&mut self, value: usize) {
-        SortedBuffer::insert_sorted_unique(&mut self.outgoing, value);
+    pub fn insert_outgoing(&mut self, value: impl Into<NodeIdx>) {
+        SortedBuffer::insert_sorted_unique(&mut self.outgoing, value.into());
     }
 
-    pub fn remove_outgoing(&mut self, value: &usize) {
-        SortedBuffer::remove_sorted(&mut self.outgoing, value);
+    pub fn remove_outgoing(&mut self, value: impl Into<NodeIdx>) {
+        SortedBuffer::remove_sorted(&mut self.outgoing, &value.into());
     }
 }
 
@@ -393,16 +406,39 @@ impl<T> Valid for GraphNode<T> {
     }
 }
 
-impl<T> From<(usize, NodeType, T)> for GraphNode<T> {
-    fn from((index, node_type, value): (usize, NodeType, T)) -> Self {
+impl<T, V> Eval<[V], V> for GraphNode<T>
+where
+    T: Eval<[V], V>,
+    V: Copy,
+{
+    #[inline]
+    fn eval(&self, inputs: &[V]) -> V {
+        self.value().eval(inputs)
+    }
+}
+
+impl<'a, T, V> EvalInto<[&'a [V]], [V]> for GraphNode<T>
+where
+    T: EvalInto<[&'a [V]], [V]>,
+{
+    /// Column form of [GraphNode]'s [Eval]: evaluates the node over every sample at once, where
+    /// `inputs[i]` is the column of its i-th input and `buffer` receives one value per sample.
+    #[inline]
+    fn eval_into(&self, inputs: &[&'a [V]], buffer: &mut [V]) {
+        self.value().eval_into(inputs, buffer)
+    }
+}
+
+impl<T, I: Into<NodeIdx>> From<(I, NodeType, T)> for GraphNode<T> {
+    fn from((index, node_type, value): (I, NodeType, T)) -> Self {
         GraphNode::new(index, node_type, value)
     }
 }
 
-impl<T: Default> From<(usize, T)> for GraphNode<T> {
-    fn from((index, value): (usize, T)) -> Self {
+impl<T: Default, I: Into<NodeIdx>> From<(I, T)> for GraphNode<T> {
+    fn from((index, value): (I, T)) -> Self {
         GraphNode {
-            index,
+            index: index.into(),
             id: GraphNodeId::new(),
             value,
             direction: Direction::Forward,
@@ -415,16 +451,16 @@ impl<T: Default> From<(usize, T)> for GraphNode<T> {
     }
 }
 
-impl<T> From<(usize, NodeType, T, Arity)> for GraphNode<T> {
-    fn from((index, node_type, value, arity): (usize, NodeType, T, Arity)) -> Self {
+impl<T, I: Into<NodeIdx>> From<(I, NodeType, T, Arity)> for GraphNode<T> {
+    fn from((index, node_type, value, arity): (I, NodeType, T, Arity)) -> Self {
         GraphNode::with_arity(index, node_type, value, arity)
     }
 }
 
-impl<T: Default> From<(usize, T, Arity)> for GraphNode<T> {
-    fn from((index, value, arity): (usize, T, Arity)) -> Self {
+impl<T: Default, I: Into<NodeIdx>> From<(I, T, Arity)> for GraphNode<T> {
+    fn from((index, value, arity): (I, T, Arity)) -> Self {
         GraphNode {
-            index,
+            index: index.into(),
             id: GraphNodeId::new(),
             value,
             direction: Direction::Forward,
@@ -437,25 +473,16 @@ impl<T: Default> From<(usize, T, Arity)> for GraphNode<T> {
     }
 }
 
-impl<T, I> From<(usize, NodeType, T, I, I)> for GraphNode<T>
+impl<T, X, I> From<(X, NodeType, T, I, I)> for GraphNode<T>
 where
-    I: Into<SortedBuffer<usize>>,
+    X: Into<NodeIdx>,
+    I: IntoIterator,
+    I::Item: Into<NodeIdx>,
 {
-    fn from((index, node_type, value, incoming, outgoing): (usize, NodeType, T, I, I)) -> Self {
-        let incoming = incoming.into();
-        let outgoing = outgoing.into();
-
-        GraphNode {
-            index,
-            id: GraphNodeId::new(),
-            value,
-            direction: Direction::Forward,
-            node_type: Some(node_type),
-            arity: None,
-            innovation: None,
-            incoming,
-            outgoing,
-        }
+    fn from((index, node_type, value, incoming, outgoing): (X, NodeType, T, I, I)) -> Self {
+        GraphNode::new(index, node_type, value)
+            .with_incoming(incoming)
+            .with_outgoing(outgoing)
     }
 }
 
@@ -463,7 +490,7 @@ impl<T: Default> Default for GraphNode<T> {
     fn default() -> Self {
         GraphNode {
             id: GraphNodeId::new(),
-            index: 0,
+            index: NodeIdx::default(),
             value: Default::default(),
             direction: Direction::Forward,
             node_type: None,
@@ -515,7 +542,7 @@ impl<T: Debug> Debug for GraphNode<T> {
             self.innovation.map(|id| id.0).unwrap_or(0),
             format!("{:?}", self.node_type())[..3].to_owned(),
             self.arity(),
-            format!("{:.4?}", self.value), // pre-format with precision → String
+            format!("{:.5?}", self.value), // pre-format with precision → String
             self.is_valid(),
             self.is_recurrent(),
             self.incoming.len(),
@@ -528,7 +555,7 @@ impl<T: Debug> Debug for GraphNode<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::NodeType;
+    use crate::{NodeIdx, NodeType};
 
     #[test]
     fn test_graph_node_default() {
@@ -539,8 +566,8 @@ mod tests {
         assert_eq!(node.arity(), Arity::Any);
         assert!(!node.is_valid());
         assert!(!node.is_recurrent());
-        assert_eq!(node.incoming(), &[] as &[usize]);
-        assert_eq!(node.outgoing(), &[] as &[usize]);
+        assert_eq!(node.incoming(), &[] as &[NodeIdx]);
+        assert_eq!(node.outgoing(), &[] as &[NodeIdx]);
     }
 
     #[test]
@@ -552,8 +579,8 @@ mod tests {
         assert_eq!(node.arity(), Arity::Zero);
         assert!(!node.is_valid());
         assert!(!node.is_recurrent());
-        assert_eq!(node.incoming(), &[] as &[usize]);
-        assert_eq!(node.outgoing(), &[] as &[usize]);
+        assert_eq!(node.incoming(), &[] as &[NodeIdx]);
+        assert_eq!(node.outgoing(), &[] as &[NodeIdx]);
     }
 
     #[test]
@@ -565,8 +592,8 @@ mod tests {
         assert_eq!(node.arity(), Arity::Zero);
         assert!(!node.is_valid());
         assert!(!node.is_recurrent());
-        assert_eq!(node.incoming(), &[] as &[usize]);
-        assert_eq!(node.outgoing(), &[] as &[usize]);
+        assert_eq!(node.incoming(), &[] as &[NodeIdx]);
+        assert_eq!(node.outgoing(), &[] as &[NodeIdx]);
     }
 
     #[test]
@@ -579,8 +606,8 @@ mod tests {
         assert_eq!(new_node.arity(), Arity::Zero);
         assert!(!new_node.is_valid());
         assert!(!new_node.is_recurrent());
-        assert_eq!(new_node.incoming(), &[] as &[usize]);
-        assert_eq!(new_node.outgoing(), &[] as &[usize]);
+        assert_eq!(new_node.incoming(), &[] as &[NodeIdx]);
+        assert_eq!(new_node.outgoing(), &[] as &[NodeIdx]);
     }
 
     #[test]
@@ -658,10 +685,10 @@ mod tests {
 
         assert_eq!(node.outgoing(), &[4, 5, 6]);
 
-        node.remove_incoming(&2);
+        node.remove_incoming(2);
         assert_eq!(node.incoming(), &[1, 3]);
 
-        node.remove_outgoing(&5);
+        node.remove_outgoing(5);
         assert_eq!(node.outgoing(), &[4, 6]);
     }
 

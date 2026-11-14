@@ -20,8 +20,8 @@ fn main() {
     let result = engine
         .iter()
         .until(|ctx| {
-            let value_total = Knapsack::value_total(&ctx.value());
-            let weight_total = Knapsack::weight_total(&ctx.value());
+            let value_total = Knapsack::value_total(ctx.value());
+            let weight_total = Knapsack::weight_total(ctx.value());
 
             println!(
                 "[ {:?} ]: Value={:?} Weight={:?}",
@@ -37,11 +37,11 @@ fn main() {
 
     println!(
         "Value Total=[ {:?} ]",
-        Knapsack::value_total(&result.value())
+        Knapsack::value_total(result.value())
     );
     println!(
         "Weight Total=[ {:?} ]",
-        Knapsack::weight_total(&result.value())
+        Knapsack::weight_total(result.value())
     );
     println!("Max Weight=[{:?}]", capacity);
 }
@@ -73,11 +73,11 @@ impl Knapsack {
         if weight > *capacity { 0_f32 } else { sum }
     }
 
-    pub fn value_total(items: &Vec<Arc<Item>>) -> f32 {
+    pub fn value_total(items: &[Arc<Item>]) -> f32 {
         items.iter().fold(0_f32, |acc, item| acc + item.value)
     }
 
-    pub fn weight_total(items: &Vec<Arc<Item>>) -> f32 {
+    pub fn weight_total(items: &[Arc<Item>]) -> f32 {
         items.iter().fold(0_f32, |acc, item| acc + item.weight)
     }
 }

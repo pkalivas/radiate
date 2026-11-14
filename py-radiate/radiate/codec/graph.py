@@ -40,9 +40,9 @@ class GraphCodec(CodecBase[Op, Graph], RsObject):
         ops_map = OpBuilder(
             dtype=dtype,
             input=[Op.var(i, dtype=dtype) for i in range(input_size)],
-            vertex=vertex if vertex is not None else Op.default_vertex_ops(dtype),
-            edge=edge if edge is not None else Op.default_edge_ops(dtype),
-            output=output if output is not None else Op.linear(dtype),
+            vertex=vertex,
+            edge=edge,
+            output=output,
         )
 
         if dtype not in [Float32, Float64]:

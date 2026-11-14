@@ -3,15 +3,15 @@ use radiate_core::{
 };
 
 #[derive(Debug, Clone, Default)]
-pub struct StochasticUniversalSamplingSelector;
+pub struct SUSSelector;
 
-impl StochasticUniversalSamplingSelector {
+impl SUSSelector {
     pub fn new() -> Self {
-        StochasticUniversalSamplingSelector
+        SUSSelector
     }
 }
 
-impl<C: Chromosome> Select<C> for StochasticUniversalSamplingSelector {
+impl<C: Chromosome> Select<C> for SUSSelector {
     fn select(
         &self,
         population: &[Phenotype<C>],

@@ -20,8 +20,8 @@ fn main() {
 
     fn rastrigin_function(genotype: Vec<f32>) -> f32 {
         let mut value = A * N_GENES as f32;
-        for i in 0..N_GENES {
-            value += genotype[i].powi(2) - A * (2.0 * std::f32::consts::PI * genotype[i]).cos();
+        for x in &genotype {
+            value += x.powi(2) - A * (2.0 * std::f32::consts::PI * x).cos();
         }
 
         value
@@ -37,9 +37,9 @@ fn main() {
     // --8<-- [start:batch]
     let engine = GeneticEngine::builder()
         .codec(IntChromosome::from((5, 0..100)))
-        // Replace the original 'fitness_fn' call with 'batch_fitness_fn' to enable batch fitness.
-        // This fitness function will receive a single batch containing all individuals which need evaluation
-        .batch_fitness_fn(|phenotypes: &[Vec<i32>]| {
+        // A function over a slice of decoded values is treated as a batch fitness function.
+        // With the default serial executor it receives a single batch containing every individual to evaluate.
+        .fitness_fn(|phenotypes: &[Vec<i32>]| {
             phenotypes
                 .iter()
                 .map(|geno| geno.iter().sum::<i32>())
@@ -50,9 +50,9 @@ fn main() {
     // When using an parallel executor, the batches will be grouped together to evaluate on separate threads
     let engine = GeneticEngine::builder()
         .codec(IntChromosome::from((5, 0..100)))
-        // 'batch_fitness_fn' will receive 7 batches of individuals during each generation's evaluation
+        // The batch fitness function will receive 7 batches of individuals during each generation's evaluation
         .executor(Executor::FixedSizedWorkerPool(7))
-        .batch_fitness_fn(|phenotypes: &[Vec<i32>]| {
+        .fitness_fn(|phenotypes: &[Vec<i32>]| {
             phenotypes
                 .iter()
                 .map(|geno| geno.iter().sum::<i32>())
@@ -72,8 +72,8 @@ fn main() {
 
     let engine = GeneticEngine::builder()
         .codec(FloatCodec::vector(10, 0.0..1.0))
-        .raw_fitness_fn(my_fitness_fn)
-        // or .raw_batch_fitness_fn(...) for batch raw fitness functions
+        .fitness_fn(my_fitness_fn)
+        // A function over `&[&Genotype<C>]` works the same way for batch raw fitness
         // ... other parameters ...
         .build();
 

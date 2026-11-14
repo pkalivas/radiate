@@ -33,7 +33,7 @@ For example, if you're evolving neural network weights, you need to:
 - Organize them in the correct structure (matrices for layers)
 - Keep them within reasonable ranges (e.g., between -1 and 1)
   
-See [this example](https://github.com/pkalivas/radiate/blob/master/examples/simple-nn/src/main.rs) for a simple neural network evolution using a custom codec.
+See [this example](https://github.com/pkalivas/radiate/blob/master/examples/rust/simple-nn/src/main.rs) for a simple neural network evolution using a custom codec.
 
 ---
 
@@ -56,6 +56,7 @@ Radiate provides several codec types out of the box that should be able to cover
 | **IntCodec** | int / list / matrix of ints | discrete params, indices, counts |
 | **CharCodec** | chars / strings | text, string-matching |
 | **BitCodec** | bools | binary choices, feature selection |
+| **PackedBitCodec** | bools or packed 64-bit words | very long bit strings (thousands of bits and up) |
 | **SubSetCodec** | a subset of your items | knapsack, feature selection |
 | **PermutationCodec** | an ordering of your items | TSP, scheduling, sequencing |
 | **FnCodec** | anything (you define encode/decode) | custom structures that don't fit the above |
@@ -158,6 +159,28 @@ The core codecs include:
 
         ```rust
         --8<-- "rust/genome/codec.rs:bit_codec"
+        ```
+
+??? note "PackedBitCodec"
+
+    Use this for a single, very long bit string. Each `Gene` is a `BitWordGene` that holds 64 bits in one `u64`, so a `PackedBitChromosome` uses 8× less memory than a `BitChromosome` of the same length. Bit `i` is bit `i % 64` of word `i / 64`, and the unused bits in the last word are always zero.
+
+    Use the packed operators with it: `PackedBitCrossover` (uniform), `PackedBitMultiPointCrossover`, `BitFlipMutator` and `PackedBitHammingDistance` all work bit by bit. The generic crossovers, mutators and distances also accept a `PackedBitChromosome`, but they treat each 64-bit word as a single gene.
+
+    === ":fontawesome-brands-python: Python"
+
+        By default the fitness function receives the bits, exactly like `BitCodec`. With `words=True` it receives the packed 64-bit words instead, and with `use_numpy=True` they come as a numpy array, which is much faster for long strings. The standard `Cross.uniform`, `Cross.multipoint`, `Mutate.bit_flip` and `Dist.hamming` automatically use their packed versions.
+
+        ```python
+        --8<-- "python/genome/codec.py:packed_bit_codec"
+        ```
+
+    === ":fontawesome-brands-rust: Rust"
+
+        A `PackedBitCodec` will `encode()` a `Genotype<PackedBitChromosome>` and decode it to the raw `Vec<u64>` words.
+
+        ```rust
+        --8<-- "rust/genome/codec.rs:packed_bit_codec"
         ```
 
 ??? note "SubSetCodec"

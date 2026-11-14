@@ -17,7 +17,7 @@ from .handlers import (
     on_stop,
 )
 from .metrics import Metric, MetricSet, Tag
-from .option import CheckpointParam, LogParam, UiParam
+from .option import CheckpointParam
 
 __all__ = [
     "EngineBuilder",
@@ -32,9 +32,7 @@ __all__ = [
     "MetricSet",
     "Metric",
     "Tag",
-    "LogParam",
     "CheckpointParam",
-    "UiParam",
     "on_epoch",
     "on_improvement",
     "on_start",

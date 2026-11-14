@@ -1,8 +1,5 @@
-use crate::{Arity, Eval, Factory, NodeValue, TreeNode, ops::Param};
-use std::{
-    fmt::{Debug, Display},
-    hash::Hash,
-};
+use crate::{Arity, Eval, Factory, IntoNodeValues, NodeValue, TreeNode, ops::Param};
+use std::fmt::{Debug, Display};
 
 /// [Op] is an enumeration that represents the different types of operations
 /// that can be performed within the genetic programming framework. Each variant
@@ -173,40 +170,6 @@ where
     }
 }
 
-impl Hash for Op<f32> {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.name().hash(state);
-        self.arity().hash(state);
-        match self {
-            Op::Fn(_, _, op) => {
-                let op_ptr = *op as usize;
-                op_ptr.hash(state);
-            }
-            Op::Var(_, index, domain) => {
-                index.hash(state);
-                domain.hash(state);
-            }
-            Op::Const(_, value) => {
-                value.to_bits().hash(state);
-            }
-            Op::Value(_, _, value, operation) => {
-                (*value).data().to_bits().hash(state);
-                let op_ptr = *operation as usize;
-                op_ptr.hash(state);
-            }
-            Op::Pair(_, _, value, operation) => {
-                let data = (*value).data();
-                let b_one = data.0.to_bits();
-                let b_two = data.1.to_bits();
-                b_one.hash(state);
-                b_two.hash(state);
-                let op_ptr = *operation as usize;
-                op_ptr.hash(state);
-            }
-        }
-    }
-}
-
 impl<T> Display for Op<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.name())
@@ -228,18 +191,18 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Op::Fn(name, _, _) => write!(f, "Fn:  {}", name),
+            Op::Fn(name, _, _) => write!(f, "Fn:   {}", name),
             Op::Var(name, index, card) => match card {
-                Some(k) => write!(f, "Var: {}({},{})", name, index, k),
-                None => write!(f, "Var: {}({})", name, index),
+                Some(k) => write!(f, "Var:  {}({},{})", name, index, k),
+                None => write!(f, "Var:  {}({})", name, index),
             },
             Op::Const(name, value) => match f.precision() {
-                Some(p) => write!(f, "Con: {}({:.*?})", name, p, value),
-                None => write!(f, "Con: {}({:?})", name, value),
+                Some(p) => write!(f, "Con:  {}({:.*?})", name, p, value),
+                None => write!(f, "Con:  {}({:?})", name, value),
             },
             Op::Value(name, _, value, _) => match f.precision() {
-                Some(p) => write!(f, "Val: {}({:.*?})", name, p, value),
-                None => write!(f, "Val: {}({:?})", name, value),
+                Some(p) => write!(f, "Val:  {}({:.*?})", name, p, value),
+                None => write!(f, "Val:  {}({:?})", name, value),
             },
             Op::Pair(name, _, value, _) => match f.precision() {
                 Some(p) => write!(f, "Pair: {}{:.*?}", name, p, value),
@@ -253,6 +216,12 @@ impl<T: Clone> From<Op<T>> for NodeValue<Op<T>> {
     fn from(value: Op<T>) -> Self {
         let arity = value.arity();
         NodeValue::Bounded(value, arity)
+    }
+}
+
+impl<T: Clone> IntoNodeValues<Op<T>> for Op<T> {
+    fn into_node_values(self) -> Vec<NodeValue<Op<T>>> {
+        vec![self.into()]
     }
 }
 

@@ -25,11 +25,11 @@ where
         }
     }
 
-    pub fn update(&mut self, other: &T, optimize: &Objective) {
+    pub fn update(&mut self, other: &T, obj: &Objective) {
         self.current = Some(other.clone());
 
         if let Some(best) = &self.best {
-            if optimize.is_better(other, best) {
+            if obj.is_better(other, best) {
                 self.best = Some(other.clone());
                 self.stagnation = 0;
             } else {

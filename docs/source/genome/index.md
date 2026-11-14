@@ -188,6 +188,10 @@ Because each `Chromosome` has an associated `Gene`, the built-in chromosomes are
 
         ```
 
+??? info "PackedBitChromosome"
+
+    For evolving a very long sequence of binary values. It packs 64 bits into each `BitWordGene`, using 8× less memory than a `BitChromosome`. See the [`PackedBitCodec`](codec.md#types-of-codecs) for how to use it and which operators to pair with it.
+
 ??? info "CharChromosome"
 
     For evolving a sequence of character values. It contains a vector of `CharGene` instances.

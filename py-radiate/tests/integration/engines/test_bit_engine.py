@@ -16,9 +16,9 @@ def test_engine_bit_optimization(random_seed):
 
     result = engine.run()
 
-    assert result.value() == [True] * 10  # All ones
-    assert result.score()[0] == 10.0
-    assert result.index() <= 100  # Should converge quickly
+    assert result.value == [True] * 10  # All ones
+    assert result.score[0] == 10.0
+    assert result.index <= 100  # Should converge quickly
 
 
 @pytest.mark.integration
@@ -40,9 +40,9 @@ def test_engine_bit_matrix_optimization(random_seed):
 
     result = engine.run()
 
-    assert result.value() == [[True] * cols for _ in range(rows)]  # All ones
-    assert result.score()[0] == rows * cols
-    assert result.index() <= 200  # Should converge quickly
+    assert result.value == [[True] * cols for _ in range(rows)]  # All ones
+    assert result.score[0] == rows * cols
+    assert result.index <= 200  # Should converge quickly
 
 
 @pytest.mark.integration
@@ -56,9 +56,9 @@ def test_engine_bit_can_maximize(simple_bit_20_bit_engine, random_seed):
 
     result = engine.run()
 
-    assert result.value() == [True] * 20  # All ones
-    assert result.score()[0] == 20.0
-    assert result.index() <= 100  # Should converge quickly
+    assert result.value == [True] * 20  # All ones
+    assert result.score[0] == 20.0
+    assert result.index <= 100  # Should converge quickly
 
 
 @pytest.mark.integration
@@ -83,7 +83,7 @@ def test_engine_bit_can_co_evolve_two_chromosomes(random_seed):
 
     result = engine.run()
 
-    assert result.value()[0] == [False] * 20  # First chromosome all zeros
-    assert result.value()[1] == [True] * 20  # Second chromosome all ones
-    assert result.score()[0] == 0.0
-    assert result.index() <= 200  # Should converge quickly
+    assert result.value[0] == [False] * 20  # First chromosome all zeros
+    assert result.value[1] == [True] * 20  # Second chromosome all ones
+    assert result.score[0] == 0.0
+    assert result.index <= 200  # Should converge quickly

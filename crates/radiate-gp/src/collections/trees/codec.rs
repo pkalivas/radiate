@@ -1,28 +1,23 @@
-use crate::NodeStore;
-use crate::collections::{Tree, TreeChromosome, TreeNode};
+use crate::NodeSet;
+use crate::collections::{Tree, TreeChromosome};
 use radiate_core::{Codec, Genotype};
-use std::sync::Arc;
-
-type Constraint<N> = Arc<dyn Fn(&N) -> bool + Send + Sync>;
 
 #[derive(Clone)]
 pub struct TreeCodec<T: Clone, D = Vec<Tree<T>>> {
     depth: usize,
     num_trees: usize,
-    store: Option<NodeStore<T>>,
-    constraint: Option<Constraint<TreeNode<T>>>,
-    template: Option<Tree<T>>,
+    store: Option<NodeSet<T>>,
+    max_size: Option<u32>,
     _marker: std::marker::PhantomData<D>,
 }
 
 impl<T: Clone + Default> TreeCodec<T> {
-    pub fn single(depth: usize, store: impl Into<NodeStore<T>>) -> TreeCodec<T, Tree<T>> {
+    pub fn single(depth: usize, store: impl Into<NodeSet<T>>) -> TreeCodec<T, Tree<T>> {
         TreeCodec {
             depth,
             num_trees: 1,
             store: Some(store.into()),
-            constraint: None,
-            template: None,
+            max_size: None,
             _marker: std::marker::PhantomData,
         }
     }
@@ -30,30 +25,21 @@ impl<T: Clone + Default> TreeCodec<T> {
     pub fn multi_root(
         depth: usize,
         num_trees: usize,
-        store: impl Into<NodeStore<T>>,
+        store: impl Into<NodeSet<T>>,
     ) -> TreeCodec<T, Vec<Tree<T>>> {
         TreeCodec {
             depth,
             num_trees,
             store: Some(store.into()),
-            constraint: None,
-            template: None,
+            max_size: None,
             _marker: std::marker::PhantomData,
         }
     }
 }
 
 impl<T: Clone, D> TreeCodec<T, D> {
-    pub fn constraint<F>(mut self, constraint: F) -> Self
-    where
-        F: Fn(&TreeNode<T>) -> bool + Send + Sync + 'static,
-    {
-        self.constraint = Some(Arc::new(constraint));
-        self
-    }
-
-    pub fn with_tree(mut self, template: impl Into<Tree<T>>) -> Self {
-        self.template = Some(template.into());
+    pub fn max_size(mut self, max_size: u32) -> Self {
+        self.max_size = Some(max_size);
         self
     }
 }
@@ -65,13 +51,14 @@ where
     fn encode(&self) -> Genotype<TreeChromosome<T>> {
         if let Some(store) = &self.store {
             let new_chromosomes = (0..self.num_trees)
-                .map(|_| match self.template.as_ref() {
-                    Some(template) => template.clone(),
-                    None => Tree::with_depth(self.depth, store),
-                })
-                .filter_map(|tree| tree.take_root().map(|root| vec![root]))
-                .map(|node| TreeChromosome::new(node, Some(store.clone()), self.constraint.clone()))
+                .map(|_| Tree::with_depth(self.depth, store))
+                .filter_map(|tree| tree.take_root())
+                .map(|root| TreeChromosome::new(root, Some(store.clone()), self.max_size))
                 .collect::<Vec<TreeChromosome<T>>>();
+
+            if new_chromosomes.len() != self.num_trees {
+                return Genotype::default();
+            }
 
             return Genotype::new(new_chromosomes);
         }
@@ -93,18 +80,14 @@ where
 {
     fn encode(&self) -> Genotype<TreeChromosome<T>> {
         if let Some(store) = &self.store {
-            let tree = match self.template.as_ref() {
-                Some(template) => template.clone(),
-                None => Tree::with_depth(self.depth, store),
-            };
-
-            let new_chromosome = tree
+            let new_chromosome = Tree::with_depth(self.depth, store)
                 .take_root()
-                .map(|root| vec![root])
-                .map(|tree| TreeChromosome::new(tree, Some(store.clone()), self.constraint.clone()))
-                .unwrap_or_else(|| TreeChromosome::new(vec![], None, self.constraint.clone()));
+                .map(|root| TreeChromosome::new(root, Some(store.clone()), self.max_size));
 
-            return Genotype::new(vec![new_chromosome]);
+            return match new_chromosome {
+                Some(chrom) => Genotype::from(chrom),
+                None => Genotype::default(),
+            };
         }
 
         Genotype::new(vec![])
@@ -133,9 +116,9 @@ mod tests {
         let store = vec![
             (NodeType::Root, vec![Op::add(), Op::sub()]),
             (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
-            (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+            (NodeType::Leaf, vec![Op::one(), Op::two()]),
         ];
-        let codec = TreeCodec::single(3, store);
+        let codec = TreeCodec::<Op<f32>>::single(3, store);
 
         let genotype = codec.encode();
         let tree = codec.decode(&genotype);
@@ -149,9 +132,9 @@ mod tests {
         let store = vec![
             (NodeType::Root, vec![Op::add(), Op::sub()]),
             (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
-            (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+            (NodeType::Leaf, vec![Op::one(), Op::two()]),
         ];
-        let codec = TreeCodec::multi_root(3, 2, store);
+        let codec = TreeCodec::<Op<f32>>::multi_root(3, 2, store);
 
         let genotype = codec.encode();
         let trees = codec.decode(&genotype);

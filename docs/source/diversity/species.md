@@ -68,7 +68,13 @@ $$
 
 where $S$ is the species size. The effect: a large species must be *better on average* to keep its share, which discourages any one cluster from swamping the population.
 
-**Offspring allocation.** During recombination the total offspring budget is split into **per-species quotas** proportional to each species' normalized adjusted score (largest fractional remainders get the leftover slots if needed). Selection and alteration then happen *within* each species' sub-population:
+**Offspring allocation.** During recombination the total offspring budget is split into **per-species quotas**. Each species' adjusted score is first turned into a weight:
+
+1. For each objective, the adjusted scores are rescaled across species to $[0, 1]$, where $1$ is the best species and $0$ the worst. Minimized and maximized objectives are both handled, so "best" always means best.
+2. The rescaled values are averaged across objectives.
+3. A small floor ($0.1$) is added, so even the weakest species still gets a few offspring instead of none.
+
+Quotas are proportional to these weights (largest fractional remainders get the leftover slots). If every species scores the same, the budget is split evenly. Selection and alteration then happen *within* each species' sub-population:
 
 - A higher-scoring species earns a larger quota of offspring.
 - Survivors are still selected globally, but offspring are bred per-species, so young or unusual species get protected breeding room instead of competing head-to-head with established ones.

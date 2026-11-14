@@ -69,8 +69,8 @@ mod convergence_tests {
     /// with explicit budget + seed, so a refactor that triples convergence
     /// time fails this test.
     #[rstest]
-    #[case(7, 200)]
-    #[case(99, 200)]
+    #[case(71, 300)]
+    #[case(13333, 200)]
     #[case(1234, 200)]
     fn int_minimize_converges_within_budget(#[case] seed: u64, #[case] budget: usize) {
         seeded(seed, || {

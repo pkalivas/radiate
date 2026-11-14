@@ -12,10 +12,9 @@ pub use gene::PyGene;
 pub use genotype::PyGenotype;
 pub use phenotype::PyPhenotype;
 pub use population::PyPopulation;
+use pyo3::{pyclass, pymethods};
 use serde::{Deserialize, Serialize};
 pub use species::PySpecies;
-
-use pyo3::{pyclass, pymethods};
 
 pub const FLOAT_GENE_TYPE: &str = "FloatGene";
 pub const INT_GENE_TYPE: &str = "IntGene";

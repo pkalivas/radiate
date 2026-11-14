@@ -19,68 +19,58 @@ objectives = 3
 k = variables - objectives + 1
 
 
-@jit(float64[:](float64[:]), nopython=True)
-def dtlz_1(val: np.ndarray) -> np.ndarray:
-    g_vals = val[variables - k :] - 0.5
-    g = 100.0 * (k + np.sum(g_vals**2 - np.cos(20.0 * np.pi * g_vals)))
+@rd.fitness(batch=True)
+@jit(float64[:, :](float64[:, :]), nopython=True)
+def fit(vals: np.ndarray) -> np.ndarray:
+    g_vals = vals[:, variables - k :] - 0.5
+    g = 100.0 * (k + np.sum(g_vals**2 - np.cos(20.0 * np.pi * g_vals), axis=1))
 
-    base = 0.5 * (1.0 + g)
-
-    f = np.full(objectives, base, dtype=np.float64)
-
+    f = np.empty((vals.shape[0], objectives), dtype=np.float64)
     for i in range(objectives):
-        prod_end = objectives - 1 - i
-        if prod_end > 0:
-            f[i] *= np.prod(val[:prod_end])
-
+        f[:, i] = 0.5 * (1.0 + g)
+        for j in range(objectives - 1 - i):  # numba's np.prod has no axis argument
+            f[:, i] *= vals[:, j]
         if i > 0:
-            f[i] *= 1.0 - val[objectives - 1 - i]
-
+            f[:, i] *= 1.0 - vals[:, objectives - 1 - i]
     return f
 
 
 engine = (
     rd.Engine.float(variables, use_numpy=True)
-    .fitness(dtlz_1)
+    .fitness(fit)
     .objective(rd.MIN, rd.MIN, rd.MIN)
-    .front_range(100, 150)
+    .front_range(200, 250)
     # NSGA-III for 3+ objectives: crowded-comparison tournament for parents, reference-point
-    # NSGA-II also works honestly just fine for this example
     # niching for survivors. A lower offspring fraction keeps more of the evaluated front.
+    # rd.Select.nsga3(points=12),
+    # NSGA-II also works honestly just fine for this example
     .select(
         rd.Select.tournament_nsga2(),
-        # rd.Select.nsga3(points=12),
         rd.Select.nsga2(),
         frac=0.5,
     )
     .alter(
-        rd.Cross.sbx(0.8, 20.0),
+        rd.Cross.sbx(0.5, 20.0),
+        rd.Cross.differential(rate=0.8, weight=0.8, crossover_rate=0.9),
         rd.Mutate.polynomial(0.1, 20.0),
     )
     .limit(rd.Limit.generations(2000))
 )
 
+result = engine.run(ui=True)
+hypervolume = result.front.hypervolume([1.0, 1.0, 1.0])
 
-result = engine.run(ui=False)
-front = result.front()
-hypervolume = front.hypervolume([1.0, 1.0, 1.0])
-
-print(result.metrics().dashboard())
+print(result.metrics.dashboard())
 print()
-# DTLZ1's Pareto front is the plane f1 + f2 + f3 = 0.5, so with a reference point of
-# 1.0 in every objective the best achievable hypervolume is 1 - 0.5³/6 ≈ 0.9792.
 print(f"Hypervolume: {hypervolume}")
 
-x = [member.score()[0] for member in front]
-y = [member.score()[1] for member in front]
-z = [member.score()[2] for member in front]
+x = [member.score[0] for member in result.front]
+y = [member.score[1] for member in result.front]
+z = [member.score[2] for member in result.front]
 
-fig = go.Figure(go.Scatter3d(x=x, y=y, z=z, mode="markers"))
+axis = {"range": [-0.025, 0.525]}
+fig = go.Figure(go.Scatter3d(x=x, y=y, z=z, mode="markers", marker={"size": 4}))
 fig.update_layout(
-    scene={
-        "xaxis": {"range": [0.0, 0.5]},
-        "yaxis": {"range": [0.0, 0.5]},
-        "zaxis": {"range": [0.0, 0.5]},
-    }
+    scene={"xaxis": axis, "yaxis": axis, "zaxis": axis, "aspectmode": "cube"}
 )
 fig.show()

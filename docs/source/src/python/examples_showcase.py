@@ -26,13 +26,13 @@ import numpy as np
 import radiate as rd
 from numba import jit, uint8
 
-N_QUEENS = 32
+rd.random.seed(514)
+
+N_QUEENS = 100
 
 
-@jit(
-    uint8(uint8[:]), nopython=True
-)  # add this decorator from numba to compile the fitness function to native C code.
-def nqueens_fitness_fn(queens: np.ndarray) -> int:
+@jit(uint8(uint8[:]), nopython=True)
+def fit(queens: np.ndarray) -> int:
     """Calculate the fitness score for the N-Queens problem."""
 
     i_indices, j_indices = np.triu_indices(N_QUEENS, k=1)
@@ -48,19 +48,21 @@ def nqueens_fitness_fn(queens: np.ndarray) -> int:
 
 engine = (
     rd.Engine.int(N_QUEENS, init_range=(0, N_QUEENS), use_numpy=True, dtype=rd.UInt8)
-    .fitness(nqueens_fitness_fn)
+    .fitness(fit)
     .minimizing()
     .alter(
         rd.Cross.multipoint(0.75, 2),
-        rd.Mutate.uniform(0.05),
+        rd.Mutate.uniform(1.0 / float(N_QUEENS)),
     )
-    .limit(rd.Limit.score(0), rd.Limit.generations(1000))
+    .limit(rd.Limit.score(0))
 )
 
-result = engine.run(log=False)
+
+result = engine.run(ui=True)
 print(result)
 
-board = result.value()
+
+board = result.value
 for i in range(N_QUEENS):
     for j in range(N_QUEENS):
         if board[j] == i:
@@ -154,12 +156,12 @@ engine = (
 result = engine.run(ui=True)
 
 # When running an MO problem, we can get the resulting pareto from from the
-# engine's epoch result. This is stored in the 'front()' field of the result here:
-front = result.front()
+# engine's epoch result. This is stored in the 'front' property of the result here:
+front = result.front
 
-x = [member.score()[0] for member in front]
-y = [member.score()[1] for member in front]
-z = [member.score()[2] for member in front]
+x = [member.score[0] for member in front]
+y = [member.score[1] for member in front]
+z = [member.score[2] for member in front]
 
 fig = go.Figure(go.Scatter3d(x=x, y=y, z=z, mode="markers"))
 fig.update_layout(
@@ -177,16 +179,16 @@ import radiate as rd
 
 inputs = [[0.0, 0.0], [1.0, 1.0], [1.0, 0.0], [0.0, 1.0]]
 answers = [[0.0], [0.0], [1.0], [1.0]]
-
-codec = rd.GraphCodec.directed(
-    shape=(2, 1),
-    vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
-    edge=rd.Op.weight(),
-    output=rd.Op.linear(),
-)
+# or use the built in datasets
+inputs, answers = rd.DataSet.xor().pair()
 
 engine = (
-    rd.Engine(codec)
+    rd.Engine.graph(
+        shape=(2, 1),
+        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sum()],
+        edge=rd.Op.weight(),
+        output=rd.Op.sum(),
+    )
     .regression(inputs, answers, loss=rd.MSE)
     .alter(
         rd.Cross.graph(0.5, 0.5),
@@ -199,7 +201,7 @@ engine = (
 result = engine.run(log=True)
 
 for input, target in zip(inputs, answers):
-    print(f"Input: {input}, Target: {target}, Output: {result.value().eval([input])}")
+    print(f"Input: {input}, Target: {target}, Output: {result.value.eval([input])}")
 # --8<-- [end:graph_xor]
 
 # --8<-- [start:tree]
@@ -207,15 +209,15 @@ import radiate as rd
 
 inputs = [[0.0, 0.0], [1.0, 1.0], [1.0, 0.0], [0.0, 1.0]]
 answers = [[0.0], [0.0], [1.0], [1.0]]
-
-codec = rd.TreeCodec(
-    shape=(2, 1),
-    vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.add()],
-    root=rd.Op.linear(),
-)
+# or use the built in datasets
+inputs, answers = rd.DataSet.xor().pair()
 
 engine = (
-    rd.Engine(codec)
+    rd.Engine.tree(
+        shape=(2, 1),
+        vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.add()],
+        root=rd.Op.sum(),
+    )
     .regression(inputs, answers, loss=rd.MSE)
     .alter(rd.Cross.tree(0.7), rd.Mutate.hoist(0.01))
     .limit(rd.Limit.score(0.01), rd.Limit.seconds(1))
@@ -226,5 +228,5 @@ result = engine.run(log=True)
 print(result)
 
 for input, target in zip(inputs, answers):
-    print(f"Input: {input}, Target: {target}, Output: {result.value().eval([input])}")
+    print(f"Input: {input}, Target: {target}, Output: {result.value.eval([input])}")
 # --8<-- [end:tree]

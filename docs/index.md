@@ -196,7 +196,7 @@ inspired by natural selection and genetics. The core is written in Rust with com
 
     result = engine.run(log=True)
 
-    print("Best solution:", "".join(result.value()))
+    print("Best solution:", "".join(result.value))
     ```
 
 === ":fontawesome-brands-rust: Rust"

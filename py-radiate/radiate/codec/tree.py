@@ -10,6 +10,14 @@ from ..gp.op import OpBuilder
 from .base import CodecBase
 
 
+def as_list[T](value: T | list[T] | None) -> list[T]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
 class TreeCodec(CodecBase[Op, Tree], RsObject):
     def __init__(
         self,
@@ -49,9 +57,9 @@ class TreeCodec(CodecBase[Op, Tree], RsObject):
 
         ops_map = OpBuilder(
             dtype=dtype,
-            leaf=[Op.var(i, dtype=dtype) for i in range(input_size)],
-            vertex=vertex if vertex is not None else Op.default_vertex_ops(dtype),
-            root=root if root is not None else Op.linear(dtype),
+            leaf=[Op.var(i) for i in range(input_size)] + as_list(leaf),
+            vertex=vertex,
+            root=root,
         )
 
         self._pyobj = PyTreeCodec(

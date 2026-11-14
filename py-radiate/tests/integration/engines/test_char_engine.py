@@ -20,9 +20,9 @@ def test_engine_char_vector():
 
     result = engine.run()
 
-    assert result.value() == list(target)
-    assert result.score() == [len(target)]
-    assert result.index() <= 1000
+    assert result.value == list(target)
+    assert result.score == [len(target)]
+    assert result.index <= 1000
 
 
 @pytest.mark.integration
@@ -48,6 +48,6 @@ def test_engine_char_matrix(random_seed):
 
     result = engine.run()
 
-    assert result.value() == [list(t) for t in target]
-    assert result.score() == [sum(len(t) for t in target)]
-    assert result.index() <= 2000
+    assert result.value == [list(t) for t in target]
+    assert result.score == [sum(len(t) for t in target)]
+    assert result.index <= 2000

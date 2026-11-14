@@ -34,6 +34,7 @@ pub mod components {
         EUCLIDEAN_DISTANCE = "EuclideanDistance";
         COSINE_DISTANCE = "CosineDistance";
         NEAT_DISTANCE = "NeatDistance";
+        TREE_DISTANCE = "TreeDistance";
 
         MULTI_POINT_CROSSOVER = "MultiPointCrossover";
         UNIFORM_CROSSOVER = "UniformCrossover";
@@ -45,6 +46,8 @@ pub mod components {
         GRAPH_CROSSOVER = "GraphCrossover";
         PARTIALLY_MAPPED_CROSSOVER = "PartiallyMappedCrossover";
         EDGE_RECOMBINE_CROSSOVER = "EdgeRecombinationCrossover";
+        DIFFERENTIAL_CROSSOVER = "DifferentialCrossover";
+        ORDER_CROSSOVER = "OrderCrossover";
 
         UNIFORM_MUTATOR = "UniformMutator";
         SCRAMBLE_MUTATOR = "ScrambleMutator";
@@ -53,6 +56,7 @@ pub mod components {
         GAUSSIAN_MUTATOR = "GaussianMutator";
         GRAPH_MUTATOR = "GraphMutator";
         OPERATION_MUTATOR = "OperationMutator";
+        SUBTREE_MUTATOR = "SubtreeMutator";
         TREE_CROSSOVER = "TreeCrossover";
         HOIST_MUTATOR = "HoistMutator";
         INVERSION_MUTATOR = "InversionMutator";

@@ -1,7 +1,6 @@
 use crate::collections::{Tree, TreeNode};
 use crate::node::Node;
-use crate::{Arity, Factory, NodeStore, NodeType};
-use radiate_core::Valid;
+use crate::{Arity, Factory, NodeSet, NodeType};
 
 const NUM_CHILDREN_ANY: usize = 2;
 
@@ -22,7 +21,7 @@ impl<T: Clone + Default> Tree<T> {
     ///
     /// # Returns
     /// A tree with the given depth, where each node is a random node from the node store.
-    pub fn with_depth(depth: usize, nodes: impl Into<NodeStore<T>>) -> Self {
+    pub fn with_depth(depth: usize, nodes: impl Into<NodeSet<T>>) -> Self {
         let store = nodes.into();
 
         let root = if store.contains_type(NodeType::Root) {
@@ -64,7 +63,7 @@ impl<T: Clone + Default> Tree<T> {
     ///
     /// # Returns
     /// A tree node with the given depth, where each node is a random node from the node store.
-    pub(crate) fn grow(current_depth: usize, store: &NodeStore<T>) -> Option<TreeNode<T>> {
+    pub fn grow(current_depth: usize, store: &NodeSet<T>) -> Option<TreeNode<T>> {
         if current_depth == 0 {
             return store.new_instance(NodeType::Leaf);
         }
@@ -83,39 +82,6 @@ impl<T: Clone + Default> Tree<T> {
 
         Some(parent)
     }
-
-    #[allow(dead_code)]
-    pub(crate) fn repair_node(node: &mut TreeNode<T>, store: &NodeStore<T>) {
-        if node.children().is_none() && node.is_valid() {
-            return;
-        }
-
-        let num_children = match node.arity() {
-            Arity::Zero => 0,
-            Arity::Exact(n) => n,
-            Arity::Any => NUM_CHILDREN_ANY,
-        };
-
-        let current_num_children = node.children().map_or(0, |c| c.len());
-
-        if current_num_children < num_children {
-            for _ in 0..(num_children - current_num_children) {
-                if let Some(leaf) = store.new_instance(NodeType::Leaf) {
-                    node.add_child(leaf);
-                }
-            }
-        } else if current_num_children > num_children {
-            for _ in 0..(current_num_children - num_children) {
-                node.detach(current_num_children - 1);
-            }
-        }
-
-        if let Some(children) = node.children_mut() {
-            for child in children.iter_mut() {
-                Self::repair_node(child, store);
-            }
-        }
-    }
 }
 
 #[cfg(test)]
@@ -127,9 +93,9 @@ mod tests {
     fn test_tree_builder_depth_two() {
         let store = vec![
             (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
-            (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+            (NodeType::Leaf, vec![Op::one(), Op::two()]),
         ];
-        let tree = Tree::with_depth(2, store);
+        let tree = Tree::<Op<f32>>::with_depth(2, store);
 
         assert!(tree.root().is_some());
         assert_eq!(tree.root().unwrap().children().unwrap().len(), 2);
@@ -153,9 +119,9 @@ mod tests {
         // The above test should be good enough, but just for peace of mind.
         let store = vec![
             (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
-            (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+            (NodeType::Leaf, vec![Op::one(), Op::two()]),
         ];
-        let tree = Tree::with_depth(3, store);
+        let tree = Tree::<Op<f32>>::with_depth(3, store);
 
         assert!(tree.root().is_some());
         assert_eq!(tree.root().unwrap().children().unwrap().len(), 2);
@@ -175,14 +141,14 @@ mod tests {
 
     #[test]
     fn test_vertex_with_any_arity_builds_correct_depth() {
-        let tree = Tree::with_depth(
+        let tree = Tree::<Op<f32>>::with_depth(
             2,
             vec![
                 (
                     NodeType::Vertex,
                     vec![Op::sigmoid(), Op::relu(), Op::tanh()],
                 ),
-                (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+                (NodeType::Leaf, vec![Op::one(), Op::two()]),
             ],
         );
 

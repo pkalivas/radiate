@@ -275,6 +275,9 @@ where
                         .unbind()
                         .into_any(),
                 })
+                .with_batch_decoder(move |py, genotypes| {
+                    super::decode_batch_to_array(py, genotypes, use_numpy)
+                })
         } else if let Some(chromosomes) = &self.chromosomes {
             let materialized_chromosomes = Self::materialize_chromosomes::<G, C>(chromosomes);
 
@@ -285,6 +288,9 @@ where
                         .unwrap()
                         .unbind()
                         .into_any(),
+                })
+                .with_batch_decoder(move |py, genotypes| {
+                    super::decode_batch_to_array(py, genotypes, use_numpy)
                 })
         } else {
             PyCodec::new()
@@ -301,6 +307,9 @@ where
                         .unwrap()
                         .unbind()
                         .into_any(),
+                })
+                .with_batch_decoder(move |py, genotypes| {
+                    super::decode_batch_to_array(py, genotypes, use_numpy)
                 })
         }
     }

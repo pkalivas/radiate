@@ -794,7 +794,7 @@ mod tests {
 
     #[test]
     fn test_anyvalue_type_name() {
-        let v = AnyValue::Float64(3.14);
+        let v = AnyValue::Float64(2.5);
         assert_eq!(v.type_name(), "f64");
     }
 

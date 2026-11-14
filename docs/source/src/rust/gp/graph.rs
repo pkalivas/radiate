@@ -27,7 +27,7 @@ fn main() {
         .attach(idx_three, idx_four)
         .attach(idx_four, idx_two);
 
-    graph.set_cycles(vec![]);
+    graph.set_cycles();
     // --8<-- [end:eval]
 
     // --8<-- [start:variants]
@@ -39,27 +39,27 @@ fn main() {
     let values = vec![
         (NodeType::Input, vec![Op::var(0), Op::var(1)]),
         (NodeType::Edge, vec![Op::weight()]),
-        (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::linear()]),
-        (NodeType::Output, vec![Op::linear()]),
+        (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::sum()]),
+        (NodeType::Output, vec![Op::sum()]),
     ];
 
     // create a directed graph with 2 input nodes and 2 output nodes
-    let graph: Graph<Op<f32>> = Graph::directed(2, 2, values.clone());
+    let graph: Graph<Op<f32>> = Graph::directed(2, 2, values.clone()).unwrap();
 
     // create a recurrent graph with 2 input nodes and 2 output nodes
-    let graph: Graph<Op<f32>> = Graph::recurrent(2, 2, values.clone());
+    let graph: Graph<Op<f32>> = Graph::recurrent(2, 2, values.clone()).unwrap();
 
     // create a weighted directed graph with 2 input nodes and 2 output nodes
-    let graph: Graph<Op<f32>> = Graph::weighted_directed(2, 2, values.clone());
+    let graph: Graph<Op<f32>> = Graph::weighted_directed(2, 2, values.clone()).unwrap();
 
     // create a weighted recurrent graph with 2 input nodes and 2 output nodes
-    let graph: Graph<Op<f32>> = Graph::weighted_recurrent(2, 2, values.clone());
+    let graph: Graph<Op<f32>> = Graph::weighted_recurrent(2, 2, values.clone()).unwrap();
 
     // create an LSTM graph with 2 input nodes and 2 output nodes
-    let graph: Graph<Op<f32>> = Graph::lstm(2, 2, values.clone());
+    let graph: Graph<Op<f32>> = Graph::lstm(2, 2, values.clone()).unwrap();
 
     // create a GRU graph with 2 input nodes and 2 output nodes
-    let graph: Graph<Op<f32>> = Graph::gru(2, 2, values);
+    let graph: Graph<Op<f32>> = Graph::gru(2, 2, values).unwrap();
 
     // Op graphs can be evaluated much like trees, but with the added complexity of connections.
     let inputs = vec![vec![1.0, 2.0]];
@@ -85,21 +85,34 @@ fn main() {
     ];
 
     // Create a directed graph codec with 2 input nodes and 2 output nodes
-    let codec = GraphCodec::directed(2, 2, store.clone());
+    let codec = GraphCodec::directed(2, 2, store.clone()).unwrap();
     let genotype: Genotype<GraphChromosome<Op<f32>>> = codec.encode();
     let graph: Graph<Op<f32>> = codec.decode(&genotype);
 
     // Create a recurrent graph codec with 2 input nodes and 2 output nodes
-    let recurrent_codec = GraphCodec::recurrent(2, 2, store);
+    let recurrent_codec = GraphCodec::recurrent(2, 2, store).unwrap();
     let recurrent_genotype: Genotype<GraphChromosome<Op<f32>>> = recurrent_codec.encode();
     let recurrent_graph: Graph<Op<f32>> = recurrent_codec.decode(&recurrent_genotype);
     // --8<-- [end:encode_decode]
+
+    // --8<-- [start:batch_eval]
+    // Evaluate one sample at a time - each call returns one value per output node
+    let outputs: Vec<Vec<f32>> = graph.eval(&[vec![0.5, 1.0], vec![1.0, 2.0]]);
+
+    // Or evaluate a whole batch in one pass. The batch is column-major:
+    // one row per input and one column per sample, so transpose a row-per-sample matrix.
+    let features: Matrix<f32> = Matrix::from(vec![vec![0.5, 1.0], vec![1.0, 2.0]]).transpose();
+
+    // The result has one row per output and one column per sample.
+    let mut evaluator = GraphEvaluator::new(&graph);
+    let batch: Matrix<f32> = evaluator.eval_mut(&features);
+    // --8<-- [end:batch_eval]
 
     // --8<-- [start:graph_mutator]
     // Create a mutator that adds vertices and edges with a 10% chance for either
     let mutator = GraphMutator::new(0.1, 0.1);
 
-    let mutator = GraphMutator::new(0.1, 0.1).allow_recurrent(false); // Disallow recurrent connections
+    let mutator = GraphMutator::new(0.1, 0.1).allow_recurrent(); // Allow recurrent connections
     // --8<-- [end:graph_mutator]
 
     // --8<-- [start:graph_crossover]

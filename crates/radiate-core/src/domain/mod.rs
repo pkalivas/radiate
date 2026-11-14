@@ -1,8 +1,8 @@
 pub mod bits;
-pub mod env_vars;
+pub use radiate_utils::env_vars;
 pub mod executor;
 pub mod math;
-pub mod random_provider;
+pub use radiate_utils::random_provider;
 pub mod sync;
 pub mod tracker;
 

@@ -35,29 +35,30 @@ fn main() {
     let root = TreeNode::new(Op::add())
         .attach(
             TreeNode::new(Op::mul())
-                .attach(TreeNode::new(Op::constant(2.0)))
-                .attach(TreeNode::new(Op::constant(3.0))),
+                .attach(TreeNode::new(Op::constant("two", 2.0)))
+                .attach(TreeNode::new(Op::constant("three", 3.0))),
         )
         .attach(
             TreeNode::new(Op::add())
-                .attach(TreeNode::new(Op::constant(2.0)))
+                .attach(TreeNode::new(Op::constant("two", 2.0)))
                 .attach(TreeNode::new(Op::var(0))),
         );
 
     // And the result of evaluating this tree with an input of `1` would be:
-    let result = root.eval(&vec![1_f32]);
+    let result = root.eval(&[1_f32]);
     assert_eq!(result, 9.0);
     // --8<-- [end:build_tree]
 
     // --8<-- [start:tree_codec]
-    let store = vec![
-        (NodeType::Root, vec![Op::add(), Op::sub()]),
-        (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
-        (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+    let store = node_set![
+       Root => [Op::add(), Op::sub()],
+       Vertex => [Op::add(), Op::sub(), Op::mul()],
+       Leaf => [Op::constant("one", 1.0), Op::constant("two", 2.0)]
     ];
 
     // Create a single rooted tree codec with a starting (minimum) depth of 3
-    let codec = TreeCodec::single(3, store.clone());
+    // `max_size` caps the number of nodes per tree (default 200)
+    let codec = TreeCodec::single(3, store.clone()).max_size(50);
     let genotype: Genotype<TreeChromosome<Op<f32>>> = codec.encode();
     let tree: Tree<Op<f32>> = codec.decode(&genotype);
 
@@ -73,7 +74,13 @@ fn main() {
     let mutator = HoistMutator::new(0.1);
     // --8<-- [end:hoist_mutator]
 
+    // --8<-- [start:subtree_mutator]
+    // Replace a random subtree with a freshly grown one, at most 3 levels deep
+    let mutator = SubtreeMutator::new(0.1).with_max_depth(3);
+    // --8<-- [end:subtree_mutator]
+
     // --8<-- [start:tree_crossover]
-    let mutator = TreeCrossover::new(0.1);
+    // Offspring larger than `max_size` nodes are rejected (default 500)
+    let crossover = TreeCrossover::new(0.1).with_max_size(50);
     // --8<-- [end:tree_crossover]
 }

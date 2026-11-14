@@ -12,7 +12,7 @@ pub fn visualize_behaviors_grid(behaviors: &[Vec<f32>]) {
     }
 
     let cols = (n as f64).sqrt().ceil() as usize;
-    let rows = ((n + cols - 1) / cols).max(1);
+    let rows = n.div_ceil(cols).max(1);
 
     let grid = LayoutGrid::new()
         .rows(rows)
@@ -36,7 +36,7 @@ pub fn visualize_behaviors_grid(behaviors: &[Vec<f32>]) {
     plot.show();
 }
 
-fn add_to_subplot(robot: &Vec<f32>, plot: &mut Plot, subplot_index: usize, name: &str) {
+fn add_to_subplot(robot: &[f32], plot: &mut Plot, subplot_index: usize, name: &str) {
     let trajectory = robot::simulate_movement(robot);
     if robot.is_empty() {
         return;

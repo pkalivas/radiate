@@ -129,11 +129,11 @@ mod test {
 
         metrics.upsert("accuracy", 0.8);
         metrics.upsert("loss", 1.2);
-        assert_eq!(bool_of(expr.evaluate(&metrics).unwrap()), true);
+        assert!(bool_of(expr.evaluate(&metrics).unwrap()));
 
         metrics.upsert("accuracy", 2.0);
         metrics.upsert("loss", 1.2);
-        assert_eq!(bool_of(expr.evaluate(&metrics).unwrap()), false);
+        assert!(!bool_of(expr.evaluate(&metrics).unwrap()));
     }
 
     #[test]
@@ -349,8 +349,8 @@ mod test {
 
     #[test]
     fn lit_evaluates_to_its_value() {
-        let mut e = Expr::lit(3.14f32);
-        assert!((f32_val(e.trigger().unwrap()) - 3.14).abs() < 1e-6);
+        let mut e = Expr::lit(2.5f32);
+        assert!((f32_val(e.trigger().unwrap()) - 2.5).abs() < 1e-6);
     }
 
     #[test]

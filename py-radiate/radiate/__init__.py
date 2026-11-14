@@ -61,12 +61,10 @@ from .engine import (
     Front,
     FrontValue,
     Generation,
-    LogParam,
     Metric,
     MetricCollector,
     MetricSet,
     Tag,
-    UiParam,
     on_checkpoint_saved,
     on_epoch,
     on_event,
@@ -98,6 +96,7 @@ from .operators.fitness import Fitness, fitness, novelty
 from .operators.limit import Limit
 from .operators.selector import Select
 from .random import RandomProvider as random
+from .utils import DataSet
 
 MIN = "min"
 MAX = "max"
@@ -115,6 +114,8 @@ __all__ = [
     "_NUMPY_AVAILABLE",
     # Random
     "random",
+    # Utils
+    "DataSet",
     # Expressions
     "Expr",
     # Codecs
@@ -189,9 +190,7 @@ __all__ = [
     "Metric",
     "Tag",
     # Options
-    "LogParam",
     "CheckpointParam",
-    "UiParam",
     # Dtype
     "UInt8",
     "UInt16",

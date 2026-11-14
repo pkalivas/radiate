@@ -1,5 +1,5 @@
 use crate::{
-    PyAnyObject, PyNoveltySearch, Wrap,
+    PyAnyObject, PyEngineInput, PyNoveltySearch, Wrap,
     bindings::datatype::{FloatMatrixPair, extract_regression_pair},
 };
 use pyo3::{
@@ -11,8 +11,8 @@ use radiate::{DataType, Loss, RadiateResult, Regression};
 #[derive(Clone)]
 pub enum PyFitnessInner {
     Custom(PyAnyObject, bool),
-    Regression32(Regression<f32>, bool),
-    Regression64(Regression<f64>, bool),
+    Regression32(Regression<f32>),
+    Regression64(Regression<f64>),
     NoveltySearch(PyAnyObject, bool),
 }
 
@@ -20,7 +20,7 @@ impl PyFitnessInner {
     pub fn get_fitness_fn(&self) -> RadiateResult<Py<PyAny>> {
         match self {
             PyFitnessInner::Custom(func, _) => Ok(func.clone().inner),
-            PyFitnessInner::Regression32(_, _) | PyFitnessInner::Regression64(_, _) => {
+            PyFitnessInner::Regression32(_) | PyFitnessInner::Regression64(_) => {
                 Err(radiate::error::radiate_err!(
                     "Regression fitness functions do not have a direct PyAny representation"
                 ))
@@ -32,8 +32,8 @@ impl PyFitnessInner {
     pub fn is_batch(&self) -> bool {
         match self {
             PyFitnessInner::Custom(_, is_batch) => *is_batch,
-            PyFitnessInner::Regression32(_, is_batch) => *is_batch,
-            PyFitnessInner::Regression64(_, is_batch) => *is_batch,
+            PyFitnessInner::Regression32(_) => false,
+            PyFitnessInner::Regression64(_) => false,
             PyFitnessInner::NoveltySearch(_, is_batch) => *is_batch,
         }
     }
@@ -61,7 +61,6 @@ impl PyFitnessFn {
         features: &Bound<'py, PyAny>,
         targets: &Bound<'py, PyAny>,
         loss: String,
-        is_batch: bool,
     ) -> PyResult<Self> {
         let loss = match loss.to_lowercase().as_str() {
             crate::constants::loss_functions::MSE_LOSS => Loss::MSE,
@@ -78,10 +77,10 @@ impl PyFitnessFn {
 
         let inner = match extract_regression_pair(py, dtype.0, features, targets)? {
             FloatMatrixPair::F32 { features, targets } => {
-                PyFitnessInner::Regression32(Regression::new((features, targets), loss), is_batch)
+                PyFitnessInner::Regression32(Regression::new((features, targets), loss))
             }
             FloatMatrixPair::F64 { features, targets } => {
-                PyFitnessInner::Regression64(Regression::new((features, targets), loss), is_batch)
+                PyFitnessInner::Regression64(Regression::new((features, targets), loss))
             }
         };
 
@@ -92,20 +91,20 @@ impl PyFitnessFn {
     pub fn novelty_search<'py>(
         py: Python<'py>,
         descriptor: Py<PyAny>,
-        distance_fn: String,
+        distance_fn: PyEngineInput,
         k: usize,
         threshold: f32,
         archive_size: usize,
         is_batch: bool,
-    ) -> Self {
-        let search = PyNoveltySearch::new(descriptor, k, threshold, archive_size, distance_fn);
-        PyFitnessFn {
+    ) -> PyResult<Self> {
+        let search = PyNoveltySearch::new(descriptor, k, threshold, archive_size, distance_fn)?;
+        Ok(PyFitnessFn {
             inner: PyFitnessInner::NoveltySearch(
                 PyAnyObject {
-                    inner: search.into_py_any(py).unwrap(),
+                    inner: search.into_py_any(py)?,
                 },
                 is_batch,
             ),
-        }
+        })
     }
 }

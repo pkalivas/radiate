@@ -1,8 +1,9 @@
 use super::TreeIterator;
-use crate::{Arity, Factory, NodeStore, NodeType, Tree, node::Node};
+use crate::{Arity, Eval, NodeType, eval::STACK_INPUTS, node::Node};
 use radiate_core::genome::{Gene, Valid};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use smallvec::SmallVec;
 use std::{fmt::Debug, hash::Hash};
 
 /// A node in a tree structure that represents a single element with optional children.
@@ -93,8 +94,8 @@ use std::{fmt::Debug, hash::Hash};
 /// use radiate_gp::{Op, Eval, TreeNode};
 ///
 /// let tree = TreeNode::new(Op::add())
-///     .attach(TreeNode::new(Op::constant(2.0)))
-///     .attach(TreeNode::new(Op::constant(3.0)));
+///     .attach(TreeNode::new(Op::constant("two", 2.0)))
+///     .attach(TreeNode::new(Op::constant("three", 3.0)));
 ///
 /// let result = tree.eval(&[]); // Evaluates to 5.0
 /// ```
@@ -172,6 +173,19 @@ impl<T> TreeNode<T> {
 
     pub fn take_children(&mut self) -> Option<Vec<TreeNode<T>>> {
         self.children.take()
+    }
+
+    pub fn arity_matches_children(&self) -> bool {
+        match self.arity() {
+            Arity::Zero => return self.children.is_none(),
+            Arity::Exact(n) => {
+                if self.children.is_none() || self.children.as_ref().unwrap().len() != n {
+                    return false;
+                }
+            }
+            Arity::Any => {}
+        }
+        true
     }
 
     #[inline]
@@ -303,14 +317,8 @@ where
 impl<T> Valid for TreeNode<T> {
     fn is_valid(&self) -> bool {
         for node in self.iter_breadth_first() {
-            match node.arity() {
-                Arity::Zero => return node.children.is_none(),
-                Arity::Exact(n) => {
-                    if node.children.is_none() || node.children.as_ref().unwrap().len() != n {
-                        return false;
-                    }
-                }
-                Arity::Any => {}
+            if !node.arity_matches_children() {
+                return false;
             }
         }
 
@@ -318,12 +326,23 @@ impl<T> Valid for TreeNode<T> {
     }
 }
 
-impl<T> Factory<(usize, Option<NodeStore<T>>), Option<TreeNode<T>>> for TreeNode<T>
+impl<T, V> Eval<[V], V> for TreeNode<T>
 where
-    T: Clone + Default,
+    T: Eval<[V], V>,
+    V: Clone,
 {
-    fn new_instance(&self, (index, store): (usize, Option<NodeStore<T>>)) -> Option<TreeNode<T>> {
-        store.and_then(|store| Tree::with_depth(index, store).take_root())
+    #[inline]
+    fn eval(&self, input: &[V]) -> V {
+        if let Some(children) = self.children() {
+            let inputs = children
+                .iter()
+                .map(|child| child.eval(input))
+                .collect::<SmallVec<[V; STACK_INPUTS]>>();
+
+            return self.value().eval(&inputs);
+        }
+
+        self.value().eval(input)
     }
 }
 
@@ -553,13 +572,13 @@ mod tests {
     #[test]
     fn test_node_evaluation() {
         // Test simple arithmetic expression: (1 + 2) * 3
-        let node = TreeNode::new(Op::mul())
+        let node = TreeNode::<Op<f32>>::new(Op::mul())
             .attach(
                 TreeNode::new(Op::add())
-                    .attach(TreeNode::new(Op::constant(1.0)))
-                    .attach(TreeNode::new(Op::constant(2.0))),
+                    .attach(TreeNode::new(Op::one()))
+                    .attach(TreeNode::new(Op::two())),
             )
-            .attach(TreeNode::new(Op::constant(3.0)));
+            .attach(TreeNode::new(Op::three()));
 
         let result = node.eval(&[]);
         assert_eq!(result, 9.0);
@@ -569,9 +588,9 @@ mod tests {
             .attach(
                 TreeNode::new(Op::add())
                     .attach(TreeNode::new(Op::var(0)))
-                    .attach(TreeNode::new(Op::constant(2.0))),
+                    .attach(TreeNode::new(Op::two())),
             )
-            .attach(TreeNode::new(Op::constant(3.0)));
+            .attach(TreeNode::new(Op::three()));
 
         assert_eq!(node.eval(&[1.0]), 9.0);
         assert_eq!(node.eval(&[2.0]), 12.0);

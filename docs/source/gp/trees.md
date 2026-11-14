@@ -63,14 +63,21 @@ g(x) = (2 / 3) - (2 - x)
 
 Then a multi-rooted tree would be necessary, with one root for `f(x)` and another for `g(x)`.
 
-### Default Ops
+### Ops
 
-Most of the params for the `TreeCodec` have sensible defaults in an attempt to make it as easy as possible to get started. So technically,
-you don't need to specify the ops, but in all likelihood you'll want to specify the ops to your specific use case. The defaults are as follows: 
+The codec builds its trees from the ops you give it for each node role:
 
-* Root: when left unspecified, the root samples from the **Vertex** options below
-* Vertex: `Op.add()`, `Op.sub()`, `Op.mul()`, `Op.div()`, `Op.sin()`, `Op.cos()`, `Op.tanh()`, `Op.relu()`, `Op.linear()`
-* Leaf: `Op.var(0)` - (first variable)
+* **Leaf**: the terminals (inputs and constants).
+* **Vertex**: the internal nodes. These must be provided, there are no default ops.
+* **Root**: optional. When left unspecified, the root samples from the vertex options.
+
+=== ":fontawesome-brands-python: Python"
+
+    One `Op.var(i)` per input is always added to the leaves, so `leaf=` only needs extra terminals such as constants or `Op.erc()`. `max_size` defaults to 30.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    The ops come from a [`NodeSet`](node.md#node-set) with `Root`, `Vertex` and `Leaf` entries. `max_size` defaults to 200.
 
 === ":fontawesome-brands-python: Python"
 
@@ -110,11 +117,35 @@ The `HoistMutator` is a mutation operator that randomly selects a subtree from t
     --8<-- "rust/gp/trees.rs:hoist_mutator"
     ```
 
+### SubtreeMutator
+
+> Inputs
+> 
+>   * `rate`: f32 - Mutation rate (0.0 to 1.0)
+>   * `max_depth`: int - Maximum depth of the newly grown subtree (default 2)
+
+- **Purpose**: Replaces a random subtree with a newly grown one.
+
+The `SubtreeMutator` is the classic Koza-style subtree mutation. It picks a random non-root node, grows a fresh random subtree of up to `max_depth` levels from the tree's ops, and puts it in that node's place. If the result breaks the tree's `max_size`, the change is rolled back. It is often the most effective tree mutator for symbolic regression.
+
+=== ":fontawesome-brands-python: Python"
+
+    ```python
+    --8<-- "python/gp/trees.py:subtree_mutator"
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    --8<-- "rust/gp/trees.rs:subtree_mutator"
+    ```
+
 ### TreeCrossover
 
 > Inputs
 > 
 >   * `rate`: f32 - Crossover rate (0.0 to 1.0)
+>   * `max_size`: int - Offspring with more nodes than this are rejected
 
 - **Purpose**: Swaps two subtrees between two trees.
 

@@ -50,7 +50,7 @@ where
 
         let mut count = 0;
         random_provider::with_rng(|rand| {
-            chrom_one.zip(chrom_two).for_each(|gene_one, gene_two| {
+            for (gene_one, gene_two) in chrom_one.iter_mut().zip(chrom_two.iter_mut()) {
                 if rand.bool(0.5) {
                     let u = rand.random::<f32>();
                     let beta = A::from(if u <= 0.5 {
@@ -77,7 +77,7 @@ where
 
                     count += 2;
                 }
-            });
+            }
         });
 
         count

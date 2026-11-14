@@ -1,5 +1,5 @@
 use crate::GeneticEngineBuilder;
-use radiate_core::{Chromosome, Evaluator, Executor, FitnessEvaluator, ThreadSync};
+use radiate_core::{Chromosome, Evaluator, Executor, ThreadSync};
 use std::sync::Arc;
 
 #[derive(Clone, Debug, Default)]
@@ -14,7 +14,7 @@ where
     C: Chromosome,
     T: Clone,
 {
-    pub evaluator: Arc<dyn Evaluator<C, T>>,
+    pub evaluator: Option<Arc<dyn Evaluator<C, T>>>,
     pub fitness_executor: ExecutorParams,
     pub species_executor: ExecutorParams,
     pub event_stream_executor: ExecutorParams,
@@ -27,7 +27,7 @@ where
     T: Clone + Send,
 {
     pub fn evaluator<V: Evaluator<C, T> + 'static>(mut self, evaluator: V) -> Self {
-        self.params.evaluation_params.evaluator = Arc::new(evaluator);
+        self.params.evaluation_params.evaluator = Some(Arc::new(evaluator));
         self
     }
 
@@ -53,7 +53,7 @@ where
         };
 
         self.params.evaluation_params = EvaluationParams {
-            evaluator: Arc::new(FitnessEvaluator::new(Arc::clone(&executor))),
+            evaluator: self.params.evaluation_params.evaluator.clone(),
             fitness_executor: param.clone(),
             species_executor: param.clone(),
             event_stream_executor: param,

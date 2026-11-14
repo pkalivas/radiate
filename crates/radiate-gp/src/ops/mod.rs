@@ -8,40 +8,18 @@ pub mod primitives;
 mod serde;
 
 use radiate_utils::Float;
-use std::cell::RefCell;
 
-pub use math::{activation_ops, all_ops, math_ops};
+pub use bool::bool_ops;
+pub use math::{activation_ops, all_ops, arithmetic_ops};
 pub use mutator::OperationMutator;
 pub use operation::*;
 pub use param::Param;
 
-pub trait OpFloat: Float + Send + Sync {
-    const MAX_VALUE: Self;
-    const LOG_EPS: Self;
+pub mod op_names {
+    /// Primitive operation names
+    pub const CONSTANT: &str = "constant";
+    pub const VAR: &str = "var";
 
-    fn with_loss_buffer<R>(f: impl FnOnce(&mut Vec<Self>) -> R) -> R;
-}
-
-macro_rules! impl_op_float {
-    ($t:ty, $max:expr, $log_eps:expr) => {
-        impl OpFloat for $t {
-            const MAX_VALUE: Self = $max;
-            const LOG_EPS: Self = $log_eps;
-
-            fn with_loss_buffer<R>(f: impl FnOnce(&mut Vec<Self>) -> R) -> R {
-                thread_local! {
-                    static BUFFER: RefCell<Vec<$t>> = const { RefCell::new(Vec::new()) };
-                }
-                BUFFER.with(|cell| f(&mut cell.borrow_mut()))
-            }
-        }
-    };
-}
-
-impl_op_float!(f32, 1e10_f32, 1e-7_f32);
-impl_op_float!(f64, 1e10_f64, 1e-7_f64);
-
-pub(crate) mod op_names {
     /// Mathematical operation names
     pub const ADD: &str = "add";
     pub const SUB: &str = "sub";
@@ -68,7 +46,6 @@ pub(crate) mod op_names {
     pub const SWISH: &str = "swish";
     pub const ELU: &str = "elu";
     pub const LEAKY_RELU: &str = "l_relu";
-    pub const LINEAR: &str = "linear";
     pub const RELU: &str = "relu";
     pub const SIGMOID: &str = "sigmoid";
     pub const TANH: &str = "tanh";
@@ -79,19 +56,17 @@ pub(crate) mod op_names {
     pub const RECIPROCAL: &str = "reciprocal";
     pub const GAUSSIAN: &str = "gaussian";
     pub const WEIGHT: &str = "w";
-    pub const WEIGHT2: &str = "w2";
+    pub const DOT: &str = "dot";
+    pub const ERC: &str = "erc";
 
     /// Boolean operation names
     pub const AND: &str = "and";
     pub const OR: &str = "or";
     pub const NOT: &str = "not";
     pub const XOR: &str = "xor";
-    pub const EQ: &str = "eq";
-    pub const NE: &str = "ne";
     pub const GT: &str = "gt";
     pub const GE: &str = "ge";
     pub const LT: &str = "lt";
-    pub const LE: &str = "le";
     pub const IF_ELSE: &str = "if_else";
     pub const AND_THEN: &str = "and_then";
     pub const OR_ELSE: &str = "or_else";
@@ -99,5 +74,4 @@ pub(crate) mod op_names {
     pub const NOR: &str = "nor";
     pub const XNOR: &str = "xnor";
     pub const IMPLIES: &str = "implies";
-    pub const IFF: &str = "iff";
 }

@@ -52,7 +52,7 @@ where
         let alpha = F::from(self.alpha).unwrap();
 
         random_provider::with_rng(|rand| {
-            chrom_one.zip(chrom_two).for_each(|gene_one, gene_two| {
+            for (gene_one, gene_two) in chrom_one.iter_mut().zip(chrom_two.iter_mut()) {
                 if rand.bool(ctx.rate()) {
                     let allele_one = *gene_one.allele();
                     let allele_two = *gene_two.allele();
@@ -66,7 +66,7 @@ where
 
                     cross_count += 1;
                 }
-            });
+            }
         });
 
         cross_count

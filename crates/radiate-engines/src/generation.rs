@@ -195,25 +195,6 @@ where
     }
 }
 
-impl<C, T> Default for Generation<C, T>
-where
-    C: Chromosome + Default,
-    T: Default,
-{
-    fn default() -> Self {
-        Generation {
-            ecosystem: Arc::new(Ecosystem::default()),
-            value: T::default(),
-            index: 0,
-            metrics: Arc::new(MetricSet::default()),
-            score: Score::default(),
-            objective: Objective::default(),
-            front: None,
-            exprs: None,
-        }
-    }
-}
-
 impl<C, T> FromIterator<Generation<C, T>> for Front<Phenotype<C>>
 where
     C: Chromosome + Clone,

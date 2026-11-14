@@ -70,13 +70,13 @@ impl FlappySwarm {
 }
 
 impl BatchFitnessFunction<Graph<Op<f32>>, f32> for FlappySwarm {
-    fn evaluate(&self, graphs: Vec<Graph<Op<f32>>>) -> Vec<f32> {
+    fn evaluate(&self, graphs: &[Graph<Op<f32>>]) -> Vec<f32> {
         let generation = self.generation.fetch_add(1, Ordering::Relaxed);
         let mut world = World::new(graphs.len(), generation as u64 + 1);
 
         let mut stateful_graphs = graphs
             .into_iter()
-            .map(|g| StatefulGraph::from(g))
+            .map(|g| StatefulGraph::from(g.clone()))
             .collect::<Vec<_>>();
 
         loop {

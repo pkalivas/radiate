@@ -61,7 +61,7 @@ def fit_batch(x: list[list[float]]) -> list[float]:
 
 
 # Create the genetic engine with batch fitness function.
-# Just wrap your fitness function in 'rd.BatchFitness'
+# Mark it as a batch function with 'rd.Fitness.custom(..., is_batch=True)'
 engine = (
     rd.Engine.float(N_GENES, init_range=(-RANGE, RANGE))
     .fitness(rd.Fitness.custom(fit_batch, is_batch=True))
@@ -98,13 +98,33 @@ def fit_batch_decorated(x: list[list[float]]) -> list[float]:
 
 
 # Create the genetic engine with batch fitness function.
-# NOTE: We no longer need to wrap 'fitness_fn' in 'rd.BatchFitness'
+# NOTE: the decorator already marks the function as batch, so no wrapping is needed
 engine = (
     rd.Engine.float(N_GENES, init_range=(-RANGE, RANGE))
     .fitness(fit_batch_decorated)
     .minimizing()
 )
 # --8<-- [end:batch_fitness_decorator]
+
+# --8<-- [start:batch_fitness_numpy]
+import numpy as np
+
+import radiate as rd
+
+
+# With `use_numpy=True`, a batch function receives one array of shape (batch_size, n_genes)
+# and can return one array of shape (batch_size,) - or (batch_size, n_objectives).
+@rd.fitness(batch=True)
+def sphere(x: np.ndarray) -> np.ndarray:
+    return (x**2).sum(axis=1)
+
+
+engine = (
+    rd.Engine.float(5, init_range=(-5.0, 5.0), use_numpy=True)
+    .fitness(sphere)
+    .minimizing()
+)
+# --8<-- [end:batch_fitness_numpy]
 
 # --8<-- [start:novelty_search]
 import radiate as rd

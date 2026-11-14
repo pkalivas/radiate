@@ -17,6 +17,7 @@ pub mod stats;
 use radiate_error::Result;
 pub use radiate_error::{RadiateError, ensure, radiate_err};
 pub use radiate_expr::*;
+pub use radiate_utils::{DataSet, Matrix};
 
 pub use alter::{AlterContext, Alterer, Crossover, Mutate};
 pub use codecs::{
@@ -28,11 +29,11 @@ pub use distance::{
 };
 pub use domain::env_vars;
 pub use domain::*;
-pub use engine::{Engine, EngineExt, EngineState, EngineStream};
+pub use engine::{Engine, EngineState, EngineStream};
 pub use evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
 pub use executor::Executor;
 pub use fitness::{
-    BatchFitnessFunction, BatchedFn, CompositeFitnessFn, FitnessFunction, Novelty, NoveltySearch,
+    BatchFitnessFunction, CompositeFitnessFn, FitnessFunction, Novelty, NoveltySearch,
 };
 pub use genome::*;
 pub use objectives::{Front, Objective, Optimize, Score, pareto};
@@ -52,6 +53,8 @@ pub mod prelude {
     pub use radiate_error::*;
     pub use radiate_expr::*;
 
+    pub use super::DataSet;
+    pub use super::Matrix;
     pub use super::alter::{AlterContext, Alterer, Crossover, Mutate};
     pub use super::codecs::{
         BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PackedBitCodec,
@@ -62,11 +65,11 @@ pub mod prelude {
     };
     pub use super::domain::env_vars;
     pub use super::domain::random_provider;
-    pub use super::engine::{Engine, EngineExt, EngineState, EngineStream};
+    pub use super::engine::{Engine, EngineState, EngineStream};
     pub use super::evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
     pub use super::executor::Executor;
     pub use super::fitness::{
-        BatchFitnessFunction, BatchedFn, CompositeFitnessFn, FitnessFunction, NoveltySearch,
+        BatchFitnessFunction, CompositeFitnessFn, FitnessFunction, Novelty, NoveltySearch,
     };
     pub use super::genome::{
         BitChromosome, BitGene, BitWordGene, BoundedGene, CharChromosome, CharGene, Chromosome,

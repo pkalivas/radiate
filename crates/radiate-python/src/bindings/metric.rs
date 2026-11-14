@@ -9,7 +9,7 @@ use radiate_error::radiate_py_bail;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-#[pyclass(skip_from_py_object)]
+#[pyclass]
 #[derive(Clone, Deserialize, Serialize)]
 #[repr(transparent)]
 pub struct PyMetricSet {
@@ -186,7 +186,7 @@ impl From<MetricSet> for PyMetricSet {
     }
 }
 
-#[pyclass(skip_from_py_object)]
+#[pyclass]
 #[derive(Clone)]
 #[repr(transparent)]
 pub struct PyMetric {

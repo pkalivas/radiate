@@ -1,9 +1,11 @@
 use super::node::GraphNodeId;
 use crate::{
+    NodeIdx,
     collections::{Graph, GraphNode, NodeType},
-    graphs::{node::InnovationId, transaction::TransactionResult},
+    graphs::node::InnovationId,
     node::Node,
 };
+use radiate_core::{error::RadiateResult, radiate_err};
 use std::collections::BTreeMap;
 
 /// An enum representing either a single [GraphNode] or a collection of [GraphNode]'s
@@ -33,31 +35,6 @@ impl<'a, T> From<&'a [GraphNode<T>]> for AggregateInsertValue<'a, T> {
 impl<'a, T> From<&'a Vec<GraphNode<T>>> for AggregateInsertValue<'a, T> {
     fn from(value: &'a Vec<GraphNode<T>>) -> AggregateInsertValue<'a, T> {
         AggregateInsertValue::Many(value.as_slice())
-    }
-}
-
-pub struct AggregateBuildResult<T> {
-    graph: Graph<T>,
-    transaction_result: TransactionResult<T>,
-}
-
-impl<T: Clone> AggregateBuildResult<T> {
-    pub fn into_graph(self) -> Graph<T> {
-        let mut graph = self.graph;
-
-        if self.transaction_result.is_invalid() {
-            self.transaction_result.replay(&mut graph);
-        }
-
-        graph
-    }
-
-    pub fn unwrap(self) -> Graph<T> {
-        if !self.transaction_result.is_valid() {
-            panic!("Cannot unwrap an invalid graph build result.");
-        }
-
-        self.graph
     }
 }
 
@@ -118,6 +95,7 @@ pub struct GraphAggregate<'a, T> {
     nodes: BTreeMap<&'a GraphNodeId, &'a GraphNode<T>>,
     node_order: BTreeMap<usize, &'a GraphNodeId>,
     relationships: Vec<Relationship<'a>>,
+    error: Option<String>,
 }
 
 impl<'a, T: Clone> GraphAggregate<'a, T> {
@@ -126,14 +104,15 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
             nodes: BTreeMap::new(),
             node_order: BTreeMap::new(),
             relationships: Vec::new(),
+            error: None,
         }
     }
 
-    pub fn build(&self) -> Graph<T> {
-        self.try_build().into_graph()
-    }
+    pub fn build(&self) -> RadiateResult<Graph<T>> {
+        if let Some(error) = &self.error {
+            return Err(radiate_err!(Builder: error));
+        }
 
-    pub fn try_build(&self) -> AggregateBuildResult<T> {
         let mut id_index_map = BTreeMap::new();
         let mut graph = Graph::<T>::default();
 
@@ -141,6 +120,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
             for (index, node_id) in self.node_order.values().enumerate() {
                 let node = self.nodes[node_id];
 
+                let index = NodeIdx::from_usize(index);
                 trans.push((index, node.node_type(), node.value().clone(), node.arity()));
                 trans.set_innovation(index, Some(InnovationId::new()));
                 id_index_map.insert(*node_id, index);
@@ -156,10 +136,14 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
             trans.try_commit()
         });
 
-        AggregateBuildResult {
-            graph,
-            transaction_result: result,
+        if result.is_invalid() {
+            return Err(radiate_err!(
+                Builder: "Graph is invalid after connecting {} nodes",
+                self.node_order.len()
+            ));
         }
+
+        Ok(graph)
     }
 
     pub fn cycle<F>(mut self, one: F) -> Self
@@ -223,7 +207,10 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
             .map(|c| c.into())
             .collect::<Vec<AggregateInsertValue<'a, T>>>();
 
-        let mut previous = &inserts[0];
+        let Some(mut previous) = inserts.first() else {
+            conn.error = Some("layer - Expected at least one group".to_string());
+            return conn;
+        };
 
         for collection in inserts.iter() {
             conn.attach(collection);
@@ -238,26 +225,35 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     }
 
     fn connect(&mut self, connection: ConnectionCommand<'a, T>) {
-        if let ConnectionCommand::OneToOne(one, two) = &connection {
-            let one_ids = self.attach(one);
-            let two_ids = self.attach(two);
+        if self.error.is_some() {
+            return;
+        }
 
-            self.one_to_one_connect(&one_ids, &two_ids);
-        } else if let ConnectionCommand::OneToMany(one, two) = &connection {
-            let one_ids = self.attach(one);
-            let two_ids = self.attach(two);
+        match &connection {
+            ConnectionCommand::OneToOne(one, two) => {
+                let one_ids = self.attach(one);
+                let two_ids = self.attach(two);
 
-            self.one_to_many_connect(&one_ids, &two_ids);
-        } else if let ConnectionCommand::ManyToOne(one, two) = &connection {
-            let one_ids = self.attach(one);
-            let two_ids = self.attach(two);
+                self.one_to_one_connect(&one_ids, &two_ids);
+            }
+            ConnectionCommand::OneToMany(one, two) => {
+                let one_ids = self.attach(one);
+                let two_ids = self.attach(two);
 
-            self.many_to_one_connect(&one_ids, &two_ids);
-        } else if let ConnectionCommand::AllToAll(one, two) = &connection {
-            let one_ids = self.attach(one);
-            let two_ids = self.attach(two);
+                self.one_to_many_connect(&one_ids, &two_ids);
+            }
+            ConnectionCommand::ManyToOne(one, two) => {
+                let one_ids = self.attach(one);
+                let two_ids = self.attach(two);
 
-            self.all_to_all_connect(&one_ids, &two_ids);
+                self.many_to_one_connect(&one_ids, &two_ids);
+            }
+            ConnectionCommand::AllToAll(one, two) => {
+                let one_ids = self.attach(one);
+                let two_ids = self.attach(two);
+
+                self.all_to_all_connect(&one_ids, &two_ids);
+            }
         }
     }
 
@@ -306,7 +302,12 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         let two_inputs = self.get_inputs(two);
 
         if one_outputs.len() != two_inputs.len() {
-            panic!("OneToOne - Both groups must be of the same size.");
+            self.error = Some(format!(
+                "one_to_one - Both groups must be the same size, got {} outputs and {} inputs",
+                one_outputs.len(),
+                two_inputs.len()
+            ));
+            return;
         }
 
         for (one, two) in one_outputs.into_iter().zip(two_inputs) {
@@ -321,8 +322,13 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         let one_outputs = self.get_outputs(one);
         let two_inputs = self.get_inputs(two);
 
-        if !two_inputs.len().is_multiple_of(one_outputs.len()) {
-            panic!("OneToMany - TwoGroup inputs must be a multiple of OneGroup outputs.");
+        if one_outputs.is_empty() || !two_inputs.len().is_multiple_of(one_outputs.len()) {
+            self.error = Some(format!(
+                "one_to_many - Inputs must be a non-zero multiple of outputs, got {} outputs and {} inputs",
+                one_outputs.len(),
+                two_inputs.len()
+            ));
+            return;
         }
 
         for targets in two_inputs.chunks(one_outputs.len()) {
@@ -339,8 +345,13 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         let one_outputs = self.get_outputs(one);
         let two_inputs = self.get_inputs(two);
 
-        if !one_outputs.len().is_multiple_of(two_inputs.len()) {
-            panic!("ManyToOne - OneGroup outputs must be a multiple of TwoGroup inputs.");
+        if two_inputs.is_empty() || !one_outputs.len().is_multiple_of(two_inputs.len()) {
+            self.error = Some(format!(
+                "many_to_one - Outputs must be a non-zero multiple of inputs, got {} outputs and {} inputs",
+                one_outputs.len(),
+                two_inputs.len()
+            ));
+            return;
         }
 
         for sources in one_outputs.chunks(two_inputs.len()) {
@@ -450,15 +461,9 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
 
 #[cfg(test)]
 mod tests {
+    use crate::collections::NodeIdx;
     use crate::{GraphAggregate, GraphNode, Node, NodeType};
     use radiate_core::Valid;
-    use std::panic;
-
-    fn should_panic<F: FnOnce() -> () + panic::UnwindSafe>(f: F) {
-        let does_panic = panic::catch_unwind(f).is_err();
-        assert!(does_panic, "Expected function to panic, but it did not.");
-    }
-
     #[test]
     fn test_graph_aggregate_one_to_one() {
         let graph = GraphAggregate::new()
@@ -472,7 +477,8 @@ mod tests {
                     GraphNode::new(1, NodeType::Output, 1),
                 ],
             )
-            .build();
+            .build()
+            .unwrap();
 
         let input_nodes = graph.inputs();
         let output_nodes = graph.outputs();
@@ -515,7 +521,8 @@ mod tests {
                     GraphNode::new(5, NodeType::Output, 3),
                 ],
             )
-            .build();
+            .build()
+            .unwrap();
 
         let input_one = &graph[0];
         let input_two = &graph[1];
@@ -559,7 +566,8 @@ mod tests {
                     GraphNode::new(123, NodeType::Output, 1),
                 ],
             )
-            .build();
+            .build()
+            .unwrap();
 
         let input_one = &graph[0];
         let input_two = &graph[1];
@@ -609,7 +617,8 @@ mod tests {
                     GraphNode::new(4, NodeType::Output, 2),
                 ],
             )
-            .build();
+            .build()
+            .unwrap();
 
         let input_one = &graph[0];
         let input_two = &graph[1];
@@ -648,7 +657,8 @@ mod tests {
                 GraphNode::new(0, NodeType::Vertex, 0),
                 GraphNode::new(1, NodeType::Vertex, 1),
             ])
-            .build();
+            .build()
+            .unwrap();
 
         let node_one = &graph[0];
         let node_two = &graph[1];
@@ -683,7 +693,8 @@ mod tests {
                     GraphNode::new(5, NodeType::Output, "SIX"),
                 ],
             ])
-            .build();
+            .build()
+            .unwrap();
 
         assert!(graph.is_valid());
 
@@ -705,58 +716,61 @@ mod tests {
     }
 
     #[test]
-    fn one_to_one_size_mismatch_panics() {
-        should_panic(|| {
-            let _ = GraphAggregate::new()
-                .one_to_one(
-                    &vec![GraphNode::new(0, NodeType::Input, 0)],
-                    &vec![
-                        GraphNode::new(1, NodeType::Output, 0),
-                        GraphNode::new(2, NodeType::Output, 1),
-                    ],
-                )
-                .build();
-        });
+    fn one_to_one_size_mismatch_errors() {
+        let result = GraphAggregate::new()
+            .one_to_one(
+                &vec![GraphNode::new(0, NodeType::Input, 0)],
+                &vec![
+                    GraphNode::new(1, NodeType::Output, 0),
+                    GraphNode::new(2, NodeType::Output, 1),
+                ],
+            )
+            .build();
+
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("one_to_one"), "{err}");
     }
 
     #[test]
-    fn one_to_many_invalid_multiple_panics() {
-        should_panic(|| {
-            let _ = GraphAggregate::new()
-                .one_to_many(
-                    &vec![
-                        GraphNode::new(0, NodeType::Input, 0),
-                        GraphNode::new(1, NodeType::Input, 1),
-                    ],
-                    &vec![
-                        // 3 is NOT a multiple of 2 -> should panic
-                        GraphNode::new(2, NodeType::Output, 0),
-                        GraphNode::new(3, NodeType::Output, 1),
-                        GraphNode::new(4, NodeType::Output, 2),
-                    ],
-                )
-                .build();
-        });
+    fn one_to_many_invalid_multiple_errors() {
+        let result = GraphAggregate::new()
+            .one_to_many(
+                &vec![
+                    GraphNode::new(0, NodeType::Input, 0),
+                    GraphNode::new(1, NodeType::Input, 1),
+                ],
+                &vec![
+                    // 3 is NOT a multiple of 2 -> should panic
+                    GraphNode::new(2, NodeType::Output, 0),
+                    GraphNode::new(3, NodeType::Output, 1),
+                    GraphNode::new(4, NodeType::Output, 2),
+                ],
+            )
+            .build();
+
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("one_to_many"), "{err}");
     }
 
     #[test]
-    fn many_to_one_invalid_multiple_panics() {
-        should_panic(|| {
-            let _ = GraphAggregate::new()
-                .many_to_one(
-                    &vec![
-                        GraphNode::new(0, NodeType::Input, 0),
-                        GraphNode::new(1, NodeType::Input, 1),
-                        GraphNode::new(2, NodeType::Input, 2),
-                    ],
-                    &vec![
-                        // 3 (one) % 2 (two) != 0 -> panic
-                        GraphNode::new(10, NodeType::Output, 0),
-                        GraphNode::new(11, NodeType::Output, 1),
-                    ],
-                )
-                .build();
-        });
+    fn many_to_one_invalid_multiple_errors() {
+        let result = GraphAggregate::new()
+            .many_to_one(
+                &vec![
+                    GraphNode::new(0, NodeType::Input, 0),
+                    GraphNode::new(1, NodeType::Input, 1),
+                    GraphNode::new(2, NodeType::Input, 2),
+                ],
+                &vec![
+                    // 3 (one) % 2 (two) != 0 -> panic
+                    GraphNode::new(10, NodeType::Output, 0),
+                    GraphNode::new(11, NodeType::Output, 1),
+                ],
+            )
+            .build();
+
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("many_to_one"), "{err}");
     }
 
     #[test]
@@ -774,7 +788,8 @@ mod tests {
             .insert(&inputs) // first insert
             .insert(&inputs) // duplicate insert
             .one_to_one(&inputs, &outputs)
-            .build();
+            .build()
+            .unwrap();
 
         // Expect 4 nodes only
         assert_eq!(graph.len(), 4);
@@ -784,8 +799,8 @@ mod tests {
         let out1 = &graph[1].outgoing();
         assert_eq!(out0.len(), 1);
         assert_eq!(out1.len(), 1);
-        assert!(out0.contains(&2));
-        assert!(out1.contains(&3));
+        assert!(out0.contains(&NodeIdx::new(2)));
+        assert!(out1.contains(&NodeIdx::new(3)));
     }
 
     #[test]
@@ -801,9 +816,9 @@ mod tests {
         ];
 
         let g1 = GraphAggregate::new()
-            .insert(&inputs)
-            .insert(&outputs)
-            .build();
+            .one_to_one(&inputs, &outputs)
+            .build()
+            .unwrap();
 
         assert_eq!(g1[0].node_type(), NodeType::Input);
         assert_eq!(g1[1].node_type(), NodeType::Input);
@@ -827,13 +842,14 @@ mod tests {
                 ],
                 &outs,
             )
-            .build();
+            .build()
+            .unwrap();
 
         // Inputs 0..1 connect to 2..3
-        assert!(g[0].outgoing().contains(&2));
-        assert!(g[1].outgoing().contains(&3));
-        assert!(g[2].incoming().contains(&0));
-        assert!(g[3].incoming().contains(&1));
+        assert!(g[0].outgoing().contains(&NodeIdx::new(2)));
+        assert!(g[1].outgoing().contains(&NodeIdx::new(3)));
+        assert!(g[2].incoming().contains(&NodeIdx::new(0)));
+        assert!(g[3].incoming().contains(&NodeIdx::new(1)));
         assert!(g.is_valid());
     }
 
@@ -849,16 +865,19 @@ mod tests {
             GraphNode::new(4, NodeType::Output, 1),
         ];
 
-        let g = GraphAggregate::new().all_to_all(&ins, &outs).build();
+        let g = GraphAggregate::new()
+            .all_to_all(&ins, &outs)
+            .build()
+            .unwrap();
 
         // Each input connects to all outputs
-        for i in 0..ins.len() {
+        for i in 0..ins.len() as u32 {
             assert_eq!(g[i].outgoing().len(), outs.len());
         }
 
         // Each output receives from all inputs
-        for j in 0..outs.len() {
-            assert_eq!(g[ins.len() + j].incoming().len(), ins.len());
+        for j in 0..outs.len() as u32 {
+            assert_eq!(g[ins.len() as u32 + j].incoming().len(), ins.len());
         }
 
         assert!(g.is_valid());
@@ -872,11 +891,11 @@ mod tests {
             GraphNode::new(2, NodeType::Vertex, 2),
         ];
 
-        let g = GraphAggregate::new().cycle(&verts).build();
+        let g = GraphAggregate::new().cycle(&verts).build().unwrap();
 
-        for i in 0..verts.len() {
-            assert!(g[i].outgoing().contains(&i));
-            assert!(g[i].incoming().contains(&i));
+        for i in 0..verts.len() as u32 {
+            assert!(g[i].outgoing().contains(&NodeIdx::new(i)));
+            assert!(g[i].incoming().contains(&NodeIdx::new(i)));
             assert_eq!(g[i].outgoing().len(), 1);
             assert_eq!(g[i].incoming().len(), 1);
         }
@@ -899,19 +918,22 @@ mod tests {
             GraphNode::new(7, NodeType::Output, "o5"),
         ];
 
-        let g = GraphAggregate::new().one_to_many(&ins, &outs).build();
+        let g = GraphAggregate::new()
+            .one_to_many(&ins, &outs)
+            .build()
+            .unwrap();
 
         // Expect pairs: (0->2,1->3),(0->4,1->5),(0->6,1->7)
-        for (_, chunk_start) in (2..=6).step_by(2).enumerate() {
+        for chunk_start in (2..=6).step_by(2) {
             let i0 = 0;
             let i1 = 1;
             let o0 = chunk_start;
             let o1 = chunk_start + 1;
 
-            assert!(g[i0].outgoing().contains(&o0));
-            assert!(g[i1].outgoing().contains(&o1));
-            assert!(g[o0].incoming().contains(&i0));
-            assert!(g[o1].incoming().contains(&i1));
+            assert!(g[i0].outgoing().contains(&NodeIdx::new(o0)));
+            assert!(g[i1].outgoing().contains(&NodeIdx::new(o1)));
+            assert!(g[o0].incoming().contains(&NodeIdx::new(i0)));
+            assert!(g[o1].incoming().contains(&NodeIdx::new(i1)));
         }
         assert!(g.is_valid());
     }
@@ -932,15 +954,18 @@ mod tests {
             GraphNode::new(7, NodeType::Output, "o1"),
         ];
 
-        let g = GraphAggregate::new().many_to_one(&ins, &outs).build();
+        let g = GraphAggregate::new()
+            .many_to_one(&ins, &outs)
+            .build()
+            .unwrap();
 
         // Expect pairs of inputs mapping to both outputs by chunks of outs.len()
         // Chunks: [0,1] -> [6,7]; [2,3] -> [6,7]; [4,5] -> [6,7]
         for pair in &[(0, 1), (2, 3), (4, 5)] {
-            assert!(g[pair.0].outgoing().contains(&6));
-            assert!(g[pair.1].outgoing().contains(&7));
-            assert!(g[6].incoming().contains(&pair.0));
-            assert!(g[7].incoming().contains(&pair.1));
+            assert!(g[pair.0].outgoing().contains(&NodeIdx::new(6)));
+            assert!(g[pair.1].outgoing().contains(&NodeIdx::new(7)));
+            assert!(g[6].incoming().contains(&NodeIdx::new(pair.0)));
+            assert!(g[7].incoming().contains(&NodeIdx::new(pair.1)));
         }
         assert!(g.is_valid());
     }

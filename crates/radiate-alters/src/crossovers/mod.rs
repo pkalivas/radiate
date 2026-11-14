@@ -1,8 +1,10 @@
 pub mod blend;
+pub mod differential;
 pub mod edge_recombine;
 pub mod intermediate;
 pub mod mean;
 pub mod multipoint;
+pub mod order;
 pub mod pmx;
 pub mod shuffle;
 pub mod simulated_binary;
@@ -10,10 +12,12 @@ pub mod uniform;
 pub mod word;
 
 pub use blend::BlendCrossover;
+pub use differential::DifferentialCrossover;
 pub use edge_recombine::EdgeRecombinationCrossover;
 pub use intermediate::IntermediateCrossover;
 pub use mean::MeanCrossover;
 pub use multipoint::MultiPointCrossover;
+pub use order::OrderCrossover;
 pub use pmx::PMXCrossover;
 pub use shuffle::ShuffleCrossover;
 pub use simulated_binary::SimulatedBinaryCrossover;
