@@ -33,7 +33,7 @@ impl<T, D> NoveltySearch<T, D> {
         N: Novelty<T, D> + Send + Sync + 'static,
         M: Distance<D> + Send + Sync + 'static,
     {
-        NoveltySearch {
+        Self {
             behavior: Arc::new(behavior),
             archive: Arc::new(RwLock::new(WindowBuffer::with_capacity(
                 DEFAULT_ARCHIVE_SIZE,

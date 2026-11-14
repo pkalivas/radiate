@@ -1,4 +1,4 @@
-use radiate::*;
+use radiate::prelude::*;
 
 const MIN_SCORE: f32 = 0.00;
 const MAX_SECONDS: f64 = 5.0;
