@@ -7,7 +7,7 @@ The regression problem (fitness function) takes a set of inputs and outputs, and
 
 - **MSE** (mean squared error) — the default; averages the *squared* error, so large misses are penalized heavily. A solid general-purpose choice.
 - **MAE** (mean absolute error) — averages the *absolute* error; less sensitive to outliers than MSE.
-- **CrossEntropy** (`XEnt`) — averages `-target · ln(pred)` (predictions clamped just above 0); use it for probability / classification-style outputs.
+- **CrossEntropy** (`XEnt`) — for classification. The outputs are treated as logits, so you don't need a sigmoid or softmax on the output nodes. With several outputs (one-hot labels) it's softmax cross-entropy across a sample's outputs; with a single output (0/1 labels) it's sigmoid binary cross-entropy.
 - **Diff** — averages the raw *signed* difference (`target - pred`). The simplest option, but because over- and under-predictions cancel out it's rarely a good standalone target — handy for custom setups.
 
 Let's take a quick look at how we would put together a regression problem using a `graph`. A `tree` works exactly the same way — just swap the `GraphCodec` (or `rd.Engine.graph(...)`) for its tree equivalent.

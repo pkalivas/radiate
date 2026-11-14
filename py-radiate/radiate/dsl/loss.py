@@ -34,7 +34,8 @@ class MAE(LossType):
 
 
 class XEnt(LossType):
-    """Cross-Entropy loss function."""
+    """Cross-Entropy loss function. Outputs are treated as logits: softmax cross-entropy
+    across a sample's outputs, or sigmoid binary cross-entropy for a single output."""
 
 
 class Diff(LossType):

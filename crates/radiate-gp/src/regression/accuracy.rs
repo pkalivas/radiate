@@ -59,8 +59,13 @@ impl<'a, F: Float> Accuracy<'a, F> {
         for (input, target) in data_set.iter() {
             let output = eval.eval_mut(input);
 
-            for (&t, &p) in target.iter().zip(output.iter()) {
-                loss_sum = loss_sum + loss_fn.error(t, p);
+            if matches!(loss_fn, Loss::XEnt) {
+                let target = &target[..target.len().min(output.len())];
+                loss_sum = loss_sum + Loss::xent(target, |j| output[j]);
+            } else {
+                for (&t, &p) in target.iter().zip(output.iter()) {
+                    loss_sum = loss_sum + loss_fn.error(t, p);
+                }
             }
 
             if is_regression {
@@ -401,6 +406,7 @@ impl<T: Float> Eval<Vec<Tree<Op<T>>>, Option<AccuracyResult>> for Accuracy<'_, T
 #[cfg(test)]
 mod tests {
     use super::*;
+    use radiate_utils::Matrix;
 
     /// Replays fixed predictions in order and counts how many times it was evaluated.
     struct Replay {
@@ -494,5 +500,31 @@ mod tests {
             .calc(&mut eval);
 
         assert_eq!(result.accuracy(), 0.5);
+    }
+
+    #[test]
+    fn xent_loss_matches_fitness_path() {
+        let labels = [2, 0, 1].map(|c| one_hot(c, 3)).to_vec();
+        let preds = vec![
+            vec![1.0, 2.0, 3.0],
+            vec![0.5, -1.0, 2.0],
+            vec![-2.0, 4.0, 0.0],
+        ];
+        let data = DataSet::new(vec![vec![0.0]; 3], labels);
+
+        let columns = Matrix::from(
+            (0..3)
+                .map(|j| preds.iter().map(|p| p[j]).collect())
+                .collect::<Vec<Vec<f32>>>(),
+        );
+        let fitness = Loss::XEnt.calculate_columns(data.label_matrix(), &columns);
+
+        let mut eval = Replay { preds, calls: 0 };
+        let result = Accuracy::default()
+            .on(&data)
+            .loss(Loss::XEnt)
+            .calc(&mut eval);
+
+        assert!((result.loss() - fitness).abs() < 1e-6);
     }
 }
