@@ -263,7 +263,7 @@ mod tests {
         let phenotype = |trees: Vec<TreeNode<Op<f32>>>| {
             let chromosomes = trees
                 .into_iter()
-                .map(|tree| TreeChromosome::from(tree))
+                .map(TreeChromosome::from)
                 .collect::<Vec<_>>();
             Phenotype::from((chromosomes, 0))
         };

@@ -45,7 +45,7 @@ fn main() {
         );
 
     // And the result of evaluating this tree with an input of `1` would be:
-    let result = root.eval(&vec![1_f32]);
+    let result = root.eval(&[1_f32]);
     assert_eq!(result, 9.0);
     // --8<-- [end:build_tree]
 

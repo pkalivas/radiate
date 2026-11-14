@@ -432,10 +432,7 @@ mod tests {
 
         store.insert(
             NodeType::Edge,
-            bounded_values
-                .into_iter()
-                .map(|v| v.value().clone())
-                .collect(),
+            bounded_values.into_iter().map(|v| *v.value()).collect(),
         );
 
         store
@@ -616,7 +613,7 @@ mod tests {
         // Verify only new values exist
         let values: Vec<i32> = store
             .map_by_type(NodeType::Input, |values: &[NodeValue<i32>]| {
-                values.iter().map(|v| v.value().clone()).collect()
+                values.iter().map(|v| *v.value()).collect()
             })
             .unwrap();
 
@@ -663,10 +660,7 @@ mod tests {
 
         store.insert(
             NodeType::Vertex,
-            bounded_values
-                .into_iter()
-                .map(|v| v.value().clone())
-                .collect(),
+            bounded_values.into_iter().map(|v| *v.value()).collect(),
         );
 
         let serialized = serde_json::to_string(&store).unwrap();
@@ -705,10 +699,7 @@ mod tests {
 
         store.insert(
             NodeType::Vertex,
-            mixed_values
-                .into_iter()
-                .map(|v| v.value().clone())
-                .collect(),
+            mixed_values.into_iter().map(|v| *v.value()).collect(),
         );
 
         let serialized = serde_json::to_string(&store).unwrap();

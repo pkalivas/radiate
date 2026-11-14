@@ -1,3 +1,5 @@
+#![allow(clippy::useless_vec)]
+
 use radiate::prelude::*;
 use std::sync::Arc;
 

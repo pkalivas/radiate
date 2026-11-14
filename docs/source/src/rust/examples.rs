@@ -89,8 +89,8 @@ fn rastrigin() {
         ))
         .fitness_fn(move |genotype: Vec<f32>| {
             let mut value = A * N_GENES as f32;
-            for i in 0..N_GENES {
-                value += genotype[i].powi(2) - A * (2.0 * std::f32::consts::PI * genotype[i]).cos();
+            for x in &genotype {
+                value += x.powi(2) - A * (2.0 * std::f32::consts::PI * x).cos();
             }
 
             value
@@ -114,22 +114,21 @@ fn dtlz1() {
 
     fn dtlz_1(values: &[f32]) -> Vec<f32> {
         let mut g = 0.0;
-        for i in VARIABLES - K..VARIABLES {
-            g +=
-                (values[i] - 0.5).powi(2) - (20.0 * std::f32::consts::PI * (values[i] - 0.5)).cos();
+        for x in &values[VARIABLES - K..VARIABLES] {
+            g += (x - 0.5).powi(2) - (20.0 * std::f32::consts::PI * (x - 0.5)).cos();
         }
 
         g = 100.0 * (K as f32 + g);
 
         let mut f = vec![0.0; OBJECTIVES];
-        for i in 0..OBJECTIVES {
-            f[i] = 0.5 * (1.0 + g);
-            for j in 0..OBJECTIVES - 1 - i {
-                f[i] *= values[j];
+        for (i, fi) in f.iter_mut().enumerate() {
+            *fi = 0.5 * (1.0 + g);
+            for x in &values[..OBJECTIVES - 1 - i] {
+                *fi *= x;
             }
 
             if i != 0 {
-                f[i] *= 1.0 - values[OBJECTIVES - 1 - i];
+                *fi *= 1.0 - values[OBJECTIVES - 1 - i];
             }
         }
 

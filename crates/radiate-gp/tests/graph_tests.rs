@@ -22,7 +22,7 @@ mod tests {
 
         let graph: Graph<Op<f32>> = serde_json::from_str(&buf).expect("Failed to parse JSON");
 
-        let results = graph.eval(&vec![
+        let results = graph.eval(&[
             vec![0.0],
             vec![0.0],
             vec![0.0],
@@ -32,7 +32,7 @@ mod tests {
             vec![0.0],
         ]);
 
-        let expected = vec![
+        let expected = [
             vec![0.028369745],
             vec![0.04483124],
             vec![0.98304075],

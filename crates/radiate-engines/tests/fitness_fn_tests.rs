@@ -12,7 +12,7 @@ impl FunctionDiversityProblem {
         Self { codec, test_inputs }
     }
 
-    pub fn eval_raw(&self, weights: &Vec<f32>) -> f32 {
+    pub fn eval_raw(&self, weights: &[f32]) -> f32 {
         let fitness: f32 = self
             .test_inputs
             .iter()
@@ -160,8 +160,8 @@ mod fitness_fn_tests {
             .map(|ind| base_problem.decode(ind.genotype()))
             .min_by(|a, b| {
                 base_problem
-                    .eval_raw(&a)
-                    .partial_cmp(&base_problem.eval_raw(&b))
+                    .eval_raw(a)
+                    .partial_cmp(&base_problem.eval_raw(b))
                     .unwrap()
             })
             .unwrap();
@@ -172,8 +172,8 @@ mod fitness_fn_tests {
             .map(|ind| base_problem.decode(ind.genotype()))
             .min_by(|a, b| {
                 base_problem
-                    .eval_raw(&a)
-                    .partial_cmp(&base_problem.eval_raw(&b))
+                    .eval_raw(a)
+                    .partial_cmp(&base_problem.eval_raw(b))
                     .unwrap()
             })
             .unwrap();

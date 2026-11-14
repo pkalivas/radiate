@@ -338,9 +338,9 @@ mod tests {
     #[test]
     fn resolve_assigns_sequential_indices() {
         let mut set = MetricSet::new();
-        let a = set.resolve(&SmallStr::from_static("a"));
-        let b = set.resolve(&SmallStr::from_static("b"));
-        let c = set.resolve(&SmallStr::from_static("c"));
+        let a = set.resolve(SmallStr::from_static("a"));
+        let b = set.resolve(SmallStr::from_static("b"));
+        let c = set.resolve(SmallStr::from_static("c"));
         assert_eq!(a.as_usize(), 0);
         assert_eq!(b.as_usize(), 1);
         assert_eq!(c.as_usize(), 2);

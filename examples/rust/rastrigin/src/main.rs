@@ -17,8 +17,8 @@ fn main() {
         ))
         .fitness_fn(move |genotype: Vec<f32>| {
             let mut value = A * N_GENES as f32;
-            for i in 0..N_GENES {
-                value += genotype[i].powi(2) - A * (2.0 * std::f32::consts::PI * genotype[i]).cos();
+            for x in &genotype {
+                value += x.powi(2) - A * (2.0 * std::f32::consts::PI * x).cos();
             }
 
             value

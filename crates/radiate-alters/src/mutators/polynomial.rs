@@ -103,7 +103,7 @@ mod tests {
 
     fn sample(mutator: &PolynomialMutator, value: f64, min: f64, max: f64) -> Vec<f64> {
         (0..SAMPLES)
-            .map(|_| mutator.polynomial_mutation(value, min, max, mutator.eta as f64))
+            .map(|_| mutator.polynomial_mutation(value, min, max, mutator.eta))
             .collect()
     }
 

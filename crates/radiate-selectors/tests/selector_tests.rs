@@ -182,7 +182,7 @@ mod selector_tests {
             let selector = TournamentSelector::new(1);
             let objective = Objective::Single(Optimize::Maximize);
 
-            let mut counts = vec![0usize; POP_SIZE];
+            let mut counts = [0usize; POP_SIZE];
             for _ in 0..SAMPLES {
                 let chosen = selector.select(population.as_ref(), &objective, 1);
                 counts[chosen[0]] += 1;
@@ -218,7 +218,7 @@ mod selector_tests {
             let selector = BoltzmannSelector::new(50.0); // very peaked
             let objective = Objective::Single(Optimize::Maximize);
 
-            let mut counts = vec![0usize; POP_SIZE];
+            let mut counts = [0usize; POP_SIZE];
             for _ in 0..SAMPLES {
                 let chosen = selector.select(population.as_ref(), &objective, 1);
                 counts[chosen[0]] += 1;
@@ -248,7 +248,7 @@ mod selector_tests {
             let selector = BoltzmannSelector::new(2.0);
             let objective = Objective::Single(Optimize::Maximize);
 
-            let mut counts = vec![0f32; POP_SIZE];
+            let mut counts = [0f32; POP_SIZE];
             for _ in 0..SAMPLES {
                 let chosen = selector.select(population.as_ref(), &objective, 1);
                 counts[chosen[0]] += 1.0;
@@ -315,7 +315,7 @@ mod selector_tests {
             let selector = RouletteSelector::new();
             let objective = Objective::Single(Optimize::Maximize);
 
-            let mut counts = vec![0f32; POP_SIZE];
+            let mut counts = [0f32; POP_SIZE];
             for _ in 0..SAMPLES {
                 let chosen = selector.select(population.as_ref(), &objective, 1);
                 counts[chosen[0]] += 1.0;
@@ -406,7 +406,7 @@ mod selector_tests {
             let population = Population::new(phenotypes);
             let objective = Objective::Single(Optimize::Maximize);
 
-            let mut counts = vec![0usize; POP_SIZE];
+            let mut counts = [0usize; POP_SIZE];
             for _ in 0..SAMPLES {
                 let chosen = selector.select(population.as_ref(), &objective, 1);
                 counts[chosen[0]] += 1;
@@ -446,8 +446,14 @@ mod selector_tests {
         let medium = best_share(1.5);
         let max = best_share(2.0);
 
-        assert!((uniform - 0.10).abs() < 0.01, "pressure 1.0 best share {uniform}");
-        assert!((medium - 0.15).abs() < 0.01, "pressure 1.5 best share {medium}");
+        assert!(
+            (uniform - 0.10).abs() < 0.01,
+            "pressure 1.0 best share {uniform}"
+        );
+        assert!(
+            (medium - 0.15).abs() < 0.01,
+            "pressure 1.5 best share {medium}"
+        );
         assert!((max - 0.20).abs() < 0.01, "pressure 2.0 best share {max}");
     }
 

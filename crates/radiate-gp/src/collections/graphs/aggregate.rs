@@ -924,7 +924,7 @@ mod tests {
             .unwrap();
 
         // Expect pairs: (0->2,1->3),(0->4,1->5),(0->6,1->7)
-        for (_, chunk_start) in (2..=6).step_by(2).enumerate() {
+        for chunk_start in (2..=6).step_by(2) {
             let i0 = 0;
             let i1 = 1;
             let o0 = chunk_start;

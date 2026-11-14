@@ -40,7 +40,7 @@ fn main() {
         ])
         .fitness_fn(|phenotype: Vec<Vec<f32>>| {
             // ... your fitness calc ...
-            return 0;
+            0
         })
         // ... other parameters ...
         .build();

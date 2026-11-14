@@ -37,7 +37,11 @@ where
 /// Apply `alterer` once to a clone of `population` under `seed` and
 /// return the altered clone. `population` itself is left untouched so it
 /// can serve as the `before` side of a property assertion.
-pub fn run_alterer<C>(mut alterer: Alterer<C>, population: &Population<C>, seed: u64) -> Population<C>
+pub fn run_alterer<C>(
+    mut alterer: Alterer<C>,
+    population: &Population<C>,
+    seed: u64,
+) -> Population<C>
 where
     C: Chromosome + Clone,
 {
@@ -189,7 +193,10 @@ where
         .zip(after.iter())
         .any(|(b, a)| b.genotype() != a.genotype());
 
-    assert!(changed, "{label}: expected the alterer to change at least one genotype");
+    assert!(
+        changed,
+        "{label}: expected the alterer to change at least one genotype"
+    );
 }
 
 /// Two fresh alterers from `make`, run on the same population under the

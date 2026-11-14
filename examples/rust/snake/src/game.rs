@@ -15,7 +15,7 @@ pub struct SnakeGame {
 
 impl SnakeGame {
     pub fn new(width: i32, height: i32) -> Self {
-        let game = SnakeGame {
+        SnakeGame {
             width,
             height,
             snake: vec![(width / 2, height / 2)],
@@ -25,9 +25,7 @@ impl SnakeGame {
             score: 0,
             steps: 0,
             game_over: false,
-        };
-
-        game
+        }
     }
 
     pub fn get_state(&self) -> [f32; INPUT_SIZE] {

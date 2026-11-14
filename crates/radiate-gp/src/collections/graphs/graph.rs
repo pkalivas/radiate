@@ -850,12 +850,12 @@ mod test {
         ];
 
         let op_graph = Graph::directed(2, 2, values).unwrap();
-        let eval_one = op_graph.eval(&vec![vec![0.5, 1.5]]);
+        let eval_one = op_graph.eval(&[vec![0.5, 1.5]]);
 
         let serialized_op = serde_json::to_string(&op_graph).unwrap();
         let deserialized_op: Graph<Op<f32>> = serde_json::from_str(&serialized_op).unwrap();
 
-        let deserialized_eval = deserialized_op.eval(&vec![vec![0.5, 1.5]]);
+        let deserialized_eval = deserialized_op.eval(&[vec![0.5, 1.5]]);
 
         assert_eq!(eval_one, deserialized_eval);
         assert_eq!(op_graph, deserialized_op);
@@ -878,9 +878,9 @@ mod test {
             .attach(idx_two, idx_three)
             .attach(idx_three, idx_four);
 
-        let eval_to_six_one = graph.eval(&vec![vec![1_f32]]);
-        let eval_to_seven_one = graph.eval(&vec![vec![2_f32]]);
-        let eval_to_eight_one = graph.eval(&vec![vec![3_f32]]);
+        let eval_to_six_one = graph.eval(&[vec![1_f32]]);
+        let eval_to_seven_one = graph.eval(&[vec![2_f32]]);
+        let eval_to_eight_one = graph.eval(&[vec![3_f32]]);
 
         assert_eq!(eval_to_six_one, &[&[6_f32]]);
         assert_eq!(eval_to_seven_one, &[&[7_f32]]);
@@ -892,9 +892,9 @@ mod test {
 
         assert_eq!(graph, deserialized);
 
-        let eval_to_six_two = deserialized.eval(&vec![vec![1_f32]]);
-        let eval_to_seven_two = deserialized.eval(&vec![vec![2_f32]]);
-        let eval_to_eight_two = deserialized.eval(&vec![vec![3_f32]]);
+        let eval_to_six_two = deserialized.eval(&[vec![1_f32]]);
+        let eval_to_seven_two = deserialized.eval(&[vec![2_f32]]);
+        let eval_to_eight_two = deserialized.eval(&[vec![3_f32]]);
 
         assert_eq!(eval_to_six_two, &[&[6_f32]]);
         assert_eq!(eval_to_seven_two, &[&[7_f32]]);

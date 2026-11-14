@@ -181,7 +181,7 @@ mod tests {
         let expr = Expr::select("one")
             .rolling(10)
             .mean()
-            .div(10 as f32)
+            .div(10_f32)
             .clamp(1.0_f32, 5.0_f32);
 
         fn print(expr: &Expr, depth: usize) {

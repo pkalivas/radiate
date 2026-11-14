@@ -105,7 +105,7 @@ mod engine_tests {
                     // Realistically, with an engine configured like this one is, we'd expect anywhere from 50-70ish
                     // individuals per batch here.
                     assert!(
-                        phenotypes.len() > 0,
+                        !phenotypes.is_empty(),
                         "Batch should have more than one phenotype"
                     );
                     phenotypes
@@ -221,8 +221,8 @@ mod engine_tests {
         let last_index2 = Arc::clone(&last_index);
 
         let handle = thread::spawn(move || {
-            let mut runtime = engine.iter().limit(1000);
-            while let Some(epoch) = runtime.next() {
+            let runtime = engine.iter().limit(1000);
+            for epoch in runtime {
                 last_index2.store(epoch.index(), Ordering::SeqCst);
             }
         });
@@ -273,7 +273,7 @@ mod engine_tests {
                 .map(|x| 2.0 * x + 1.0)
                 .collect::<Vec<f32>>();
 
-            fn fitness(coeffs: &Vec<f32>, inputs: &[f32], targets: &[f32]) -> f32 {
+            fn fitness(coeffs: &[f32], inputs: &[f32], targets: &[f32]) -> f32 {
                 inputs
                     .iter()
                     .zip(targets.iter())

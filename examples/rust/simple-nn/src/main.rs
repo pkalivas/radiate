@@ -80,8 +80,8 @@ impl NeuralNet {
             let mut new_output = Vec::new();
             for i in 0..layer_width {
                 let mut sum = 0_f64;
-                for j in 0..layer_height {
-                    sum += layer[j][i] * output[j];
+                for (row, out) in layer.iter().zip(&output).take(layer_height) {
+                    sum += row[i] * out;
                 }
 
                 // Sigmoid activation
@@ -128,7 +128,7 @@ impl Codec<FloatChromosome<f64>, NeuralNet> for NeuralNetCodec {
             layers.push(
                 chromosome
                     .as_slice()
-                    .chunks(self.shapes[i].1 as usize)
+                    .chunks(self.shapes[i].1)
                     .map(|chunk| {
                         chunk
                             .iter()

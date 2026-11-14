@@ -34,7 +34,7 @@ const SCORE_TERMINAL: f32 = 400.0;
 const EARLY_DEATH_PENALTY: f32 = -120.0;
 const MIN_SURVIVAL_STEPS: usize = 50;
 
-const FOOD_POSITIONS: LazyLock<[(i32, i32); 1000]> = LazyLock::new(|| {
+static FOOD_POSITIONS: LazyLock<[(i32, i32); 1000]> = LazyLock::new(|| {
     let mut positions = [(0, 0); 1000];
     let mut idx = 0;
 
@@ -86,9 +86,7 @@ fn run_graph_engine() -> RadiateResult<()> {
             OperationMutator::new(0.04, 0.05),
             GraphMutator::new(0.01, 0.01)
         ))
-        .fitness_fn(|g: Graph<Op<f32>>| {
-            snake_fitness(&mut &mut SnakeAI::StateFull(&mut g.compile()))
-        })
+        .fitness_fn(|g: Graph<Op<f32>>| snake_fitness(&mut SnakeAI::StateFull(&mut g.compile())))
         .build();
 
     engine

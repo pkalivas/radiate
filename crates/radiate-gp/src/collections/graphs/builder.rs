@@ -551,9 +551,7 @@ mod tests {
                 assert_eq!(node.value(), &Op::sigmoid());
             } else if node.node_type() == NodeType::Vertex {
                 assert_eq!(node.arity(), Arity::Any);
-                assert!(
-                    vec![Op::sigmoid(), Op::tanh(), Op::mul(), Op::add()].contains(&node.value())
-                );
+                assert!([Op::sigmoid(), Op::tanh(), Op::mul(), Op::add()].contains(node.value()));
             } else if node.node_type() == NodeType::Edge {
                 assert_eq!(node.arity(), Arity::Exact(1));
                 assert_eq!(node.incoming().iter().count(), 1);
@@ -589,9 +587,7 @@ mod tests {
                 assert_eq!(node.value(), &Op::sigmoid());
             } else if node.node_type() == NodeType::Vertex {
                 assert_eq!(node.arity(), Arity::Any);
-                assert!(
-                    vec![Op::sigmoid(), Op::tanh(), Op::mul(), Op::add()].contains(&node.value())
-                );
+                assert!([Op::sigmoid(), Op::tanh(), Op::mul(), Op::add()].contains(node.value()));
             } else if node.node_type() == NodeType::Edge {
                 assert_eq!(node.arity(), Arity::Exact(1));
                 assert_eq!(node.incoming().iter().count(), 1);

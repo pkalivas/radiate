@@ -4,9 +4,11 @@ const NUM_STEPS: usize = 100;
 
 #[allow(dead_code)]
 pub fn batch_behavior_descriptors(patterns: &[Vec<f32>]) -> Vec<Vec<f32>> {
-    patterns.iter().map(|p| behavior_descriptor(p)).collect()
+    patterns.iter().map(behavior_descriptor).collect()
 }
 
+// `NoveltySearch` passes `&Vec<f32>`, so a slice signature won't satisfy its `Fn(&T)` bound.
+#[allow(clippy::ptr_arg)]
 pub fn behavior_descriptor(pattern: &Vec<f32>) -> Vec<f32> {
     let trajectory = simulate_movement(pattern);
     if trajectory.is_empty() {
@@ -77,7 +79,7 @@ pub fn simulate_movement(movement_pattern: &[f32]) -> Vec<(f32, f32)> {
     let mut x = 0.0_f32;
     let mut y = 0.0_f32;
 
-    let step_size = movement_pattern.get(0).copied().unwrap_or(1.0);
+    let step_size = movement_pattern.first().copied().unwrap_or(1.0);
     let angle_change = movement_pattern.get(1).copied().unwrap_or(0.1);
     let direction_bias = movement_pattern.get(2).copied().unwrap_or(0.0);
     let noise_level = movement_pattern.get(3).copied().unwrap_or(0.1);

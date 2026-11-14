@@ -301,7 +301,7 @@ mod test {
                 Op::Const(_, _) => assert_eq!(*node.arity(), 0, "Constant should have arity 0"),
                 Op::Fn(name, arity, _) if *name == "sigmoid" => {
                     assert!(
-                        vec![0, 1, 2].contains(&**arity),
+                        [0, 1, 2].contains(&**arity),
                         "Unary operator should have arity 0 or 1 or 2"
                     )
                 }

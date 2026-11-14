@@ -175,7 +175,7 @@ mod tests {
         assert_eq!(result, 42);
 
         let batch: Vec<Box<dyn FnOnce() -> i32 + Send>> =
-            vec![Box::new(|| 1 * 2), Box::new(|| 2 * 2), Box::new(|| 3 * 2)];
+            vec![Box::new(|| 2), Box::new(|| 2 * 2), Box::new(|| 3 * 2)];
         let results = executor.execute_batch(batch);
         assert_eq!(results, vec![2, 4, 6]);
     }
@@ -186,7 +186,7 @@ mod tests {
         let result = executor.execute(|| 42);
 
         let batch: Vec<Box<dyn FnOnce() -> i32 + Send>> =
-            vec![Box::new(|| 1 * 2), Box::new(|| 2 * 2), Box::new(|| 3 * 2)];
+            vec![Box::new(|| 2), Box::new(|| 2 * 2), Box::new(|| 3 * 2)];
         let results = executor.execute_batch(batch);
 
         assert_eq!(executor.num_workers(), 4);

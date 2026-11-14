@@ -43,7 +43,7 @@ fn main() -> RadiateResult<()> {
 fn display(data: &DataSet<f32>, result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     Accuracy::default()
         .named("Regression Graph")
-        .on(&data)
+        .on(data)
         .loss(Loss::MSE)
         .eval(result.value())
         .inspect(|acc| {

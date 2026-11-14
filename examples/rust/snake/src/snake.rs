@@ -12,7 +12,7 @@ impl<'a> SnakeAI<'a> {
     pub fn predict(&mut self, state: &[f32; INPUT_SIZE]) -> usize {
         match self {
             SnakeAI::Graph(graph) => SnakeAI::predict_graph(graph, state),
-            SnakeAI::StateFull(graph) => SnakeAI::predict_stateful(*graph, state),
+            SnakeAI::StateFull(graph) => SnakeAI::predict_stateful(graph, state),
             SnakeAI::NeuralNet(net) => SnakeAI::predict_neural_net(net, state),
         }
     }
@@ -73,8 +73,8 @@ impl<'a> SnakeAI<'a> {
             let mut new_output = Vec::new();
             for i in 0..layer_width {
                 let mut sum = 0_f32;
-                for j in 0..layer_height {
-                    sum += layer[j][i] * output[j];
+                for (row, out) in layer.iter().zip(&output).take(layer_height) {
+                    sum += row[i] * out;
                 }
 
                 // Sigmoid activation
