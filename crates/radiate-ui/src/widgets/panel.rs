@@ -49,10 +49,10 @@ impl<W: Widget> Panel<W> {
     //     self
     // }
 
-    // pub fn titled_bottom(mut self, title: impl Into<Line<'static>>) -> Self {
-    //     self.title_bottom = Some(title.into());
-    //     self
-    // }
+    pub fn titled_bottom(mut self, title: impl Into<Line<'static>>) -> Self {
+        self.title_bottom = Some(title.into());
+        self
+    }
 
     // pub fn title_top_right(mut self, title: impl Into<Line<'static>>) -> Self {
     //     let line = title.into();

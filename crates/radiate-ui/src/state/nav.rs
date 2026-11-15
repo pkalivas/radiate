@@ -83,7 +83,7 @@ pub struct NavState {
     pub dashboard_tab: DashboardTab,
     pub focus: Pane,
     pub search: SearchState,
-    chart_tabs: [MetricChartType; 7],
+    chart_tabs: [MetricChartType; 8],
 }
 
 impl NavState {
@@ -235,6 +235,7 @@ impl Default for NavState {
                 MetricChartType::Mean,
                 MetricChartType::Mean,
                 MetricChartType::BoxWhisker,
+                MetricChartType::Mean,
                 MetricChartType::Mean,
                 MetricChartType::Mean,
                 MetricChartType::Mean,

@@ -420,7 +420,11 @@ impl<F: Float> IntoIterator for FloatChromosome<F> {
 
 impl<F: Float> Debug for FloatChromosome<F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.genes)
+        for gene in &self.genes {
+            writeln!(f, "{:?} ", gene)?;
+        }
+
+        Ok(())
     }
 }
 

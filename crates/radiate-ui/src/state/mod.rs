@@ -1,5 +1,6 @@
 pub mod chart;
 pub mod evo;
+pub mod inspect;
 pub mod nav;
 pub mod run;
 pub mod tables;
@@ -8,17 +9,19 @@ use radiate_engines::{Chromosome, Metric, Phenotype};
 
 pub use chart::MetricChartType;
 pub use evo::EvoState;
+pub use inspect::InspectState;
 pub use nav::{NavState, Pane, UiMode};
 pub use run::RunState;
 pub use tables::{AppTableState, TableStates};
 
-use crate::state::{UiMode::Dashboard, nav::DashboardTab};
+use crate::state::nav::DashboardTab;
 
 pub struct AppState<C: Chromosome> {
     pub run: RunState,
     pub nav: NavState,
     pub evo: EvoState<C>,
     pub tables: TableStates,
+    pub inspect: InspectState,
 }
 
 impl<C: Chromosome> AppState<C> {
@@ -80,6 +83,22 @@ impl<C: Chromosome> AppState<C> {
             .and_then(|eco| eco.get_phenotype(index))
     }
 
+    pub fn selected_chromosome_count(&self) -> usize {
+        self.get_selected_phenotype()
+            .map(|p| p.genotype().len())
+            .unwrap_or(0)
+    }
+
+    pub fn next_chromosome(&mut self) {
+        let count = self.selected_chromosome_count();
+        self.inspect.next_chromosome(count);
+    }
+
+    pub fn previous_chromosome(&mut self) {
+        let count = self.selected_chromosome_count();
+        self.inspect.previous_chromosome(count);
+    }
+
     pub fn metric_matches_search(&self, metric: &Metric) -> bool {
         self.nav.metric_matches_search(metric)
     }
@@ -129,6 +148,7 @@ impl<C: Chromosome> Default for AppState<C> {
             nav: NavState::default(),
             evo: EvoState::default(),
             tables: TableStates::default(),
+            inspect: InspectState::default(),
         }
     }
 }

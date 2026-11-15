@@ -536,7 +536,7 @@ where
             executor: config.species_executor(),
             objective: config.objective(),
             distances: Vec::new(),
-            assignments: Arc::new(Mutex::new(Vec::new())),
+            assignments: Arc::default(),
         };
 
         Some(Box::new(species_step))

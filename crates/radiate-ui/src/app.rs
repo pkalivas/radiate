@@ -1,4 +1,4 @@
-use crate::state::{AppState, RunState, UiMode};
+use crate::state::{AppState, RunState, UiMode, nav::DashboardTab};
 use crate::widgets::{AppWidget, HelpPanelWidget, LayoutNode, MetricModalWidget, ModalWidget};
 use color_eyre::Result;
 use crossbeam::channel;
@@ -228,8 +228,19 @@ where
                 .nav
                 .previous_tab(self.state.evo.has_species(), self.state.evo.is_multi()),
 
+            KeyCode::Tab if self.state.nav.dashboard_tab == DashboardTab::Population => {
+                self.state.next_chromosome()
+            }
+            KeyCode::BackTab if self.state.nav.dashboard_tab == DashboardTab::Population => {
+                self.state.previous_chromosome()
+            }
             KeyCode::Tab => self.state.next_chart_view(),
             KeyCode::BackTab => self.state.prev_chart_view(),
+
+            KeyCode::Char('J') => self.state.inspect.scroll_by(1),
+            KeyCode::Char('K') => self.state.inspect.scroll_by(-1),
+            KeyCode::Char('D') => self.state.inspect.scroll_page(1),
+            KeyCode::Char('U') => self.state.inspect.scroll_page(-1),
 
             KeyCode::Char('p') => {
                 let paused = self.control.toggle_pause();
