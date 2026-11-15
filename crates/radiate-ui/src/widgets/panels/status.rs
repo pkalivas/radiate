@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::state::{AppState, EvoState};
 use crate::widgets::panels::MetricLineChartWidget;
 use crate::widgets::{AppWidget, FnWidget, MetricDetailPanelWidget, Panel, TabComponent};
@@ -15,7 +17,7 @@ impl EngineStatusPanelWidget {
     }
 }
 
-impl<C: Chromosome> AppWidget<C> for EngineStatusPanelWidget {
+impl<C: Chromosome + Debug> AppWidget<C> for EngineStatusPanelWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let metrics = &state.evo.metrics;
         let elapsed = metrics
@@ -88,7 +90,7 @@ impl<C: Chromosome> AppWidget<C> for EngineStatusPanelWidget {
 
 pub struct MetricModalWidget;
 
-impl<C: Chromosome> AppWidget<C> for MetricModalWidget {
+impl<C: Chromosome + Debug> AppWidget<C> for MetricModalWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let index = state.chart_view_index();
         let tab_labels = state

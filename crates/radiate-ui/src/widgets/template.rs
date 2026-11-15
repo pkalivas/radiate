@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::{
     state::{AppState, MetricChartType},
     widgets::{
@@ -5,7 +7,10 @@ use crate::{
         FrontEventLogWidget, ImprovementLogWidget, MetricDetailPanelWidget, MetricTableWidget,
         Panel, ParetoPagingWidget, SearchBarWidget, TabComponent,
         components::{SpeciesPieChartComponent, SpeciesSparklineComponent, TimePieChartComponent},
-        panels::{MetricLineChartWidget, tables::SpeciesTableWidget},
+        panels::{
+            DebugPanel, MetricLineChartWidget,
+            tables::{PopulationTableWidget, SpeciesTableWidget},
+        },
     },
 };
 use radiate_engines::{Chromosome, Objective, metric_names};
@@ -113,7 +118,7 @@ impl<C: Chromosome> LayoutNode<C> {
     }
 }
 
-impl<C: Chromosome> Default for LayoutNode<C> {
+impl<C: Chromosome + Debug> Default for LayoutNode<C> {
     fn default() -> Self {
         use LayoutNode::*;
 
@@ -209,6 +214,26 @@ impl<C: Chromosome> Default for LayoutNode<C> {
                                             Widget(|a, b, s| {
                                                 MetricDetailPanelWidget.render(a, b, s)
                                             }),
+                                        ],
+                                    },
+                                },
+                                TabNode {
+                                    title: "Population",
+                                    condition: |_| true,
+                                    content: Horizontal {
+                                        constraints: vec![
+                                            Constraint::Percentage(25),
+                                            Constraint::Fill(1), // Constraint::Percentage(25),
+                                                                 // Constraint::Percentage(25),
+                                        ],
+                                        children: vec![
+                                            Widget(|a, b, s| {
+                                                PopulationTableWidget::new().render(a, b, s)
+                                            }),
+                                            Widget(|a, b, s| DebugPanel::new().render(a, b, s)),
+                                            // Widget(|a, b, s| {
+                                            //     SpeciesPieChartComponent::new().render(a, b, s)
+                                            // }),
                                         ],
                                     },
                                 },

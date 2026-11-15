@@ -7,6 +7,7 @@ use ratatui::{
     style::{Color, Style},
     widgets::{RenderDirection, Sparkline, SparklineBar, Widget},
 };
+use std::fmt::Debug;
 
 pub struct SpeciesSparklineComponent;
 
@@ -16,7 +17,7 @@ impl SpeciesSparklineComponent {
     }
 }
 
-impl<C: Chromosome> AppWidget<C> for SpeciesSparklineComponent {
+impl<C: Chromosome + Debug> AppWidget<C> for SpeciesSparklineComponent {
     fn render(
         &self,
         area: ratatui::layout::Rect,

@@ -70,10 +70,6 @@ Beyond the built-in stopping conditions, Radiate lets you compose several of the
     --8<-- "rust/engine/runtime.rs:iterator_actions"
     ```
 
-    !!! note "`take()` isn't `std::iter::Iterator::take`"
-
-        `take(n)` is an alias for `until_generation(n)` — it appends a generation-count stop condition and hands back the same runtime, rather than wrapping it in a `std::iter::Take<Self>`. It reads the same in a `for` loop, but don't expect standard-library semantics if you go looking for them.
-
 ---
 
 ### Convenience `run()`

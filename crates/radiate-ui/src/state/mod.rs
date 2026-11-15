@@ -4,13 +4,15 @@ pub mod nav;
 pub mod run;
 pub mod tables;
 
-use radiate_engines::{Chromosome, Metric};
+use radiate_engines::{Chromosome, Metric, Phenotype};
 
 pub use chart::MetricChartType;
 pub use evo::EvoState;
 pub use nav::{NavState, Pane, UiMode};
 pub use run::RunState;
 pub use tables::{AppTableState, TableStates};
+
+use crate::state::{UiMode::Dashboard, nav::DashboardTab};
 
 pub struct AppState<C: Chromosome> {
     pub run: RunState,
@@ -64,6 +66,18 @@ impl<C: Chromosome> AppState<C> {
 
     pub fn get_selected_metric(&self) -> Option<&str> {
         self.tables.selected_metric(self.nav.dashboard_tab)
+    }
+
+    pub fn get_selected_phenotype(&self) -> Option<&Phenotype<C>> {
+        if self.nav.dashboard_tab != DashboardTab::Population {
+            return None;
+        }
+
+        let index = self.tables.population.selected_row;
+        self.evo
+            .ecosystem
+            .as_ref()
+            .and_then(|eco| eco.get_phenotype(index))
     }
 
     pub fn metric_matches_search(&self, metric: &Metric) -> bool {

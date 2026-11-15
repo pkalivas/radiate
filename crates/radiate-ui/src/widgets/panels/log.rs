@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use super::tables::{header_row, render_scrollable_table, striped_rows};
 use crate::widgets::AppWidget;
 use crate::{
@@ -21,7 +23,7 @@ pub struct ImprovementLogWidget;
 pub struct FrontEventLogWidget;
 pub struct EventLogWidget;
 
-impl<C: Chromosome> AppWidget<C> for ImprovementLogWidget {
+impl<C: Chromosome + Debug> AppWidget<C> for ImprovementLogWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let log = &state.evo.improvement_log;
 
@@ -83,7 +85,7 @@ impl<C: Chromosome> AppWidget<C> for ImprovementLogWidget {
     }
 }
 
-impl<C: Chromosome> AppWidget<C> for FrontEventLogWidget {
+impl<C: Chromosome + Debug> AppWidget<C> for FrontEventLogWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let log = &state.evo.front_event_log;
 
@@ -185,7 +187,7 @@ impl<C: Chromosome> AppWidget<C> for FrontEventLogWidget {
     }
 }
 
-impl<C: Chromosome> AppWidget<C> for EventLogWidget {
+impl<C: Chromosome + Debug> AppWidget<C> for EventLogWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let log = &state.evo.event_log;
 
@@ -234,7 +236,7 @@ impl<C: Chromosome> AppWidget<C> for EventLogWidget {
 
 pub struct DeltaBarChartWidget;
 
-impl<C: Chromosome> AppWidget<C> for DeltaBarChartWidget {
+impl<C: Chromosome + Debug> AppWidget<C> for DeltaBarChartWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let log = &state.evo.improvement_log;
         let entries = log.as_slice();

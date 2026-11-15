@@ -1,5 +1,5 @@
 use super::nav::DashboardTab;
-use radiate_engines::species::SpeciesId;
+use radiate_engines::{phenotype::PhenotypeId, species::SpeciesId};
 use radiate_utils::SmallStr;
 use ratatui::widgets::{ScrollbarState, TableState};
 
@@ -8,6 +8,7 @@ pub struct TableStates {
     pub stats: AppTableState<SmallStr>,
     pub dist: AppTableState<SmallStr>,
     pub species: AppTableState<SpeciesId>,
+    pub population: AppTableState<PhenotypeId>,
     pub log: AppTableState<usize>,
     pub events: AppTableState<usize>,
 }
@@ -18,6 +19,7 @@ impl TableStates {
             DashboardTab::Stats => Self::scroll_down(&mut self.stats),
             DashboardTab::Time => Self::scroll_down(&mut self.time),
             DashboardTab::Distribution => Self::scroll_down(&mut self.dist),
+            DashboardTab::Population => Self::scroll_down(&mut self.population),
             DashboardTab::Species => Self::scroll_down(&mut self.species),
             DashboardTab::Log | DashboardTab::Front => Self::scroll_down(&mut self.log),
             DashboardTab::Events => Self::scroll_down(&mut self.events),
@@ -29,6 +31,7 @@ impl TableStates {
             DashboardTab::Stats => Self::scroll_up(&mut self.stats),
             DashboardTab::Time => Self::scroll_up(&mut self.time),
             DashboardTab::Distribution => Self::scroll_up(&mut self.dist),
+            DashboardTab::Population => Self::scroll_up(&mut self.population),
             DashboardTab::Species => Self::scroll_up(&mut self.species),
             DashboardTab::Log | DashboardTab::Front => Self::scroll_up(&mut self.log),
             DashboardTab::Events => Self::scroll_up(&mut self.events),
@@ -40,6 +43,7 @@ impl TableStates {
             DashboardTab::Stats => Self::scroll_page_down(&mut self.stats),
             DashboardTab::Time => Self::scroll_page_down(&mut self.time),
             DashboardTab::Distribution => Self::scroll_page_down(&mut self.dist),
+            DashboardTab::Population => Self::scroll_page_down(&mut self.population),
             DashboardTab::Species => Self::scroll_page_down(&mut self.species),
             DashboardTab::Log | DashboardTab::Front => Self::scroll_page_down(&mut self.log),
             DashboardTab::Events => Self::scroll_page_down(&mut self.events),
@@ -51,6 +55,7 @@ impl TableStates {
             DashboardTab::Stats => Self::scroll_page_up(&mut self.stats),
             DashboardTab::Time => Self::scroll_page_up(&mut self.time),
             DashboardTab::Distribution => Self::scroll_page_up(&mut self.dist),
+            DashboardTab::Population => Self::scroll_page_up(&mut self.population),
             DashboardTab::Species => Self::scroll_page_up(&mut self.species),
             DashboardTab::Log | DashboardTab::Front => Self::scroll_page_up(&mut self.log),
             DashboardTab::Events => Self::scroll_page_up(&mut self.events),
@@ -62,6 +67,7 @@ impl TableStates {
             DashboardTab::Stats => Self::scroll_to(&mut self.stats, 0),
             DashboardTab::Time => Self::scroll_to(&mut self.time, 0),
             DashboardTab::Distribution => Self::scroll_to(&mut self.dist, 0),
+            DashboardTab::Population => Self::scroll_to(&mut self.population, 0),
             DashboardTab::Species => Self::scroll_to(&mut self.species, 0),
             DashboardTab::Log | DashboardTab::Front => Self::scroll_to(&mut self.log, 0),
             DashboardTab::Events => Self::scroll_to(&mut self.events, 0),
@@ -77,6 +83,10 @@ impl TableStates {
             DashboardTab::Time => {
                 let last = self.time.row_count.saturating_sub(1);
                 Self::scroll_to(&mut self.time, last);
+            }
+            DashboardTab::Population => {
+                let last = self.population.row_count.saturating_sub(1);
+                Self::scroll_to(&mut self.population, last);
             }
             DashboardTab::Distribution => {
                 let last = self.dist.row_count.saturating_sub(1);
@@ -102,7 +112,8 @@ impl TableStates {
             DashboardTab::Time => self.time.selected_value.as_deref(),
             DashboardTab::Stats => self.stats.selected_value.as_deref(),
             DashboardTab::Distribution => self.dist.selected_value.as_deref(),
-            DashboardTab::Species
+            DashboardTab::Population
+            | DashboardTab::Species
             | DashboardTab::Log
             | DashboardTab::Front
             | DashboardTab::Events => None,
@@ -180,6 +191,7 @@ impl Default for TableStates {
             stats: AppTableState::new(),
             dist: AppTableState::new(),
             species: AppTableState::new(),
+            population: AppTableState::new(),
             log: AppTableState::new(),
             events: AppTableState::new(),
         }

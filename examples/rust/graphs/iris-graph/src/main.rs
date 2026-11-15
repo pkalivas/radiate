@@ -27,12 +27,12 @@ fn main() -> RadiateResult<()> {
         Input => Op::vars(0..in_dim),
         Edge => [Op::identity(), Op::weight()],
         Vertex => vertices,
-        Output => Op::sigmoid()
+        Output => Op::sum()
     };
 
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(in_dim, out_dim, other)?)
-        .fitness_fn(Regression::new(train.clone(), Loss::MSE))
+        .fitness_fn(Regression::new(train.clone(), Loss::XEnt))
         .offspring_selector(TournamentSelector::new(4))
         .minimizing()
         .parallel()
@@ -64,13 +64,13 @@ fn display(
     let train_acc = Accuracy::default()
         .named("train")
         .on(train)
-        .loss(Loss::MSE)
+        .loss(Loss::XEnt)
         .eval(result.value());
 
     let test_acc = Accuracy::default()
         .named("test")
         .on(test)
-        .loss(Loss::MSE)
+        .loss(Loss::XEnt)
         .eval(result.value());
 
     println!("{:?}", result);

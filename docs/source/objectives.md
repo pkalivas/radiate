@@ -92,7 +92,7 @@ With multiple objectives there's rarely a single "best" solution — improving o
 
 ### Setting Up MO Problems
 
-Use `multi_objective()` with a list of optimization directions to configure multi-objective optimization. To bound how many solutions the engine keeps on the Pareto front, set the **front-size range** — `front_range(min, max)` in Python, `front_size(min..max)` in Rust. It defaults to `800..900`.
+To configure multi-objective optimization, give the engine one optimization direction per objective, in the same order your fitness function returns them. To bound how many solutions the engine keeps on the Pareto front, set the **front-size range** — `front_range(min, max)` in Python, `front_size(min..max)` in Rust. It defaults to `800..900`.
 
 === ":fontawesome-brands-python: Python"
 
@@ -108,9 +108,91 @@ Use `multi_objective()` with a list of optimization directions to configure mult
 
 ---
 
-### Pareto Front Management
+### The Pareto Front
 
-The **front-size range** controls how large the Pareto front is allowed to grow. When the front fills up (reaches the upper bound), the engine truncates it back down to the lower bound, dropping solutions by Pareto dominance and then crowding distance — so it keeps the most diverse, least-dominated set.
+For a multi-objective run, the Pareto front is the answer. It's the set of trade-offs the engine has found that no other solution beats on every objective. Unlike most libraries which use the population itself to represent the front, radiate keeps that set in a `Front` object, separate from the population.
+
+#### How it fits into the engine
+
+The front is an **archive** that sits beside the population. After each generation is evaluated, the engine offers that generation's **newborns** to the front. Nothing in the engine reads the front back: selection, including the NSGA-II and NSGA-III selectors, always works on the population. So the front is a pure output. It accumulates the best trade-offs seen over the *whole* run, including ones the population has since lost. This also allows radiate to keep a front that is of different size than the population itself.
+
+```mermaid
+flowchart LR
+    P[Population] --> E[Evaluate]
+    E --> F[Front step — offer newborns]
+    F --> A[(Pareto front archive)]
+    E --> S[Selection + alteration]
+    S --> P
+    A --> R[Your results]
+```
+
+See [Life of an epoch](engine/index.md#life-of-an-epoch) for where the front step sits in the full pipeline.
+
+#### How it's maintained
+
+Each newborn offered to the front goes through the same rules:
+
+1. **Rejected** if it duplicates an existing member, or if any existing member dominates it.
+2. **Accepted** otherwise, and every existing member it dominates is removed.
+3. If the front has grown past the top of the **front-size range**, it's cut back down to the bottom of the range. Every member is already non-dominated at that point, so the cut uses **crowding distance** alone: the most crowded members go first, which keeps the front as spread out as possible.
+
+The front-size range defaults to `800..900`. A wider gap between the bounds means truncation runs less often, at the cost of a larger front between cuts.
+
+#### Reading the front
+
+Every generation from a multi-objective run carries the front, so you can read it from the final result or from any generation you observe along the way. Each member is a scored individual: it has one score per objective and a genotype that your codec decodes back into your problem's representation.
+
+=== ":fontawesome-brands-python: Python"
+
+    ```python
+    --8<-- "python/objectives.py:front_reading"
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    --8<-- "rust/objectives.rs:front_reading"
+    ```
+
+#### Measuring the front
+
+The front comes with a few tools for judging the quality of the trade-offs it holds:
+
+| Method | What it tells you |
+|---|---|
+| Hypervolume | The volume of objective space the front dominates, measured from a reference point that is worse than every member on every objective. Higher is better. It's the standard single number for comparing fronts, as long as you use the same reference point. |
+| Entropy | How evenly the members are spread along the front. |
+| Crowding distance | How isolated each member is from its neighbors, one value per member. Boundary members get the largest values. |
+| Remove outliers | Drops the most isolated fraction of members, for example the top 2%. |
+
+=== ":fontawesome-brands-python: Python"
+
+    ```python
+    --8<-- "python/objectives.py:front_analysis"
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    --8<-- "rust/objectives.rs:front_analysis"
+    ```
+
+#### Front metrics
+
+The front step records its activity in the engine's [metrics](engine/metrics.md) every generation:
+
+| Metric | Meaning |
+|---|---|
+| `front.size` | Members currently on the front |
+| `front.additions` | Newborns accepted this generation |
+| `front.removals` | Members removed because a newborn dominated them |
+| `front.comparisons` | Dominance comparisons performed |
+| `front.filters` | Times the front was truncated back to its range |
+| `front.entropy` | The front's entropy. It's expensive to compute, so it's only updated every 10 generations. |
+
+!!! note "Snapshots copy the front"
+
+    Each `Generation` snapshot of a multi-objective run includes its own copy of the front, so with a large front, building a snapshot every generation adds up. The [runtime](engine/runtime.md) page covers which ways of running the engine build a snapshot every generation and which build one only at the end.
 
 ---
 

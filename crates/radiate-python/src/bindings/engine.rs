@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::{
     EngineHandle, EpochHandle, PyGeneration, bindings::handles::EngineIterHandle, match_variant,
 };
@@ -86,7 +88,7 @@ fn run_engine<C, T>(
     ui: bool,
 ) -> RadiateResult<Generation<C, T>>
 where
-    C: Chromosome + Clone + Serialize + 'static,
+    C: Chromosome + Debug + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,
     Generation<C, T>: Serialize + Into<EpochHandle>,
 {

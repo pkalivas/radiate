@@ -1,8 +1,8 @@
 use crate::state::{AppState, AppTableState, Pane};
 use crate::widgets::AppWidget;
-use radiate_engines::TagType;
 use radiate_engines::{Chromosome, MetricSet, Objective, Optimize, Species, metric_names};
 use radiate_engines::{Metric, stats::fmt_duration};
+use radiate_engines::{Phenotype, TagType};
 use ratatui::buffer::Buffer;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::StatefulWidget;
@@ -12,12 +12,16 @@ use ratatui::{
     style::{Color, Style},
     widgets::{Cell, Row, Table},
 };
-use std::iter::{once, repeat_n};
+use std::{
+    fmt::Debug,
+    iter::{once, repeat_n},
+};
 
 pub const STAT_HEADER_CELLS: [&str; 6] = ["Metric", "Last", "Min", "Max", "Mean", "N"];
 pub const TIME_HEADER_CELLS: [&str; 5] = ["Metric", "Total", "Mean", "Last", ""];
 pub const SPECIES_HEADER_CELLS: [&str; 7] = ["ID", "Age", "Size", "Stag", "Raw", "Adj.", "Δ"];
 pub const DIST_HEADER_CELLS: [&str; 7] = ["Metric", "Std Dev", "Min", "Max", "Mean", "Var", "N"];
+pub const POPULATION_HEADER_CELLS: [&str; 4] = ["ID", "Age", "Score", "Species"];
 
 // --- Metric table ---
 
@@ -105,7 +109,7 @@ impl MetricTableWidget {
     }
 }
 
-impl<C: Chromosome> AppWidget<C> for MetricTableWidget {
+impl<C: Chromosome + Debug> AppWidget<C> for MetricTableWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let items: Vec<_> = tagged_metrics(&state.evo.metrics, state, self.kind.tag())
             .into_iter()
@@ -162,7 +166,7 @@ impl SpeciesTableWidget {
     }
 }
 
-impl<C: Chromosome> AppWidget<C> for SpeciesTableWidget {
+impl<C: Chromosome + Debug> AppWidget<C> for SpeciesTableWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let items = match state.evo.get_species() {
             Some(species) => species,
@@ -198,6 +202,54 @@ impl<C: Chromosome> AppWidget<C> for SpeciesTableWidget {
             );
 
         render_scrollable_table(buf, area, table, &mut state.tables.species);
+    }
+}
+
+pub struct PopulationTableWidget;
+
+impl PopulationTableWidget {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl<C: Chromosome + Debug> AppWidget<C> for PopulationTableWidget {
+    fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
+        let items = match state.evo.get_population() {
+            Some(population) => population,
+            None => return,
+        };
+        let has_species = state.evo.has_species();
+
+        state
+            .tables
+            .population
+            .update_rows(items.as_ref(), |p| p.id());
+
+        let obj_index = state.evo.pareto.objective_index;
+        let generation = state.evo.index;
+        let border_style = crate::styles::panel_block(state.nav.is_pane_focused(Pane::List));
+
+        let rows = population_into_rows(obj_index, generation, has_species, items.as_ref());
+
+        let table = Table::default()
+            .block(border_style)
+            .header(header_row(&POPULATION_HEADER_CELLS))
+            .column_spacing(1)
+            .style(Color::White)
+            .rows(striped_rows(rows))
+            .row_highlight_style(Style::new().on_black().bold())
+            .column_highlight_style(Color::Gray)
+            .cell_highlight_style(Style::new().reversed().yellow())
+            .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
+            .highlight_symbol(Span::styled("▶ ", Style::default().fg(Color::LightGreen)))
+            .widths(
+                (0..POPULATION_HEADER_CELLS.len())
+                    .map(|_| Constraint::Fill(1))
+                    .collect::<Vec<_>>(),
+            );
+
+        render_scrollable_table(buf, area, table, &mut state.tables.population);
     }
 }
 
@@ -355,6 +407,32 @@ fn metrics_into_dist_rows<'a>(
             ])
         })
     })
+}
+
+fn population_into_rows<'a, C: Chromosome>(
+    obj_index: usize,
+    generation: usize,
+    has_species: bool,
+    population: &[Phenotype<C>],
+) -> Vec<Row<'a>> {
+    population
+        .iter()
+        .map(move |p| {
+            Row::new(vec![
+                Cell::from(format!("{}", p.id().as_ref())),
+                Cell::from(format!("{}", p.age(generation))),
+                Cell::from(format!(
+                    "{}",
+                    p.score().map(|score| score[obj_index]).unwrap_or(0.0)
+                )),
+                if has_species {
+                    Cell::from(format!("{}", p.species()))
+                } else {
+                    Cell::from("")
+                },
+            ])
+        })
+        .collect()
 }
 
 fn species_into_rows<'a, C: Chromosome>(

@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::chart::DistributionLineChart;
 use crate::state::{AppState, MetricChartType, Pane};
 use crate::styles;
@@ -40,7 +42,7 @@ impl MetricLineChartWidget {
     }
 }
 
-impl<C: Chromosome> AppWidget<C> for MetricLineChartWidget {
+impl<C: Chromosome + Debug> AppWidget<C> for MetricLineChartWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let current_metric_name = self
             .name
@@ -114,7 +116,7 @@ impl<C: Chromosome> AppWidget<C> for MetricLineChartWidget {
 
 pub struct MetricDetailPanelWidget;
 
-impl<C: Chromosome> AppWidget<C> for MetricDetailPanelWidget {
+impl<C: Chromosome + Debug> AppWidget<C> for MetricDetailPanelWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let current_metric_name = state.get_selected_metric().unwrap_or("");
         let metrics = &state.evo.metrics;

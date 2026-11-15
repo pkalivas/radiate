@@ -7,6 +7,7 @@ use radiate_engines::{
 };
 use radiate_engines::{EngineRuntime, EvolutionContext, ThreadSync};
 use std::{
+    fmt::Debug,
     sync::{Arc, atomic::Ordering},
     time::Duration,
 };
@@ -27,7 +28,7 @@ where
 
 impl<C, T> TuiEngine<C, T>
 where
-    C: Chromosome + Clone + 'static,
+    C: Chromosome + Debug + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
     pub fn new(mut inner: GeneticEngine<C, T>, render_interval: Duration) -> Self {

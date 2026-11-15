@@ -12,7 +12,10 @@ use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::widgets::Widget;
 use ratatui::{Terminal, backend::CrosstermBackend};
-use std::sync::{Arc, RwLock};
+use std::{
+    fmt::Debug,
+    sync::{Arc, RwLock},
+};
 use std::{
     io,
     time::{Duration, Instant},
@@ -70,7 +73,7 @@ where
 
 impl<C> App<C>
 where
-    C: Chromosome + Clone,
+    C: Chromosome + Debug + Clone,
 {
     pub fn new(render_interval: Duration, control: ThreadSync) -> Self {
         Self {
@@ -284,7 +287,7 @@ where
 
 impl<C> Widget for &mut App<C>
 where
-    C: Chromosome,
+    C: Chromosome + Debug,
 {
     fn render(self, area: Rect, buf: &mut Buffer) {
         buf.set_style(

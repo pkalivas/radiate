@@ -3,6 +3,8 @@ mod modal;
 mod panel;
 mod panels;
 
+use std::fmt::Debug;
+
 pub use components::*;
 pub use modal::ModalWidget;
 pub use panel::{FnWidget, Panel};
@@ -30,6 +32,6 @@ use ratatui::{buffer::Buffer, layout::Rect};
 ///
 /// Renders by shared reference: these widgets are stateless view logic over
 /// `AppState`, so `&self` also keeps the trait object-safe (`Box<dyn AppWidget<C>>`).
-pub trait AppWidget<C: Chromosome> {
+pub trait AppWidget<C: Chromosome + Debug> {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>);
 }

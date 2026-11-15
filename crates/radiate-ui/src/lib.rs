@@ -7,13 +7,14 @@ mod widgets;
 
 use crate::runtime::TuiEngine;
 use radiate_engines::{Chromosome, GeneticEngine, disable_logging};
+use std::fmt::Debug;
 use std::time::Duration;
 
 pub const DEFAULT_RENDER_INTERVAL: Duration = Duration::from_millis(100);
 
 pub fn ui<C, T>(engine: impl Into<UiInput<C, T>>) -> TuiEngine<C, T>
 where
-    C: Chromosome + Clone + 'static,
+    C: Chromosome + Debug + Clone + 'static,
     T: Clone + Send + Sync,
 {
     disable_logging();

@@ -1,3 +1,4 @@
+mod debug;
 mod help;
 mod log;
 mod metric;
@@ -5,6 +6,7 @@ mod search;
 mod status;
 pub mod tables;
 
+pub use debug::DebugPanel;
 pub use help::HelpPanelWidget;
 pub use log::{DeltaBarChartWidget, EventLogWidget, FrontEventLogWidget, ImprovementLogWidget};
 pub use metric::{MetricDetailPanelWidget, MetricLineChartWidget};

@@ -2,8 +2,8 @@ use super::chart::{ChartState, MetricChartType};
 use crate::chart::RollingLineChart;
 use crate::widgets::num_pairs;
 use radiate_engines::{
-    Chromosome, Ecosystem, Front, MetricSet, Objective, Optimize, Phenotype, Score, Species,
-    events::LogLevel,
+    Chromosome, Ecosystem, Front, MetricSet, Objective, Optimize, Phenotype, Population, Score,
+    Species, events::LogLevel,
 };
 use radiate_utils::WindowBuffer;
 use std::sync::{Arc, RwLock};
@@ -175,6 +175,10 @@ impl<C: Chromosome> EvoState<C> {
 
     pub fn get_species(&self) -> Option<&Vec<Species<C>>> {
         self.ecosystem.as_ref().and_then(|eco| eco.species())
+    }
+
+    pub fn get_population(&self) -> Option<&Population<C>> {
+        self.ecosystem.as_ref().map(|eco| eco.population())
     }
 
     pub fn is_multi(&self) -> bool {
