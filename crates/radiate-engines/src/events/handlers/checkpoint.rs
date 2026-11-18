@@ -14,6 +14,8 @@ use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
+const SUBSCRIPTION_NAME: &str = "CheckpointWriterHandler";
+
 pub struct CheckpointWriterHandler<C, T>
 where
     C: Chromosome + Clone + 'static,
@@ -48,6 +50,7 @@ where
 {
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
         ctx.subscribe::<GenerationSnapshot<C, T>>()
+            .named(SUBSCRIPTION_NAME)
             .schedule(self.interval)?;
         Ok(())
     }

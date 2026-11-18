@@ -194,6 +194,8 @@ where
     fn stop(&mut self) {
         self.context.set_stopped();
         self.stream.publish(EngineStop::from(&self.context));
+
+        println!("{:#?}", &self.stream.stats());
     }
 
     #[inline]

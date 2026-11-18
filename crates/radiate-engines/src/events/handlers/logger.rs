@@ -7,6 +7,11 @@ use radiate_core::Objective;
 use radiate_core::error::RadiateResult;
 use std::marker::PhantomData;
 
+const LIMIT_TRIGGERED_SUBSCRIPTION_NAME: &str = "EngineLoggerLimitTriggered";
+const CHECKPOINT_SAVED_SUBSCRIPTION_NAME: &str = "EngineLoggerCheckpointSaved";
+const EPOCH_COMPLETE_SUBSCRIPTION_NAME: &str = "EngineLoggerEpochComplete";
+const ENGINE_STATE_CHANGE_SUBSCRIPTION_NAME: &str = "EngineLoggerEngineStateChange";
+
 pub struct EngineLogger<T> {
     _marker: PhantomData<T>,
 }
@@ -30,10 +35,14 @@ where
     T: Send + Sync + 'static,
 {
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
-        ctx.subscribe::<LimitTriggered>();
-        ctx.subscribe::<CheckpointSaved>();
-        ctx.subscribe::<EpochComplete<T>>();
-        ctx.subscribe::<EngineStateChange>();
+        ctx.subscribe::<LimitTriggered>()
+            .named(LIMIT_TRIGGERED_SUBSCRIPTION_NAME);
+        ctx.subscribe::<CheckpointSaved>()
+            .named(CHECKPOINT_SAVED_SUBSCRIPTION_NAME);
+        ctx.subscribe::<EpochComplete<T>>()
+            .named(EPOCH_COMPLETE_SUBSCRIPTION_NAME);
+        ctx.subscribe::<EngineStateChange>()
+            .named(ENGINE_STATE_CHANGE_SUBSCRIPTION_NAME);
         Ok(())
     }
 }

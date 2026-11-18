@@ -11,6 +11,8 @@ const STAGNATION_WARNING_THRESHOLD: usize = 500;
 const DIVERSITY_WARNING_THRESHOLD: f32 = 0.1;
 const LARGEST_SPECIES_SHARE_WARNING_THRESHOLD: f32 = 0.9;
 
+const STAGNATION_SUBSCRIPTION_NAME: &str = "HealthMonitorHandler";
+
 pub struct HealthMonitor<T> {
     _marker: PhantomData<T>,
 }
@@ -28,7 +30,8 @@ where
     T: Send + Sync + 'static,
 {
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
-        ctx.subscribe::<EpochComplete<T>>();
+        ctx.subscribe::<EpochComplete<T>>()
+            .named(STAGNATION_SUBSCRIPTION_NAME);
         Ok(())
     }
 }

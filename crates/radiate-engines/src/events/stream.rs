@@ -2,10 +2,10 @@ use crate::{
     EventHandler,
     events::{
         Event, Handler, Subscriber, Subscription, SubscriptionId, SubscriptionInfo,
-        messages::DeferredEvent, subscriber::EventId,
+        messages::DeferredEvent, subscriber::Trace,
     },
 };
-use radiate_core::{Executor, WaitGroup, WaitGuard, error::RadiateResult};
+use radiate_core::{Executor, WaitGroup, error::RadiateResult};
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
@@ -16,28 +16,10 @@ use std::{
 type Payload = Arc<dyn Any + Send + Sync>;
 type Forward = Arc<dyn Fn(PayloadWrapper) + Send + Sync>;
 
+#[derive(Clone)]
 struct PayloadWrapper {
     payload: Payload,
-    id: EventId,
-}
-
-impl PayloadWrapper {
-    pub fn new(payload: Payload, id: EventId) -> Self {
-        Self { payload, id }
-    }
-
-    pub fn type_id(&self) -> TypeId {
-        (*self.payload).type_id()
-    }
-}
-
-impl Clone for PayloadWrapper {
-    fn clone(&self) -> Self {
-        Self {
-            payload: Arc::clone(&self.payload),
-            id: self.id,
-        }
-    }
+    trace: Trace,
 }
 
 #[derive(Clone)]
@@ -54,7 +36,7 @@ type SubscriberMap = HashMap<TypeId, SubscriberList>;
 pub struct EventStream {
     executor: Arc<Executor>,
     subscribers: Arc<RwLock<SubscriberMap>>,
-    pending: Arc<RwLock<Vec<PayloadWrapper>>>,
+    pending: Arc<RwLock<Vec<Payload>>>,
 }
 
 impl EventStream {
@@ -64,6 +46,22 @@ impl EventStream {
             subscribers: Arc::default(),
             pending: Arc::default(),
         }
+    }
+
+    /// A snapshot of every live subscription on this stream.
+    pub fn stats(&self) -> Vec<SubscriptionInfo> {
+        let subscribers = self.subscribers.read().unwrap();
+        subscribers
+            .values()
+            .flat_map(|group| group.iter())
+            .filter(|registration| registration.subscription.is_alive())
+            .map(|registration| SubscriptionInfo {
+                id: registration.subscription.id(),
+                name: registration.subscription.name(),
+                event: registration.event,
+                stats: registration.subscription.stats(),
+            })
+            .collect()
     }
 
     pub fn set_executor(&mut self, executor: Arc<Executor>) {
@@ -82,20 +80,29 @@ impl EventStream {
     }
 
     pub fn defer<E: Event>(&self, event: E) {
-        self.pending.write().unwrap().push(PayloadWrapper {
-            payload: Arc::new(DeferredEvent(event)),
-            id: EventId::new(),
-        });
+        self.pending
+            .write()
+            .unwrap()
+            .push(Arc::new(DeferredEvent(event)));
     }
 
     #[inline]
     pub fn publish<E: Event>(&self, event: E) {
+        self.publish_traced(event, Trace::new());
+    }
+
+    /// Publish `event` as part of an existing chain.
+    #[inline]
+    pub(crate) fn publish_traced<E: Event>(&self, event: E, trace: Trace) {
         let type_id = TypeId::of::<E>();
         let Some(group) = self.subscribers.read().unwrap().get(&type_id).cloned() else {
             return;
         };
 
-        let wrapper = PayloadWrapper::new(Arc::new(event), EventId::new());
+        let wrapper = PayloadWrapper {
+            payload: Arc::new(event),
+            trace,
+        };
         self.dispatch(&group, wrapper, false);
     }
 
@@ -116,22 +123,46 @@ impl EventStream {
             return Ok(());
         }
 
-        let wrapper = PayloadWrapper::new(Arc::new(f()), EventId::new());
+        let wrapper = PayloadWrapper {
+            payload: Arc::new(f()),
+            trace: Trace::new(),
+        };
         self.dispatch(&group, wrapper, true);
         Ok(())
     }
 
+    /// Publish every deferred event, then block until each one's whole chain
+    /// has been handled: the event's own handlers and, recursively, every
+    /// event those handlers published through their [`EventContext`](crate::events::EventContext).
+    ///
+    /// On a serial executor dispatch is synchronous, so the wait returns
+    /// immediately. Only events published through a handler's context join the
+    /// chain; events published some other way (a captured stream clone, a
+    /// spawned thread) aren't waited on.
+    ///
+    /// Don't call this from inside a handler running on the stream's worker
+    /// pool. It would wait on work that may need that same pool to finish.
     pub fn flush(&self) {
-        let mut pending = self.pending.write().unwrap();
-        let deferred = std::mem::take(&mut *pending);
-        drop(pending);
-
-        for wrapper in deferred {
-            let type_id = wrapper.type_id();
-            if let Some(group) = self.subscribers.read().unwrap().get(&type_id).cloned() {
-                self.dispatch(&group, wrapper, false);
-            }
+        let deferred = std::mem::take(&mut *self.pending.write().unwrap());
+        if deferred.is_empty() {
+            return;
         }
+
+        let scope = WaitGroup::new();
+        for payload in deferred {
+            let type_id = (*payload).type_id();
+            let Some(group) = self.subscribers.read().unwrap().get(&type_id).cloned() else {
+                continue;
+            };
+
+            let wrapper = PayloadWrapper {
+                payload,
+                trace: Trace::scoped(scope.guard()),
+            };
+            self.dispatch(&group, wrapper, false);
+        }
+
+        scope.wait();
     }
 
     pub fn unsubscribe(&self, id: SubscriptionId) {
@@ -139,22 +170,6 @@ impl EventStream {
         for group in subscribers.values_mut() {
             Arc::make_mut(group).retain(|registration| registration.subscription.id() != id);
         }
-    }
-
-    /// A snapshot of every live subscription on this stream.
-    pub fn stats(&self) -> Vec<SubscriptionInfo> {
-        let subscribers = self.subscribers.read().unwrap();
-        subscribers
-            .values()
-            .flat_map(|group| group.iter())
-            .filter(|registration| registration.subscription.is_alive())
-            .map(|registration| SubscriptionInfo {
-                id: registration.subscription.id(),
-                name: registration.subscription.name(),
-                event: registration.event,
-                stats: registration.subscription.stats(),
-            })
-            .collect()
     }
 
     pub(super) fn subscribe_existing<E, H>(&self, subscriber: &Subscriber<H>) -> Subscription
@@ -168,7 +183,7 @@ impl EventStream {
 
         let forward: Forward = Arc::new(move |payload: PayloadWrapper| {
             if let Ok(event) = payload.payload.downcast::<E>() {
-                target.send_shared(event, Arc::clone(&counters));
+                target.send_shared(event, Arc::clone(&counters), payload.trace);
             }
         });
 

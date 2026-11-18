@@ -8,6 +8,8 @@ mod problem;
 mod selectors;
 mod species;
 
+use crate::builder::filters::FilterParams;
+use crate::builder::problem::ProblemParams;
 use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
 use crate::events::{Event, EventStream};
@@ -25,8 +27,6 @@ use crate::{FileWriter, io::FileReader};
 use crate::{Generation, Result};
 use crate::{Handler, builder::evaluators::EvaluationParams};
 use crate::{LifecycleHandler, builder::objectives::OptimizeParams};
-use crate::{LogEvent, builder::filters::FilterParams};
-use crate::{LogLevel, builder::problem::ProblemParams};
 use crate::{
     builder::evaluators::ExecutorParams,
     steps::{
@@ -104,10 +104,6 @@ where
         if condition() {
             self.errors.push(radiate_err!(Builder: "{}", message));
         }
-    }
-
-    pub(self) fn builder_event(&mut self, message: impl Into<String>) {
-        self.params.event_stream.defer(BuilderEvent(message.into()));
     }
 
     /// The [ReplacementStrategy] is used to determine how a new individual is added to the [Population]

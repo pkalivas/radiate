@@ -495,3 +495,151 @@ mod event_stream_tests {
         );
     }
 }
+
+#[cfg(test)]
+mod trace_tests {
+    use radiate_core::Executor;
+    use radiate_engines::events::{
+        DeferredEvent, Event, EventContext, EventHandler, EventId, EventStream, Handler,
+    };
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::mpsc::{self, RecvTimeoutError};
+    use std::time::Duration;
+
+    // Long enough that a passing run never hits it; only a hang or regression does.
+    const GENEROUS: Duration = Duration::from_secs(5);
+    // How long to watch for something that must NOT happen yet.
+    const BRIEF: Duration = Duration::from_millis(50);
+
+    struct Ping;
+    struct Pong;
+
+    /// Turns each deferred Ping into a Pong, published through the handler's context.
+    struct Relay;
+
+    impl EventHandler for Relay {
+        fn start(&mut self, ctx: &EventContext<'_, Self>) -> radiate_core::error::RadiateResult<()> {
+            ctx.subscribe::<DeferredEvent<Ping>>();
+            Ok(())
+        }
+    }
+
+    impl Handler<DeferredEvent<Ping>> for Relay {
+        fn handle(&mut self, _: &DeferredEvent<Ping>, ctx: &EventContext<'_, Self>) {
+            ctx.publish(Pong);
+        }
+    }
+
+    /// A handler for `E` that signals when it starts, then blocks until released.
+    fn gated_handler<E: Event>(
+        stream: &EventStream,
+    ) -> (mpsc::Receiver<()>, mpsc::Sender<()>, Arc<AtomicBool>) {
+        let (started_tx, started_rx) = mpsc::channel();
+        let (release_tx, release_rx) = mpsc::channel::<()>();
+        let finished = Arc::new(AtomicBool::new(false));
+
+        let done = Arc::clone(&finished);
+        stream.subscribe(move |_: &E| {
+            started_tx.send(()).unwrap();
+            release_rx.recv().unwrap();
+            done.store(true, Ordering::SeqCst);
+        });
+
+        (started_rx, release_tx, finished)
+    }
+
+    fn flush_on_thread(stream: &EventStream) -> mpsc::Receiver<()> {
+        let (flushed_tx, flushed_rx) = mpsc::channel();
+        let stream = stream.clone();
+        std::thread::spawn(move || {
+            stream.flush();
+            flushed_tx.send(()).unwrap();
+        });
+        flushed_rx
+    }
+
+    #[test]
+    fn flush_waits_for_events_published_by_deferred_handlers() {
+        let stream = EventStream::from(Executor::FixedSizedWorkerPool(4));
+        stream.attach(Relay).unwrap();
+        let (started, release, finished) = gated_handler::<Pong>(&stream);
+
+        stream.defer(Ping);
+        let flushed = flush_on_thread(&stream);
+
+        // The Pong handler (one hop from the deferred Ping) is running and blocked...
+        started.recv_timeout(GENEROUS).unwrap();
+        // ...so flush must still be waiting.
+        assert_eq!(flushed.recv_timeout(BRIEF), Err(RecvTimeoutError::Timeout));
+
+        release.send(()).unwrap();
+        flushed.recv_timeout(GENEROUS).unwrap();
+        assert!(finished.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn flush_does_not_wait_on_plain_publishes() {
+        struct Block;
+
+        let stream = EventStream::from(Executor::FixedSizedWorkerPool(4));
+        stream.attach(Relay).unwrap();
+        let (started, release, finished) = gated_handler::<Block>(&stream);
+
+        // A plain publish, outside any chain, blocks a worker...
+        stream.publish(Block);
+        started.recv_timeout(GENEROUS).unwrap();
+
+        // ...but flushing an unrelated deferred event must not wait for it.
+        stream.defer(Ping);
+        let flushed = flush_on_thread(&stream);
+        flushed.recv_timeout(GENEROUS).unwrap();
+        assert!(!finished.load(Ordering::SeqCst));
+
+        release.send(()).unwrap();
+    }
+
+    #[test]
+    fn events_in_a_chain_share_the_root_id() {
+        struct Recorder(mpsc::Sender<EventId>);
+
+        impl EventHandler for Recorder {
+            fn start(
+                &mut self,
+                ctx: &EventContext<'_, Self>,
+            ) -> radiate_core::error::RadiateResult<()> {
+                ctx.subscribe::<DeferredEvent<Ping>>();
+                ctx.subscribe::<Pong>();
+                Ok(())
+            }
+        }
+
+        impl Handler<DeferredEvent<Ping>> for Recorder {
+            fn handle(&mut self, _: &DeferredEvent<Ping>, ctx: &EventContext<'_, Self>) {
+                self.0.send(ctx.root_id()).unwrap();
+                ctx.publish(Pong);
+            }
+        }
+
+        impl Handler<Pong> for Recorder {
+            fn handle(&mut self, _: &Pong, ctx: &EventContext<'_, Self>) {
+                self.0.send(ctx.root_id()).unwrap();
+            }
+        }
+
+        let (tx, rx) = mpsc::channel();
+        let stream = EventStream::from(Executor::FixedSizedWorkerPool(2));
+        stream.attach(Recorder(tx)).unwrap();
+
+        stream.defer(Ping);
+        stream.flush();
+        stream.publish(Pong);
+
+        let ping = rx.recv_timeout(GENEROUS).unwrap();
+        let chained_pong = rx.recv_timeout(GENEROUS).unwrap();
+        let plain_pong = rx.recv_timeout(GENEROUS).unwrap();
+
+        assert_eq!(ping, chained_pong, "a Pong published by the Ping handler joins its chain");
+        assert_ne!(chained_pong, plain_pong, "a plain publish starts a new chain");
+    }
+}

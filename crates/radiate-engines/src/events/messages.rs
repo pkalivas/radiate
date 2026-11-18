@@ -1,13 +1,6 @@
-use crate::{Generation, Limit, Subscription, context::EvolutionContext};
+use crate::{Generation, Limit, context::EvolutionContext};
 use radiate_core::{Chromosome, EngineState, MetricSet, Objective, Score};
 use std::{fmt::Debug, sync::Arc};
-
-#[derive(Clone, Debug)]
-pub enum StreamEvent {
-    Start,
-    SubscriptionAdded(Subscription),
-    Stop,
-}
 
 #[derive(Clone, Debug)]
 pub struct DeferredEvent<E>(pub E);
