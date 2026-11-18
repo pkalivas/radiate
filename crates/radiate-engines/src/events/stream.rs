@@ -67,9 +67,12 @@ impl EventStream {
             return Ok(());
         };
 
-        let any_due = group
-            .iter()
-            .any(|registration| registration.subscription.reserve().is_ok_and(|val| val));
+        let mut any_due = false;
+        for registration in group.iter() {
+            if registration.subscription.reserve().is_ok_and(|val| val) {
+                any_due = true;
+            }
+        }
 
         if !any_due {
             return Ok(());

@@ -43,6 +43,14 @@ fn main() -> RadiateResult<()> {
         ))
         .build();
 
+    engine
+        .subscribe(
+            |event: &GenerationSnapshot<GraphChromosome<Op<f32>>, Graph<Op<f32>>>| {
+                println!("{:?}", event.generation.index());
+            },
+        )
+        .schedule(Expr::every(5))?;
+
     let result = engine
         .iter()
         .logging()
