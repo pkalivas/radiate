@@ -186,6 +186,7 @@ where
     }
 
     fn start(&mut self) {
+        self.stream.flush();
         self.context.set_running();
         self.stream.publish(EngineStart);
     }

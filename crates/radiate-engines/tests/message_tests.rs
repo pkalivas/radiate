@@ -251,6 +251,71 @@ mod event_stream_tests {
         assert_eq!(total.load(Ordering::SeqCst), 2);
     }
 
+    #[test]
+    fn subscribers_on_the_same_event_keep_independent_schedules() {
+        let stream = EventStream::new(serial());
+        let every_two = stream.subscribe(|_: &Ping| {});
+        let every_three = stream.subscribe(|_: &Ping| {});
+        every_two.schedule(2_usize).unwrap();
+        every_three.schedule(3_usize).unwrap();
+
+        for i in 0..6 {
+            stream.lazy_publish(move || Ping(i)).unwrap();
+        }
+
+        // An earlier subscriber being due must not stop later ones from ticking.
+        let two = every_two.stats();
+        let three = every_three.stats();
+        assert_eq!((two.delivered, two.skipped), (3, 3));
+        assert_eq!((three.delivered, three.skipped), (2, 4));
+    }
+
+    // --- subscription stats ---
+
+    #[test]
+    fn stats_count_delivered_and_handled_events() {
+        let stream = EventStream::new(serial());
+        let subscription = stream.subscribe(|_: &Ping| {}).named("pings");
+
+        for i in 0..4 {
+            stream.publish(Ping(i));
+        }
+
+        let stats = subscription.stats();
+        assert_eq!(stats.delivered, 4);
+        assert_eq!(stats.handled, 4);
+        assert_eq!(stats.skipped, 0);
+        assert_eq!(stats.in_flight(), 0);
+    }
+
+    #[test]
+    fn stream_stats_report_live_subscriptions_by_name_and_event() {
+        let stream = EventStream::new(serial());
+        let pings = stream.subscribe(|_: &Ping| {}).named("pings");
+        let adds = stream.subscribe(|_: &Add| {});
+
+        stream.publish(Ping(1));
+        stream.publish(Add(1));
+        stream.publish(Add(2));
+
+        let report = stream.stats();
+        assert_eq!(report.len(), 2);
+
+        let ping_info = report.iter().find(|info| info.id == pings.id()).unwrap();
+        assert_eq!(ping_info.name.as_ref().map(|n| n.as_str()), Some("pings"));
+        assert!(ping_info.event.ends_with("Ping"));
+        assert_eq!(ping_info.stats.delivered, 1);
+
+        let add_info = report.iter().find(|info| info.id == adds.id()).unwrap();
+        assert_eq!(add_info.name, None);
+        assert_eq!(add_info.stats.delivered, 2);
+
+        adds.unsubscribe();
+        let report = stream.stats();
+        assert_eq!(report.len(), 1);
+        assert_eq!(report[0].id, pings.id());
+    }
+
     // --- the explicit design choice: panics propagate, they aren't isolated ---
 
     #[test]

@@ -1,7 +1,7 @@
 use radiate_core::{Expr, RadiateError, error::RadiateResult, radiate_err};
 use radiate_error::radiate_bail;
-use radiate_utils::sentry_id;
-use std::sync::atomic::AtomicUsize;
+use radiate_utils::{SmallStr, sentry_id};
+use std::sync::atomic::{AtomicU64, AtomicUsize};
 use std::{
     fmt::Debug,
     sync::{
@@ -12,21 +12,96 @@ use std::{
 
 sentry_id!(SubscriptionId);
 
+/// Live counters shared between a [`Subscription`] handle, the stream that
+/// dispatches to it, and the subscriber that handles its events.
+#[derive(Default)]
+pub(crate) struct Counters {
+    delivered: AtomicU64,
+    skipped: AtomicU64,
+    handled: AtomicU64,
+}
+
+impl Counters {
+    #[inline]
+    pub(crate) fn record_delivered(&self) {
+        self.delivered.fetch_add(1, Ordering::Relaxed);
+    }
+
+    #[inline]
+    pub(crate) fn record_skipped(&self) {
+        self.skipped.fetch_add(1, Ordering::Relaxed);
+    }
+
+    #[inline]
+    pub(crate) fn record_handled(&self) {
+        self.handled.fetch_add(1, Ordering::Relaxed);
+    }
+}
+
+/// A point-in-time copy of a [`Subscription`]'s delivery counters.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct SubscriptionStats {
+    pub delivered: u64,
+    pub skipped: u64,
+    pub handled: u64,
+}
+
+impl SubscriptionStats {
+    /// Events delivered but not yet handled. Always zero on a serial executor;
+    /// on a worker pool this is how far the handler is behind the engine.
+    pub fn in_flight(&self) -> u64 {
+        self.delivered.saturating_sub(self.handled)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SubscriptionInfo {
+    pub id: SubscriptionId,
+    pub name: Option<SmallStr>,
+    pub event: &'static str,
+    pub stats: SubscriptionStats,
+}
+
 #[derive(Clone)]
 pub struct Subscription {
     pub(crate) id: SubscriptionId,
+    pub(crate) name: Arc<RwLock<Option<SmallStr>>>,
     pub(crate) schedule: Arc<RwLock<Option<Expr>>>,
     pub(crate) permits: Arc<AtomicUsize>,
     pub(crate) alive: Arc<AtomicBool>,
+    pub(crate) counters: Arc<Counters>,
 }
 
 impl Subscription {
     pub(super) fn new() -> Self {
         Subscription {
             id: SubscriptionId::new(),
+            name: Arc::new(RwLock::new(None)),
             schedule: Arc::new(RwLock::new(None)),
             permits: Arc::new(AtomicUsize::new(0)),
             alive: Arc::new(AtomicBool::new(true)),
+            counters: Arc::new(Counters::default()),
+        }
+    }
+
+    /// Attach a name to this subscription, used to identify it in
+    /// [`EventStream::stats`](crate::events::EventStream::stats).
+    pub fn named(self, name: impl Into<SmallStr>) -> Self {
+        *self.name.write().unwrap() = Some(name.into());
+        self
+    }
+
+    pub fn name(&self) -> Option<SmallStr> {
+        self.name.read().unwrap().clone()
+    }
+
+    /// A snapshot of how many events this subscription has been delivered,
+    /// skipped, and handled.
+    pub fn stats(&self) -> SubscriptionStats {
+        SubscriptionStats {
+            delivered: self.counters.delivered.load(Ordering::Relaxed),
+            skipped: self.counters.skipped.load(Ordering::Relaxed),
+            handled: self.counters.handled.load(Ordering::Relaxed),
         }
     }
 
@@ -63,6 +138,7 @@ impl Subscription {
         }
 
         if !self.try_schedule()? {
+            self.counters.record_skipped();
             return Ok(false);
         }
 
@@ -101,5 +177,11 @@ impl Subscription {
         }
 
         Ok(true)
+    }
+}
+
+impl Debug for Subscription {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Subscription(id={})", self.id)
     }
 }

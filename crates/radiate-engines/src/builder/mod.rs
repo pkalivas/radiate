@@ -8,16 +8,13 @@ mod problem;
 mod selectors;
 mod species;
 
-use crate::builder::filters::FilterParams;
-use crate::builder::objectives::OptimizeParams;
-use crate::builder::population::PopulationParams;
-use crate::builder::problem::ProblemParams;
 use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
 use crate::events::{Event, EventStream};
 use crate::genome::phenotype::Phenotype;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
+use crate::{BuilderEvent, builder::population::PopulationParams};
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
@@ -27,6 +24,9 @@ use crate::{
 use crate::{FileWriter, io::FileReader};
 use crate::{Generation, Result};
 use crate::{Handler, builder::evaluators::EvaluationParams};
+use crate::{LifecycleHandler, builder::objectives::OptimizeParams};
+use crate::{LogEvent, builder::filters::FilterParams};
+use crate::{LogLevel, builder::problem::ProblemParams};
 use crate::{
     builder::evaluators::ExecutorParams,
     steps::{
@@ -104,6 +104,10 @@ where
         if condition() {
             self.errors.push(radiate_err!(Builder: "{}", message));
         }
+    }
+
+    pub(self) fn builder_event(&mut self, message: impl Into<String>) {
+        self.params.event_stream.defer(BuilderEvent(message.into()));
     }
 
     /// The [ReplacementStrategy] is used to determine how a new individual is added to the [Population]
@@ -264,6 +268,8 @@ where
         let stream_executor = self.params.evaluation_params.event_stream_executor.clone();
 
         stream.set_executor(stream_executor.executor);
+
+        stream.attach(LifecycleHandler)?;
 
         self.params.event_stream = stream;
 
@@ -445,6 +451,8 @@ where
             evaluator: config.evaluator(),
         };
 
+        Self::add_step_event(config, "EvaluateStep built");
+
         Some(Box::new(eval_step))
     }
 
@@ -474,16 +482,38 @@ where
 
         let recombine_step = RecombineStep {
             survivor: crate::steps::SurvivorConfig {
-                select: survivor_select,
+                select: survivor_select.clone(),
             },
             offspring: crate::steps::OffspringConfig {
-                select: offspring_select,
+                select: offspring_select.clone(),
                 alters: config.alters().to_vec(),
             },
             objective: config.objective(),
             survivor_counts: VersionedCounts::new(),
             offspring_counts: VersionedCounts::new(),
         };
+
+        let derer_selector = |selector: &SelectConfig<C>| {
+            format!(
+                "{} - {}",
+                selector
+                    .names
+                    .0
+                    .split('.')
+                    .into_iter()
+                    .skip(1)
+                    .collect::<String>(),
+                selector.count
+            )
+        };
+
+        let step_message = format!(
+            "RecombineStep: [Offspring {}] [Survivor {}]",
+            derer_selector(&offspring_select),
+            derer_selector(&survivor_select)
+        );
+
+        Self::add_step_event(config, step_message);
 
         Some(Box::new(recombine_step))
     }
@@ -497,15 +527,21 @@ where
             filters: config.filters().to_vec(),
         };
 
+        Self::add_step_event(config, format!("FilterStep built"));
+
         Some(Box::new(filter_step))
     }
 
     fn build_audit_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        Some(Box::new(MetricStep::new(
+        let step = MetricStep::new(
             config.objective().clone(),
             config.population_size(),
             config.exprs().clone(),
-        )))
+        );
+
+        Self::add_step_event(config, format!("MetricStep built"));
+
+        Some(Box::new(step))
     }
 
     fn build_front_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
@@ -516,6 +552,8 @@ where
         let front_step = FrontStep {
             front: config.front(),
         };
+
+        Self::add_step_event(config, format!("FrontStep built"));
 
         Some(Box::new(front_step))
     }
@@ -539,7 +577,17 @@ where
             assignments: Arc::default(),
         };
 
+        Self::add_step_event(config, format!("SpeciateStep built"));
+
         Some(Box::new(species_step))
+    }
+
+    fn add_step_event(config: &EngineConfig<C, T>, message: impl Into<String>) {
+        Self::add_builder_event(&config.event_stream(), format!("Step: {}", message.into()));
+    }
+
+    fn add_builder_event(stream: &EventStream, message: impl Into<String>) {
+        stream.defer(BuilderEvent(format!("Builder: {}", message.into())));
     }
 }
 
