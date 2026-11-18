@@ -68,17 +68,17 @@ fn display(train: &DataSet<f32>, result: &Generation<TreeChromosome<Op<f32>>, Tr
     println!("{:?}", result);
     println!("{:?}", train_acc);
 
-    let grid = DataSet::pagie1();
-    plot(&grid, result.value());
+    plot(result.value());
 }
 
-fn plot(grid: &DataSet<f32>, tree: &Tree<Op<f32>>) {
+fn plot(tree: &Tree<Op<f32>>) {
     use plotly::common::{Line, Mode};
     use plotly::layout::{Axis, Layout};
     use plotly::{Plot, Scatter};
 
-    let inputs = grid.features();
-    let actual = grid.labels().iter().map(|row| row[0]).collect::<Vec<f32>>();
+    let data = DataSet::pagie1();
+    let inputs = data.features();
+    let actual = data.labels().iter().map(|row| row[0]).collect::<Vec<f32>>();
     let preds = inputs
         .iter()
         .map(|row| tree.eval(row))

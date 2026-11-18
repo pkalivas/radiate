@@ -74,14 +74,39 @@ where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
+    /// Generic helper function to optionally chain an action based on a condition.
+    /// If the condition is true, the provided action function will be executed with the current
+    /// runtime instance as its argument. Else, if the condition is false, the runtime instance
+    /// will be returned unchanged.
     pub fn chain_if(self, condition: bool, action_fn: impl FnOnce(Self) -> Self) -> Self {
         if condition { action_fn(self) } else { self }
     }
 
+    /// Run the engine. This will begin the execution loop of the engine until it is
+    /// stopped by either user or a given limit. There are no checks to see
+    /// if limits were provided or not.
     pub fn last(self) -> Result<E::Epoch> {
         self.run()
     }
 
+    /// Executes the provided action function at the specified interval during the engine's execution.
+    /// The action is scheduled on the event stream.
+    ///
+    /// ```rust
+    /// use radiate_engines::*;
+    ///
+    /// let engine = GeneticEngine::builder()
+    ///     .codec(FloatCodec::vector(5, 0.0_f32..1.0_f32))
+    ///     .fitness_fn(|vals: Vec<f32>| vals.iter().sum::<f32>())
+    ///     .build();
+    ///
+    /// let result = engine
+    ///     .iter()
+    ///     .take(10)
+    ///     // Print the index of every 2nd generation
+    ///     .every(2, |view| println!("{:?}", view.index()))
+    ///     .last();
+    /// ```
     pub fn every<F>(self, interval: usize, mut action_fn: F) -> Self
     where
         F: FnMut(GenerationView<C, T>) + Send + Sync + 'static,
@@ -101,6 +126,25 @@ where
         self
     }
 
+    /// Executes the provided action function at the specified time interval during the engine's execution.
+    /// The action is scheduled on the event stream.
+    ///
+    /// ```rust
+    /// use radiate_engines::*;
+    ///
+    /// let engine = GeneticEngine::builder()
+    ///     .codec(FloatCodec::vector(5, 0.0_f32..1.0_f32))
+    ///     .fitness_fn(|vals: Vec<f32>| vals.iter().sum::<f32>())
+    ///     .build();
+    ///
+    /// let result = engine
+    ///     .iter()
+    ///     .take(10)
+    ///     // Print the index every second from the generation that occurs
+    ///     // at or right after each second interval
+    ///     .throttle(std::time::Duration::from_secs(1), |view| println!("{:?}", view.index()))
+    ///     .last();
+    /// ```
     pub fn throttle<F>(self, duration: Duration, mut action_fn: F) -> Self
     where
         F: FnMut(GenerationView<C, T>) + Send + Sync + 'static,
@@ -117,6 +161,85 @@ where
         self
     }
 
+    /// Subscribe to a specific event in the engine's event stream every time it
+    /// fires. Certain events are 'lazy', meaning they are only generated and published
+    /// when there is an active subscription to that event. Others are only fired when certain
+    /// actions are attached to the engine. The event system in the engine acts as a message passing
+    /// system, allowing different handlers to react to events as they occur. See [EngineLogger]
+    /// for a concrete example of listening/reacting.
+    ///
+    /// The events that the GeneticEngine emits are:
+    ///
+    /// * [`EngineStart`](crate::events::EngineStart) - emitted when the engine starts
+    /// * [`EngineStop`](crate::events::EngineStop) - emitted when the engine stops
+    /// * [`EngineStateChange`](crate::events::EngineStateChange) - emitted when the engine's state changes.
+    /// * [`EpochStart`](crate::events::EpochStart) - emitted at the start of each epoch.
+    /// * [`Improvement`](crate::events::Improvement) **LAZY** - When the engine finds a new best solution.
+    /// * [`EpochComplete`](crate::events::EpochComplete) - emitted at the end of each epoch
+    /// * [`CheckpointSaved`](crate::events::CheckpointSaved) - emitted when a checkpoint is saved
+    ///     * Only published when Checkpointing is enabled through the [engine's configuration](super::GeneticEngineBuilder::checkpoint).
+    /// * [`Warning`](crate::events::Warning) - emitted when a warning occurs through the health monitor
+    ///     * Only published when [logging](Self::logging) or [health monitoring](Self::monitor_health) is called on the runtime.
+    /// * [`LimitTriggered`](crate::events::LimitTriggered) - emitted when a stopping limit is triggered
+    /// * [`GenerationSnapshot`](crate::events::GenerationSnapshot) **LAZY** - emitted for each generation snapshot
+    ///     * This is a heavy clone (clones the entire `Ecosystem` and possibly the `Front` if it exists) so use it judiciously.
+    /// * [`LogEvent`](crate::events::LogEvent) - emitted for logging purposes.
+    ///     * Only emitted when [logging](Self::logging) is enabled. Produces a struct containing
+    ///  the appropriate [LogLevel](crate::events::LogLevel) and a message of what occurred. Logs can contain
+    ///  information about limits being triggered, checkpoints being saved, epochs completing, state changes,
+    ///  and other significant events within the engine's lifecycle. This is great for collecting simple logs without
+    ///  having to manually subscribe to each individual event.
+    ///
+    /// ## Simple fn subscriber
+    /// ```rust
+    /// use radiate_engines::*;
+    ///
+    /// let engine = GeneticEngine::builder()
+    ///     .codec(FloatCodec::vector(5, 0.0_f32..1.0_f32))
+    ///     .fitness_fn(|vals: Vec<f32>| vals.iter().sum::<f32>())
+    ///     .build();
+    ///
+    /// let result = engine
+    ///     .iter()
+    ///     .take(10)
+    ///     // Subscribe to the start of each epoch and print the event
+    ///     .subscribe::<EpochStart>(|event: &EpochStart| println!("{:?}", event))
+    ///     .last();
+    /// ```
+    ///
+    /// ## Concrete subscriber
+    ///
+    /// Its also possible to use a concrete handler so you can listen and possibly react/publish
+    /// other events as well.
+    ///
+    /// ```rust
+    /// use radiate_engines::*;
+    ///
+    /// struct MyHandler;
+    ///
+    /// impl Handler<EpochStart> for MyHandler {
+    ///     fn handle(&mut self, event: &EpochStart, ctx: &EventContext<'_, Self>) {
+    ///         println!("Received epoch start: {:?}", event);
+    ///         // Publish a log event indicating the epoch has started
+    ///         ctx.publish(LogEvent(
+    ///             LogLevel::Info,
+    ///             format!("Epoch started: {:?}", event),
+    ///         ));
+    ///     }
+    /// }
+    ///
+    /// let engine = GeneticEngine::builder()
+    ///     .codec(FloatCodec::vector(5, 0.0_f32..1.0_f32))
+    ///     .fitness_fn(|vals: Vec<f32>| vals.iter().sum::<f32>())
+    ///     .build();
+    ///
+    /// let result = engine
+    ///     .iter()
+    ///     .take(10)
+    ///     // Subscribe using a concrete handler
+    ///     .subscribe(MyHandler)
+    ///     .last();
+    /// ```
     pub fn subscribe<EV: Event>(self, handler: impl Handler<EV>) -> Self {
         self.engine.context().event_stream().subscribe(handler);
         self
