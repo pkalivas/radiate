@@ -2,7 +2,7 @@ use crate::{
     EventHandler,
     events::{
         Event, Handler, Subscriber, Subscription, SubscriptionId, SubscriptionInfo,
-        messages::DeferredEvent,
+        messages::DeferredEvent, subscriber::EventId,
     },
 };
 use radiate_core::{Executor, WaitGroup, WaitGuard, error::RadiateResult};
@@ -18,12 +18,12 @@ type Forward = Arc<dyn Fn(PayloadWrapper) + Send + Sync>;
 
 struct PayloadWrapper {
     payload: Payload,
-    guard: Arc<WaitGuard>,
+    id: EventId,
 }
 
 impl PayloadWrapper {
-    pub fn new(payload: Payload, guard: Arc<WaitGuard>) -> Self {
-        Self { payload, guard }
+    pub fn new(payload: Payload, id: EventId) -> Self {
+        Self { payload, id }
     }
 
     pub fn type_id(&self) -> TypeId {
@@ -35,7 +35,7 @@ impl Clone for PayloadWrapper {
     fn clone(&self) -> Self {
         Self {
             payload: Arc::clone(&self.payload),
-            guard: Arc::clone(&self.guard),
+            id: self.id,
         }
     }
 }
@@ -55,7 +55,6 @@ pub struct EventStream {
     executor: Arc<Executor>,
     subscribers: Arc<RwLock<SubscriberMap>>,
     pending: Arc<RwLock<Vec<PayloadWrapper>>>,
-    wg: WaitGroup,
 }
 
 impl EventStream {
@@ -64,7 +63,6 @@ impl EventStream {
             executor,
             subscribers: Arc::default(),
             pending: Arc::default(),
-            wg: WaitGroup::new(),
         }
     }
 
@@ -83,24 +81,11 @@ impl EventStream {
         self.subscribe_existing::<E, _>(&subscriber)
     }
 
-    pub fn start(&self) {
-        self.flush();
-        self.wg.wait();
-    }
-
     pub fn defer<E: Event>(&self, event: E) {
         self.pending.write().unwrap().push(PayloadWrapper {
             payload: Arc::new(DeferredEvent(event)),
-            guard: Arc::new(self.wg.guard()),
+            id: EventId::new(),
         });
-    }
-
-    pub fn relay<E: Event>(&self, event: E, gaurd: Arc<WaitGuard>) {
-        let type_id = TypeId::of::<E>();
-        if let Some(group) = self.subscribers.read().unwrap().get(&type_id).cloned() {
-            let wrapper = PayloadWrapper::new(Arc::new(event), gaurd);
-            self.dispatch(&group, wrapper, false);
-        }
     }
 
     #[inline]
@@ -110,7 +95,7 @@ impl EventStream {
             return;
         };
 
-        let wrapper = PayloadWrapper::new(Arc::new(event), Arc::new(self.wg.guard()));
+        let wrapper = PayloadWrapper::new(Arc::new(event), EventId::new());
         self.dispatch(&group, wrapper, false);
     }
 
@@ -131,7 +116,7 @@ impl EventStream {
             return Ok(());
         }
 
-        let wrapper = PayloadWrapper::new(Arc::new(f()), Arc::new(self.wg.guard()));
+        let wrapper = PayloadWrapper::new(Arc::new(f()), EventId::new());
         self.dispatch(&group, wrapper, true);
         Ok(())
     }
@@ -183,7 +168,7 @@ impl EventStream {
 
         let forward: Forward = Arc::new(move |payload: PayloadWrapper| {
             if let Ok(event) = payload.payload.downcast::<E>() {
-                target.send_shared(event, Arc::clone(&counters), payload.guard);
+                target.send_shared(event, Arc::clone(&counters));
             }
         });
 

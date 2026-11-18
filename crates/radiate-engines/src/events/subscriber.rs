@@ -35,14 +35,11 @@ where
     }
 }
 
-pub struct EventContext<'a, H>(&'a Subscriber<H>, Option<Arc<WaitGuard>>);
+pub struct EventContext<'a, H>(&'a Subscriber<H>);
 
 impl<H> EventContext<'_, H> {
     pub fn publish<E: Event>(&self, event: E) {
-        match &self.1 {
-            Some(guard) => self.0.stream.relay(event, Arc::clone(guard)),
-            None => self.0.stream.publish(event),
-        }
+        self.0.stream.publish(event);
     }
 
     pub fn subscribe<E>(&self) -> Subscription
@@ -85,32 +82,26 @@ impl<H: Send + 'static> Subscriber<H> {
     where
         H: EventHandler,
     {
-        let ctx = EventContext(self, None);
+        let ctx = EventContext(self);
         self.handler.lock().unwrap().start(&ctx)
     }
 
-    pub(super) fn send_shared<E>(
-        &self,
-        event: Arc<E>,
-        counters: Arc<Counters>,
-        guard: Arc<WaitGuard>,
-    ) where
+    pub(super) fn send_shared<E>(&self, event: Arc<E>, counters: Arc<Counters>)
+    where
         E: Event,
         H: Handler<E>,
     {
         match self.executor.as_ref() {
             Executor::Serial => {
-                let ctx = EventContext(self, Some(guard.clone()));
+                let ctx = EventContext(self);
                 self.handler.lock().unwrap().handle(event.as_ref(), &ctx);
-                drop(guard);
                 counters.record_handled();
             }
             _ => {
                 let owned = self.clone();
                 self.executor.submit(move || {
-                    let ctx = EventContext(&owned, Some(guard.clone()));
+                    let ctx = EventContext(&owned);
                     owned.handler.lock().unwrap().handle(event.as_ref(), &ctx);
-                    drop(guard);
                     counters.record_handled();
                 });
             }
