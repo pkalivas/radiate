@@ -4,11 +4,11 @@ use crate::{
 };
 use color_eyre::{Result, eyre::Context};
 use crossbeam::channel;
-use radiate_engines::ThreadSync;
 use radiate_engines::{
     Chromosome, EngineStart, EventContext, EventHandler, GenerationSnapshot, Handler,
     error::RadiateResult, sync::IntoPair,
 };
+use radiate_engines::{LogEvent, ThreadSync};
 use std::{fmt::Debug, sync::atomic::Ordering, time::Duration};
 
 const KEY_REPEAT_DELAY: Duration = Duration::from_millis(100);
@@ -74,6 +74,8 @@ where
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
         ctx.subscribe::<EngineStart<C>>();
         ctx.subscribe::<GenerationSnapshot<C, T>>();
+        ctx.subscribe::<LogEvent>();
+
         Ok(())
     }
 }
@@ -100,6 +102,19 @@ where
         self.dispatcher
             .send(InputEvent::EpochComplete(GenerationEvent::from(event)))
             .context("Failed to send GenerationSnapshot event")
+            .unwrap();
+    }
+}
+
+impl<C, T> Handler<LogEvent> for TuiHandle<C, T>
+where
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    fn handle(&mut self, event: &LogEvent, _: &EventContext<'_, Self>) {
+        self.dispatcher
+            .send(InputEvent::Log(event.0, event.1.clone()))
+            .context("Failed to send LogEvent")
             .unwrap();
     }
 }

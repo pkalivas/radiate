@@ -6,13 +6,12 @@ mod styles;
 mod widgets;
 
 pub use crate::runtime::TuiHandle;
-use radiate_engines::{Chromosome, Engine, EngineRuntime, GeneticEngine, disable_logging};
+use radiate_engines::{Chromosome, Engine, EngineRuntime, GeneticEngine, LogEvent};
 use std::fmt::Debug;
 use std::time::Duration;
 
 pub const DEFAULT_RENDER_INTERVAL: Duration = Duration::from_millis(100);
 
-// radiate-ui
 pub trait TuiRuntimeExt {
     fn ui(self) -> Self;
 }
@@ -23,8 +22,12 @@ where
     T: Clone + Send + Sync + 'static,
 {
     fn ui(self) -> Self {
-        let control = self.control();
-        self.attach(TuiHandle::<C, T>::new(control))
+        let context = self.context();
+        let control = context.get_or_create_sync();
+
+        let handle = TuiHandle::<C, T>::new(control);
+
+        self.attach(handle).logging()
     }
 }
 
@@ -33,25 +36,25 @@ where
     C: Chromosome + Debug + Clone + 'static,
     T: Clone + Send + Sync,
 {
-    let (engine, render_interval) = match engine.into() {
+    let (engine, _) = match engine.into() {
         UiInput::Engine(e) => (e, DEFAULT_RENDER_INTERVAL),
         UiInput::EngineRenderInterval(e, d) => (e, d),
     };
 
     let context = engine.context();
     let control = context.get_or_create_sync();
+    let stream = context.event_stream();
+
+    let logging_handlers = stream.get_subsribers::<LogEvent>();
+    for handler in &logging_handlers {
+        stream.unsubscribe(handler.id);
+    }
+
     let handle = TuiHandle::<C, T>::new(control);
-    context.event_stream().attach(handle).unwrap();
+
+    stream.attach(handle).unwrap();
 
     engine
-
-    // // disable_logging();
-    // let (engine, render_interval) = match engine.into() {
-    //     UiInput::Engine(e) => (e, DEFAULT_RENDER_INTERVAL),
-    //     UiInput::EngineRenderInterval(e, d) => (e, d),
-    // };
-
-    // engine
 }
 
 pub enum UiInput<C, T>

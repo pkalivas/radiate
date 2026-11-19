@@ -3,9 +3,9 @@ use crate::{
     events::{EngineLogger, Event, GenerationSnapshot, HealthMonitor, LoggingHandler},
 };
 use crate::{generation::GenerationView, init_logging};
+use radiate_core::Expr;
 use radiate_core::error::{RadiateResult, Result};
 use radiate_core::{Chromosome, EngineState, Score};
-use radiate_core::{Expr, ThreadSync};
 use std::collections::VecDeque;
 use std::time::Duration;
 
@@ -74,8 +74,8 @@ where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
-    pub fn control(&self) -> ThreadSync {
-        self.engine.context().get_or_create_sync()
+    pub fn context(&self) -> &EvolutionContext<C, T> {
+        self.engine.context()
     }
 
     /// Generic helper function to optionally chain an action based on a condition.
@@ -348,21 +348,22 @@ where
 {
     pub fn logging(self) -> EngineRuntime<E> {
         init_logging();
-        let stream = self.engine.context().event_stream();
-        stream.subscribe(LoggingHandler::new());
 
-        self.monitor_health().attach_logger()
-    }
-
-    pub fn monitor_health(self) -> EngineRuntime<E> {
         let stream = self.engine.context().event_stream();
-        stream.attach(HealthMonitor::<T>::default()).unwrap();
-        self
-    }
+        stream.detach::<LoggingHandler>();
 
-    pub fn attach_logger(self) -> EngineRuntime<E> {
-        let stream = self.engine.context().event_stream();
-        stream.attach(EngineLogger::<T>::new()).unwrap();
+        if !stream.has::<LoggingHandler>() {
+            stream.attach(LoggingHandler::new()).unwrap();
+        }
+
+        if !stream.has::<HealthMonitor<T>>() {
+            stream.attach(HealthMonitor::<T>::default()).unwrap();
+        }
+
+        if !stream.has::<EngineLogger<T>>() {
+            stream.attach(EngineLogger::<T>::new()).unwrap();
+        }
+
         self
     }
 }

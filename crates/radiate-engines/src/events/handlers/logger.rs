@@ -1,5 +1,5 @@
 use crate::{
-    Handler,
+    Handler, Warning,
     events::{CheckpointSaved, EngineStateChange, EventContext, EventHandler},
 };
 use crate::{LimitTriggered, events::EpochComplete};
@@ -11,6 +11,7 @@ const LIMIT_TRIGGERED_SUBSCRIPTION_NAME: &str = "EngineLoggerLimitTriggered";
 const CHECKPOINT_SAVED_SUBSCRIPTION_NAME: &str = "EngineLoggerCheckpointSaved";
 const EPOCH_COMPLETE_SUBSCRIPTION_NAME: &str = "EngineLoggerEpochComplete";
 const ENGINE_STATE_CHANGE_SUBSCRIPTION_NAME: &str = "EngineLoggerEngineStateChange";
+const WARNING_SUBSCRIPTION_NAME: &str = "EngineLoggerWarning";
 
 pub struct EngineLogger<T> {
     _marker: PhantomData<T>,
@@ -43,6 +44,7 @@ where
             .named(EPOCH_COMPLETE_SUBSCRIPTION_NAME);
         ctx.subscribe::<EngineStateChange>()
             .named(ENGINE_STATE_CHANGE_SUBSCRIPTION_NAME);
+        ctx.subscribe::<Warning>().named(WARNING_SUBSCRIPTION_NAME);
         Ok(())
     }
 }
@@ -121,6 +123,15 @@ where
     }
 }
 
+impl<T> Handler<Warning> for EngineLogger<T>
+where
+    T: Send + Sync + 'static,
+{
+    fn handle(&mut self, event: &Warning, ctx: &EventContext<'_, Self>) {
+        ctx.publish(LogEvent(LogLevel::Warn, event.0.clone()));
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LogLevel {
     Info,
@@ -136,6 +147,13 @@ pub struct LoggingHandler(bool);
 impl LoggingHandler {
     pub fn new() -> Self {
         Self(crate::logging_enabled())
+    }
+}
+
+impl EventHandler for LoggingHandler {
+    fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
+        ctx.subscribe::<LogEvent>();
+        Ok(())
     }
 }
 

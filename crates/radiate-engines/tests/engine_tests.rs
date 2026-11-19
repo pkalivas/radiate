@@ -189,7 +189,7 @@ mod engine_tests {
         use std::thread;
         use std::time::Duration;
 
-        let mut engine = onemax_engine(5);
+        let engine = onemax_engine(5);
         let control = engine.control();
 
         let handle = thread::spawn(move || {
@@ -213,7 +213,7 @@ mod engine_tests {
         use std::thread;
         use std::time::Duration;
 
-        let mut engine = onemax_engine(5);
+        let engine = onemax_engine(5);
         let control = engine.control();
         control.step_n(10);
 
@@ -244,7 +244,7 @@ mod engine_tests {
         use std::thread;
         use std::time::Duration;
 
-        let mut engine = onemax_engine(5);
+        let engine = onemax_engine(5);
         let control = engine.control();
 
         let handle = thread::spawn(move || {

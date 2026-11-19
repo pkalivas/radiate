@@ -4,7 +4,7 @@ use crate::{
     EngineHandle, EpochHandle, PyGeneration, bindings::handles::EngineIterHandle, match_variant,
 };
 use pyo3::{PyRefMut, PyResult, Python, pyclass, pymethods};
-use radiate::{Chromosome, Generation, GeneticEngine, Limit, RadiateResult};
+use radiate::{Chromosome, Generation, GeneticEngine, Limit, RadiateResult, TuiRuntimeExt};
 use radiate_error::{radiate_py_bail, radiate_py_err};
 use serde::Serialize;
 
@@ -92,13 +92,10 @@ where
     T: Clone + Send + Sync + Serialize + 'static,
     Generation<C, T>: Serialize + Into<EpochHandle>,
 {
-    if ui {
-        radiate::ui(engine).iter().logging().limit(limits).last()
-    } else {
-        engine
-            .iter()
-            .chain_if(log, |eng| eng.logging())
-            .limit(limits)
-            .last()
-    }
+    engine
+        .iter()
+        .chain_if(ui, |eng| eng.ui())
+        .chain_if(log, |eng| eng.logging())
+        .limit(limits)
+        .last()
 }
