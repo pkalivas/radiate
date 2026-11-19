@@ -4,17 +4,12 @@ use crate::{
 };
 use color_eyre::{Result, eyre::Context};
 use crossbeam::channel;
+use radiate_engines::ThreadSync;
 use radiate_engines::{
-    Chromosome, Engine, EngineStart, EngineState, EngineStop, EngineStream, EventContext,
-    EventHandler, EventStream, Generation, GenerationSnapshot, GenerationView, GeneticEngine,
-    Handler, error::RadiateResult, events::LogEvent, sync::IntoPair,
+    Chromosome, EngineStart, EventContext, EventHandler, GenerationSnapshot, Handler,
+    error::RadiateResult, sync::IntoPair,
 };
-use radiate_engines::{EngineRuntime, EvolutionContext, ThreadSync};
-use std::{
-    fmt::Debug,
-    sync::{Arc, atomic::Ordering},
-    time::Duration,
-};
+use std::{fmt::Debug, sync::atomic::Ordering, time::Duration};
 
 const KEY_REPEAT_DELAY: Duration = Duration::from_millis(100);
 
@@ -88,7 +83,7 @@ where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
-    fn handle(&mut self, event: &EngineStart<C>, ctx: &EventContext<'_, Self>) {
+    fn handle(&mut self, event: &EngineStart<C>, _: &EventContext<'_, Self>) {
         self.dispatcher
             .send(InputEvent::EngineStart(event.front.clone()))
             .context("Failed to send EngineStart event")
@@ -101,7 +96,7 @@ where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
-    fn handle(&mut self, event: &GenerationSnapshot<C, T>, ctx: &EventContext<'_, Self>) {
+    fn handle(&mut self, event: &GenerationSnapshot<C, T>, _: &EventContext<'_, Self>) {
         self.dispatcher
             .send(InputEvent::EpochComplete(GenerationEvent::from(event)))
             .context("Failed to send GenerationSnapshot event")
@@ -137,176 +132,176 @@ where
     }
 }
 
-pub struct TuiEngine<C, T>
-where
-    C: Chromosome,
-    T: Clone + Send + Sync + 'static,
-{
-    inner: GeneticEngine<C, T>,
-    control: ThreadSync,
-    dispatcher: channel::Sender<InputEvent<C>>,
-    app_thread: Option<std::thread::JoinHandle<Result<()>>>,
-    key_thread: Option<std::thread::JoinHandle<Result<()>>>,
-}
+// pub struct TuiEngine<C, T>
+// where
+//     C: Chromosome,
+//     T: Clone + Send + Sync + 'static,
+// {
+//     inner: GeneticEngine<C, T>,
+//     control: ThreadSync,
+//     dispatcher: channel::Sender<InputEvent<C>>,
+//     app_thread: Option<std::thread::JoinHandle<Result<()>>>,
+//     key_thread: Option<std::thread::JoinHandle<Result<()>>>,
+// }
 
-impl<C, T> TuiEngine<C, T>
-where
-    C: Chromosome + Debug + Clone + 'static,
-    T: Clone + Send + Sync + 'static,
-{
-    pub fn new(mut inner: GeneticEngine<C, T>, render_interval: Duration) -> Self {
-        let control = inner.control();
-        let app = App::new(render_interval, control.clone());
+// impl<C, T> TuiEngine<C, T>
+// where
+//     C: Chromosome + Debug + Clone + 'static,
+//     T: Clone + Send + Sync + 'static,
+// {
+//     pub fn new(mut inner: GeneticEngine<C, T>, render_interval: Duration) -> Self {
+//         let control = inner.control();
+//         let app = App::new(render_interval, control.clone());
 
-        let (dispatch_one, dispatch_two) = app.dispatcher().into_pair();
-        let stop_flag = control.stop_flag();
+//         let (dispatch_one, dispatch_two) = app.dispatcher().into_pair();
+//         let stop_flag = control.stop_flag();
 
-        let app_thread = std::thread::spawn(move || {
-            let terminal = ratatui::init();
-            app.run(terminal)?;
-            ratatui::restore();
-            Ok(())
-        });
+//         let app_thread = std::thread::spawn(move || {
+//             let terminal = ratatui::init();
+//             app.run(terminal)?;
+//             ratatui::restore();
+//             Ok(())
+//         });
 
-        let key_thread = std::thread::spawn(move || {
-            while !stop_flag.load(Ordering::Relaxed) {
-                if crossterm::event::poll(KEY_REPEAT_DELAY)? {
-                    let event = crossterm::event::read()?;
-                    dispatch_two
-                        .send(InputEvent::Crossterm(event))
-                        .context("Failed to send Crossterm event")?;
-                }
-            }
+//         let key_thread = std::thread::spawn(move || {
+//             while !stop_flag.load(Ordering::Relaxed) {
+//                 if crossterm::event::poll(KEY_REPEAT_DELAY)? {
+//                     let event = crossterm::event::read()?;
+//                     dispatch_two
+//                         .send(InputEvent::Crossterm(event))
+//                         .context("Failed to send Crossterm event")?;
+//                 }
+//             }
 
-            Ok(())
-        });
+//             Ok(())
+//         });
 
-        Self {
-            inner,
-            control,
-            dispatcher: dispatch_one,
-            app_thread: Some(app_thread),
-            key_thread: Some(key_thread),
-        }
-    }
+//         Self {
+//             inner,
+//             control,
+//             dispatcher: dispatch_one,
+//             app_thread: Some(app_thread),
+//             key_thread: Some(key_thread),
+//         }
+//     }
 
-    pub fn iter(self) -> EngineRuntime<Self> {
-        let dispatcher = self.dispatcher.clone();
-        EngineRuntime::new(self).subscribe::<LogEvent>(move |event: &LogEvent| {
-            dispatcher
-                .send(InputEvent::Log(event.0, event.1.clone()))
-                .map_err(|_| eprintln!("Failed to send log event: {:?}", event))
-                .unwrap();
-        })
-    }
-}
+//     pub fn iter(self) -> EngineRuntime<Self> {
+//         let dispatcher = self.dispatcher.clone();
+//         EngineRuntime::new(self).subscribe::<LogEvent>(move |event: &LogEvent| {
+//             dispatcher
+//                 .send(InputEvent::Log(event.0, event.1.clone()))
+//                 .map_err(|_| eprintln!("Failed to send log event: {:?}", event))
+//                 .unwrap();
+//         })
+//     }
+// }
 
-impl<C, T> Engine for TuiEngine<C, T>
-where
-    C: Chromosome + Clone + 'static,
-    T: Clone + Send + Sync + 'static,
-{
-    type Ctx = EvolutionContext<C, T>;
-    type Epoch = Generation<C, T>;
+// impl<C, T> Engine for TuiEngine<C, T>
+// where
+//     C: Chromosome + Clone + 'static,
+//     T: Clone + Send + Sync + 'static,
+// {
+//     type Ctx = EvolutionContext<C, T>;
+//     type Epoch = Generation<C, T>;
 
-    fn context(&self) -> &Self::Ctx {
-        self.inner.context()
-    }
+//     fn context(&self) -> &Self::Ctx {
+//         self.inner.context()
+//     }
 
-    fn epoch(&self) -> Self::Epoch {
-        self.inner.epoch()
-    }
+//     fn epoch(&self) -> Self::Epoch {
+//         self.inner.epoch()
+//     }
 
-    fn state(&self) -> EngineState {
-        self.inner.state()
-    }
+//     fn state(&self) -> EngineState {
+//         self.inner.state()
+//     }
 
-    fn start(&mut self) {
-        self.inner.start();
-    }
+//     fn start(&mut self) {
+//         self.inner.start();
+//     }
 
-    fn stop(&mut self) {
-        self.inner.stop();
-    }
+//     fn stop(&mut self) {
+//         self.inner.stop();
+//     }
 
-    #[inline]
-    fn step(&mut self) -> RadiateResult<()> {
-        self.inner.step()?;
-        let state = self.inner.state();
-        let current = self.inner.context();
+//     #[inline]
+//     fn step(&mut self) -> RadiateResult<()> {
+//         self.inner.step()?;
+//         let state = self.inner.state();
+//         let current = self.inner.context();
 
-        if matches!(state, EngineState::Stopped) {
-            return Ok(());
-        }
+//         if matches!(state, EngineState::Stopped) {
+//             return Ok(());
+//         }
 
-        if current.index() == 1 {
-            self.dispatcher
-                .send(InputEvent::EngineStart(Arc::clone(&current.front())))
-                .unwrap();
-        }
+//         if current.index() == 1 {
+//             self.dispatcher
+//                 .send(InputEvent::EngineStart(Arc::clone(&current.front())))
+//                 .unwrap();
+//         }
 
-        let event = GenerationEvent::from(current);
-        self.dispatcher
-            .send(InputEvent::EpochComplete(event))
-            .unwrap();
+//         let event = GenerationEvent::from(current);
+//         self.dispatcher
+//             .send(InputEvent::EpochComplete(event))
+//             .unwrap();
 
-        Ok(())
-    }
-}
+//         Ok(())
+//     }
+// }
 
-impl<C, T> EngineStream for TuiEngine<C, T>
-where
-    C: Chromosome + Clone + 'static,
-    T: Clone + Send + Sync + 'static,
-{
-    type View<'a>
-        = GenerationView<'a, C, T>
-    where
-        Self: 'a;
+// impl<C, T> EngineStream for TuiEngine<C, T>
+// where
+//     C: Chromosome + Clone + 'static,
+//     T: Clone + Send + Sync + 'static,
+// {
+//     type View<'a>
+//         = GenerationView<'a, C, T>
+//     where
+//         Self: 'a;
 
-    fn run<F>(mut self, limit: F) -> RadiateResult<Self::Epoch>
-    where
-        F: Fn(Self::View<'_>) -> bool + 'static,
-    {
-        loop {
-            self.step()?;
-            if matches!(self.state(), EngineState::Stopped) {
-                break Ok(self.epoch());
-            }
+//     fn run<F>(mut self, limit: F) -> RadiateResult<Self::Epoch>
+//     where
+//         F: Fn(Self::View<'_>) -> bool + 'static,
+//     {
+//         loop {
+//             self.step()?;
+//             if matches!(self.state(), EngineState::Stopped) {
+//                 break Ok(self.epoch());
+//             }
 
-            let current = self.inner.context();
+//             let current = self.inner.context();
 
-            if limit(GenerationView::new(current)) {
-                break Ok(self.epoch());
-            }
-        }
-    }
-}
+//             if limit(GenerationView::new(current)) {
+//                 break Ok(self.epoch());
+//             }
+//         }
+//     }
+// }
 
-impl<C, T> Drop for TuiEngine<C, T>
-where
-    C: Chromosome,
-    T: Clone + Send + Sync + 'static,
-{
-    fn drop(&mut self) {
-        if !self.control.is_stopped() {
-            self.dispatcher.send(InputEvent::EngineStop).unwrap();
-        }
+// impl<C, T> Drop for TuiEngine<C, T>
+// where
+//     C: Chromosome,
+//     T: Clone + Send + Sync + 'static,
+// {
+//     fn drop(&mut self) {
+//         if !self.control.is_stopped() {
+//             self.dispatcher.send(InputEvent::EngineStop).unwrap();
+//         }
 
-        self.control.set_paused(false);
+//         self.control.set_paused(false);
 
-        if let Some(event_listener) = self.app_thread.take()
-            && let Err(e) = event_listener.join()
-        {
-            eprintln!("Error joining app thread: {:?}", e);
-        }
+//         if let Some(event_listener) = self.app_thread.take()
+//             && let Err(e) = event_listener.join()
+//         {
+//             eprintln!("Error joining app thread: {:?}", e);
+//         }
 
-        self.control.stop();
+//         self.control.stop();
 
-        if let Some(key_listener) = self.key_thread.take()
-            && let Err(e) = key_listener.join()
-        {
-            eprintln!("Error joining key listener thread: {:?}", e);
-        }
-    }
-}
+//         if let Some(key_listener) = self.key_thread.take()
+//             && let Err(e) = key_listener.join()
+//         {
+//             eprintln!("Error joining key listener thread: {:?}", e);
+//         }
+//     }
+// }

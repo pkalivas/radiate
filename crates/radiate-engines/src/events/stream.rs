@@ -11,7 +11,7 @@ use std::{
     collections::HashMap,
     fmt::Debug,
     sync::{
-        Arc, RwLock,
+        Arc, RwLock, Weak,
         atomic::{AtomicUsize, Ordering},
     },
 };
@@ -41,27 +41,50 @@ struct Registration {
 type SubscriberList = Arc<Vec<Registration>>;
 type SubscriberMap = HashMap<TypeId, SubscriberList>;
 
+/// The state every clone of an [`EventStream`] shares.
+///
+/// Subscribers only hold a [`Weak`] reference to it. Each registration's
+/// forward closure owns a clone of its [`Subscriber`], so a strong reference
+/// there would form a cycle (stream -> registration -> subscriber -> stream)
+/// and no handler would ever be dropped.
+#[derive(Default)]
+pub(super) struct Shared {
+    subscribers: RwLock<SubscriberMap>,
+    pending: RwLock<Vec<Payload>>,
+    event_count: AtomicUsize,
+}
+
 #[derive(Clone, Default)]
 pub struct EventStream {
     executor: Arc<Executor>,
-    subscribers: Arc<RwLock<SubscriberMap>>,
-    pending: Arc<RwLock<Vec<Payload>>>,
-    event_count: Arc<AtomicUsize>,
+    shared: Arc<Shared>,
 }
 
 impl EventStream {
     pub fn new(executor: Arc<Executor>) -> Self {
         EventStream {
             executor,
-            subscribers: Arc::default(),
-            pending: Arc::default(),
-            event_count: Arc::new(AtomicUsize::new(0)),
+            shared: Arc::default(),
         }
+    }
+
+    /// A weak handle to this stream's shared state, for subscribers to hold.
+    pub(super) fn downgrade(&self) -> Weak<Shared> {
+        Arc::downgrade(&self.shared)
+    }
+
+    /// Rebuild a stream from a subscriber's weak handle, if the stream is
+    /// still alive.
+    pub(super) fn upgrade(executor: &Arc<Executor>, shared: &Weak<Shared>) -> Option<Self> {
+        shared.upgrade().map(|shared| EventStream {
+            executor: Arc::clone(executor),
+            shared,
+        })
     }
 
     /// A snapshot of every live subscription on this stream.
     pub fn stats(&self) -> StreamStats {
-        let subscribers = self.subscribers.read().unwrap();
+        let subscribers = self.shared.subscribers.read().unwrap();
         let info = subscribers
             .values()
             .flat_map(|group| group.iter())
@@ -75,7 +98,7 @@ impl EventStream {
             .collect();
 
         StreamStats {
-            event_count: self.event_count.load(Ordering::SeqCst),
+            event_count: self.shared.event_count.load(Ordering::SeqCst),
             subscribers: info,
         }
     }
@@ -85,18 +108,19 @@ impl EventStream {
     }
 
     pub fn attach<H: EventHandler>(&self, handler: H) -> RadiateResult<Subscriber<H>> {
-        let subscriber = Subscriber::new(handler, Arc::clone(&self.executor), self.clone());
+        let subscriber = Subscriber::new(handler, Arc::clone(&self.executor), self);
         subscriber.start()?;
         Ok(subscriber)
     }
 
     pub fn subscribe<E: Event>(&self, handler: impl Handler<E>) -> Subscription {
-        let subscriber = Subscriber::new(handler, Arc::clone(&self.executor), self.clone());
+        let subscriber = Subscriber::new(handler, Arc::clone(&self.executor), self);
         self.subscribe_existing::<E, _>(&subscriber)
     }
 
     pub fn defer<E: Event>(&self, event: E) {
-        self.pending
+        self.shared
+            .pending
             .write()
             .unwrap()
             .push(Arc::new(DeferredEvent(event)));
@@ -111,7 +135,14 @@ impl EventStream {
     #[inline]
     pub(crate) fn publish_traced<E: Event>(&self, event: E, trace: Trace) {
         let type_id = TypeId::of::<E>();
-        let Some(group) = self.subscribers.read().unwrap().get(&type_id).cloned() else {
+        let Some(group) = self
+            .shared
+            .subscribers
+            .read()
+            .unwrap()
+            .get(&type_id)
+            .cloned()
+        else {
             return;
         };
 
@@ -124,7 +155,14 @@ impl EventStream {
 
     pub fn lazy_publish<E: Event>(&self, f: impl FnOnce() -> E) -> RadiateResult<()> {
         let type_id = TypeId::of::<E>();
-        let Some(group) = self.subscribers.read().unwrap().get(&type_id).cloned() else {
+        let Some(group) = self
+            .shared
+            .subscribers
+            .read()
+            .unwrap()
+            .get(&type_id)
+            .cloned()
+        else {
             return Ok(());
         };
 
@@ -159,7 +197,7 @@ impl EventStream {
     /// Don't call this from inside a handler running on the stream's worker
     /// pool. It would wait on work that may need that same pool to finish.
     pub fn flush(&self) {
-        let deferred = std::mem::take(&mut *self.pending.write().unwrap());
+        let deferred = std::mem::take(&mut *self.shared.pending.write().unwrap());
         if deferred.is_empty() {
             return;
         }
@@ -167,7 +205,14 @@ impl EventStream {
         let scope = WaitGroup::new();
         for payload in deferred {
             let type_id = (*payload).type_id();
-            let Some(group) = self.subscribers.read().unwrap().get(&type_id).cloned() else {
+            let Some(group) = self
+                .shared
+                .subscribers
+                .read()
+                .unwrap()
+                .get(&type_id)
+                .cloned()
+            else {
                 continue;
             };
 
@@ -182,7 +227,7 @@ impl EventStream {
     }
 
     pub fn unsubscribe(&self, id: SubscriptionId) {
-        let mut subscribers = self.subscribers.write().unwrap();
+        let mut subscribers = self.shared.subscribers.write().unwrap();
         for group in subscribers.values_mut() {
             Arc::make_mut(group).retain(|registration| registration.subscription.id() != id);
         }
@@ -213,7 +258,7 @@ impl EventStream {
             event: std::any::type_name::<E>(),
         };
 
-        let mut subscribers = self.subscribers.write().unwrap();
+        let mut subscribers = self.shared.subscribers.write().unwrap();
         let type_id = TypeId::of::<E>();
         let list = subscribers
             .entry(type_id)
@@ -241,7 +286,7 @@ impl EventStream {
             (registration.forward)(payload.clone());
         }
 
-        self.event_count.fetch_add(1, Ordering::SeqCst);
+        self.shared.event_count.fetch_add(1, Ordering::SeqCst);
     }
 }
 
@@ -250,7 +295,7 @@ impl Debug for EventStream {
         write!(
             f,
             "EventStream(subscribers={}, executor={:?})",
-            self.subscribers.read().unwrap().len(),
+            self.shared.subscribers.read().unwrap().len(),
             self.executor,
         )
     }

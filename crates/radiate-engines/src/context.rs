@@ -52,7 +52,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.sync.wait()
     }
 
-    pub fn get_or_create_sync(&mut self) -> ThreadSync {
+    pub fn get_or_create_sync(&self) -> ThreadSync {
         self.sync.clone()
     }
 

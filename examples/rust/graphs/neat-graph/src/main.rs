@@ -16,7 +16,7 @@ fn main() -> RadiateResult<()> {
         Output => Op::sum()
     };
 
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(in_dim, out_dim, store)?)
         .fitness_fn(Regression::new(data.clone(), Loss::MSE))
         .minimizing()
@@ -29,15 +29,17 @@ fn main() -> RadiateResult<()> {
         ))
         .build();
 
-    let control = engine.control();
-    let handle = TuiHandle::<GraphChromosome<Op<f32>>, Graph<Op<f32>>>::new(control);
+    let result = engine.iter().ui().logging().until_score(MIN_SCORE).last()?;
 
-    let result = engine
-        .iter()
-        .attach(handle)
-        // .logging()
-        .until_score(MIN_SCORE)
-        .last()?;
+    // let control = engine.control();
+    // let handle = TuiHandle::<GraphChromosome<Op<f32>>, Graph<Op<f32>>>::new(control);
+
+    // let result = engine
+    //     .iter()
+    //     .attach(handle)
+    //     // .logging()
+    //     .until_score(MIN_SCORE)
+    //     .last()?;
 
     display(&data, &result);
 

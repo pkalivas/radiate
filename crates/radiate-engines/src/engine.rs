@@ -102,7 +102,7 @@ where
     /// The control interface allows for pausing, resuming, and stopping the engine's execution
     /// from external contexts. If the control interface has not been initialized yet, this method
     /// will create a new instance.
-    pub fn control(&mut self) -> ThreadSync {
+    pub fn control(&self) -> ThreadSync {
         self.context.get_or_create_sync()
     }
 

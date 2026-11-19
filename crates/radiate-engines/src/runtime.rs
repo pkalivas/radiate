@@ -3,9 +3,9 @@ use crate::{
     events::{EngineLogger, Event, GenerationSnapshot, HealthMonitor, LoggingHandler},
 };
 use crate::{generation::GenerationView, init_logging};
-use radiate_core::Expr;
 use radiate_core::error::{RadiateResult, Result};
 use radiate_core::{Chromosome, EngineState, Score};
+use radiate_core::{Expr, ThreadSync};
 use std::collections::VecDeque;
 use std::time::Duration;
 
@@ -74,6 +74,10 @@ where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
+    pub fn control(&self) -> ThreadSync {
+        self.engine.context().get_or_create_sync()
+    }
+
     /// Generic helper function to optionally chain an action based on a condition.
     /// If the condition is true, the provided action function will be executed with the current
     /// runtime instance as its argument. Else, if the condition is false, the runtime instance

@@ -1,8 +1,9 @@
+use crate::events::stream::Shared;
 use crate::events::subscription::Counters;
 use crate::events::{EventStream, Subscription, SubscriptionId};
 use radiate_core::{Executor, WaitGuard, error::RadiateResult};
 use radiate_utils::sentry_id;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, Weak};
 
 sentry_id!(EventId);
 
@@ -81,10 +82,12 @@ impl<H> EventContext<'_, H> {
     /// Publish an event as part of the chain currently being handled. If that
     /// chain is being waited on (for example by [`EventStream::flush`]), the wait
     /// also covers this event and everything it causes.
+    ///
+    /// Does nothing if the stream has already been dropped.
     pub fn publish<E: Event>(&self, event: E) {
-        self.subscriber
-            .stream
-            .publish_traced(event, self.trace.clone());
+        if let Some(stream) = self.subscriber.stream() {
+            stream.publish_traced(event, self.trace.clone());
+        }
     }
 
     /// The id of the event that started the chain this handler is running in.
@@ -104,28 +107,46 @@ impl<H> EventContext<'_, H> {
 pub struct Subscriber<H> {
     handler: Arc<Mutex<H>>,
     executor: Arc<Executor>,
-    stream: EventStream,
+    stream: Weak<Shared>,
+}
+
+impl<H> Subscriber<H> {
+    /// The stream this subscriber belongs to, if it's still alive.
+    fn stream(&self) -> Option<EventStream> {
+        EventStream::upgrade(&self.executor, &self.stream)
+    }
 }
 
 impl<H: Send + 'static> Subscriber<H> {
-    pub(super) fn new(handler: H, executor: Arc<Executor>, stream: EventStream) -> Self {
+    pub(super) fn new(handler: H, executor: Arc<Executor>, stream: &EventStream) -> Self {
         Subscriber {
             handler: Arc::new(Mutex::new(handler)),
             executor,
-            stream,
+            stream: stream.downgrade(),
         }
     }
 
+    /// Subscribe this handler to `E`. If the stream has already been dropped,
+    /// the returned subscription is inactive.
     pub fn subscribe<E>(&self) -> Subscription
     where
         E: Event,
         H: Handler<E>,
     {
-        self.stream.subscribe_existing::<E, H>(self)
+        match self.stream() {
+            Some(stream) => stream.subscribe_existing::<E, H>(self),
+            None => {
+                let subscription = Subscription::new();
+                subscription.unsubscribe();
+                subscription
+            }
+        }
     }
 
     pub fn unsubscribe(&self, id: SubscriptionId) {
-        self.stream.unsubscribe(id);
+        if let Some(stream) = self.stream() {
+            stream.unsubscribe(id);
+        }
     }
 
     pub(super) fn start(&self) -> RadiateResult<()>
@@ -176,7 +197,7 @@ impl<H> Clone for Subscriber<H> {
         Subscriber {
             handler: Arc::clone(&self.handler),
             executor: Arc::clone(&self.executor),
-            stream: self.stream.clone(),
+            stream: Weak::clone(&self.stream),
         }
     }
 }
