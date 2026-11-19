@@ -6,6 +6,7 @@ mod styles;
 mod widgets;
 
 use crate::runtime::TuiEngine;
+pub use crate::runtime::TuiHandle;
 use radiate_engines::{Chromosome, GeneticEngine, disable_logging};
 use std::fmt::Debug;
 use std::time::Duration;

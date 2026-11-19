@@ -10,8 +10,17 @@ use std::{
     any::{Any, TypeId},
     collections::HashMap,
     fmt::Debug,
-    sync::{Arc, RwLock},
+    sync::{
+        Arc, RwLock,
+        atomic::{AtomicUsize, Ordering},
+    },
 };
+
+#[derive(Clone, Debug)]
+pub struct StreamStats {
+    pub event_count: usize,
+    pub subscribers: Vec<SubscriptionInfo>,
+}
 
 type Payload = Arc<dyn Any + Send + Sync>;
 type Forward = Arc<dyn Fn(PayloadWrapper) + Send + Sync>;
@@ -37,6 +46,7 @@ pub struct EventStream {
     executor: Arc<Executor>,
     subscribers: Arc<RwLock<SubscriberMap>>,
     pending: Arc<RwLock<Vec<Payload>>>,
+    event_count: Arc<AtomicUsize>,
 }
 
 impl EventStream {
@@ -45,13 +55,14 @@ impl EventStream {
             executor,
             subscribers: Arc::default(),
             pending: Arc::default(),
+            event_count: Arc::new(AtomicUsize::new(0)),
         }
     }
 
     /// A snapshot of every live subscription on this stream.
-    pub fn stats(&self) -> Vec<SubscriptionInfo> {
+    pub fn stats(&self) -> StreamStats {
         let subscribers = self.subscribers.read().unwrap();
-        subscribers
+        let info = subscribers
             .values()
             .flat_map(|group| group.iter())
             .filter(|registration| registration.subscription.is_alive())
@@ -61,7 +72,12 @@ impl EventStream {
                 event: registration.event,
                 stats: registration.subscription.stats(),
             })
-            .collect()
+            .collect();
+
+        StreamStats {
+            event_count: self.event_count.load(Ordering::SeqCst),
+            subscribers: info,
+        }
     }
 
     pub fn set_executor(&mut self, executor: Arc<Executor>) {
@@ -224,6 +240,8 @@ impl EventStream {
             registration.subscription.counters.record_delivered();
             (registration.forward)(payload.clone());
         }
+
+        self.event_count.fetch_add(1, Ordering::SeqCst);
     }
 }
 

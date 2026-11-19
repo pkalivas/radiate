@@ -188,14 +188,12 @@ where
     fn start(&mut self) {
         self.stream.flush();
         self.context.set_running();
-        self.stream.publish(EngineStart);
+        self.stream.publish(EngineStart::from(&self.context));
     }
 
     fn stop(&mut self) {
         self.context.set_stopped();
         self.stream.publish(EngineStop::from(&self.context));
-
-        println!("{:#?}", &self.stream.stats());
     }
 
     #[inline]

@@ -4,8 +4,8 @@ use color_eyre::Result;
 use crossbeam::channel;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use radiate_engines::{
-    Chromosome, CommandChannel, Ecosystem, EvolutionContext, Front, MetricSet, Phenotype, Score,
-    ThreadSync, events::LogLevel,
+    Chromosome, CommandChannel, Ecosystem, EvolutionContext, Front, GenerationSnapshot, MetricSet,
+    Phenotype, Score, ThreadSync, events::LogLevel,
 };
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -41,6 +41,21 @@ where
             metrics: context.metrics().clone(),
             score: context.score().cloned().unwrap_or_default(),
             ecosystem: context.ecosystem().clone(),
+        }
+    }
+}
+
+impl<C, T> From<&GenerationSnapshot<C, T>> for GenerationEvent<C>
+where
+    C: Chromosome + Clone,
+    T: Clone + Send + Sync + 'static,
+{
+    fn from(snapshot: &GenerationSnapshot<C, T>) -> Self {
+        Self {
+            index: snapshot.generation.index(),
+            metrics: snapshot.generation.metrics().clone(),
+            score: snapshot.generation.score().clone(),
+            ecosystem: snapshot.generation.ecosystem().clone(),
         }
     }
 }

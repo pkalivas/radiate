@@ -56,8 +56,8 @@ impl Debug for PySubscriber {
     }
 }
 
-impl Handler<EngineStart> for PySubscriber {
-    fn handle(&mut self, _: &EngineStart, _: &EventContext<'_, Self>) {
+impl<C: Chromosome + 'static> Handler<EngineStart<C>> for PySubscriber {
+    fn handle(&mut self, _: &EngineStart<C>, _: &EventContext<'_, Self>) {
         Python::attach(|py| {
             let rd = radiate(py).bind(py);
             let py_event = rd
@@ -342,7 +342,7 @@ where
             builder = if equals_or_all(&event_type, event_name) {
                 match event_name {
                     event_types::START_EVENT => {
-                        builder.subscribe::<EngineStart>(subscriber.clone())
+                        builder.subscribe::<EngineStart<C>>(subscriber.clone())
                     }
                     event_types::STOP_EVENT => {
                         builder.subscribe::<EngineStop<T>>(subscriber.clone())

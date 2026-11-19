@@ -299,21 +299,29 @@ mod event_stream_tests {
         stream.publish(Add(2));
 
         let report = stream.stats();
-        assert_eq!(report.len(), 2);
+        assert_eq!(report.subscribers.len(), 2);
 
-        let ping_info = report.iter().find(|info| info.id == pings.id()).unwrap();
+        let ping_info = report
+            .subscribers
+            .iter()
+            .find(|info| info.id == pings.id())
+            .unwrap();
         assert_eq!(ping_info.name.as_ref().map(|n| n.as_str()), Some("pings"));
         assert!(ping_info.event.ends_with("Ping"));
         assert_eq!(ping_info.stats.delivered, 1);
 
-        let add_info = report.iter().find(|info| info.id == adds.id()).unwrap();
+        let add_info = report
+            .subscribers
+            .iter()
+            .find(|info| info.id == adds.id())
+            .unwrap();
         assert_eq!(add_info.name, None);
         assert_eq!(add_info.stats.delivered, 2);
 
         adds.unsubscribe();
         let report = stream.stats();
-        assert_eq!(report.len(), 1);
-        assert_eq!(report[0].id, pings.id());
+        assert_eq!(report.subscribers.len(), 1);
+        assert_eq!(report.subscribers[0].id, pings.id());
     }
 
     // --- the explicit design choice: panics propagate, they aren't isolated ---
@@ -519,7 +527,10 @@ mod trace_tests {
     struct Relay;
 
     impl EventHandler for Relay {
-        fn start(&mut self, ctx: &EventContext<'_, Self>) -> radiate_core::error::RadiateResult<()> {
+        fn start(
+            &mut self,
+            ctx: &EventContext<'_, Self>,
+        ) -> radiate_core::error::RadiateResult<()> {
             ctx.subscribe::<DeferredEvent<Ping>>();
             Ok(())
         }
@@ -639,7 +650,13 @@ mod trace_tests {
         let chained_pong = rx.recv_timeout(GENEROUS).unwrap();
         let plain_pong = rx.recv_timeout(GENEROUS).unwrap();
 
-        assert_eq!(ping, chained_pong, "a Pong published by the Ping handler joins its chain");
-        assert_ne!(chained_pong, plain_pong, "a plain publish starts a new chain");
+        assert_eq!(
+            ping, chained_pong,
+            "a Pong published by the Ping handler joins its chain"
+        );
+        assert_ne!(
+            chained_pong, plain_pong,
+            "a plain publish starts a new chain"
+        );
     }
 }

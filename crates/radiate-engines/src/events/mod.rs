@@ -10,13 +10,10 @@ pub use handlers::{
     EngineLogger, HealthMonitor, LifecycleHandler, LogEvent, LogLevel, LoggingHandler,
 };
 pub use messages::{
-    BuilderEvent, CheckpointSaved, DeferredEvent, EngineStart, EngineStateChange, EngineStop, EpochComplete,
-    EpochStart, GenerationSnapshot, Improvement, LimitTriggered, Warning,
+    BuilderEvent, CheckpointSaved, DeferredEvent, EngineStart, EngineStateChange, EngineStop,
+    EpochComplete, EpochStart, GenerationSnapshot, Improvement, LimitTriggered, StreamSnapshot,
+    Warning,
 };
-pub use stream::EventStream;
+pub use stream::{EventStream, StreamStats};
 pub use subscriber::{Event, EventContext, EventHandler, EventId, Handler, Subscriber};
 pub use subscription::{Subscription, SubscriptionId, SubscriptionInfo, SubscriptionStats};
-
-pub trait Publish<T> {
-    fn publish(&self, event: T);
-}

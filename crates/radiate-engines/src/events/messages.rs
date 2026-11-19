@@ -1,9 +1,25 @@
-use crate::{Generation, Limit, context::EvolutionContext};
-use radiate_core::{Chromosome, EngineState, MetricSet, Objective, Score};
-use std::{fmt::Debug, sync::Arc};
+use crate::{Generation, Limit, StreamStats, context::EvolutionContext};
+use radiate_core::{Chromosome, EngineState, Front, MetricSet, Objective, Phenotype, Score};
+use std::{
+    fmt::Debug,
+    sync::{Arc, RwLock},
+};
 
 #[derive(Clone, Debug)]
 pub struct DeferredEvent<E>(pub E);
+
+#[derive(Clone, Debug)]
+pub struct StreamSnapshot(pub StreamStats);
+
+impl<C, T> From<&EvolutionContext<C, T>> for StreamSnapshot
+where
+    C: Chromosome,
+    T: Clone,
+{
+    fn from(ctx: &EvolutionContext<C, T>) -> Self {
+        StreamSnapshot(ctx.event_stream().stats())
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct BuilderEvent(pub String);
@@ -102,8 +118,27 @@ impl<T> Debug for EpochComplete<T> {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct EngineStart;
+#[derive(Clone)]
+pub struct EngineStart<C: Chromosome> {
+    pub front: Arc<RwLock<Front<Phenotype<C>>>>,
+}
+
+impl<C: Chromosome, T> From<&EvolutionContext<C, T>> for EngineStart<C>
+where
+    T: Clone,
+{
+    fn from(ctx: &EvolutionContext<C, T>) -> Self {
+        EngineStart {
+            front: Arc::clone(&ctx.front()),
+        }
+    }
+}
+
+impl<C: Chromosome> Debug for EngineStart<C> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "EngineStart")
+    }
+}
 
 #[derive(Clone)]
 pub struct EngineStop<T> {
