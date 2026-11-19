@@ -69,6 +69,7 @@ pub struct Subscription {
     pub(crate) schedule: Arc<RwLock<Option<Expr>>>,
     pub(crate) permits: Arc<AtomicUsize>,
     pub(crate) alive: Arc<AtomicBool>,
+    pub(crate) is_scheduled: Arc<AtomicBool>,
     pub(crate) counters: Arc<Counters>,
 }
 
@@ -80,6 +81,7 @@ impl Subscription {
             schedule: Arc::new(RwLock::new(None)),
             permits: Arc::new(AtomicUsize::new(0)),
             alive: Arc::new(AtomicBool::new(true)),
+            is_scheduled: Arc::new(AtomicBool::new(false)),
             counters: Arc::new(Counters::default()),
         }
     }
@@ -119,6 +121,7 @@ impl Subscription {
         match maybe_expr.clone().into_schedule() {
             Some(expr) => {
                 *self.schedule.write().unwrap() = Some(expr);
+                self.is_scheduled.store(true, Ordering::Release);
                 Ok(true)
             }
             _ => {

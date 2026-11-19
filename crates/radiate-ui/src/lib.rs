@@ -5,7 +5,7 @@ mod state;
 mod styles;
 mod widgets;
 
-pub use crate::runtime::TuiHandle;
+pub use crate::runtime::EngineTui;
 use radiate_engines::{Chromosome, Engine, EngineRuntime, GeneticEngine, LogEvent};
 use std::fmt::Debug;
 use std::time::Duration;
@@ -25,7 +25,7 @@ where
         let context = self.context();
         let control = context.get_or_create_sync();
 
-        let handle = TuiHandle::<C, T>::new(control);
+        let handle = EngineTui::<C, T>::new(control);
 
         self.attach(handle).logging()
     }
@@ -50,7 +50,7 @@ where
         stream.unsubscribe(handler.id);
     }
 
-    let handle = TuiHandle::<C, T>::new(control);
+    let handle = EngineTui::<C, T>::new(control);
 
     stream.attach(handle).unwrap();
 

@@ -191,6 +191,7 @@ impl EventStream {
             payload: Arc::new(event),
             trace,
         };
+
         self.dispatch(&group, wrapper, false);
     }
 

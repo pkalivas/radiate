@@ -29,7 +29,12 @@ fn main() -> RadiateResult<()> {
         ))
         .build();
 
-    let result = engine.iter().ui().until_score(MIN_SCORE).last()?;
+    let result = engine
+        .iter()
+        .ui()
+        .pause_every(12)
+        .until_score(MIN_SCORE)
+        .last()?;
 
     // let control = engine.control();
     // let handle = TuiHandle::<GraphChromosome<Op<f32>>, Graph<Op<f32>>>::new(control);

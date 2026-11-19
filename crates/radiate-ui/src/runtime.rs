@@ -13,7 +13,7 @@ use std::{fmt::Debug, sync::atomic::Ordering, time::Duration};
 
 const KEY_REPEAT_DELAY: Duration = Duration::from_millis(100);
 
-pub struct TuiHandle<C, T>
+pub struct EngineTui<C, T>
 where
     C: Chromosome,
     T: Clone + Send + Sync + 'static,
@@ -25,7 +25,7 @@ where
     _marker: std::marker::PhantomData<T>,
 }
 
-impl<C, T> TuiHandle<C, T>
+impl<C, T> EngineTui<C, T>
 where
     C: Chromosome + Debug + Clone + 'static,
     T: Clone + Send + Sync + 'static,
@@ -66,7 +66,7 @@ where
     }
 }
 
-impl<C, T> EventHandler for TuiHandle<C, T>
+impl<C, T> EventHandler for EngineTui<C, T>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
@@ -80,7 +80,7 @@ where
     }
 }
 
-impl<C, T> Handler<EngineStart<C>> for TuiHandle<C, T>
+impl<C, T> Handler<EngineStart<C>> for EngineTui<C, T>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
@@ -93,7 +93,7 @@ where
     }
 }
 
-impl<C, T> Handler<GenerationSnapshot<C, T>> for TuiHandle<C, T>
+impl<C, T> Handler<GenerationSnapshot<C, T>> for EngineTui<C, T>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
@@ -106,7 +106,7 @@ where
     }
 }
 
-impl<C, T> Handler<LogEvent> for TuiHandle<C, T>
+impl<C, T> Handler<LogEvent> for EngineTui<C, T>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
@@ -119,7 +119,7 @@ where
     }
 }
 
-impl<C, T> Drop for TuiHandle<C, T>
+impl<C, T> Drop for EngineTui<C, T>
 where
     C: Chromosome,
     T: Clone + Send + Sync + 'static,
