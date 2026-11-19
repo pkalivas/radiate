@@ -150,6 +150,20 @@ impl Subscription {
         Ok(true)
     }
 
+    /// For eager publishes: advance the schedule and say whether this event is due.
+    pub(super) fn is_due(&self) -> bool {
+        if !self.is_alive() {
+            return false;
+        }
+
+        // Same as lazy_publish: an expression that fails to evaluate counts as not due.
+        let due = self.try_schedule().unwrap_or(false);
+        if !due {
+            self.counters.record_skipped();
+        }
+        due
+    }
+
     pub(super) fn take_permit(&self) -> bool {
         let mut current = self.permits.load(Ordering::Acquire);
 
@@ -171,6 +185,10 @@ impl Subscription {
     }
 
     fn try_schedule(&self) -> RadiateResult<bool> {
+        if !self.is_scheduled.load(Ordering::Acquire) {
+            return Ok(true); // fast path: no lock, no expression
+        }
+
         let mut guard = self.schedule.write().unwrap();
         if let Some(expr) = &mut *guard {
             return expr

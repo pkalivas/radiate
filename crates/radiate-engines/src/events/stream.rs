@@ -310,7 +310,13 @@ impl EventStream {
                 continue;
             }
 
-            if scheduled && !registration.subscription.take_permit() {
+            let due = if scheduled {
+                registration.subscription.take_permit() // lazy: already reserved
+            } else {
+                registration.subscription.is_due() // eager: tick now
+            };
+
+            if !due {
                 continue;
             }
 

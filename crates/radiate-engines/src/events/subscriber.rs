@@ -1,7 +1,7 @@
 use crate::events::stream::Shared;
 use crate::events::subscription::Counters;
 use crate::events::{EventStream, Subscription, SubscriptionId};
-use radiate_core::{Executor, WaitGuard, error::RadiateResult};
+use radiate_core::{Executor, SmallStr, WaitGuard, error::RadiateResult};
 use radiate_utils::sentry_id;
 use std::sync::{Arc, Mutex, Weak};
 
@@ -55,6 +55,11 @@ pub trait Handler<E: Event>: Send + 'static {
 }
 
 pub trait EventHandler: Send + 'static {
+    fn name(&self) -> SmallStr {
+        let type_name = std::any::type_name::<Self>();
+        SmallStr::from(type_name)
+    }
+
     fn start(&mut self, _ctx: &EventContext<'_, Self>) -> RadiateResult<()>
     where
         Self: Sized,

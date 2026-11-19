@@ -4,9 +4,10 @@ use crate::{
 };
 use crate::{LimitTriggered, events::EpochComplete};
 use radiate_core::Objective;
-use radiate_core::error::RadiateResult;
+use radiate_core::{SmallStr, error::RadiateResult};
 use std::marker::PhantomData;
 
+const HANDLER_NAME: SmallStr = SmallStr::from_static("engine.logger");
 const LIMIT_TRIGGERED_SUBSCRIPTION_NAME: &str = "EngineLoggerLimitTriggered";
 const CHECKPOINT_SAVED_SUBSCRIPTION_NAME: &str = "EngineLoggerCheckpointSaved";
 const EPOCH_COMPLETE_SUBSCRIPTION_NAME: &str = "EngineLoggerEpochComplete";
@@ -35,6 +36,10 @@ impl<T> EventHandler for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
+    fn name(&self) -> SmallStr {
+        HANDLER_NAME
+    }
+
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
         ctx.subscribe::<LimitTriggered>()
             .named(LIMIT_TRIGGERED_SUBSCRIPTION_NAME);
@@ -151,6 +156,10 @@ impl LoggingHandler {
 }
 
 impl EventHandler for LoggingHandler {
+    fn name(&self) -> SmallStr {
+        HANDLER_NAME
+    }
+
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
         ctx.subscribe::<LogEvent>();
         Ok(())
