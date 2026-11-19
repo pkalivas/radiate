@@ -1,7 +1,10 @@
 #[cfg(test)]
 mod event_stream_tests {
     use radiate_core::{Executor, error::RadiateResult};
-    use radiate_engines::events::{EventContext, EventHandler, EventStream, Handler};
+    use radiate_engines::{
+        Event,
+        events::{EventContext, EventHandler, EventStream, Handler},
+    };
     use std::sync::Arc;
     use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -10,6 +13,8 @@ mod event_stream_tests {
     }
 
     struct Add(usize);
+
+    impl Event for Add {}
 
     struct Counter {
         total: Arc<AtomicUsize>,
@@ -91,6 +96,8 @@ mod event_stream_tests {
     #[derive(Clone, Debug)]
     struct Doubled(usize);
 
+    impl Event for Doubled {}
+
     struct Doubler;
 
     impl Handler<Add> for Doubler {
@@ -123,8 +130,12 @@ mod event_stream_tests {
     #[allow(dead_code)]
     struct Ping(u32);
 
+    impl Event for Ping {}
+
     #[allow(dead_code)]
     struct Pong(u32);
+
+    impl Event for Pong {}
 
     struct Both {
         pings: Arc<AtomicUsize>,
@@ -523,6 +534,9 @@ mod trace_tests {
     struct Ping;
     struct Pong;
 
+    impl Event for Ping {}
+    impl Event for Pong {}
+
     /// Turns each deferred Ping into a Pong, published through the handler's context.
     struct Relay;
 
@@ -592,6 +606,7 @@ mod trace_tests {
     #[test]
     fn flush_does_not_wait_on_plain_publishes() {
         struct Block;
+        impl Event for Block {}
 
         let stream = EventStream::from(Executor::FixedSizedWorkerPool(4));
         stream.attach(Relay).unwrap();

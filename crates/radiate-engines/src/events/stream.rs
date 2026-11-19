@@ -2,13 +2,16 @@ use crate::{
     EventHandler,
     events::{
         Event, Handler, Subscriber, Subscription, SubscriptionId, SubscriptionInfo,
-        messages::DeferredEvent, subscriber::Trace,
+        messages::{DeferredEvent, SubscriptionEvent},
+        subscriber::Trace,
     },
 };
-use radiate_core::{Executor, WaitGroup, error::RadiateResult};
+use radiate_core::{Executor, SmallStr, WaitGroup, error::RadiateResult};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::{
     any::{Any, TypeId},
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fmt::Debug,
     sync::{
         Arc, RwLock, Weak,
@@ -17,6 +20,7 @@ use std::{
 };
 
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct StreamStats {
     pub event_count: usize,
     pub subscribers: Vec<SubscriptionInfo>,
@@ -37,6 +41,17 @@ struct Registration {
     subscription: Subscription,
     event: &'static str,
     handler: TypeId,
+}
+
+impl Registration {
+    fn subscription_info(&self) -> SubscriptionInfo {
+        SubscriptionInfo {
+            id: self.subscription.id(),
+            name: self.subscription.name(),
+            event: SmallStr::from_static(self.event),
+            stats: self.subscription.stats(),
+        }
+    }
 }
 
 type SubscriberList = Arc<Vec<Registration>>;
@@ -84,12 +99,7 @@ impl EventStream {
         group
             .iter()
             .filter(|registration| registration.subscription.is_alive())
-            .map(|registration| SubscriptionInfo {
-                id: registration.subscription.id(),
-                name: registration.subscription.name(),
-                event: registration.event,
-                stats: registration.subscription.stats(),
-            })
+            .map(|registration| registration.subscription_info())
             .collect()
     }
 
@@ -119,12 +129,7 @@ impl EventStream {
             .values()
             .flat_map(|group| group.iter())
             .filter(|registration| registration.subscription.is_alive())
-            .map(|registration| SubscriptionInfo {
-                id: registration.subscription.id(),
-                name: registration.subscription.name(),
-                event: registration.event,
-                stats: registration.subscription.stats(),
-            })
+            .map(|registration| registration.subscription_info())
             .collect();
 
         StreamStats {
@@ -145,10 +150,22 @@ impl EventStream {
         let handler = TypeId::of::<H>();
         let mut subscribers = self.shared.subscribers.write().unwrap();
         let mut removed = false;
+        let mut removed_stats = Vec::new();
         for group in subscribers.values_mut() {
             let before = group.len();
-            Arc::make_mut(group).retain(|r| r.handler != handler);
+
+            Arc::make_mut(group).retain(|r| {
+                if r.handler == handler && r.subscription.is_alive() {
+                    removed_stats.push(r.subscription_info());
+                    false
+                } else {
+                    true
+                }
+            });
             removed |= group.len() != before;
+        }
+        for stats in removed_stats.drain(..) {
+            self.defer(SubscriptionEvent::Removed(stats));
         }
         subscribers.retain(|_, group| !group.is_empty());
         removed
@@ -162,7 +179,22 @@ impl EventStream {
     pub fn unsubscribe(&self, id: SubscriptionId) {
         let mut subscribers = self.shared.subscribers.write().unwrap();
         for group in subscribers.values_mut() {
-            Arc::make_mut(group).retain(|registration| registration.subscription.id() != id);
+            let to_remove = group
+                .iter()
+                .filter(|registration| registration.subscription.id() == id)
+                .map(|registration| registration.subscription_info())
+                .collect::<Vec<_>>();
+
+            let removed_ids = to_remove.iter().map(|info| info.id).collect::<HashSet<_>>();
+
+            Arc::make_mut(group)
+                .retain(|registration| !removed_ids.contains(&registration.subscription.id()));
+
+            if !to_remove.is_empty() {
+                for stats in to_remove {
+                    self.defer(SubscriptionEvent::Removed(stats));
+                }
+            }
         }
     }
 
@@ -299,6 +331,8 @@ impl EventStream {
 
         list.retain(|registration| registration.subscription.is_alive());
         list.push(registration);
+
+        self.defer(SubscriptionEvent::Added(subscription.clone()));
 
         subscription
     }

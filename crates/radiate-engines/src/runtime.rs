@@ -136,7 +136,7 @@ where
             "pause_every interval must be greater than zero"
         );
         let guarded_interval = interval.max(1);
-        let control = self.engine.context().get_or_create_sync();
+        let control = self.engine.context().sync();
 
         self.engine
             .context()

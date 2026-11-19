@@ -9,7 +9,6 @@ use radiate_engines::{
     error::RadiateResult, sync::IntoPair,
 };
 use radiate_engines::{LogEvent, ThreadSync};
-use radiate_utils::SmallStr;
 use std::{fmt::Debug, sync::atomic::Ordering, time::Duration};
 
 const KEY_REPEAT_DELAY: Duration = Duration::from_millis(100);
@@ -72,10 +71,6 @@ where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
-    fn name(&self) -> SmallStr {
-        SmallStr::from("engine.tui")
-    }
-
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
         ctx.subscribe::<EngineStart<C>>();
         ctx.subscribe::<GenerationSnapshot<C, T>>();

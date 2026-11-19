@@ -3,16 +3,16 @@ use crate::{
     Handler,
     events::{EventContext, EventHandler, Warning},
 };
+use radiate_core::Objective;
 use radiate_core::error::RadiateResult;
-use radiate_core::{Objective, SmallStr};
+use radiate_utils::generate_metric_key;
 use std::marker::PhantomData;
 
 const STAGNATION_WARNING_THRESHOLD: usize = 500;
 const DIVERSITY_WARNING_THRESHOLD: f32 = 0.1;
 const LARGEST_SPECIES_SHARE_WARNING_THRESHOLD: f32 = 0.9;
 
-const STAGNATION_SUBSCRIPTION_NAME: &str = "HealthMonitorHandler";
-const HANDLER_NAME: SmallStr = SmallStr::from_static("health.monitor");
+const STAGNATION_SUBSCRIPTION_NAME: &str = "handler.health";
 
 pub struct HealthMonitor<T> {
     _marker: PhantomData<T>,
@@ -30,13 +30,11 @@ impl<T> EventHandler for HealthMonitor<T>
 where
     T: Send + Sync + 'static,
 {
-    fn name(&self) -> SmallStr {
-        HANDLER_NAME
-    }
-
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
         ctx.subscribe::<EpochComplete<T>>()
-            .named(STAGNATION_SUBSCRIPTION_NAME);
+            .named(generate_metric_key::<EpochComplete<T>>(
+                STAGNATION_SUBSCRIPTION_NAME,
+            ));
         Ok(())
     }
 }

@@ -52,7 +52,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.sync.wait()
     }
 
-    pub fn get_or_create_sync(&self) -> ThreadSync {
+    pub fn sync(&self) -> ThreadSync {
         self.sync.clone()
     }
 
@@ -98,6 +98,8 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
             self.score = best.score().cloned();
             self.best = self.problem.decode(best.genotype());
         }
+
+        self.event_stream().flush();
 
         self.metrics
             .replace(metric!(metric_names::INDEX, self.index));

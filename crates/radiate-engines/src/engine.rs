@@ -103,7 +103,7 @@ where
     /// from external contexts. If the control interface has not been initialized yet, this method
     /// will create a new instance.
     pub fn control(&self) -> ThreadSync {
-        self.context.get_or_create_sync()
+        self.context.sync()
     }
 
     /// Converts the engine into an iterator that yields generations.
@@ -194,8 +194,6 @@ where
     fn stop(&mut self) {
         self.context.set_stopped();
         self.stream.publish(EngineStop::from(&self.context));
-
-        println!("{:#?}", self.stream.stats());
     }
 
     #[inline]

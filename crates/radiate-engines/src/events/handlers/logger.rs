@@ -1,18 +1,11 @@
 use crate::{
-    Handler, Warning,
+    Event, Handler, Warning,
     events::{CheckpointSaved, EngineStateChange, EventContext, EventHandler},
 };
 use crate::{LimitTriggered, events::EpochComplete};
-use radiate_core::Objective;
-use radiate_core::{SmallStr, error::RadiateResult};
+use radiate_core::error::RadiateResult;
+use radiate_core::{Objective, SmallStr};
 use std::marker::PhantomData;
-
-const HANDLER_NAME: SmallStr = SmallStr::from_static("engine.logger");
-const LIMIT_TRIGGERED_SUBSCRIPTION_NAME: &str = "EngineLoggerLimitTriggered";
-const CHECKPOINT_SAVED_SUBSCRIPTION_NAME: &str = "EngineLoggerCheckpointSaved";
-const EPOCH_COMPLETE_SUBSCRIPTION_NAME: &str = "EngineLoggerEpochComplete";
-const ENGINE_STATE_CHANGE_SUBSCRIPTION_NAME: &str = "EngineLoggerEngineStateChange";
-const WARNING_SUBSCRIPTION_NAME: &str = "EngineLoggerWarning";
 
 pub struct EngineLogger<T> {
     _marker: PhantomData<T>,
@@ -36,20 +29,12 @@ impl<T> EventHandler for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
-    fn name(&self) -> SmallStr {
-        HANDLER_NAME
-    }
-
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
-        ctx.subscribe::<LimitTriggered>()
-            .named(LIMIT_TRIGGERED_SUBSCRIPTION_NAME);
-        ctx.subscribe::<CheckpointSaved>()
-            .named(CHECKPOINT_SAVED_SUBSCRIPTION_NAME);
-        ctx.subscribe::<EpochComplete<T>>()
-            .named(EPOCH_COMPLETE_SUBSCRIPTION_NAME);
-        ctx.subscribe::<EngineStateChange>()
-            .named(ENGINE_STATE_CHANGE_SUBSCRIPTION_NAME);
-        ctx.subscribe::<Warning>().named(WARNING_SUBSCRIPTION_NAME);
+        ctx.subscribe::<LimitTriggered>();
+        ctx.subscribe::<CheckpointSaved>();
+        ctx.subscribe::<EpochComplete<T>>();
+        ctx.subscribe::<EngineStateChange>();
+        ctx.subscribe::<Warning>();
         Ok(())
     }
 }
@@ -146,6 +131,12 @@ pub enum LogLevel {
 #[derive(Clone, Debug)]
 pub struct LogEvent(pub LogLevel, pub String);
 
+impl Event for LogEvent {
+    fn name(&self) -> SmallStr {
+        SmallStr::from("log_event")
+    }
+}
+
 #[derive(Clone, Default)]
 pub struct LoggingHandler(bool);
 
@@ -156,10 +147,6 @@ impl LoggingHandler {
 }
 
 impl EventHandler for LoggingHandler {
-    fn name(&self) -> SmallStr {
-        HANDLER_NAME
-    }
-
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
         ctx.subscribe::<LogEvent>();
         Ok(())

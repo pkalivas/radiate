@@ -23,7 +23,7 @@ where
 {
     fn ui(self) -> Self {
         let context = self.context();
-        let control = context.get_or_create_sync();
+        let control = context.sync();
 
         let handle = EngineTui::<C, T>::new(control);
 
@@ -42,7 +42,7 @@ where
     };
 
     let context = engine.context();
-    let control = context.get_or_create_sync();
+    let control = context.sync();
     let stream = context.event_stream();
 
     let logging_handlers = stream.get_subsribers::<LogEvent>();

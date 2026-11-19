@@ -11,8 +11,7 @@ pub use handlers::{
 };
 pub use messages::{
     BuilderEvent, CheckpointSaved, DeferredEvent, EngineStart, EngineStateChange, EngineStop,
-    EpochComplete, EpochStart, GenerationSnapshot, Improvement, LimitTriggered, StreamSnapshot,
-    Warning,
+    EpochComplete, EpochStart, GenerationSnapshot, Improvement, LimitTriggered, Warning,
 };
 pub use stream::{EventStream, StreamStats};
 pub use subscriber::{Event, EventContext, EventHandler, EventId, Handler, Subscriber};

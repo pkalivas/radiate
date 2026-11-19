@@ -1,6 +1,8 @@
 use radiate_core::{Expr, RadiateError, error::RadiateResult, radiate_err};
 use radiate_error::radiate_bail;
 use radiate_utils::{SmallStr, sentry_id};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicU64, AtomicUsize};
 use std::{
     fmt::Debug,
@@ -39,7 +41,8 @@ impl Counters {
 }
 
 /// A point-in-time copy of a [`Subscription`]'s delivery counters.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SubscriptionStats {
     pub delivered: u64,
     pub skipped: u64,
@@ -55,10 +58,11 @@ impl SubscriptionStats {
 }
 
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SubscriptionInfo {
     pub id: SubscriptionId,
     pub name: Option<SmallStr>,
-    pub event: &'static str,
+    pub event: SmallStr,
     pub stats: SubscriptionStats,
 }
 
@@ -101,6 +105,8 @@ impl Subscription {
     /// skipped, and handled.
     pub fn stats(&self) -> SubscriptionStats {
         SubscriptionStats {
+            // id: self.id,
+            // name: self.name(),
             delivered: self.counters.delivered.load(Ordering::Relaxed),
             skipped: self.counters.skipped.load(Ordering::Relaxed),
             handled: self.counters.handled.load(Ordering::Relaxed),

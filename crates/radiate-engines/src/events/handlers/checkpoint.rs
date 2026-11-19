@@ -9,13 +9,13 @@ use crate::{
     Handler,
     events::{EventContext, EventHandler, GenerationSnapshot},
 };
-use radiate_core::{Chromosome, SmallStr, error::RadiateResult};
+use radiate_core::{Chromosome, error::RadiateResult};
+use radiate_utils::generate_metric_key;
 use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-const SUBSCRIPTION_NAME: &str = "CheckpointWriterHandler";
-const HANDLER_NAME: SmallStr = SmallStr::from_static("checkpoint.writer");
+const SUBSCRIPTION_NAME: &str = "handler.checkpoint";
 
 pub struct CheckpointWriterHandler<C, T>
 where
@@ -49,13 +49,11 @@ where
     C: Chromosome + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,
 {
-    fn name(&self) -> SmallStr {
-        HANDLER_NAME
-    }
-
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
         ctx.subscribe::<GenerationSnapshot<C, T>>()
-            .named(SUBSCRIPTION_NAME)
+            .named(generate_metric_key::<GenerationSnapshot<C, T>>(
+                SUBSCRIPTION_NAME,
+            ))
             .schedule(self.interval)?;
         Ok(())
     }
