@@ -425,6 +425,9 @@ mod event_stream_tests {
         );
     }
 
+    // [stream/publish fanout x8] 800000 deliveries in 112.598375ms = 7,104,898 deliveries/sec
+    // [stream/publish fanout x8] 800000 deliveries in 113.196709ms = 7,067,343 deliveries/sec
+    // [stream/publish fanout x8] 800000 deliveries in 112.595708ms = 7,105,067 deliveries/sec
     #[test]
     #[ignore = "throughput smoke test: cargo test --release -- --ignored --nocapture"]
     fn throughput_publish_fanout() {
@@ -467,6 +470,9 @@ mod event_stream_tests {
         );
     }
 
+    // [stream/publish pool]    200000 events in 288.747291ms = 692,647 events/sec
+    // [stream/publish pool]    200000 events in 281.040792ms = 711,640 events/sec
+    // [stream/publish pool]    200000 events in 289.552166ms = 690,722 events/sec
     #[test]
     #[ignore = "throughput smoke test: cargo test --release -- --ignored --nocapture"]
     fn throughput_publish_worker_pool() {

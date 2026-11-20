@@ -1,6 +1,7 @@
 mod channel;
 mod control;
 mod group;
+mod inbox;
 mod thread_pool;
 
 use std::sync::Arc;
@@ -8,6 +9,7 @@ use std::sync::Arc;
 pub use channel::{CommandChannel, IntoPair};
 pub use control::ThreadSync;
 pub use group::{WaitGroup, WaitGuard};
+pub use inbox::Inbox;
 pub use thread_pool::{WorkResult, get_thread_pool};
 
 pub trait ArcExt<T> {
