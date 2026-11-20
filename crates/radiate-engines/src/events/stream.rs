@@ -2,8 +2,8 @@ use crate::{
     EventHandler, StreamStats, SubscriptionInfo,
     events::{
         Event, Handler, Subscription, SubscriptionId,
+        mailbox::{MailBox, Trace},
         messages::{DeferredEvent, SubscriptionEvent},
-        subscriber::{MailBox, Trace},
     },
 };
 use radiate_core::{Executor, SmallStr, WaitGroup, error::RadiateResult};
@@ -117,16 +117,14 @@ impl EventStream {
 
     pub fn stats(&self) -> StreamStats {
         let subscribers = self.shared.subscribers.read().unwrap();
-        let info = subscribers
-            .values()
-            .flat_map(|group| group.iter())
-            .filter(|registration| registration.subscription.is_alive())
-            .map(|registration| registration.subscription_info())
-            .collect();
-
         StreamStats {
             event_count: self.shared.event_count.load(Ordering::SeqCst),
-            subscribers: info,
+            subscribers: subscribers
+                .values()
+                .flat_map(|group| group.iter())
+                .filter(|registration| registration.subscription.is_alive())
+                .map(|registration| registration.subscription_info())
+                .collect(),
         }
     }
 
@@ -314,9 +312,11 @@ impl EventStream {
             }
 
             let due = if scheduled {
-                registration.subscription.take_permit() // lazy: already reserved
+                // lazy: already reserved
+                registration.subscription.take_permit()
             } else {
-                registration.subscription.is_due() // eager: tick now
+                // eager: tick now
+                registration.subscription.is_due()
             };
 
             if !due {

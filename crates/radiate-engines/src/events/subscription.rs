@@ -78,8 +78,6 @@ impl Subscription {
     /// skipped, and handled.
     pub fn stats(&self) -> SubscriptionStats {
         SubscriptionStats {
-            // id: self.id,
-            // name: self.name(),
             delivered: self.counters.delivered.load(Ordering::Relaxed),
             skipped: self.counters.skipped.load(Ordering::Relaxed),
             handled: self.counters.handled.load(Ordering::Relaxed),

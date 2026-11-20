@@ -1,11 +1,14 @@
-use crate::events::stream::Shared;
-use crate::events::subscription::Counters;
-use crate::events::{EventStream, Subscription, SubscriptionId};
-use radiate_core::{Executor, SmallStr, WaitGuard, error::RadiateResult};
-use radiate_utils::{generate_metric_key, sentry_id};
+use crate::{Event, EventId, events::stream::Shared};
+use crate::{
+    EventHandler,
+    events::{EventStream, Subscription, SubscriptionId},
+};
+use crate::{Handler, events::subscription::Counters};
+use radiate_core::{Executor, WaitGuard, error::RadiateResult};
+use radiate_utils::generate_metric_key;
 use std::sync::{Arc, Mutex, Weak};
 
-sentry_id!(EventId);
+const HANDLER_PREFIX: &str = "handler";
 
 /// The causal chain an event belongs to.
 ///
@@ -45,37 +48,6 @@ impl Trace {
     }
 }
 
-pub trait Event: Send + Sync + 'static {
-    fn name() -> SmallStr {
-        SmallStr::from_string(generate_metric_key::<Self>("event"))
-    }
-}
-
-pub trait Handler<E: Event>: Send + 'static {
-    fn handle(&mut self, event: &E, ctx: &EventContext<'_, Self>)
-    where
-        Self: Sized;
-}
-
-pub trait EventHandler: Send + 'static {
-    fn start(&mut self, _ctx: &EventContext<'_, Self>) -> RadiateResult<()>
-    where
-        Self: Sized,
-    {
-        Ok(())
-    }
-}
-
-impl<E, F> Handler<E> for F
-where
-    E: Event,
-    F: FnMut(&E) + Send + 'static,
-{
-    fn handle(&mut self, event: &E, _ctx: &EventContext<'_, Self>) {
-        self(event)
-    }
-}
-
 pub struct EventContext<'a, H> {
     subscriber: &'a MailBox<H>,
     trace: Trace,
@@ -103,7 +75,7 @@ impl<H> EventContext<'_, H> {
         E: Event,
         H: Handler<E>,
     {
-        let first = generate_metric_key::<H>("handler");
+        let first = generate_metric_key::<H>(HANDLER_PREFIX);
         let second = format!("{}.{}", first, E::name());
         self.subscriber.subscribe::<E>().named(second)
     }
