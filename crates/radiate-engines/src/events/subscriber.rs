@@ -46,12 +46,10 @@ impl Trace {
 }
 
 pub trait Event: Send + Sync + 'static {
-    fn name(&self) -> SmallStr {
+    fn name() -> SmallStr {
         SmallStr::from_string(generate_metric_key::<Self>("event"))
     }
 }
-
-// impl<T: Send + Sync + 'static> Event for T {}
 
 pub trait Handler<E: Event>: Send + 'static {
     fn handle(&mut self, event: &E, ctx: &EventContext<'_, Self>)
@@ -79,7 +77,7 @@ where
 }
 
 pub struct EventContext<'a, H> {
-    subscriber: &'a Subscriber<H>,
+    subscriber: &'a MailBox<H>,
     trace: Trace,
 }
 
@@ -106,27 +104,27 @@ impl<H> EventContext<'_, H> {
         H: Handler<E>,
     {
         let first = generate_metric_key::<H>("handler");
-        let second = generate_metric_key::<E>(&first);
+        let second = format!("{}.{}", first, E::name());
         self.subscriber.subscribe::<E>().named(second)
     }
 }
 
-pub struct Subscriber<H> {
+pub struct MailBox<H> {
     handler: Arc<Mutex<H>>,
     executor: Arc<Executor>,
     stream: Weak<Shared>,
 }
 
-impl<H> Subscriber<H> {
+impl<H> MailBox<H> {
     /// The stream this subscriber belongs to, if it's still alive.
     fn stream(&self) -> Option<EventStream> {
         EventStream::upgrade(&self.executor, &self.stream)
     }
 }
 
-impl<H: Send + 'static> Subscriber<H> {
+impl<H: Send + 'static> MailBox<H> {
     pub(super) fn new(handler: H, executor: Arc<Executor>, stream: &EventStream) -> Self {
-        Subscriber {
+        MailBox {
             handler: Arc::new(Mutex::new(handler)),
             executor,
             stream: stream.downgrade(),
@@ -199,9 +197,9 @@ impl<H: Send + 'static> Subscriber<H> {
     }
 }
 
-impl<H> Clone for Subscriber<H> {
+impl<H> Clone for MailBox<H> {
     fn clone(&self) -> Self {
-        Subscriber {
+        MailBox {
             handler: Arc::clone(&self.handler),
             executor: Arc::clone(&self.executor),
             stream: Weak::clone(&self.stream),

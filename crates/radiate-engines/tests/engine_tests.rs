@@ -190,7 +190,7 @@ mod engine_tests {
         use std::time::Duration;
 
         let engine = onemax_engine(5);
-        let control = engine.control();
+        let control = engine.sync();
 
         let handle = thread::spawn(move || {
             let result = engine.iter().until_seconds(1_f64).last().unwrap();
@@ -214,7 +214,7 @@ mod engine_tests {
         use std::time::Duration;
 
         let engine = onemax_engine(5);
-        let control = engine.control();
+        let control = engine.sync();
         control.step_n(10);
 
         let last_index = Arc::new(AtomicUsize::new(0));
@@ -245,7 +245,7 @@ mod engine_tests {
         use std::time::Duration;
 
         let engine = onemax_engine(5);
-        let control = engine.control();
+        let control = engine.sync();
 
         let handle = thread::spawn(move || {
             let result = engine.iter().last().unwrap();

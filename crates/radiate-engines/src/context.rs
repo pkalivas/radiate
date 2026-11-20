@@ -1,4 +1,4 @@
-use crate::{Chromosome, ThreadSync, events::EngineStateChange};
+use crate::{Chromosome, GenerationSnapshot, Improvement, ThreadSync, events::EngineStateChange};
 use crate::{builder::config::EngineConfig, events::EventStream};
 use radiate_core::ExprSet;
 use radiate_core::error::RadiateResult;
@@ -84,9 +84,11 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.change_state(EngineState::Stopped);
     }
 
-    pub(crate) fn try_advance_one(&mut self) -> RadiateResult<bool> {
-        self.index += 1;
-
+    pub(crate) fn finalize(&mut self) -> RadiateResult<()>
+    where
+        C: Chromosome + Clone + 'static,
+        T: Clone + Send + Sync + 'static,
+    {
         let best = self.ecosystem.get_phenotype(0);
         let best_improved = self
             .metrics
@@ -97,15 +99,29 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         if best_improved && let Some(best) = best {
             self.score = best.score().cloned();
             self.best = self.problem.decode(best.genotype());
+            self.event_stream()
+                .lazy_publish(|| Improvement::from(&*self))?;
         }
 
+        Ok(())
+    }
+
+    pub(crate) fn roll(&mut self) -> RadiateResult<()>
+    where
+        C: Chromosome + Clone + 'static,
+        T: Clone + Send + Sync + 'static,
+    {
         self.event_stream().flush();
+        self.event_stream()
+            .lazy_publish(|| GenerationSnapshot::from(&*self))?;
+
+        self.index += 1;
 
         self.metrics
             .replace(metric!(metric_names::INDEX, self.index));
         self.metrics.bump(self.index);
 
-        Ok(best_improved)
+        Ok(())
     }
 
     fn change_state(&mut self, state: EngineState) {

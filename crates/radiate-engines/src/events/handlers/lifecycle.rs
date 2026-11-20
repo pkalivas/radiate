@@ -3,22 +3,13 @@ use crate::{
     events::messages::{BuilderEvent, DeferredEvent, SubscriptionEvent},
 };
 use radiate_core::error::RadiateResult;
-use radiate_utils::generate_metric_key;
-
-const EVENT_PREFIX: &str = "handler.lifecycle";
 
 pub struct LifecycleHandler;
 
 impl EventHandler for LifecycleHandler {
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
-        ctx.subscribe::<DeferredEvent<BuilderEvent>>()
-            .named(generate_metric_key::<DeferredEvent<BuilderEvent>>(
-                EVENT_PREFIX,
-            ));
-        ctx.subscribe::<DeferredEvent<SubscriptionEvent>>()
-            .named(generate_metric_key::<DeferredEvent<SubscriptionEvent>>(
-                EVENT_PREFIX,
-            ));
+        ctx.subscribe::<DeferredEvent<BuilderEvent>>();
+        ctx.subscribe::<DeferredEvent<SubscriptionEvent>>();
 
         Ok(())
     }

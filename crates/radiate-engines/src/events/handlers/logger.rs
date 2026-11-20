@@ -3,8 +3,8 @@ use crate::{
     events::{CheckpointSaved, EngineStateChange, EventContext, EventHandler},
 };
 use crate::{LimitTriggered, events::EpochComplete};
+use radiate_core::Objective;
 use radiate_core::error::RadiateResult;
-use radiate_core::{Objective, SmallStr};
 use std::marker::PhantomData;
 
 pub struct EngineLogger<T> {
@@ -131,11 +131,7 @@ pub enum LogLevel {
 #[derive(Clone, Debug)]
 pub struct LogEvent(pub LogLevel, pub String);
 
-impl Event for LogEvent {
-    fn name(&self) -> SmallStr {
-        SmallStr::from("log_event")
-    }
-}
+impl Event for LogEvent {}
 
 #[derive(Clone, Default)]
 pub struct LoggingHandler(bool);

@@ -1,14 +1,13 @@
 use crate::{
-    EventHandler,
+    EventHandler, StreamStats, SubscriptionInfo,
     events::{
-        Event, Handler, Subscriber, Subscription, SubscriptionId, SubscriptionInfo,
+        Event, Handler, Subscription, SubscriptionId,
         messages::{DeferredEvent, SubscriptionEvent},
-        subscriber::Trace,
+        subscriber::{MailBox, Trace},
     },
 };
 use radiate_core::{Executor, SmallStr, WaitGroup, error::RadiateResult};
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+
 use std::{
     any::{Any, TypeId},
     collections::{HashMap, HashSet},
@@ -18,13 +17,6 @@ use std::{
         atomic::{AtomicUsize, Ordering},
     },
 };
-
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct StreamStats {
-    pub event_count: usize,
-    pub subscribers: Vec<SubscriptionInfo>,
-}
 
 type Payload = Arc<dyn Any + Send + Sync>;
 type Forward = Arc<dyn Fn(PayloadWrapper) + Send + Sync>;
@@ -137,11 +129,15 @@ impl EventStream {
             subscribers: info,
         }
     }
+
+    pub fn event_count(&self) -> usize {
+        self.shared.event_count.load(Ordering::SeqCst)
+    }
 }
 
 impl EventStream {
-    pub fn attach<H: EventHandler>(&self, handler: H) -> RadiateResult<Subscriber<H>> {
-        let subscriber = Subscriber::new(handler, Arc::clone(&self.executor), self);
+    pub fn attach<H: EventHandler>(&self, handler: H) -> RadiateResult<MailBox<H>> {
+        let subscriber = MailBox::new(handler, Arc::clone(&self.executor), self);
         subscriber.start()?;
         Ok(subscriber)
     }
@@ -172,7 +168,7 @@ impl EventStream {
     }
 
     pub fn subscribe<E: Event>(&self, handler: impl Handler<E>) -> Subscription {
-        let subscriber = Subscriber::new(handler, Arc::clone(&self.executor), self);
+        let subscriber = MailBox::new(handler, Arc::clone(&self.executor), self);
         self.subscribe_existing::<E, _>(&subscriber)
     }
 
@@ -293,7 +289,7 @@ impl EventStream {
             };
 
             let wrapper = PayloadWrapper {
-                payload,
+                payload: Arc::clone(&payload),
                 trace: Trace::scoped(scope.guard()),
             };
             self.dispatch(&group, wrapper, false);
@@ -308,33 +304,6 @@ impl EventStream {
             .write()
             .unwrap()
             .push(Arc::new(DeferredEvent(event)));
-    }
-
-    fn register<E: Event, H: 'static>(
-        &self,
-        forward: Forward,
-        subscription: Subscription,
-    ) -> Subscription {
-        let registration = Registration {
-            forward,
-            subscription: subscription.clone(),
-            event: std::any::type_name::<E>(),
-            handler: TypeId::of::<H>(),
-        };
-
-        let mut subscribers = self.shared.subscribers.write().unwrap();
-        let type_id = TypeId::of::<E>();
-        let list = subscribers
-            .entry(type_id)
-            .or_insert_with(|| Arc::new(Vec::new()));
-        let list = Arc::make_mut(list);
-
-        list.retain(|registration| registration.subscription.is_alive());
-        list.push(registration);
-
-        self.defer(SubscriptionEvent::Added(subscription.clone()));
-
-        subscription
     }
 
     #[inline]
@@ -377,14 +346,14 @@ impl EventStream {
         })
     }
 
-    pub(super) fn subscribe_existing<E, H>(&self, subscriber: &Subscriber<H>) -> Subscription
+    pub(super) fn subscribe_existing<E, H>(&self, mailbox: &MailBox<H>) -> Subscription
     where
         E: Event,
         H: Handler<E>,
     {
         let subscription = Subscription::new();
         let counters = Arc::clone(&subscription.counters);
-        let target = subscriber.clone();
+        let target = mailbox.clone();
 
         let forward: Forward = Arc::new(move |payload: PayloadWrapper| {
             if let Ok(event) = payload.payload.downcast::<E>() {
@@ -393,6 +362,33 @@ impl EventStream {
         });
 
         self.register::<E, H>(forward, subscription)
+    }
+
+    fn register<E: Event, H: 'static>(
+        &self,
+        forward: Forward,
+        subscription: Subscription,
+    ) -> Subscription {
+        let registration = Registration {
+            forward,
+            subscription: subscription.clone(),
+            event: std::any::type_name::<E>(),
+            handler: TypeId::of::<H>(),
+        };
+
+        let mut subscribers = self.shared.subscribers.write().unwrap();
+        let type_id = TypeId::of::<E>();
+        let list = subscribers
+            .entry(type_id)
+            .or_insert_with(|| Arc::new(Vec::new()));
+        let list = Arc::make_mut(list);
+
+        list.retain(|registration| registration.subscription.is_alive());
+        list.push(registration);
+
+        self.defer(SubscriptionEvent::Added(subscription.clone()));
+
+        subscription
     }
 }
 

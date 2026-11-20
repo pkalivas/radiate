@@ -11,8 +11,8 @@ use std::{
 pub struct DeferredEvent<E>(pub E);
 
 impl<E: Event> Event for DeferredEvent<E> {
-    fn name(&self) -> SmallStr {
-        SmallStr::from_string(format!("{:?}.deferred", self.0.name()))
+    fn name() -> SmallStr {
+        SmallStr::from_string(format!("{}.deferred", E::name()))
     }
 }
 
@@ -22,19 +22,14 @@ pub enum SubscriptionEvent {
     Removed(SubscriptionInfo),
 }
 
-impl Event for SubscriptionEvent {
-    fn name(&self) -> SmallStr {
-        match self {
-            SubscriptionEvent::Added(_) => SmallStr::from("subscription.added"),
-            SubscriptionEvent::Removed(_) => SmallStr::from("subscription.removed"),
-        }
-    }
-}
+impl Event for SubscriptionEvent {}
 
 #[derive(Clone, Debug)]
 pub struct BuilderEvent(pub String);
 
 impl Event for BuilderEvent {}
+
+/// ---------------
 
 #[derive(Clone, Debug)]
 pub struct EngineStateChange {

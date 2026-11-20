@@ -1,8 +1,7 @@
+use crate::SubscriptionStats;
 use radiate_core::{Expr, RadiateError, error::RadiateResult, radiate_err};
 use radiate_error::radiate_bail;
 use radiate_utils::{SmallStr, sentry_id};
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicU64, AtomicUsize};
 use std::{
     fmt::Debug,
@@ -38,32 +37,6 @@ impl Counters {
     pub(crate) fn record_handled(&self) {
         self.handled.fetch_add(1, Ordering::Relaxed);
     }
-}
-
-/// A point-in-time copy of a [`Subscription`]'s delivery counters.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct SubscriptionStats {
-    pub delivered: u64,
-    pub skipped: u64,
-    pub handled: u64,
-}
-
-impl SubscriptionStats {
-    /// Events delivered but not yet handled. Always zero on a serial executor;
-    /// on a worker pool this is how far the handler is behind the engine.
-    pub fn in_flight(&self) -> u64 {
-        self.delivered.saturating_sub(self.handled)
-    }
-}
-
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct SubscriptionInfo {
-    pub id: SubscriptionId,
-    pub name: Option<SmallStr>,
-    pub event: SmallStr,
-    pub stats: SubscriptionStats,
 }
 
 #[derive(Clone)]

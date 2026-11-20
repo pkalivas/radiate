@@ -46,18 +46,16 @@ fn main() -> RadiateResult<()> {
     engine
         .subscribe(
             |event: &GenerationSnapshot<GraphChromosome<Op<f32>>, Graph<Op<f32>>>| {
-                println!("{:?}", event.name());
+                println!("{:?}", event.generation.index());
             },
         )
-        .schedule(Expr::every(5))?;
+        .schedule(7)?;
 
     let result = engine
         .iter()
         .logging()
         .until(|epoch| epoch.score().as_f32() < MIN_SCORE || epoch.seconds() > MAX_SECONDS)
         .last()?;
-
-    println!("{:#?}", result.events());
 
     display(&train, &test, &result);
 

@@ -1,5 +1,6 @@
 mod handlers;
 mod messages;
+mod stats;
 mod stream;
 mod subscriber;
 mod subscription;
@@ -13,6 +14,7 @@ pub use messages::{
     BuilderEvent, CheckpointSaved, DeferredEvent, EngineStart, EngineStateChange, EngineStop,
     EpochComplete, EpochStart, GenerationSnapshot, Improvement, LimitTriggered, Warning,
 };
-pub use stream::{EventStream, StreamStats};
-pub use subscriber::{Event, EventContext, EventHandler, EventId, Handler, Subscriber};
-pub use subscription::{Subscription, SubscriptionId, SubscriptionInfo, SubscriptionStats};
+pub use stats::{StreamStats, SubscriptionInfo, SubscriptionStats};
+pub use stream::EventStream;
+pub use subscriber::{Event, EventContext, EventHandler, EventId, Handler};
+pub use subscription::{Subscription, SubscriptionId};

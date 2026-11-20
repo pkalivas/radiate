@@ -106,6 +106,13 @@ where
         }
     }
 
+    #[allow(dead_code)]
+    pub(self) fn defer_event(&mut self, message: &str) {
+        self.params
+            .event_stream
+            .defer(BuilderEvent(message.to_string()));
+    }
+
     /// The [ReplacementStrategy] is used to determine how a new individual is added to the [Population]
     /// if an individual is deemed to be either invalid or reaches the maximum age.
     ///
@@ -154,6 +161,10 @@ where
             self.add_error_if(|| true, &format!("Failed to read checkpoint: {}", e));
         }
         let generation = read_generation.expect("Failed to read checkpoint file");
+        self.defer_event(&format!(
+            "Checkpoint | Load | {}",
+            path.as_ref().to_string_lossy()
+        ));
         self.generation(generation)
     }
 
@@ -200,6 +211,8 @@ where
                     attached.err().unwrap()
                 ),
             );
+        } else {
+            self.defer_event(&format!("Checkpoint | Write | {}", path_without_extension));
         }
 
         self

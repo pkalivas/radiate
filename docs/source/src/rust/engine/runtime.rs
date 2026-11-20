@@ -62,13 +62,13 @@ fn main() {
     // --8<-- [end:iterator_actions]
 
     // --8<-- [start:control]
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .minimizing()
         .codec(IntCodec::vector(5, 0..100))
         .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
         .build();
 
-    let control = engine.control();
+    let control = engine.sync();
 
     let handle = thread::spawn(move || {
         // Run the engine for 1 second

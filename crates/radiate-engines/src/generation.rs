@@ -1,5 +1,5 @@
+use crate::Chromosome;
 use crate::context::EvolutionContext;
-use crate::{Chromosome, StreamStats};
 use radiate_core::ExprSet;
 use radiate_core::objectives::Scored;
 use radiate_core::{Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Score, Species};
@@ -52,7 +52,6 @@ pub struct Generation<C: Chromosome, T> {
     objective: Objective,
     front: Option<Arc<Front<Phenotype<C>>>>,
     exprs: Option<Arc<Mutex<ExprSet>>>,
-    events: Arc<StreamStats>,
 }
 
 impl<C: Chromosome, T> Generation<C, T> {
@@ -107,10 +106,6 @@ impl<C: Chromosome, T> Generation<C, T> {
         self.exprs.clone()
     }
 
-    pub fn events(&self) -> Arc<StreamStats> {
-        Arc::clone(&self.events)
-    }
-
     pub fn arc_ecosystem(&self) -> Arc<Ecosystem<C>> {
         Arc::clone(&self.ecosystem)
     }
@@ -144,7 +139,6 @@ where
                 _ => None,
             },
             exprs: context.exprs.clone(),
-            events: Arc::new(context.events.stats()),
         }
     }
 }
@@ -164,7 +158,6 @@ where
             objective: self.objective.clone(),
             front: self.front.clone(),
             exprs: self.exprs.clone(),
-            events: Arc::clone(&self.events),
         }
     }
 }
@@ -184,7 +177,6 @@ where
         writeln!(f, "  size: {:?},", ecosystem.population().len())?;
         writeln!(f, "  duration: {:?},", self.time())?;
         writeln!(f, "  objective: {:?},", self.objective)?;
-        writeln!(f, "  events: {:?},", self.events.event_count)?;
         if let Some(species) = &ecosystem.species {
             writeln!(f, "  species [")?;
             for s in species {

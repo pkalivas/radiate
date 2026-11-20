@@ -1,14 +1,12 @@
+use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
 use crate::{GenerationView, builder::GeneticEngineBuilder};
 use crate::{
     Handler,
-    events::{
-        EngineStart, EngineStop, EpochComplete, EpochStart, EventStream, Improvement, Subscription,
-    },
+    events::{EngineStart, EngineStop, EpochComplete, EpochStart, EventStream, Subscription},
 };
 use crate::{context::EvolutionContext, events::Event};
-use crate::{events::GenerationSnapshot, pipeline::Pipeline};
-use radiate_core::{Engine, EngineState};
+use radiate_core::{Engine, EngineState, metric_names};
 use radiate_core::{EngineStream, error::Result};
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
@@ -102,7 +100,7 @@ where
     /// The control interface allows for pausing, resuming, and stopping the engine's execution
     /// from external contexts. If the control interface has not been initialized yet, this method
     /// will create a new instance.
-    pub fn control(&self) -> ThreadSync {
+    pub fn sync(&self) -> ThreadSync {
         self.context.sync()
     }
 
@@ -139,7 +137,7 @@ where
     /// how to handle events of type `E`. You can use this to listen for events
     /// such as epoch completions, improvements, or custom messages emitted during the evolutionary process.
     pub fn subscribe<E: Event>(&self, handler: impl Handler<E>) -> Subscription {
-        self.stream.subscribe(handler)
+        self.stream.subscribe(handler).named(E::name())
     }
 }
 
@@ -188,6 +186,9 @@ where
     fn start(&mut self) {
         self.stream.flush();
         self.context.set_running();
+        self.context
+            .metrics
+            .upsert(metric_names::INDEX, self.context.index());
         self.stream.publish(EngineStart::from(&self.context));
     }
 
@@ -222,14 +223,13 @@ where
         }
 
         self.stream.publish(EpochStart::from(&self.context));
+
         self.pipeline.run(&mut self.context)?;
-        if self.context.try_advance_one()? {
-            self.stream
-                .lazy_publish(|| Improvement::from(&self.context))?;
-        }
+        self.context.finalize()?;
+
         self.stream.publish(EpochComplete::from(&self.context));
-        self.stream
-            .lazy_publish(|| GenerationSnapshot::from(&self.context))?;
+
+        self.context.roll()?;
 
         Ok(())
     }

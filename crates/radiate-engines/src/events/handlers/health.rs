@@ -5,14 +5,11 @@ use crate::{
 };
 use radiate_core::Objective;
 use radiate_core::error::RadiateResult;
-use radiate_utils::generate_metric_key;
 use std::marker::PhantomData;
 
 const STAGNATION_WARNING_THRESHOLD: usize = 500;
 const DIVERSITY_WARNING_THRESHOLD: f32 = 0.1;
 const LARGEST_SPECIES_SHARE_WARNING_THRESHOLD: f32 = 0.9;
-
-const STAGNATION_SUBSCRIPTION_NAME: &str = "handler.health";
 
 pub struct HealthMonitor<T> {
     _marker: PhantomData<T>,
@@ -31,10 +28,7 @@ where
     T: Send + Sync + 'static,
 {
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
-        ctx.subscribe::<EpochComplete<T>>()
-            .named(generate_metric_key::<EpochComplete<T>>(
-                STAGNATION_SUBSCRIPTION_NAME,
-            ));
+        ctx.subscribe::<EpochComplete<T>>();
         Ok(())
     }
 }
