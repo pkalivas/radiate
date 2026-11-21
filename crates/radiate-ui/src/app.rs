@@ -269,14 +269,14 @@ where
                 .nav
                 .previous_tab(self.state.evo.has_species(), self.state.evo.is_multi()),
 
-            KeyCode::Tab if self.state.nav.dashboard_tab == DashboardTab::Population => {
-                self.state.next_chromosome()
-            }
-            KeyCode::BackTab if self.state.nav.dashboard_tab == DashboardTab::Population => {
-                self.state.previous_chromosome()
-            }
-            KeyCode::Tab => self.state.next_chart_view(),
-            KeyCode::BackTab => self.state.prev_chart_view(),
+            KeyCode::Tab => match self.state.nav.dashboard_tab {
+                DashboardTab::Population => self.state.next_chromosome(),
+                _ => self.state.next_chart_view(),
+            },
+            KeyCode::BackTab => match self.state.nav.dashboard_tab {
+                DashboardTab::Population => self.state.previous_chromosome(),
+                _ => self.state.prev_chart_view(),
+            },
 
             KeyCode::Char('J') => self.state.inspect.scroll_by(1),
             KeyCode::Char('K') => self.state.inspect.scroll_by(-1),

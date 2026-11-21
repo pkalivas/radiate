@@ -259,7 +259,7 @@ impl Group {
         let mut delivered = false;
         for reg in due.iter().filter(|reg| reg.is_alive()) {
             delivered = true;
-            reg.subscription.counters().record_delivered();
+            reg.subscription.record_delivered();
             reg.route.deliver(&published);
         }
 

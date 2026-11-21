@@ -130,7 +130,7 @@ fn header_row<'a>(titles: &[&'a str], text_columns: usize) -> Row<'a> {
         let alignment = if i < text_columns {
             Alignment::Left
         } else {
-            Alignment::Right
+            Alignment::Center
         };
         Cell::from(Text::from(title).alignment(alignment))
     });
@@ -141,16 +141,15 @@ fn header_row<'a>(titles: &[&'a str], text_columns: usize) -> Row<'a> {
 }
 
 fn text_cell(text: &str) -> Cell<'_> {
-    Cell::from(text).style(Style::default().fg(styles::TEXT_FG_COLOR))
+    Cell::from(text).style(Style::default().bold())
 }
 
-fn right(text: String) -> Text<'static> {
-    Text::from(text).alignment(Alignment::Right)
+fn center(text: String) -> Text<'static> {
+    Text::from(text).alignment(Alignment::Center)
 }
 
 fn number_cell(n: u64) -> Cell<'static> {
-    Cell::from(right(styles::format_thousands(n as usize)))
-        .style(Style::default().fg(styles::TEXT_FG_COLOR))
+    Cell::from(center(styles::format_thousands(n as usize))).style(Style::default().bold())
 }
 
 /// Zero is the normal case, so it fades out and anything else stands out.
@@ -160,7 +159,7 @@ fn dim_zero_cell(n: u64) -> Cell<'static> {
     } else {
         styles::TEXT_FG_COLOR
     };
-    Cell::from(right(styles::format_thousands(n as usize))).style(Style::default().fg(color))
+    Cell::from(center(styles::format_thousands(n as usize))).style(Style::default().fg(color))
 }
 
 fn rate_cell(rate: Option<f64>) -> Cell<'static> {
@@ -171,7 +170,7 @@ fn rate_cell(rate: Option<f64>) -> Cell<'static> {
         Some(r) if r >= 10.0 => format!("{r:.0}/s"),
         Some(r) => format!("{r:.1}/s"),
     };
-    Cell::from(right(text)).style(Style::default().fg(styles::TEXT_FG_COLOR))
+    Cell::from(center(text)).style(Style::default().fg(styles::TEXT_FG_COLOR))
 }
 
 /// Grey when empty, yellow while it's growing, red once it's deep.
@@ -182,5 +181,5 @@ fn queued_cell(queued: u64, growing: bool) -> Cell<'static> {
         _ if growing => Style::default().fg(styles::LOG_WARN_COLOR),
         _ => Style::default().fg(styles::TEXT_FG_COLOR),
     };
-    Cell::from(right(styles::format_thousands(queued as usize))).style(style)
+    Cell::from(center(styles::format_thousands(queued as usize))).style(style)
 }

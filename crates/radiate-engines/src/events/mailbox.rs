@@ -1,9 +1,6 @@
 use crate::{
     Event, EventHandler, EventId, EventScope, Handler,
-    events::{
-        EventStream, Subscription, SubscriptionId, event::Payload, stream::Shared,
-        subscription::Counters,
-    },
+    events::{EventStream, Subscription, SubscriptionId, event::Payload, stream::Shared},
 };
 use radiate_core::{Executor, Inbox, WaitGuard, error::RadiateResult};
 use radiate_utils::{generate_metric_key, sentry_id};
@@ -56,11 +53,11 @@ pub struct Published<'a> {
 
 impl Published<'_> {
     /// An owned copy for a mailbox that has to queue it.
-    fn to_delivery(&self, counters: &Arc<Counters>) -> Delivery {
+    fn to_delivery(&self, subscription: &Subscription) -> Delivery {
         Delivery {
             payload: Arc::clone(self.payload),
             scope: self.scope.clone(),
-            counters: Arc::clone(counters),
+            subscription: subscription.clone(),
         }
     }
 }
@@ -68,7 +65,7 @@ impl Published<'_> {
 /// A [`Route`] for event `E` into a `MailBox<H>`.
 struct TypedRoute<E, H> {
     mailbox: MailBox<H>,
-    counters: Arc<Counters>,
+    subscription: Subscription,
     _event: PhantomData<fn(E)>,
 }
 
@@ -97,14 +94,14 @@ where
                 catch_unwind(AssertUnwindSafe(|| {
                     handle::<E, H>(handler, event.payload, &ctx)
                 }))?;
-                self.counters.record_handled();
+                self.subscription.record_handled();
                 Ok(())
             });
             return;
         }
 
         mailbox.push(Item::Deliver {
-            delivery: event.to_delivery(&self.counters),
+            delivery: event.to_delivery(&self.subscription),
             handle: handle::<E, H>,
         });
     }
@@ -117,12 +114,13 @@ where
 /// One event routed to one subscription, queued in a mailbox.
 ///
 /// The mailbox reads it and calls [`complete`](Delivery::complete) once the
-/// handler returns. Dropping it without completing (a panic, a discard) still
-/// releases its scope, but it isn't counted as handled.
+/// handler returns. Dropping it without completing (a panic, a discard, or
+/// its subscription ending while it was queued) still releases its scope, but
+/// it isn't counted as handled.
 struct Delivery {
     payload: Payload,
     scope: EventScope,
-    counters: Arc<Counters>,
+    subscription: Subscription,
 }
 
 impl Delivery {
@@ -134,9 +132,15 @@ impl Delivery {
         &self.payload
     }
 
+    /// Whether its subscription is still live. One that ended while this sat
+    /// in the queue is dropped without reaching the handler.
+    fn is_live(&self) -> bool {
+        self.subscription.is_alive()
+    }
+
     /// The handler finished with this delivery.
     fn complete(self) {
-        self.counters.record_handled();
+        self.subscription.record_handled();
     }
 }
 
@@ -215,14 +219,14 @@ impl<H: Send + 'static> MailBox<H> {
     }
 
     /// The handle the stream keeps to route `E` events (and drains) here.
-    pub(super) fn route<E>(&self, counters: Arc<Counters>) -> Arc<dyn Route>
+    pub(super) fn route<E>(&self, subscription: Subscription) -> Arc<dyn Route>
     where
         E: Event,
         H: Handler<E>,
     {
         Arc::new(TypedRoute::<E, H> {
             mailbox: self.clone(),
-            counters,
+            subscription,
             _event: PhantomData,
         })
     }
@@ -341,6 +345,7 @@ impl<H: Send + 'static> MailBox<H> {
 
     fn process_item(&self, item: Item<H>, handler: &mut H) -> thread::Result<()> {
         match item {
+            Item::Deliver { delivery, .. } if !delivery.is_live() => Ok(()),
             Item::Deliver { delivery, handle } => {
                 let ctx = EventContext {
                     scope: delivery.scope(),

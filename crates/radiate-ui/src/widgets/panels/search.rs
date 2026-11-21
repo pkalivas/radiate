@@ -111,7 +111,7 @@ pub fn help_text<C: Chromosome>(state: &AppState<C>) -> Line<'static> {
 }
 
 /// One `[key] description` footer chip.
-fn kv(key: &str, desc: &str) -> [Span<'static>; 2] {
+pub fn kv(key: &str, desc: &str) -> [Span<'static>; 2] {
     [
         Span::from(format!("[{key}]")).fg(Color::LightGreen).bold(),
         Span::from(format!(" {desc} ")).fg(Color::Gray),

@@ -222,18 +222,14 @@ impl<C: Chromosome + Debug> Default for LayoutNode<C> {
                                     condition: |_| true,
                                     content: Horizontal {
                                         constraints: vec![
-                                            Constraint::Percentage(25),
-                                            Constraint::Fill(1), // Constraint::Percentage(25),
-                                                                 // Constraint::Percentage(25),
+                                            Constraint::Percentage(30),
+                                            Constraint::Fill(1),
                                         ],
                                         children: vec![
                                             Widget(|a, b, s| {
                                                 PopulationTableWidget::new().render(a, b, s)
                                             }),
                                             Widget(|a, b, s| DebugPanel::new().render(a, b, s)),
-                                            // Widget(|a, b, s| {
-                                            //     SpeciesPieChartComponent::new().render(a, b, s)
-                                            // }),
                                         ],
                                     },
                                 },

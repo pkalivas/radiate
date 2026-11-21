@@ -1,7 +1,7 @@
 use crate::{
     state::AppState,
     styles::{TEXT_FG_COLOR, TREND_NEUTRAL_COLOR},
-    widgets::{AppWidget, FnWidget, Panel},
+    widgets::{AppWidget, FnWidget, Panel, panels::search::kv},
 };
 use radiate_engines::Chromosome;
 use ratatui::{
@@ -36,11 +36,9 @@ impl<C: Chromosome + Debug> AppWidget<C> for DebugPanel {
         };
 
         let index = state.inspect.chromosome;
-        let mut header = Vec::new();
+
         let body = match phenotype.genotype().get(index) {
             Some(chromosome) => {
-                header.push(Line::default());
-                header.push(chromosome_header(index, count, chromosome.len()));
                 format!("{chromosome:#?}")
             }
             None => "Empty genotype".to_string(),
@@ -51,17 +49,38 @@ impl<C: Chromosome + Debug> AppWidget<C> for DebugPanel {
             Style::default().fg(Color::White).bold(),
         ));
 
+        let tab = Line::from(Span::styled(
+            " [Tab] ".to_string(),
+            Style::default().fg(Color::Green).bold(),
+        ))
+        .right_aligned();
+
+        let mut chrome_title = Vec::new();
+        for i in 0..count {
+            if i == index {
+                chrome_title.push(Span::styled(
+                    format!("[{}]", i + 1),
+                    Style::default().fg(Color::LightGreen),
+                ));
+            } else {
+                chrome_title.push(Span::styled(
+                    format!(" {} ", i + 1),
+                    Style::default().fg(TREND_NEUTRAL_COLOR),
+                ));
+            }
+        }
+
+        let bottom_left = Line::from(
+            vec![kv("J/K", "scroll"), kv("D/U", "page")]
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>(),
+        );
+
         let inspect = &mut state.inspect;
         let content = FnWidget::new(|area: Rect, buf: &mut Buffer| {
-            let [header_area, body_area] = Layout::vertical([
-                Constraint::Length(header.len() as u16 + 1),
-                Constraint::Fill(1),
-            ])
-            .areas(area);
-            Paragraph::new(header).render(header_area, buf);
-
             let [text_area, bar_area] =
-                Layout::horizontal([Constraint::Fill(1), Constraint::Length(1)]).areas(body_area);
+                Layout::horizontal([Constraint::Fill(1), Constraint::Length(1)]).areas(area);
             let rows = wrap_lines(&body, text_area.width as usize);
             let total = rows.len();
             let page = text_area.height as usize;
@@ -86,26 +105,12 @@ impl<C: Chromosome + Debug> AppWidget<C> for DebugPanel {
         });
 
         Panel::new(content)
-            .titled(title)
-            .titled_bottom(Line::styled(
-                " Tab chromosome · J/K scroll · D/U page ",
-                Style::default().fg(TREND_NEUTRAL_COLOR),
-            ))
+            .title_top_right(tab)
+            .title_top_left(title)
+            .titled_bottom(chrome_title)
+            .title_bottom_left(bottom_left)
             .render(area, buf);
     }
-}
-
-fn chromosome_header(index: usize, count: usize, genes: usize) -> Line<'static> {
-    Line::from(vec![
-        Span::styled(
-            format!("Chromosome {} / {count}", index + 1),
-            Style::default().bold(),
-        ),
-        Span::styled(
-            format!("  ({genes} genes)"),
-            Style::default().fg(TREND_NEUTRAL_COLOR),
-        ),
-    ])
 }
 
 /// Hard-wraps each line to `width` columns. A continuation row keeps the line's

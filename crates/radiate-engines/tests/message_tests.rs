@@ -49,6 +49,40 @@ fn within<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> T {
 mod publish {
     use super::*;
 
+    /// On a pool, events queue behind a busy handler. Unsubscribing has to
+    /// stop those too, not just future publishes: a handler that has gone
+    /// away (like a closed UI) must not be called again.
+    #[test]
+    fn unsubscribe_drops_deliveries_already_queued() {
+        let stream = pool();
+        let handled = Arc::new(AtomicUsize::new(0));
+        let (started_tx, started) = mpsc::channel();
+        let (release, release_rx) = mpsc::channel::<()>();
+        let release_rx = Mutex::new(release_rx);
+
+        let counter = Arc::clone(&handled);
+        let subscription = stream.subscribe(move |_: &Ping| {
+            if counter.fetch_add(1, Ordering::SeqCst) == 0 {
+                started_tx.send(()).unwrap();
+                release_rx.lock().unwrap().recv_timeout(GENEROUS).unwrap();
+            }
+        });
+
+        stream.publish(Ping).unwrap();
+        started.recv_timeout(GENEROUS).unwrap();
+
+        // The handler is busy with the first, so these four queue.
+        for _ in 0..4 {
+            stream.publish(Ping).unwrap();
+        }
+
+        subscription.unsubscribe();
+        release.send(()).unwrap();
+        stream.drain().unwrap();
+
+        assert_eq!(handled.load(Ordering::SeqCst), 1);
+    }
+
     struct Summer(Arc<AtomicUsize>);
 
     impl Handler<Add> for Summer {

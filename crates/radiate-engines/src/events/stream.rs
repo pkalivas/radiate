@@ -117,7 +117,7 @@ impl EventStream {
     {
         let subscription = Subscription::new(mailbox.id());
         let registration = Registration {
-            route: mailbox.route::<E>(Arc::clone(subscription.counters())),
+            route: mailbox.route::<E>(subscription.clone()),
             subscription: subscription.clone(),
             handler: TypeId::of::<H>(),
         };

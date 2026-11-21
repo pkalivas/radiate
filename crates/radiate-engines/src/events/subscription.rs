@@ -12,31 +12,16 @@ use std::{
 
 sentry_id!(SubscriptionId);
 
-/// Live counters shared between a [`Subscription`] handle, the stream that
-/// dispatches to it, and the subscriber that handles its events.
+/// Live counters for one subscription, updated by the stream that dispatches
+/// to it and the mailbox that handles its events.
 #[derive(Default)]
-pub(crate) struct Counters {
+struct Counters {
     delivered: AtomicU64,
     skipped: AtomicU64,
     handled: AtomicU64,
 }
 
 impl Counters {
-    #[inline]
-    pub(crate) fn record_delivered(&self) {
-        self.delivered.fetch_add(1, Ordering::Relaxed);
-    }
-
-    #[inline]
-    pub(crate) fn record_skipped(&self) {
-        self.skipped.fetch_add(1, Ordering::Relaxed);
-    }
-
-    #[inline]
-    pub(crate) fn record_handled(&self) {
-        self.handled.fetch_add(1, Ordering::Relaxed);
-    }
-
     fn snapshot(&self) -> SubscriptionStats {
         SubscriptionStats {
             delivered: self.delivered.load(Ordering::Relaxed),
@@ -55,6 +40,9 @@ struct Inner {
     /// touch the lock.
     is_scheduled: AtomicBool,
     alive: AtomicBool,
+    /// Its own allocation on purpose: the mailbox's thread writes these on
+    /// every handled event, and inline they'd share a cache line with the
+    /// flags the publisher reads on every publish (about 10% slower on a pool).
     counters: Arc<Counters>,
 }
 
@@ -120,14 +108,21 @@ impl Subscription {
     }
 
     /// Stop delivering to this subscription. Takes effect for any publish
-    /// that hasn't reached it yet, including one already in progress.
+    /// that hasn't reached it yet, including one already in progress, and
+    /// for deliveries already queued in its mailbox. A handler call already
+    /// running finishes.
     pub fn unsubscribe(&self) {
         self.0.alive.store(false, Ordering::Release);
     }
 
     #[inline]
-    pub(super) fn counters(&self) -> &Arc<Counters> {
-        &self.0.counters
+    pub(super) fn record_delivered(&self) {
+        self.0.counters.delivered.fetch_add(1, Ordering::Relaxed);
+    }
+
+    #[inline]
+    pub(super) fn record_handled(&self) {
+        self.0.counters.handled.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Advance the schedule and say whether this event is due. Called exactly
@@ -140,7 +135,7 @@ impl Subscription {
 
         let due = self.try_schedule();
         if !due {
-            self.0.counters.record_skipped();
+            self.0.counters.skipped.fetch_add(1, Ordering::Relaxed);
         }
         due
     }

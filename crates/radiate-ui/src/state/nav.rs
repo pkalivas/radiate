@@ -51,7 +51,11 @@ impl DashboardTab {
     pub fn supports_metric_modal(self) -> bool {
         !matches!(
             self,
-            DashboardTab::Species | DashboardTab::Log | DashboardTab::Front | DashboardTab::Events
+            DashboardTab::Species
+                | DashboardTab::Log
+                | DashboardTab::Front
+                | DashboardTab::Events
+                | DashboardTab::Population
         )
     }
 
@@ -199,10 +203,6 @@ impl NavState {
             DashboardTab::Log => 5,
             DashboardTab::Front => 6,
             DashboardTab::Events => 7,
-            // DashboardTab::Species => 3,
-            // DashboardTab::Log => 4,
-            // DashboardTab::Front => 5,
-            // DashboardTab::Events => 6,
         }
     }
 
