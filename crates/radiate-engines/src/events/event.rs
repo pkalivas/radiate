@@ -39,30 +39,11 @@ where
     }
 }
 
-#[derive(Default, Clone)]
-pub struct StreamContext;
-
-impl StreamContext {
-    pub fn weak(&self) -> EventScope {
-        EventScope {
-            id: EventId::new(),
-            guard: None,
-        }
-    }
-
-    pub fn guarded(&self, guard: WaitGuard) -> EventScope {
-        EventScope {
-            id: EventId::new(),
-            guard: Some(Arc::new(guard)),
-        }
-    }
-}
-
 #[derive(Default)]
 pub struct EventScope {
-    id: EventId,
+    pub id: EventId,
     #[allow(dead_code)]
-    guard: Option<Arc<WaitGuard>>,
+    pub guard: Option<Arc<WaitGuard>>,
 }
 
 impl EventScope {

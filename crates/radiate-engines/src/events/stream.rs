@@ -1,5 +1,5 @@
 use crate::{
-    EventHandler, EventScope, StreamContext, StreamStats, SubscriptionInfo,
+    EventHandler, EventId, EventScope, StreamStats, SubscriptionInfo,
     events::{
         Event, Handler, Subscription, SubscriptionId,
         event::Payload,
@@ -101,7 +101,6 @@ impl Delivery {
 pub(super) struct Shared {
     subscribers: RwLock<SubscriberMap>,
     pending: RwLock<Vec<Payload>>,
-    context: StreamContext,
     event_count: AtomicUsize,
 }
 
@@ -116,15 +115,20 @@ impl Shared {
     }
 
     fn scope(&self) -> EventScope {
-        self.context.weak()
+        EventScope {
+            id: EventId::new(),
+            guard: None,
+        }
     }
 
     fn scoped(&self, guard: WaitGuard) -> EventScope {
-        self.context.guarded(guard)
+        EventScope {
+            id: EventId::new(),
+            guard: Some(Arc::new(guard)),
+        }
     }
 }
 
-// stream.rs
 pub struct EventStreamScope<'a> {
     stream: &'a EventStream,
     wg: WaitGroup,
@@ -410,7 +414,6 @@ impl EventStream {
         self.publish_payload_scoped(payload, self.shared.scope());
     }
 
-    /// Publish `event` as part of an existing chain.
     #[inline]
     pub(crate) fn publish_scoped<E: Event>(&self, event: E, scope: EventScope) {
         if let Some(group) = self.shared.group::<E>() {
