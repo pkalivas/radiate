@@ -119,7 +119,7 @@ where
 
         self.engine
             .context()
-            .event_stream()
+            .stream()
             .subscribe(move |ctx: &GenerationSnapshot<C, T>| {
                 let inner = &ctx.generation;
                 action_fn(GenerationView::from(inner.as_ref()));
@@ -139,7 +139,7 @@ where
 
         self.engine
             .context()
-            .event_stream()
+            .stream()
             .subscribe(move |_: &EpochComplete<T>| {
                 control.set_paused(true);
             })
@@ -173,7 +173,7 @@ where
     {
         self.engine
             .context()
-            .event_stream()
+            .stream()
             .subscribe(move |ctx: &GenerationSnapshot<C, T>| {
                 let inner = &ctx.generation;
                 action_fn(GenerationView::from(inner.as_ref()));
@@ -263,16 +263,12 @@ where
     ///     .last();
     /// ```
     pub fn subscribe<EV: Event>(self, handler: impl Handler<EV>) -> Self {
-        self.engine.context().event_stream().subscribe(handler);
+        self.engine.context().stream().subscribe(handler);
         self
     }
 
     pub fn attach<H: EventHandler>(self, handler: H) -> Self {
-        self.engine
-            .context()
-            .event_stream()
-            .attach(handler)
-            .unwrap();
+        self.engine.context().stream().attach(handler).unwrap();
         self
     }
 }
@@ -367,7 +363,7 @@ where
     pub fn logging(self) -> EngineRuntime<E> {
         init_logging();
 
-        let stream = self.engine.context().event_stream();
+        let stream = self.engine.context().stream();
         stream.detach::<LoggingHandler>();
 
         if !stream.handler_registered::<LoggingHandler>() {

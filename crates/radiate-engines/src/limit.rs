@@ -151,7 +151,7 @@ where
         match outcome {
             LimitOutcome::Proceed => Ok(true),
             LimitOutcome::Stop => {
-                ctx.event_stream()
+                ctx.stream()
                     .publish(LimitTriggered(ctx.index, self.clone()));
                 Ok(false)
             }
@@ -414,7 +414,7 @@ where
         let view = GenerationView::new(ctx);
         let proceed = !(self)(view);
         if !proceed {
-            ctx.event_stream()
+            ctx.stream()
                 .publish(LimitTriggered(ctx.index, Limit::Fn));
         }
         Ok(proceed)

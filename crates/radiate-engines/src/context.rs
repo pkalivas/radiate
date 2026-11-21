@@ -1,4 +1,6 @@
-use crate::{Chromosome, GenerationSnapshot, Improvement, ThreadSync, events::EngineStateChange};
+use crate::{
+    Chromosome, GenerationSnapshot, Improvement, StreamEvent, ThreadSync, events::EngineStateChange,
+};
 use crate::{builder::config::EngineConfig, events::EventStream};
 use radiate_core::ExprSet;
 use radiate_core::error::RadiateResult;
@@ -44,7 +46,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         Arc::clone(&self.front)
     }
 
-    pub fn event_stream(&self) -> &EventStream {
+    pub fn stream(&self) -> &EventStream {
         &self.events
     }
 
@@ -84,6 +86,23 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.change_state(EngineState::Stopped);
     }
 
+    pub(crate) fn start_engine(&mut self) -> RadiateResult<()> {
+        self.stream().scope(|stream| {
+            stream
+                .deferred()
+                .into_iter()
+                .map(|deferred| Ok(stream.publish_payload(deferred)))
+                .collect::<RadiateResult<()>>()
+        })?;
+
+        self.set_running();
+
+        self.metrics
+            .replace(metric!(metric_names::INDEX, self.index));
+
+        Ok(())
+    }
+
     pub(crate) fn finalize(&mut self) -> RadiateResult<()>
     where
         C: Chromosome + Clone + 'static,
@@ -99,8 +118,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         if best_improved && let Some(best) = best {
             self.score = best.score().cloned();
             self.best = self.problem.decode(best.genotype());
-            self.event_stream()
-                .lazy_publish(|| Improvement::from(&*self))?;
+            self.stream().lazy_publish(|| Improvement::from(&*self))?;
         }
 
         Ok(())
@@ -111,11 +129,14 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         C: Chromosome + Clone + 'static,
         T: Clone + Send + Sync + 'static,
     {
-        let stream = self.event_stream();
+        let stream = self.stream();
 
-        stream.flush()?;
+        for deferred in stream.deferred() {
+            stream.publish_payload(deferred);
+        }
+
         stream.lazy_publish(|| GenerationSnapshot::from(&*self))?;
-        stream.roll()?;
+        stream.lazy_publish(|| StreamEvent::Stats(stream.stats()))?;
 
         self.index += 1;
 

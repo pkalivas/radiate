@@ -98,6 +98,19 @@ impl EventStreamScope<'_> {
         self.stream
             .lazy_publish_traced(f, Trace::scoped(self.wg.guard()))
     }
+
+    pub fn publish_payload(&self, payload: Payload) {
+        self.stream
+            .publish_payload_traced(payload, Trace::scoped(self.wg.guard()));
+    }
+
+    pub fn deferred(&self) -> Vec<Payload> {
+        self.stream.deferred()
+    }
+
+    pub fn wait(&self) {
+        self.wg.wait();
+    }
 }
 
 #[derive(Clone, Default)]
@@ -168,6 +181,10 @@ impl EventStream {
     pub fn event_count(&self) -> usize {
         self.shared.event_count.load(Ordering::SeqCst)
     }
+
+    pub fn deferred(&self) -> Vec<Payload> {
+        std::mem::take(&mut *self.shared.pending.write().unwrap())
+    }
 }
 
 impl EventStream {
@@ -236,6 +253,19 @@ impl EventStream {
 }
 
 impl EventStream {
+    pub fn scope<R>(
+        &self,
+        func: impl FnOnce(EventStreamScope) -> RadiateResult<R>,
+    ) -> RadiateResult<R> {
+        let wg = WaitGroup::new();
+        let result = func(EventStreamScope {
+            stream: self,
+            wg: wg.clone(),
+        });
+        wg.wait();
+        result
+    }
+
     #[inline]
     pub fn publish<E: Event>(&self, event: E) {
         self.publish_traced(event, Trace::new());
@@ -243,6 +273,10 @@ impl EventStream {
 
     pub fn lazy_publish<E: Event>(&self, f: impl FnOnce() -> E) -> RadiateResult<()> {
         self.lazy_publish_traced(f, Trace::new())
+    }
+
+    pub fn publish_payload(&self, payload: Payload) {
+        self.publish_payload_traced(payload, Trace::new());
     }
 
     /// Publish `event` as part of an existing chain.
@@ -289,15 +323,17 @@ impl EventStream {
         Ok(())
     }
 
-    pub fn scope<R>(&self, func: impl FnOnce(EventStreamScope) -> R) -> R {
-        let wg = WaitGroup::new();
-        let result = func(EventStreamScope {
-            stream: self,
-            wg: wg.clone(),
-        });
+    pub(crate) fn publish_payload_traced(&self, payload: Payload, trace: Trace) {
+        let type_id = (*payload).type_id();
+        let group = self.shared.group_by_type(type_id);
 
-        wg.wait();
-        result
+        let Some(group) = group else {
+            return;
+        };
+
+        let wrapper = StreamMessage::Event { payload, trace };
+
+        self.dispatch(&group, wrapper, DispatchMode::Immediate);
     }
 
     /// Publish every deferred event, then block until each one's whole chain
@@ -317,26 +353,13 @@ impl EventStream {
             return Ok(());
         }
 
-        let scope = WaitGroup::new();
-        for payload in deferred {
-            let type_id = (*payload).type_id();
-            let group = self.shared.group_by_type(type_id);
+        self.scope(|stream| {
+            for payload in deferred {
+                stream.publish_payload(payload);
+            }
 
-            let Some(group) = group else {
-                continue;
-            };
-
-            let wrapper = StreamMessage::Event {
-                payload: Arc::clone(&payload),
-                trace: Trace::scoped(scope.guard()),
-            };
-
-            self.dispatch(&group, wrapper, DispatchMode::All);
-        }
-
-        scope.wait();
-
-        Ok(())
+            Ok(())
+        })
     }
 
     pub fn wait(&self) -> RadiateResult<()> {
