@@ -1,5 +1,5 @@
 use crate::{
-    EventHandler, StreamStats, SubscriptionInfo, Trace,
+    EventHandler, EventId, StreamContext, StreamStats, SubscriptionInfo, WeakScope,
     events::{
         Event, Handler, Subscription, SubscriptionId,
         event::Payload,
@@ -25,11 +25,12 @@ type SubscriberMap = HashMap<TypeId, SubscriberList>;
 #[derive(Clone)]
 pub(crate) enum StreamMessage {
     Event {
+        id: EventId,
         payload: Payload,
-        trace: Trace,
+        scope: WeakScope,
     },
     #[allow(dead_code)]
-    Wait(Arc<WaitGuard>),
+    Wait(WeakScope),
 }
 
 enum DispatchMode {
@@ -68,6 +69,7 @@ impl Registration {
 pub(super) struct Shared {
     subscribers: RwLock<SubscriberMap>,
     pending: RwLock<Vec<Payload>>,
+    context: StreamContext,
     event_count: AtomicUsize,
 }
 
@@ -80,6 +82,18 @@ impl Shared {
     fn group_by_type(&self, id: TypeId) -> Option<SubscriberList> {
         self.subscribers.read().unwrap().get(&id).cloned()
     }
+
+    fn in_flight(&self) -> usize {
+        self.context.weak_count()
+    }
+
+    fn scope(&self) -> WeakScope {
+        self.context.weak()
+    }
+
+    fn scoped(&self, guard: WaitGuard) -> WeakScope {
+        self.context.guarded(guard)
+    }
 }
 
 // stream.rs
@@ -91,17 +105,27 @@ pub struct EventStreamScope<'a> {
 impl EventStreamScope<'_> {
     pub fn publish<E: Event>(&self, event: E) {
         self.stream
-            .publish_traced(event, Trace::scoped(self.wg.guard()));
+            .publish_scoped(event, self.stream.guarded_context(self.wg.guard()));
     }
 
     pub fn lazy_publish<E: Event>(&self, f: impl FnOnce() -> E) -> RadiateResult<()> {
-        self.stream
-            .lazy_publish_traced(f, Trace::scoped(self.wg.guard()))
+        let ctx = self.stream.guarded_context(self.wg.guard());
+        self.stream.lazy_publish_scoped(f, ctx)
     }
 
     pub fn publish_payload(&self, payload: Payload) {
         self.stream
-            .publish_payload_traced(payload, Trace::scoped(self.wg.guard()));
+            .publish_payload_scoped(payload, self.stream.guarded_context(self.wg.guard()));
+    }
+
+    pub fn handle_all(&self) -> bool {
+        let groups = self.stream.shared.subscribers.read().unwrap();
+        for group in groups.values() {
+            let message = StreamMessage::Wait(self.stream.guarded_context(self.wg.guard()));
+            self.stream.dispatch(group, message, DispatchMode::All);
+        }
+
+        false
     }
 
     pub fn deferred(&self) -> Vec<Payload> {
@@ -268,36 +292,37 @@ impl EventStream {
 
     #[inline]
     pub fn publish<E: Event>(&self, event: E) {
-        self.publish_traced(event, Trace::new());
+        self.publish_scoped(event, self.shared.scope())
     }
 
     pub fn lazy_publish<E: Event>(&self, f: impl FnOnce() -> E) -> RadiateResult<()> {
-        self.lazy_publish_traced(f, Trace::new())
+        self.lazy_publish_scoped(f, self.shared.scope())
     }
 
     pub fn publish_payload(&self, payload: Payload) {
-        self.publish_payload_traced(payload, Trace::new());
+        self.publish_payload_scoped(payload, self.shared.scope());
     }
 
     /// Publish `event` as part of an existing chain.
     #[inline]
-    pub(crate) fn publish_traced<E: Event>(&self, event: E, trace: Trace) {
+    pub(crate) fn publish_scoped<E: Event>(&self, event: E, scope: WeakScope) {
         let Some(group) = self.shared.group::<E>() else {
             return;
         };
 
         let wrapper = StreamMessage::Event {
+            id: EventId::new(),
             payload: Arc::new(event),
-            trace,
+            scope,
         };
 
         self.dispatch(&group, wrapper, DispatchMode::Immediate);
     }
 
-    pub(crate) fn lazy_publish_traced<E: Event>(
+    pub(crate) fn lazy_publish_scoped<E: Event>(
         &self,
         f: impl FnOnce() -> E,
-        trace: Trace,
+        scope: WeakScope,
     ) -> RadiateResult<()> {
         let Some(group) = self.shared.group::<E>() else {
             return Ok(());
@@ -315,15 +340,16 @@ impl EventStream {
         }
 
         let wrapper = StreamMessage::Event {
+            id: EventId::new(),
             payload: Arc::new(f()),
-            trace,
+            scope,
         };
 
         self.dispatch(&group, wrapper, DispatchMode::Scheduled);
         Ok(())
     }
 
-    pub(crate) fn publish_payload_traced(&self, payload: Payload, trace: Trace) {
+    pub(crate) fn publish_payload_scoped(&self, payload: Payload, ctx: WeakScope) {
         let type_id = (*payload).type_id();
         let group = self.shared.group_by_type(type_id);
 
@@ -331,24 +357,17 @@ impl EventStream {
             return;
         };
 
-        let wrapper = StreamMessage::Event { payload, trace };
+        let wrapper = StreamMessage::Event {
+            id: EventId::new(),
+            payload,
+            scope: ctx,
+        };
 
         self.dispatch(&group, wrapper, DispatchMode::Immediate);
     }
 
-    /// Publish every deferred event, then block until each one's whole chain
-    /// has been handled: the event's own handlers and, recursively, every
-    /// event those handlers published through their [`EventContext`](crate::events::EventContext).
-    ///
-    /// On a serial executor dispatch is synchronous, so the wait returns
-    /// immediately. Only events published through a handler's context join the
-    /// chain; events published some other way (a captured stream clone, a
-    /// spawned thread) aren't waited on.
-    ///
-    /// Don't call this from inside a handler running on the stream's worker
-    /// pool. It would wait on work that may need that same pool to finish.
     pub fn flush(&self) -> RadiateResult<()> {
-        let deferred = std::mem::take(&mut *self.shared.pending.write().unwrap());
+        let deferred = self.deferred();
         if deferred.is_empty() {
             return Ok(());
         }
@@ -363,34 +382,40 @@ impl EventStream {
     }
 
     pub fn wait(&self) -> RadiateResult<()> {
-        let waiter = WaitGroup::new();
+        self.scope(|stream| {
+            stream.handle_all();
+            Ok(())
+        })?;
 
-        loop {
-            let subscribers = self.shared.subscribers.read().unwrap();
-            for group in subscribers.values() {
-                let guard = Arc::new(waiter.guard());
-                let message = StreamMessage::Wait(guard);
+        println!("{:?}", self.shared.in_flight());
 
-                self.dispatch(&group, message, DispatchMode::All);
-            }
+        // let waiter = WaitGroup::new();
 
-            waiter.wait();
+        // loop {
+        //     let subscribers = self.shared.subscribers.read().unwrap();
+        //     for group in subscribers.values() {
+        //         let message = StreamMessage::Wait(self.guarded_context(waiter.guard()));
+        //         self.dispatch(&group, message, DispatchMode::All);
+        //     }
 
-            self.flush()?;
+        //     self.flush()?;
 
-            let stats = self.stats();
-            let in_flight = stats
-                .subscribers
-                .iter()
-                .map(|sub| sub.stats.in_flight())
-                .sum::<u64>();
+        //     waiter.wait();
 
-            if in_flight == 0 {
-                break;
-            }
-        }
+        //     let stats = self.stats();
+        //     let in_flight = stats
+        //         .subscribers
+        //         .iter()
+        //         .map(|sub| sub.stats.in_flight())
+        //         .sum::<u64>();
 
-        waiter.wait();
+        //     if in_flight == 0 {
+        //         break;
+        //     }
+        // }
+
+        // waiter.wait();
+
         Ok(())
     }
 
@@ -465,7 +490,7 @@ impl EventStream {
         let target = mailbox.clone();
 
         let forward: Forward = Arc::new(move |payload: StreamMessage| {
-            target.send::<E>(payload, Arc::clone(&counters));
+            target.deliver::<E>(payload, Arc::clone(&counters));
         });
 
         let registration = Registration {
@@ -490,6 +515,10 @@ impl EventStream {
         self.defer(StreamEvent::Added(subscription.clone()));
 
         subscription
+    }
+
+    fn guarded_context(&self, guard: WaitGuard) -> WeakScope {
+        self.shared.scoped(guard)
     }
 }
 

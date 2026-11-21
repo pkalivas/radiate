@@ -1,7 +1,10 @@
 use crate::EventContext;
 use radiate_core::{SmallStr, WaitGuard, error::RadiateResult};
 use radiate_utils::{generate_metric_key, sentry_id};
-use std::{any::Any, sync::Arc};
+use std::{
+    any::Any,
+    sync::{Arc, Weak},
+};
 
 sentry_id!(EventId);
 
@@ -39,38 +42,65 @@ where
     }
 }
 
-/// The causal chain an event belongs to.
-///
-/// Every event published from inside a handler (through its [`EventContext`])
-/// inherits the trace of the event being handled, so all events in a chain share
-/// the same `root` id. When the chain is `scoped`, each event in it holds a clone
-/// of the scope's [`WaitGuard`]. The guard is released only once every handler
-/// in the chain has returned, which lets the code that started the chain wait
-/// for it to finish (see [`EventStream::flush`]).
-#[derive(Clone)]
-pub(crate) struct Trace {
-    root: EventId,
-    // Never read: only held, so its Drop releases the scope once the chain is done.
+// #[derive(Default, Clone)]
+// pub struct Scope {
+//     in_flight: Arc<()>,
+//     #[allow(dead_code)]
+//     guard: Option<Arc<WaitGuard>>,
+// }
+
+// impl Scope {
+//     pub fn count(&self) -> usize {
+//         Arc::strong_count(&self.in_flight)
+//     }
+
+//     pub fn guarded(&self, guard: WaitGuard) -> Scope {
+//         Scope {
+//             in_flight: Arc::clone(&self.in_flight),
+//             guard: Some(Arc::new(guard)),
+//         }
+//     }
+// }
+
+#[derive(Default, Clone)]
+pub struct StreamContext {
+    in_flight: Arc<()>,
     #[allow(dead_code)]
-    scope: Option<Arc<WaitGuard>>,
+    guard: Option<Arc<WaitGuard>>,
 }
 
-impl Trace {
-    pub(crate) fn new() -> Self {
-        Trace {
-            root: EventId::new(),
-            scope: None,
+impl StreamContext {
+    pub fn weak_count(&self) -> usize {
+        Arc::weak_count(&self.in_flight)
+    }
+
+    pub fn weak(&self) -> WeakScope {
+        WeakScope {
+            in_flight: Arc::downgrade(&self.in_flight),
+            guard: self.guard.clone(),
         }
     }
 
-    pub(crate) fn scoped(guard: WaitGuard) -> Self {
-        Trace {
-            root: EventId::new(),
-            scope: Some(Arc::new(guard)),
+    pub fn guarded(&self, guard: WaitGuard) -> WeakScope {
+        WeakScope {
+            in_flight: Arc::downgrade(&self.in_flight),
+            guard: Some(Arc::new(guard)),
         }
     }
+}
 
-    pub(crate) fn root(&self) -> EventId {
-        self.root
+#[derive(Default)]
+pub struct WeakScope {
+    in_flight: Weak<()>,
+    #[allow(dead_code)]
+    guard: Option<Arc<WaitGuard>>,
+}
+
+impl Clone for WeakScope {
+    fn clone(&self) -> Self {
+        WeakScope {
+            in_flight: Weak::clone(&self.in_flight),
+            guard: self.guard.clone(),
+        }
     }
 }

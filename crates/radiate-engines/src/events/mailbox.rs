@@ -1,5 +1,5 @@
 use crate::{
-    Event, EventId, Trace,
+    Event, EventId, WeakScope,
     events::{
         event::Payload,
         stream::{Shared, StreamMessage},
@@ -116,10 +116,11 @@ impl<H: Send + 'static> MailBox<H> {
     {
         let claimed = self.0.inbox.try_claim();
         let result = {
-            let trace = Trace::new();
+            let trace = WeakScope::default();
             let ctx = EventContext {
+                id: EventId::new(),
                 mailbox: self,
-                trace: &trace,
+                context: &trace,
             };
             self.0.handler.lock().unwrap().start(&ctx)
         };
@@ -131,7 +132,7 @@ impl<H: Send + 'static> MailBox<H> {
         result
     }
 
-    pub(super) fn send<E>(&self, payload: StreamMessage, counters: Arc<Counters>)
+    pub(super) fn deliver<E>(&self, payload: StreamMessage, counters: Arc<Counters>)
     where
         E: Event,
         H: Handler<E>,
@@ -175,17 +176,22 @@ impl<H: Send + 'static> MailBox<H> {
             let mut panicked = None;
             let more = self.0.inbox.drain(self.budget(), |envelope| {
                 let outcome = match &envelope.payload {
-                    StreamMessage::Event { payload, trace } => {
+                    StreamMessage::Event {
+                        id,
+                        payload,
+                        scope: trace,
+                    } => {
                         let ctx = EventContext {
+                            id: *id,
                             mailbox: self,
-                            trace,
+                            context: trace,
                         };
                         catch_unwind(AssertUnwindSafe(|| {
                             (envelope.deliver)(&mut handler, payload, &ctx)
                         }))
                     }
                     StreamMessage::Wait(guard) => {
-                        shutdown = Some(Arc::clone(guard));
+                        shutdown = Some(guard.clone());
                         Ok(())
                     }
                 };
@@ -230,8 +236,9 @@ impl<H> Clone for MailBox<H> {
 }
 
 pub struct EventContext<'a, H> {
+    id: EventId,
     mailbox: &'a MailBox<H>,
-    trace: &'a Trace,
+    context: &'a WeakScope,
 }
 
 impl<H> EventContext<'_, H> {
@@ -242,13 +249,13 @@ impl<H> EventContext<'_, H> {
     /// Does nothing if the stream has already been dropped.
     pub fn publish<E: Event>(&self, event: E) {
         if let Some(stream) = self.mailbox.stream() {
-            stream.publish_traced(event, self.trace.clone());
+            stream.publish_scoped(event, self.context.clone());
         }
     }
 
     /// The id of the event that started the chain this handler is running in.
     pub fn root_id(&self) -> EventId {
-        self.trace.root()
+        self.id
     }
 
     pub fn subscribe<E>(&self) -> Subscription

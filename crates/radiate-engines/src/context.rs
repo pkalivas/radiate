@@ -86,23 +86,6 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.change_state(EngineState::Stopped);
     }
 
-    pub(crate) fn start_engine(&mut self) -> RadiateResult<()> {
-        self.stream().scope(|stream| {
-            stream
-                .deferred()
-                .into_iter()
-                .map(|deferred| Ok(stream.publish_payload(deferred)))
-                .collect::<RadiateResult<()>>()
-        })?;
-
-        self.set_running();
-
-        self.metrics
-            .replace(metric!(metric_names::INDEX, self.index));
-
-        Ok(())
-    }
-
     pub(crate) fn finalize(&mut self) -> RadiateResult<()>
     where
         C: Chromosome + Clone + 'static,

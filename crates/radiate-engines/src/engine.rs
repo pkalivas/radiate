@@ -6,7 +6,7 @@ use crate::{
     events::{EngineStart, EngineStop, EpochComplete, EpochStart, EventStream, Subscription},
 };
 use crate::{context::EvolutionContext, events::Event};
-use radiate_core::{Engine, EngineState, error::RadiateResult, metric, metric_names};
+use radiate_core::{Engine, EngineState, metric_names};
 use radiate_core::{EngineStream, error::Result};
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
@@ -184,14 +184,7 @@ where
     }
 
     fn start(&mut self) -> Result<()> {
-        self.stream.scope(|stream| {
-            stream
-                .deferred()
-                .into_iter()
-                .map(|deferred| Ok(stream.publish_payload(deferred)))
-                .collect::<Result<()>>()
-        })?;
-
+        self.stream.flush()?;
         self.context.set_running();
         self.context
             .metrics
@@ -204,9 +197,10 @@ where
     fn stop(&mut self) -> Result<()> {
         self.context.set_stopped();
         self.stream.publish(EngineStop::from(&self.context));
+        self.stream.wait()?;
 
         println!("{:#?}", self.stream.stats());
-        self.stream.wait()
+        Ok(())
     }
 
     #[inline]
