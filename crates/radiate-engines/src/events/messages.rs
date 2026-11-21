@@ -1,4 +1,4 @@
-use crate::{Event, Generation, Limit, context::EvolutionContext};
+use crate::{Event, Generation, Limit, StreamSnapshot, Subscription, context::EvolutionContext};
 use radiate_core::{
     Chromosome, EngineState, Front, MetricSet, Objective, Phenotype, Score, SmallStr,
 };
@@ -28,6 +28,18 @@ impl<T> Deref for StreamEvent<T> {
         &self.0
     }
 }
+
+#[derive(Clone, Debug)]
+pub struct StreamOpened;
+
+#[derive(Clone, Debug)]
+pub struct StreamClosed(pub StreamSnapshot);
+
+#[derive(Clone, Debug)]
+pub struct SubscriptionAdded(pub Subscription);
+
+#[derive(Clone, Debug)]
+pub struct SubscriptionRemoved(pub Subscription);
 
 #[derive(Clone, Debug)]
 pub struct EngineStateChange {

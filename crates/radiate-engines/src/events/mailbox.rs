@@ -1,9 +1,7 @@
 use crate::{
     Event, EventHandler, EventId, EventScope, Handler,
     events::{
-        EventStream, Subscription, SubscriptionId,
-        event::Payload,
-        stream::{Delivery, Published, Shared},
+        EventStream, Subscription, SubscriptionId, event::Payload, stream::Shared,
         subscription::Counters,
     },
 };
@@ -20,6 +18,20 @@ sentry_id!(MailBoxId);
 /// worker back to the executor. On a serial executor the drain just keeps going.
 const PROCESS_BATCH_SIZE: usize = 64;
 
+/// Monomorphized per (E, H) and stored as a fn pointer, so one queue can hold
+/// deliveries of every event type the handler subscribes to.
+type HandleFn<H> = fn(&mut H, &Payload, &EventContext<'_, H>);
+
+fn handle<E, H>(handler: &mut H, payload: &Payload, ctx: &EventContext<'_, H>)
+where
+    E: Event,
+    H: Handler<E>,
+{
+    if let Some(event) = payload.downcast_ref::<E>() {
+        handler.handle(event, ctx);
+    }
+}
+
 /// The stream's only handle to a mailbox: one per registration, typed on the
 /// event behind the trait object so the stream never sees the handler type.
 pub trait Route: Send + Sync {
@@ -33,6 +45,24 @@ pub trait Route: Send + Sync {
     /// Queue `guard` behind everything already in the mailbox. It's released
     /// once all of that has been handled (or discarded after a panic).
     fn drain(&self, guard: WaitGuard);
+}
+
+/// One published event as the stream hands it to each route: borrowed, so a
+/// mailbox that handles it inline never clones anything.
+pub struct Published<'a> {
+    pub(super) payload: &'a Payload,
+    pub(super) scope: &'a EventScope,
+}
+
+impl Published<'_> {
+    /// An owned copy for a mailbox that has to queue it.
+    fn to_delivery(&self, counters: &Arc<Counters>) -> Delivery {
+        Delivery {
+            payload: Arc::clone(self.payload),
+            scope: self.scope.clone(),
+            counters: Arc::clone(counters),
+        }
+    }
 }
 
 /// A [`Route`] for event `E` into a `MailBox<H>`.
@@ -84,17 +114,29 @@ where
     }
 }
 
-/// Monomorphized per (E, H) and stored as a fn pointer, so one queue can hold
-/// deliveries of every event type the handler subscribes to.
-type HandleFn<H> = fn(&mut H, &Payload, &EventContext<'_, H>);
+/// One event routed to one subscription, queued in a mailbox.
+///
+/// The mailbox reads it and calls [`complete`](Delivery::complete) once the
+/// handler returns. Dropping it without completing (a panic, a discard) still
+/// releases its scope, but it isn't counted as handled.
+struct Delivery {
+    payload: Payload,
+    scope: EventScope,
+    counters: Arc<Counters>,
+}
 
-fn handle<E, H>(handler: &mut H, payload: &Payload, ctx: &EventContext<'_, H>)
-where
-    E: Event,
-    H: Handler<E>,
-{
-    if let Some(event) = payload.downcast_ref::<E>() {
-        handler.handle(event, ctx);
+impl Delivery {
+    fn scope(&self) -> &EventScope {
+        &self.scope
+    }
+
+    fn payload(&self) -> &Payload {
+        &self.payload
+    }
+
+    /// The handler finished with this delivery.
+    fn complete(self) {
+        self.counters.record_handled();
     }
 }
 
