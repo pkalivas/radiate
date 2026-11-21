@@ -189,7 +189,12 @@ impl<C: Chromosome + Debug> AppWidget<C> for FrontEventLogWidget {
 
 impl<C: Chromosome + Debug> AppWidget<C> for EventLogWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
-        let log = &state.evo.event_log;
+        let log = &state
+            .evo
+            .event_log
+            .iter()
+            .filter(|log| state.nav.log_matches_search(log))
+            .collect::<Vec<_>>();
 
         state
             .tables

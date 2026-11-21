@@ -309,8 +309,8 @@ impl<C: Chromosome + Debug> Default for LayoutNode<C> {
                                             Widget(|a, b, s| EventLogWidget.render(a, b, s)),
                                             Vertical {
                                                 constraints: vec![
-                                                    Constraint::Percentage(50),
-                                                    Constraint::Percentage(50),
+                                                    Constraint::Percentage(60),
+                                                    Constraint::Percentage(40),
                                                 ],
                                                 children: vec![
                                                     Widget(|a, b, s| {

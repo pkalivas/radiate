@@ -1,14 +1,16 @@
-use std::fmt::Debug;
-
 use crate::state::AppState;
 use crate::styles::{self, striped_rows};
 use crate::widgets::AppWidget;
 use radiate_engines::Chromosome;
-use ratatui::buffer::Buffer;
-use ratatui::layout::{Alignment, Constraint, Rect};
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Text};
 use ratatui::widgets::{Cell, Row, Table, Widget};
+use ratatui::{buffer::Buffer, text::Span};
+use ratatui::{
+    layout::{Alignment, Constraint, Rect},
+    style::Stylize,
+};
+use std::fmt::Debug;
 
 /// Column titles, and how many leading columns are text. The rest are
 /// numbers, and their titles are right-aligned to sit over them.
@@ -113,7 +115,8 @@ fn render_table(
     widths: [Constraint; 5],
 ) {
     // Display only: never focused, so never highlighted.
-    let block = styles::panel_block(false).title(Line::from(title).centered());
+    let block = styles::panel_block(false)
+        .title(Line::from(vec![Span::from(title).fg(Color::White).bold()]).centered());
     let table = Table::default()
         .block(block)
         .header(header_row(&header, text_columns))

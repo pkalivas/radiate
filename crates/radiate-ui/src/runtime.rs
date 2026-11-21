@@ -6,7 +6,7 @@ use color_eyre::{Result, eyre::Context};
 use crossbeam::channel;
 use radiate_engines::{
     Chromosome, EngineStart, EventContext, EventHandler, GenerationSnapshot, Handler, Improvement,
-    StreamEvent, StreamSnapshot, error::RadiateResult, sync::IntoPair,
+    StreamClosed, StreamEvent, StreamSnapshot, error::RadiateResult, sync::IntoPair,
 };
 use radiate_engines::{LogEvent, ThreadSync};
 use std::{fmt::Debug, sync::atomic::Ordering, time::Duration};
@@ -78,6 +78,7 @@ where
         subs.push(ctx.subscribe::<Improvement<T>>());
         subs.push(ctx.subscribe::<LogEvent>());
         subs.push(ctx.subscribe::<StreamEvent<StreamSnapshot>>());
+        subs.push(ctx.subscribe::<StreamEvent<StreamClosed>>());
 
         for subscription in subs {
             self.dispatcher
@@ -151,6 +152,19 @@ where
         self.dispatcher
             .send(InputEvent::Stream(event.0.clone()))
             .context("Failed to send StreamSnapshot event")
+            .unwrap();
+    }
+}
+
+impl<C, T> Handler<StreamEvent<StreamClosed>> for Tui<C, T>
+where
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    fn handle(&mut self, event: &StreamEvent<StreamClosed>, _: &EventContext<'_, Self>) {
+        self.dispatcher
+            .send(InputEvent::Stream(event.0.0.clone()))
+            .context("Failed to send StreamClosed event")
             .unwrap();
     }
 }

@@ -1,3 +1,5 @@
+use crate::state::evo::EventLogEntry;
+
 use super::chart::MetricChartType;
 use radiate_engines::Metric;
 
@@ -222,6 +224,16 @@ impl NavState {
             || metric
                 .iter_tags()
                 .any(|tag| tag.as_str().to_lowercase().contains(&q))
+    }
+
+    pub fn log_matches_search(&self, log: &EventLogEntry) -> bool {
+        let query = self.search.query.trim();
+        if query.is_empty() {
+            return true;
+        }
+        let q = query.to_lowercase();
+        log.message.to_lowercase().contains(&q)
+            || format!("{:?}", log.level).to_lowercase().contains(&q)
     }
 }
 
