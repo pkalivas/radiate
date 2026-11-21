@@ -1,9 +1,8 @@
 use crate::{
-    EventContext, EventHandler, Handler, LogEvent, LogLevel, StreamClosed, SubscriptionId,
-    SubscriptionInfo, Warning,
-    events::{EngineStateChange, messages::StreamEvent},
+    EventContext, EventHandler, Handler, LogEvent, LogLevel, StreamClosed, StreamSnapshot,
+    SubscriptionId, SubscriptionInfo, Warning, events::messages::StreamEvent,
 };
-use radiate_core::{EngineState, error::RadiateResult};
+use radiate_core::error::RadiateResult;
 use std::collections::HashMap;
 use std::time::Instant;
 
@@ -136,6 +135,48 @@ impl StreamMonitor {
 
         out
     }
+
+    fn handle_snap(&mut self, event: &StreamSnapshot, ctx: &EventContext<'_, Self>) {
+        let stats = &event;
+
+        let now = Instant::now();
+        self.first.get_or_insert(now);
+        self.last = Some(now);
+        self.snapshots += 1;
+
+        let own = ctx.mailbox_id();
+        for info in stats.subscribers.iter().filter(|s| s.mailbox_id != own) {
+            let queued = info.stats.queued();
+
+            let tracked = self.handlers.entry(info.id).or_insert_with(|| Tracked {
+                info: info.clone(),
+                first_handled: info.stats.handled,
+                peak_queued: 0,
+                growing: 0,
+                warned: 0,
+            });
+
+            let previous = tracked.info.stats.queued();
+            tracked.growing = if queued > previous {
+                tracked.growing + 1
+            } else {
+                0
+            };
+
+            if tracked.growing == self.falling_behind_after {
+                tracked.warned += 1;
+                ctx.publish(Warning(format!(
+                    "Stream | {} is falling behind: {} events queued, growing for {} snapshots",
+                    label(info),
+                    queued,
+                    tracked.growing
+                )));
+            }
+
+            tracked.peak_queued = tracked.peak_queued.max(queued);
+            tracked.info = info.clone();
+        }
+    }
 }
 
 const HEADER: [&str; 8] = [
@@ -198,61 +239,22 @@ impl Default for StreamMonitor {
 
 impl EventHandler for StreamMonitor {
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
+        ctx.subscribe::<StreamEvent<StreamSnapshot>>();
         ctx.subscribe::<StreamEvent<StreamClosed>>();
-        ctx.subscribe::<EngineStateChange>();
         Ok(())
+    }
+}
+
+impl Handler<StreamEvent<StreamSnapshot>> for StreamMonitor {
+    fn handle(&mut self, event: &StreamEvent<StreamSnapshot>, ctx: &EventContext<'_, Self>) {
+        self.handle_snap(event, ctx);
     }
 }
 
 impl Handler<StreamEvent<StreamClosed>> for StreamMonitor {
     fn handle(&mut self, event: &StreamEvent<StreamClosed>, ctx: &EventContext<'_, Self>) {
-        let stats = &event.0.0;
-
-        let now = Instant::now();
-        self.first.get_or_insert(now);
-        self.last = Some(now);
-        self.snapshots += 1;
-
-        let own = ctx.mailbox_id();
-        for info in stats.subscribers.iter().filter(|s| s.mailbox_id != own) {
-            let queued = info.stats.queued();
-
-            let tracked = self.handlers.entry(info.id).or_insert_with(|| Tracked {
-                info: info.clone(),
-                first_handled: info.stats.handled,
-                peak_queued: 0,
-                growing: 0,
-                warned: 0,
-            });
-
-            let previous = tracked.info.stats.queued();
-            tracked.growing = if queued > previous {
-                tracked.growing + 1
-            } else {
-                0
-            };
-
-            if tracked.growing == self.falling_behind_after {
-                tracked.warned += 1;
-                ctx.publish(Warning(format!(
-                    "Stream | {} is falling behind: {} events queued, growing for {} snapshots",
-                    label(info),
-                    queued,
-                    tracked.growing
-                )));
-            }
-
-            tracked.peak_queued = tracked.peak_queued.max(queued);
-            tracked.info = info.clone();
-        }
-
-        ctx.publish(LogEvent(LogLevel::Info, self.summary()));
-    }
-}
-
-impl Handler<EngineStateChange> for StreamMonitor {
-    fn handle(&mut self, event: &EngineStateChange, ctx: &EventContext<'_, Self>) {
-        if event.to == EngineState::Stopped && self.snapshots > 0 {
+        if self.snapshots > 0 {
+            self.handle_snap(&event.0.0, ctx);
             ctx.publish(LogEvent(LogLevel::Info, self.summary()));
         }
     }
