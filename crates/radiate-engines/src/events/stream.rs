@@ -1,31 +1,42 @@
 use crate::{
-    EventHandler, EventScope, StreamStats, SubscriptionInfo,
+    EventHandler, EventScope, StreamSnapshot, SubscriptionInfo,
     events::{
         Event, Handler, Subscription, SubscriptionId,
         event::Payload,
         mailbox::{MailBox, Route},
-        messages::{SubscriptionAdded, SubscriptionRemoved},
+        messages::StreamEvent,
         subscription::Counters,
     },
 };
 use radiate_core::{Executor, SmallStr, WaitGroup, WaitGuard, error::RadiateResult};
+use radiate_error::radiate_bail;
 use std::{
     any::TypeId,
     collections::{HashMap, HashSet},
     fmt::Debug,
     sync::{
         Arc, RwLock, Weak,
-        atomic::{AtomicUsize, Ordering},
+        atomic::{AtomicBool, AtomicUsize, Ordering},
     },
 };
 
 type SubscriberList = Arc<Vec<Registration>>;
 type SubscriberMap = HashMap<TypeId, SubscriberList>;
 
+#[derive(Clone, Debug)]
+pub struct StreamOpened;
+
+#[derive(Clone, Debug)]
+pub struct StreamClosed(pub StreamSnapshot);
+
+#[derive(Clone, Debug)]
+pub struct SubscriptionAdded(pub Subscription);
+
+#[derive(Clone, Debug)]
+pub struct SubscriptionRemoved(pub Subscription);
+
 enum DispatchMode {
-    /// `lazy_publish`: each subscription already reserved its delivery.
     Lazy,
-    /// `publish`: tick each subscription's schedule now.
     Eager,
 }
 
@@ -108,6 +119,7 @@ pub(super) struct Shared {
     subscribers: RwLock<SubscriberMap>,
     pending: RwLock<Vec<Payload>>,
     event_count: AtomicUsize,
+    closed: AtomicBool,
 }
 
 impl Shared {
@@ -127,50 +139,11 @@ impl Shared {
     }
 }
 
-pub struct EventStreamScope<'a> {
-    stream: &'a EventStream,
-    wg: WaitGroup,
-}
-
-impl EventStreamScope<'_> {
-    pub fn publish<E: Event>(&self, event: E) {
-        self.stream.publish_scoped(event, self.guarded_scope());
-    }
-
-    pub fn lazy_publish<E: Event>(&self, f: impl FnOnce() -> E) -> RadiateResult<()> {
-        self.stream.lazy_publish_scoped(f, self.guarded_scope())
-    }
-
-    pub fn publish_payload(&self, payload: Payload) {
-        self.stream
-            .publish_payload_scoped(payload, self.guarded_scope());
-    }
-
-    pub fn mailboxes(&self) -> Vec<Arc<dyn Route>> {
-        self.stream.mailboxes()
-    }
-
-    pub fn deferred(&self) -> Vec<Payload> {
-        self.stream.deferred()
-    }
-
-    pub fn wait(&self) {
-        self.wg.wait();
-    }
-
-    pub fn guard(&self) -> WaitGuard {
-        self.wg.guard()
-    }
-
-    fn guarded_scope(&self) -> EventScope {
-        EventScope::guarded(self.wg.guard())
-    }
-}
-
 #[derive(Clone, Default)]
 pub struct EventStream {
     executor: Arc<Executor>,
     shared: Arc<Shared>,
+    wg: Option<WaitGroup>,
 }
 
 impl EventStream {
@@ -178,6 +151,7 @@ impl EventStream {
         EventStream {
             executor,
             shared: Arc::default(),
+            wg: None,
         }
     }
 
@@ -215,8 +189,8 @@ impl EventStream {
     }
 
     /// A snapshot of every live subscription on this stream.
-    pub fn stats(&self) -> StreamStats {
-        StreamStats {
+    pub fn stats(&self) -> StreamSnapshot {
+        StreamSnapshot {
             event_count: self.event_count(),
             subscribers: self
                 .shared
@@ -288,7 +262,7 @@ impl EventStream {
             group.push(registration);
         }
 
-        self.defer(SubscriptionAdded(subscription.clone()));
+        self.defer(StreamEvent(SubscriptionAdded(subscription.clone())));
         subscription
     }
 
@@ -301,7 +275,7 @@ impl EventStream {
             for group in subscribers.values_mut() {
                 Arc::make_mut(group).retain(|reg| {
                     if remove(reg) {
-                        removed.push(reg.info());
+                        removed.push(reg.subscription.clone());
                         false
                     } else {
                         true
@@ -313,7 +287,7 @@ impl EventStream {
 
         let any = !removed.is_empty();
         for info in removed {
-            self.defer(SubscriptionRemoved(info));
+            self.defer(StreamEvent(SubscriptionRemoved(info)));
         }
         any
     }
@@ -326,23 +300,33 @@ impl EventStream {
     }
 
     #[inline]
-    pub fn publish<E: Event>(&self, event: E) {
-        self.publish_scoped(event, EventScope::new())
+    pub fn publish<E: Event>(&self, event: E) -> RadiateResult<()> {
+        self.publish_scoped(event, self.event_scope())
     }
 
     pub fn lazy_publish<E: Event>(&self, f: impl FnOnce() -> E) -> RadiateResult<()> {
-        self.lazy_publish_scoped(f, EventScope::new())
+        self.lazy_publish_scoped(f, self.event_scope())
     }
 
-    pub fn publish_payload(&self, payload: Payload) {
-        self.publish_payload_scoped(payload, EventScope::new());
+    pub fn publish_payload(&self, payload: Payload) -> RadiateResult<()> {
+        self.publish_payload_scoped(payload, self.event_scope())
     }
 
     #[inline]
-    pub(crate) fn publish_scoped<E: Event>(&self, event: E, scope: EventScope) {
+    pub(crate) fn publish_scoped<E: Event>(
+        &self,
+        event: E,
+        scope: EventScope,
+    ) -> RadiateResult<()> {
+        if self.shared.closed.load(Ordering::Relaxed) {
+            radiate_bail!("EventStream is closed, dropping event")
+        }
+
         if let Some(group) = self.shared.group(TypeId::of::<E>()) {
             self.dispatch(&group, Arc::new(event), scope, DispatchMode::Eager);
         }
+
+        Ok(())
     }
 
     pub(crate) fn lazy_publish_scoped<E: Event>(
@@ -350,6 +334,10 @@ impl EventStream {
         f: impl FnOnce() -> E,
         scope: EventScope,
     ) -> RadiateResult<()> {
+        if self.shared.closed.load(Ordering::Relaxed) {
+            radiate_bail!("EventStream is closed, dropping event");
+        }
+
         let Some(group) = self.shared.group(TypeId::of::<E>()) else {
             return Ok(());
         };
@@ -366,10 +354,20 @@ impl EventStream {
         Ok(())
     }
 
-    pub(crate) fn publish_payload_scoped(&self, payload: Payload, scope: EventScope) {
+    pub(crate) fn publish_payload_scoped(
+        &self,
+        payload: Payload,
+        scope: EventScope,
+    ) -> RadiateResult<()> {
+        if self.shared.closed.load(Ordering::Relaxed) {
+            radiate_bail!("EventStream is closed, dropping event");
+        }
+
         if let Some(group) = self.shared.group((*payload).type_id()) {
             self.dispatch(&group, payload, scope, DispatchMode::Eager);
         }
+
+        Ok(())
     }
 
     #[inline]
@@ -409,36 +407,56 @@ impl EventStream {
 
 /// Waiting
 impl EventStream {
-    /// Run `func`, then block until every event it published through the
-    /// scope, and everything those events caused, has been handled.
-    pub fn scope<R>(
-        &self,
-        func: impl FnOnce(EventStreamScope) -> RadiateResult<R>,
-    ) -> RadiateResult<R> {
+    pub fn scope<R>(&self, func: impl FnOnce(EventStream) -> RadiateResult<R>) -> RadiateResult<R> {
         let wg = WaitGroup::new();
-        let result = func(EventStreamScope {
-            stream: self,
-            wg: wg.clone(),
+        let result = func(EventStream {
+            executor: self.executor.clone(),
+            shared: self.shared.clone(),
+            wg: Some(wg.clone()),
         });
         wg.wait();
         result
     }
 
-    /// Publish everything deferred so far and wait for it to be handled,
-    /// along with everything it causes.
-    pub fn flush(&self) -> RadiateResult<()> {
-        let deferred = self.deferred();
-        if deferred.is_empty() {
-            return Ok(());
+    pub fn open(&self) -> RadiateResult<()> {
+        self.scope(|stream| {
+            stream.lazy_publish(|| StreamEvent(StreamOpened))?;
+            stream.wait();
+            self.deferred()
+                .into_iter()
+                .map(|payload| stream.publish_payload(payload))
+                .collect::<RadiateResult<()>>()
+        })
+    }
+
+    pub fn close(&self) -> RadiateResult<()> {
+        loop {
+            self.flush()?;
+            let before = self.event_count();
+
+            self.scope(|stream| {
+                for route in stream.mailboxes() {
+                    match stream.guard() {
+                        Some(guard) => route.drain(guard),
+                        None => radiate_bail!(Engine: "Failed to acquire wait guard"),
+                    }
+                }
+
+                Ok(())
+            })?;
+
+            if self.event_count() == before {
+                break;
+            }
         }
 
-        self.scope(|stream| {
-            for payload in deferred {
-                stream.publish_payload(payload);
-            }
+        self.scope(|stream| stream.lazy_publish(|| StreamEvent(StreamClosed(stream.stats()))))?;
+        self.shared.closed.store(true, Ordering::Relaxed);
+        Ok(())
+    }
 
-            Ok(())
-        })
+    pub fn snapshot(&self) -> RadiateResult<()> {
+        self.lazy_publish(|| StreamEvent(self.stats()))
     }
 
     /// Block until every mailbox has handled everything published so far,
@@ -457,7 +475,10 @@ impl EventStream {
 
             self.scope(|stream| {
                 for route in stream.mailboxes() {
-                    route.drain(stream.guard());
+                    match stream.guard() {
+                        Some(guard) => route.drain(guard),
+                        None => radiate_bail!(Engine: "Failed to acquire wait guard"),
+                    }
                 }
 
                 Ok(())
@@ -468,6 +489,23 @@ impl EventStream {
                 return Ok(());
             }
         }
+    }
+
+    /// Publish everything deferred so far and wait for it to be handled,
+    /// along with everything it causes.
+    pub fn flush(&self) -> RadiateResult<()> {
+        let deferred = self.deferred();
+        if deferred.is_empty() {
+            return Ok(());
+        }
+
+        self.scope(|stream| {
+            for payload in deferred {
+                stream.publish_payload(payload)?;
+            }
+
+            Ok(())
+        })
     }
 }
 
@@ -484,7 +522,26 @@ impl EventStream {
         shared.upgrade().map(|shared| EventStream {
             executor: Arc::clone(executor),
             shared,
+            wg: None,
         })
+    }
+
+    pub(super) fn guard(&self) -> Option<WaitGuard> {
+        self.wg.as_ref().map(|wg| wg.guard())
+    }
+
+    pub(super) fn event_scope(&self) -> EventScope {
+        match self.guard() {
+            Some(guard) => EventScope::guarded(guard),
+            None => EventScope::new(),
+        }
+    }
+
+    pub(super) fn wait(&self) -> Option<usize> {
+        match self.wg.as_ref() {
+            Some(wg) => Some(wg.wait()),
+            None => return None,
+        }
     }
 }
 

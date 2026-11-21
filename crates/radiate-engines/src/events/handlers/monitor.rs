@@ -1,6 +1,7 @@
 use crate::{
-    EventContext, EventHandler, Handler, LogEvent, LogLevel, StreamSnapshot, SubscriptionId,
-    SubscriptionInfo, Warning, events::EngineStateChange,
+    EventContext, EventHandler, Handler, LogEvent, LogLevel, StreamClosed, SubscriptionId,
+    SubscriptionInfo, Warning,
+    events::{EngineStateChange, messages::StreamEvent},
 };
 use radiate_core::{EngineState, error::RadiateResult};
 use std::collections::HashMap;
@@ -197,15 +198,15 @@ impl Default for StreamMonitor {
 
 impl EventHandler for StreamMonitor {
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
-        ctx.subscribe::<StreamSnapshot>();
+        ctx.subscribe::<StreamEvent<StreamClosed>>();
         ctx.subscribe::<EngineStateChange>();
         Ok(())
     }
 }
 
-impl Handler<StreamSnapshot> for StreamMonitor {
-    fn handle(&mut self, event: &StreamSnapshot, ctx: &EventContext<'_, Self>) {
-        let StreamSnapshot(stats) = event;
+impl Handler<StreamEvent<StreamClosed>> for StreamMonitor {
+    fn handle(&mut self, event: &StreamEvent<StreamClosed>, ctx: &EventContext<'_, Self>) {
+        let stats = &event.0.0;
 
         let now = Instant::now();
         self.first.get_or_insert(now);
@@ -244,6 +245,8 @@ impl Handler<StreamSnapshot> for StreamMonitor {
             tracked.peak_queued = tracked.peak_queued.max(queued);
             tracked.info = info.clone();
         }
+
+        ctx.publish(LogEvent(LogLevel::Info, self.summary()));
     }
 }
 

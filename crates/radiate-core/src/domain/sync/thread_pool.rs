@@ -146,6 +146,15 @@ impl ThreadPool {
     }
 }
 
+impl Debug for ThreadPool {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ThreadPool")
+            .field("num_workers", &self.workers.len())
+            .field("is_alive", &self.is_alive())
+            .finish()
+    }
+}
+
 /// Drop implementation for ThreadPool. This will terminate all workers when the ThreadPool is dropped.
 /// We need to make sure that all workers are terminated before the ThreadPool is dropped.
 impl Drop for ThreadPool {

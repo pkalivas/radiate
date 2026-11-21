@@ -105,8 +105,8 @@ mod publish {
             }
         });
 
-        stream.publish(Add(3));
-        stream.publish(Add(4));
+        stream.publish(Add(3)).unwrap();
+        stream.publish(Add(4)).unwrap();
 
         assert_eq!(by_handler.load(Ordering::SeqCst), 7);
         assert_eq!(by_closure.load(Ordering::SeqCst), 7);
@@ -130,10 +130,10 @@ mod publish {
             }
         });
 
-        stream.publish(Ping);
+        stream.publish(Ping).unwrap();
         by_handle.unsubscribe();
         stream.unsubscribe(by_id.id());
-        stream.publish(Ping);
+        stream.publish(Ping).unwrap();
 
         assert_eq!(first.load(Ordering::SeqCst), 1);
         assert_eq!(second.load(Ordering::SeqCst), 1);
@@ -180,9 +180,9 @@ mod publish {
         let pings = stream.subscribe(|_: &Ping| {}).named("pings");
         let adds = stream.subscribe(|_: &Add| {});
 
-        stream.publish(Ping);
-        stream.publish(Add(1));
-        stream.publish(Add(2));
+        stream.publish(Ping).unwrap();
+        stream.publish(Add(1)).unwrap();
+        stream.publish(Add(2)).unwrap();
 
         let report = stream.stats();
         assert_eq!(report.subscribers.len(), 2);
@@ -233,7 +233,7 @@ mod publish {
             tx.send(std::thread::current().id()).unwrap();
         });
 
-        stream.publish(Ping);
+        stream.publish(Ping).unwrap();
 
         let handler_thread = rx.recv_timeout(GENEROUS).unwrap();
         assert_ne!(handler_thread, std::thread::current().id());
@@ -270,7 +270,7 @@ mod ordering {
             let log = Arc::new(Mutex::new(Vec::new()));
             let stream = serial();
             stream.attach(Countdown(Arc::clone(&log))).unwrap();
-            stream.publish(Tick(2));
+            stream.publish(Tick(2)).unwrap();
             log.lock().unwrap().clone()
         });
 
@@ -337,7 +337,7 @@ mod ordering {
             let stream = serial();
             stream.attach(PlayerA(Arc::clone(&hits))).unwrap();
             stream.attach(PlayerB).unwrap();
-            stream.publish(Serve(2));
+            stream.publish(Serve(2)).unwrap();
             hits.load(Ordering::SeqCst)
         });
 
@@ -446,12 +446,12 @@ mod ordering {
 
         for i in 0..N {
             if i % 2 == 0 {
-                stream.publish(Even(i));
+                stream.publish(Even(i)).unwrap();
             } else {
-                stream.publish(Odd(i));
+                stream.publish(Odd(i)).unwrap();
             }
         }
-        stream.publish(Done);
+        stream.publish(Done).unwrap();
 
         let (seen, overlapped) = results.recv_timeout(GENEROUS).unwrap();
         assert!(!overlapped, "handler ran on two threads at once");
@@ -504,7 +504,7 @@ mod waiting {
         let (started, release, finished) = gated_handler::<Add>(&stream);
 
         // A plain publish, outside any chain, blocks a worker...
-        stream.publish(Add(1));
+        stream.publish(Add(1)).unwrap();
         started.recv_timeout(GENEROUS).unwrap();
 
         // ...but flushing an unrelated deferred event must not wait for it.
@@ -522,7 +522,7 @@ mod waiting {
         let stream = pool();
         let (started, release, finished) = gated_handler::<Add>(&stream);
 
-        stream.publish(Add(1));
+        stream.publish(Add(1)).unwrap();
         started.recv_timeout(GENEROUS).unwrap();
 
         // Unlike flush, drain waits for everything published so far.
@@ -605,7 +605,7 @@ mod waiting {
 
         stream.defer(Ping);
         stream.flush().unwrap();
-        stream.publish(Pong);
+        stream.publish(Pong).unwrap();
 
         let ping = rx.recv_timeout(GENEROUS).unwrap();
         let chained_pong = rx.recv_timeout(GENEROUS).unwrap();
@@ -623,7 +623,7 @@ mod waiting {
 }
 
 mod monitor {
-    use radiate_engines::StreamSnapshot;
+    use radiate_engines::StreamEvent;
 
     use super::*;
 
@@ -645,8 +645,8 @@ mod monitor {
             .unwrap();
 
         for _ in 0..5 {
-            stream.publish(Ping);
-            stream.publish(StreamSnapshot(stream.stats()));
+            stream.publish(Ping).unwrap();
+            stream.publish(StreamEvent(stream.stats())).unwrap();
         }
 
         let warning = warnings.recv_timeout(GENEROUS).unwrap();
@@ -669,14 +669,16 @@ mod monitor {
         stream.attach(StreamMonitor::new()).unwrap();
 
         for _ in 0..3 {
-            stream.publish(Ping);
-            stream.publish(StreamSnapshot(stream.stats()));
+            stream.publish(Ping).unwrap();
+            stream.publish(StreamEvent(stream.stats())).unwrap();
         }
-        stream.publish(EngineStateChange {
-            index: 0,
-            from: EngineState::Running,
-            to: EngineState::Stopped,
-        });
+        stream
+            .publish(EngineStateChange {
+                index: 0,
+                from: EngineState::Running,
+                to: EngineState::Stopped,
+            })
+            .unwrap();
 
         let summary = logs.try_recv().expect("serial: summary logged inline");
         assert!(summary.contains("3 snapshots"), "{summary}");
@@ -707,7 +709,7 @@ mod throughput {
 
         let run = |events: usize| {
             for i in 0..events {
-                stream.publish(Tick(i as u32));
+                stream.publish(Tick(i as u32)).unwrap();
             }
             stream.drain().unwrap();
         };
@@ -749,5 +751,154 @@ mod throughput {
     // [pool x1] 200000 deliveries in 252.708625ms = 791,425/s
     fn pool_single_subscriber() {
         measure("pool x1", pool(), 1, 200_000);
+    }
+}
+
+#[cfg(test)]
+mod pool_tests {
+    use std::sync::atomic::AtomicI32;
+
+    use super::*;
+
+    #[derive(Debug)]
+    struct Adder {
+        total_count: Arc<AtomicI32>,
+        relays: Arc<AtomicI32>,
+        from_logger: Arc<AtomicI32>,
+        handled: Arc<AtomicI32>,
+    }
+
+    #[derive(Debug)]
+    struct Logger {
+        relay_count: Arc<AtomicI32>,
+        handled: Arc<AtomicI32>,
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    struct Tick(i32);
+    impl Event for Tick {}
+
+    #[derive(Debug, Clone, Copy)]
+    struct Relay<T>(pub T);
+    impl<T> Event for Relay<T> where T: Send + Sync + 'static {}
+
+    #[derive(Debug, Clone, Copy)]
+    struct FromLogger(i32);
+    impl Event for FromLogger {}
+
+    impl EventHandler for Adder {
+        fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
+            ctx.subscribe::<Tick>();
+            ctx.subscribe::<Relay<i32>>();
+            ctx.subscribe::<FromLogger>();
+
+            Ok(())
+        }
+    }
+
+    impl Handler<Tick> for Adder {
+        fn handle(&mut self, event: &Tick, ctx: &EventContext<'_, Self>) {
+            self.total_count.fetch_add(event.0, Ordering::SeqCst);
+            self.handled.fetch_add(1, Ordering::SeqCst);
+            ctx.publish(Relay(event.0));
+        }
+    }
+
+    impl Handler<Relay<i32>> for Adder {
+        fn handle(&mut self, event: &Relay<i32>, _: &EventContext<'_, Self>) {
+            self.relays.fetch_add(event.0, Ordering::SeqCst);
+            self.handled.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
+    impl Handler<FromLogger> for Adder {
+        fn handle(&mut self, event: &FromLogger, _ctx: &EventContext<'_, Self>) {
+            self.from_logger.fetch_add(event.0, Ordering::SeqCst);
+            self.handled.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
+    impl EventHandler for Logger {
+        fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
+            ctx.subscribe::<Relay<i32>>();
+            Ok(())
+        }
+    }
+
+    impl Handler<Relay<i32>> for Logger {
+        fn handle(&mut self, event: &Relay<i32>, ctx: &EventContext<'_, Self>) {
+            self.relay_count.fetch_add(event.0, Ordering::SeqCst);
+            self.handled.fetch_add(1, Ordering::SeqCst);
+            ctx.publish(FromLogger(event.0));
+        }
+    }
+
+    #[test]
+    #[ignore = "throughput smoke test"]
+    // [pool_logger_to_adder] 40000 deliveries in 28.829042ms = 1,387,490/s
+    // [pool_logger_to_adder] 40000 deliveries in 28.807167ms = 1,388,543/s
+    // [pool_logger_to_adder] 120000 deliveries in 38.944333ms = 3,081,321/s
+    fn pool_logger_to_adder() {
+        const N: usize = 10_000;
+
+        let total_count = Arc::new(AtomicI32::new(0));
+        let relays = Arc::new(AtomicI32::new(0));
+        let from_logger = Arc::new(AtomicI32::new(0));
+        let relay_count = Arc::new(AtomicI32::new(0));
+        let adder_handled = Arc::new(AtomicI32::new(0));
+        let logger_handled = Arc::new(AtomicI32::new(0));
+        let adder_two_handled = Arc::new(AtomicI32::new(0));
+
+        let adder = Adder {
+            total_count: total_count.clone(),
+            relays: relays.clone(),
+            from_logger: from_logger.clone(),
+            handled: adder_handled.clone(),
+        };
+
+        let adder_two = Adder {
+            total_count: total_count.clone(),
+            relays: relays.clone(),
+            from_logger: from_logger.clone(),
+            handled: adder_two_handled.clone(),
+        };
+
+        let logger = Logger {
+            relay_count: relay_count.clone(),
+            handled: logger_handled.clone(),
+        };
+
+        let stream = EventStream::new(Arc::new(Executor::new_pool(4)));
+        stream.attach(adder).unwrap();
+        stream.attach(adder_two).unwrap();
+        stream.attach(logger).unwrap();
+
+        let run = |events: usize| {
+            for i in 0..events {
+                stream.publish(Tick(i as i32)).unwrap();
+            }
+
+            stream.drain().unwrap();
+        };
+
+        let start = Instant::now();
+        run(N);
+        let elapsed = start.elapsed();
+
+        let deliveries = stream
+            .stats()
+            .subscribers
+            .iter()
+            .map(|s| s.stats.delivered)
+            .sum::<u64>();
+
+        let label = "pool_logger_to_adder";
+
+        println!(
+            "[{label}] {deliveries} deliveries in {elapsed:?} = {:.0}/s",
+            deliveries as f64 / elapsed.as_secs_f64()
+        );
+
+        // println!("{:#?}", stream.stats());
     }
 }

@@ -14,12 +14,12 @@ pub use handlers::{
 };
 pub use messages::{
     CheckpointSaved, EngineStart, EngineStateChange, EngineStop, EpochComplete, EpochStart,
-    GenerationSnapshot, Improvement, LimitTriggered, StreamDrained, StreamSnapshot, Warning,
+    GenerationSnapshot, Improvement, LimitTriggered, StreamEvent, Warning,
 };
 
 pub(crate) use event::EventScope;
 pub use event::{Event, EventHandler, EventId, Handler};
 pub use mailbox::{EventContext, MailBoxId};
-pub use stats::{StreamStats, SubscriptionInfo, SubscriptionStats};
-pub use stream::EventStream;
+pub use stats::{StreamSnapshot, SubscriptionInfo, SubscriptionStats};
+pub use stream::{EventStream, StreamClosed, StreamOpened, SubscriptionAdded, SubscriptionRemoved};
 pub use subscription::{Subscription, SubscriptionId};

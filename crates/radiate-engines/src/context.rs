@@ -1,7 +1,4 @@
-use crate::{
-    Chromosome, GenerationSnapshot, Improvement, StreamSnapshot, ThreadSync,
-    events::EngineStateChange,
-};
+use crate::{Chromosome, GenerationSnapshot, Improvement, ThreadSync, events::EngineStateChange};
 use crate::{builder::config::EngineConfig, events::EventStream};
 use radiate_core::ExprSet;
 use radiate_core::error::RadiateResult;
@@ -77,6 +74,10 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
     }
 
     pub(crate) fn set_running(&mut self) {
+        if self.index == 0 && self.state == EngineState::PreStart {
+            self.metrics.upsert(metric_names::INDEX, self.index);
+        }
+
         self.change_state(EngineState::Running);
     }
 
@@ -117,12 +118,12 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
     {
         let stream = self.stream();
 
-        stream.deferred().into_iter().for_each(|deferred| {
-            stream.publish_payload(deferred);
-        });
-
         stream.lazy_publish(|| GenerationSnapshot::from(&*self))?;
-        stream.lazy_publish(|| StreamSnapshot(stream.stats()))?;
+        stream
+            .deferred()
+            .into_iter()
+            .try_for_each(|payload| stream.publish_payload(payload))?;
+        stream.snapshot()?;
 
         self.index += 1;
 
@@ -138,11 +139,13 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
             return;
         }
 
-        self.events.publish(EngineStateChange {
-            from: self.state,
-            to: state,
-            index: self.index,
-        });
+        self.events
+            .publish(EngineStateChange {
+                from: self.state,
+                to: state,
+                index: self.index,
+            })
+            .ok();
 
         self.state = state;
     }

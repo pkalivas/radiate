@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct StreamStats {
+pub struct StreamSnapshot {
     pub event_count: usize,
     pub subscribers: Vec<SubscriptionInfo>,
 }

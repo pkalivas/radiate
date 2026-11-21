@@ -1,28 +1,22 @@
-use crate::{
-    Event, Generation, Limit, StreamStats, Subscription, SubscriptionInfo,
-    context::EvolutionContext,
-};
+use crate::{Event, Generation, Limit, context::EvolutionContext};
 use radiate_core::{Chromosome, EngineState, Front, MetricSet, Objective, Phenotype, Score};
 use std::{
     fmt::Debug,
+    ops::Deref,
     sync::{Arc, RwLock},
 };
 
 #[derive(Clone, Debug)]
-pub struct SubscriptionAdded(pub Subscription);
-impl Event for SubscriptionAdded {}
+pub struct StreamEvent<T>(pub T);
+impl<T> Event for StreamEvent<T> where T: Send + Sync + 'static {}
 
-#[derive(Clone, Debug)]
-pub struct SubscriptionRemoved(pub SubscriptionInfo);
-impl Event for SubscriptionRemoved {}
+impl<T> Deref for StreamEvent<T> {
+    type Target = T;
 
-#[derive(Clone, Debug)]
-pub struct StreamDrained;
-impl Event for StreamDrained {}
-
-#[derive(Clone, Debug)]
-pub struct StreamSnapshot(pub StreamStats);
-impl Event for StreamSnapshot {}
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct EngineStateChange {

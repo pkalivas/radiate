@@ -350,7 +350,7 @@ impl<H> EventContext<'_, H> {
     /// Does nothing if the stream has already been dropped.
     pub fn publish<E: Event>(&self, event: E) {
         if let Some(stream) = self.mailbox.stream() {
-            stream.publish_scoped(event, self.scope.clone());
+            stream.publish_scoped(event, self.scope.clone()).ok();
         }
     }
 

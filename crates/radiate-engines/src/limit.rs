@@ -152,7 +152,7 @@ where
             LimitOutcome::Proceed => Ok(true),
             LimitOutcome::Stop => {
                 ctx.stream()
-                    .publish(LimitTriggered(ctx.index, self.clone()));
+                    .publish(LimitTriggered(ctx.index, self.clone()))?;
                 Ok(false)
             }
         }
@@ -414,7 +414,7 @@ where
         let view = GenerationView::new(ctx);
         let proceed = !(self)(view);
         if !proceed {
-            ctx.stream().publish(LimitTriggered(ctx.index, Limit::Fn));
+            ctx.stream().publish(LimitTriggered(ctx.index, Limit::Fn))?;
         }
         Ok(proceed)
     }
