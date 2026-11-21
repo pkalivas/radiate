@@ -2,7 +2,9 @@ use crate::{
     Event, EventHandler, EventId, EventScope, Handler,
     events::{
         EventStream, Subscription, SubscriptionId,
-        stream::{Delivery, Shared},
+        event::Payload,
+        stream::{Delivery, Published, Shared},
+        subscription::Counters,
     },
 };
 use radiate_core::{Executor, Inbox, WaitGuard, error::RadiateResult};
@@ -23,8 +25,9 @@ pub trait Route: Send + Sync {
     /// The mailbox this route leads to. Several routes can share one.
     fn id(&self) -> MailBoxId;
 
-    /// Queue an event delivery.
-    fn deliver(&self, delivery: Delivery);
+    /// Hand an event to the mailbox: handled inline if it's idle on a serial
+    /// executor, otherwise queued.
+    fn deliver(&self, event: &Published<'_>);
 
     /// Queue `guard` behind everything already in the mailbox. It's released
     /// once all of that has been handled (or discarded after a panic).
@@ -34,6 +37,7 @@ pub trait Route: Send + Sync {
 /// A [`Route`] for event `E` into a `MailBox<H>`.
 struct Typed<E, H> {
     mailbox: MailBox<H>,
+    counters: Arc<Counters>,
     _event: PhantomData<fn(E)>,
 }
 
@@ -47,9 +51,29 @@ where
     }
 
     #[inline]
-    fn deliver(&self, delivery: Delivery) {
-        self.mailbox.enqueue(Item::Deliver {
-            delivery,
+    fn deliver(&self, event: &Published<'_>) {
+        let mailbox = &self.mailbox;
+
+        // Idle and not re-entrant: run it right here, straight from the
+        // publisher's borrow. A re-entrant or contended call fails the claim
+        // and queues behind whatever is already there, so FIFO holds.
+        if !mailbox.0.executor.is_parallel() && mailbox.0.inbox.try_claim() {
+            mailbox.run_claimed(|handler| {
+                let ctx = EventContext {
+                    scope: event.scope,
+                    mailbox,
+                };
+                catch_unwind(AssertUnwindSafe(|| {
+                    handle::<E, H>(handler, event.payload, &ctx)
+                }))?;
+                self.counters.record_handled();
+                Ok(())
+            });
+            return;
+        }
+
+        mailbox.push(Item::Deliver {
+            delivery: event.to_delivery(&self.counters),
             handle: handle::<E, H>,
         });
     }
@@ -61,14 +85,14 @@ where
 
 /// Monomorphized per (E, H) and stored as a fn pointer, so one queue can hold
 /// deliveries of every event type the handler subscribes to.
-type HandleFn<H> = fn(&mut H, &Delivery, &EventContext<'_, H>);
+type HandleFn<H> = fn(&mut H, &Payload, &EventContext<'_, H>);
 
-fn handle<E, H>(handler: &mut H, delivery: &Delivery, ctx: &EventContext<'_, H>)
+fn handle<E, H>(handler: &mut H, payload: &Payload, ctx: &EventContext<'_, H>)
 where
     E: Event,
     H: Handler<E>,
 {
-    if let Some(event) = delivery.event::<E>() {
+    if let Some(event) = payload.downcast_ref::<E>() {
         handler.handle(event, ctx);
     }
 }
@@ -148,13 +172,14 @@ impl<H: Send + 'static> MailBox<H> {
     }
 
     /// The handle the stream keeps to route `E` events (and drains) here.
-    pub(super) fn route<E>(&self) -> Arc<dyn Route>
+    pub(super) fn route<E>(&self, counters: Arc<Counters>) -> Arc<dyn Route>
     where
         E: Event,
         H: Handler<E>,
     {
         Arc::new(Typed::<E, H> {
             mailbox: self.clone(),
+            counters,
             _event: PhantomData,
         })
     }
@@ -185,26 +210,46 @@ impl<H: Send + 'static> MailBox<H> {
 
     fn enqueue(&self, item: Item<H>) {
         if !self.0.executor.is_parallel() && self.0.inbox.try_claim() {
-            {
-                let Ok(mut handler) = self.0.handler.lock() else {
-                    self.discard();
-                    panic!(
-                        "event handler `{}` panicked on an earlier event",
-                        std::any::type_name::<H>()
-                    );
-                };
-                if let Err(payload) = self.process_item(item, &mut handler) {
-                    self.discard();
-                    resume_unwind(payload);
-                }
-            }
-
-            self.process_queue();
+            self.run_claimed(|handler| self.process_item(item, handler));
             return;
         }
 
+        self.push(item);
+    }
+
+    fn push(&self, item: Item<H>) {
         if self.0.inbox.push(item) {
             self.schedule();
+        }
+    }
+
+    /// With the claim held: run `first`, then drain whatever queued up behind
+    /// it, all under one lock of the handler.
+    fn run_claimed(&self, first: impl FnOnce(&mut H) -> std::thread::Result<()>) {
+        let more = {
+            let mut handler = self.lock();
+            if let Err(payload) = first(&mut handler) {
+                self.discard();
+                resume_unwind(payload); // still holding the lock, so it poisons
+            }
+            self.drain_locked(&mut handler)
+        };
+
+        if more {
+            self.schedule();
+        }
+    }
+
+    fn lock(&self) -> std::sync::MutexGuard<'_, H> {
+        match self.0.handler.lock() {
+            Ok(handler) => handler,
+            Err(_) => {
+                self.discard();
+                panic!(
+                    "event handler `{}` panicked on an earlier event",
+                    std::any::type_name::<H>()
+                );
+            }
         }
     }
 
@@ -224,41 +269,39 @@ impl<H: Send + 'static> MailBox<H> {
 
     fn process_queue(&self) {
         let more = {
-            let Ok(mut handler) = self.0.handler.lock() else {
-                self.discard();
-                panic!(
-                    "event handler `{}` panicked on an earlier event",
-                    std::any::type_name::<H>()
-                );
-            };
-
-            let mut panicked = None;
-            let more = self.0.inbox.drain(self.budget(), |item| {
-                if panicked.is_some() {
-                    // Drop the rest of this turn's items, releasing their
-                    // scopes and barrier guards.
-                    return;
-                }
-
-                if let Err(payload) = self.process_item(item, &mut handler) {
-                    panicked = Some(payload);
-                }
-            });
-
-            if let Some(payload) = panicked {
-                if more {
-                    self.discard();
-                }
-
-                resume_unwind(payload);
-            }
-
-            more
+            let mut handler = self.lock();
+            self.drain_locked(&mut handler)
         };
 
         if more {
             self.schedule();
         }
+    }
+
+    /// Drain one budget's worth of queued items. Must hold the claim.
+    fn drain_locked(&self, handler: &mut H) -> bool {
+        let mut panicked = None;
+        let more = self.0.inbox.drain(self.budget(), |item| {
+            if panicked.is_some() {
+                // Drop the rest of this turn's items, releasing their
+                // scopes and barrier guards.
+                return;
+            }
+
+            if let Err(payload) = self.process_item(item, handler) {
+                panicked = Some(payload);
+            }
+        });
+
+        if let Some(payload) = panicked {
+            if more {
+                self.discard();
+            }
+
+            resume_unwind(payload);
+        }
+
+        more
     }
 
     fn process_item(&self, item: Item<H>, handler: &mut H) -> Result<(), Box<dyn Any + Send>> {
@@ -269,7 +312,9 @@ impl<H: Send + 'static> MailBox<H> {
                     mailbox: self,
                 };
 
-                let output = catch_unwind(AssertUnwindSafe(|| handle(handler, &delivery, &ctx)));
+                let output = catch_unwind(AssertUnwindSafe(|| {
+                    handle(handler, delivery.payload(), &ctx)
+                }));
                 match output {
                     Ok(_) => {
                         delivery.complete();

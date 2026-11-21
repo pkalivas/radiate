@@ -47,6 +47,24 @@ impl Registration {
     }
 }
 
+/// One published event as the stream hands it to each route: borrowed, so a
+/// mailbox that handles it inline never clones anything.
+pub struct Published<'a> {
+    pub(super) payload: &'a Payload,
+    pub(super) scope: &'a EventScope,
+}
+
+impl Published<'_> {
+    /// An owned copy for a mailbox that has to queue it.
+    pub(super) fn to_delivery(&self, counters: &Arc<Counters>) -> Delivery {
+        Delivery {
+            payload: Arc::clone(self.payload),
+            scope: self.scope.clone(),
+            counters: Arc::clone(counters),
+        }
+    }
+}
+
 /// One event routed to one subscription: what the stream hands a mailbox.
 ///
 /// The mailbox reads it and calls [`complete`](Delivery::complete) once the
@@ -63,8 +81,8 @@ impl Delivery {
         &self.scope
     }
 
-    pub(super) fn event<E: Event>(&self) -> Option<&E> {
-        self.payload.downcast_ref()
+    pub(super) fn payload(&self) -> &Payload {
+        &self.payload
     }
 
     /// The handler finished with this delivery.
@@ -423,6 +441,11 @@ impl EventStream {
         scope: EventScope,
         mode: DispatchMode,
     ) {
+        let published = Published {
+            payload: &payload,
+            scope: &scope,
+        };
+
         for registration in group.iter() {
             let subscription = &registration.subscription;
             if !subscription.is_alive() {
@@ -441,14 +464,11 @@ impl EventStream {
             }
 
             subscription.counters.record_delivered();
-            registration.route.deliver(Delivery {
-                payload: Arc::clone(&payload),
-                scope: scope.clone(),
-                counters: Arc::clone(&subscription.counters),
-            });
+            registration.route.deliver(&published);
         }
 
-        self.shared.event_count.fetch_add(1, Ordering::SeqCst);
+        // Relaxed: drain reads this after a WaitGroup handoff, which orders it.
+        self.shared.event_count.fetch_add(1, Ordering::Relaxed);
     }
 }
 
@@ -474,7 +494,7 @@ impl EventStream {
     {
         let subscription = Subscription::new(mailbox.id());
         let registration = Registration {
-            route: mailbox.route::<E>(),
+            route: mailbox.route::<E>(Arc::clone(&subscription.counters)),
             subscription: subscription.clone(),
             event: std::any::type_name::<E>(),
             handler: TypeId::of::<H>(),

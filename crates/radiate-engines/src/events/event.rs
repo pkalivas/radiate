@@ -1,10 +1,7 @@
 use crate::EventContext;
 use radiate_core::{SmallStr, WaitGuard, error::RadiateResult};
 use radiate_utils::{generate_metric_key, sentry_id};
-use std::{
-    any::Any,
-    sync::{Arc, Weak},
-};
+use std::{any::Any, sync::Arc};
 
 sentry_id!(EventId);
 
@@ -43,30 +40,19 @@ where
 }
 
 #[derive(Default, Clone)]
-pub struct StreamContext {
-    in_flight: Arc<()>,
-    #[allow(dead_code)]
-    guard: Option<Arc<WaitGuard>>,
-}
+pub struct StreamContext;
 
 impl StreamContext {
-    #[allow(dead_code)]
-    pub fn in_flight(&self) -> usize {
-        Arc::weak_count(&self.in_flight)
-    }
-
     pub fn weak(&self) -> EventScope {
         EventScope {
             id: EventId::new(),
-            in_flight: Arc::downgrade(&self.in_flight),
-            guard: self.guard.clone(),
+            guard: None,
         }
     }
 
     pub fn guarded(&self, guard: WaitGuard) -> EventScope {
         EventScope {
             id: EventId::new(),
-            in_flight: Arc::downgrade(&self.in_flight),
             guard: Some(Arc::new(guard)),
         }
     }
@@ -75,7 +61,6 @@ impl StreamContext {
 #[derive(Default)]
 pub struct EventScope {
     id: EventId,
-    in_flight: Weak<()>,
     #[allow(dead_code)]
     guard: Option<Arc<WaitGuard>>,
 }
@@ -90,7 +75,6 @@ impl Clone for EventScope {
     fn clone(&self) -> Self {
         EventScope {
             id: self.id,
-            in_flight: Weak::clone(&self.in_flight),
             guard: self.guard.clone(),
         }
     }
