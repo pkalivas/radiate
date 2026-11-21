@@ -1,10 +1,10 @@
 #![cfg(feature = "serde")]
 
-use crate::Generation;
 use crate::{
-    FileWriter,
+    FileWriter, LogLevel,
     events::{CheckpointSaved, Warning},
 };
+use crate::{Generation, LogEvent};
 use crate::{
     Handler,
     events::{EventContext, EventHandler, GenerationSnapshot},
@@ -49,6 +49,7 @@ where
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
         ctx.subscribe::<GenerationSnapshot<C, T>>()
             .schedule(self.interval)?;
+        ctx.subscribe::<CheckpointSaved>();
         Ok(())
     }
 }
@@ -79,5 +80,21 @@ where
                 ctx.publish(Warning(err.to_string()));
             }
         };
+    }
+}
+
+impl<C, T> Handler<CheckpointSaved> for CheckpointWriterHandler<C, T>
+where
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    fn handle(&mut self, message: &CheckpointSaved, ctx: &EventContext<'_, Self>) {
+        ctx.publish(LogEvent(
+            LogLevel::Info,
+            format!(
+                "Checkpoint saved at index {}: {}",
+                message.index, message.path
+            ),
+        ));
     }
 }

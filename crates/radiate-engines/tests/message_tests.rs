@@ -430,6 +430,7 @@ mod event_stream_tests {
     // [stream/publish fanout x8] 800000 deliveries in 112.595708ms = 7,105,067 deliveries/sec
     // [stream/publish fanout x8] 800000 deliveries in 354.411792ms = 2,257,261 deliveries/sec
     // [stream/publish fanout x8] 800000 deliveries in 351.081541ms = 2,278,673 deliveries/sec
+    // [stream/publish fanout x8] 800000 deliveries in 140.580458ms = 5,690,691 deliveries/sec
     #[test]
     #[ignore = "throughput smoke test: cargo test --release -- --ignored --nocapture"]
     fn throughput_publish_fanout() {

@@ -3,7 +3,7 @@ use crate::{
     events::{
         Event, Handler, Subscription, SubscriptionId,
         event::Payload,
-        mailbox::{MailBox, Recipient},
+        mailbox::{MailBox, Route},
         messages::{DeferredEvent, StreamEvent},
         subscription::Counters,
     },
@@ -19,7 +19,6 @@ use std::{
     },
 };
 
-type Forward = Arc<dyn Fn(Delivery) + Send + Sync>;
 type SubscriberList = Arc<Vec<Registration>>;
 type SubscriberMap = HashMap<TypeId, SubscriberList>;
 
@@ -30,8 +29,7 @@ enum DispatchMode {
 
 #[derive(Clone)]
 struct Registration {
-    forward: Forward,
-    recipient: Arc<dyn Recipient>,
+    route: Arc<dyn Route>,
     subscription: Subscription,
     event: &'static str,
     handler: TypeId,
@@ -51,10 +49,10 @@ impl Registration {
 
 /// The state every clone of an [`EventStream`] shares.
 ///
-/// Subscribers only hold a [`Weak`] reference to it. Each registration's
-/// forward closure owns a clone of its [`Subscriber`], so a strong reference
-/// there would form a cycle (stream -> registration -> subscriber -> stream)
-/// and no handler would ever be dropped.
+/// Mailboxes only hold a [`Weak`] reference to it. Each registration's
+/// [`Route`] owns a clone of its [`MailBox`], so a strong reference there
+/// would form a cycle (stream -> registration -> mailbox -> stream) and no
+/// handler would ever be dropped.
 #[derive(Default)]
 pub(super) struct Shared {
     subscribers: RwLock<SubscriberMap>,
@@ -367,14 +365,14 @@ impl EventStream {
     ///
     /// Don't call this from inside a handler: its own mailbox can't pass the
     /// barrier until the handler returns.
-    pub fn wait(&self) -> RadiateResult<()> {
+    pub fn drain(&self) -> RadiateResult<()> {
         loop {
             self.flush()?;
             let before = self.event_count();
 
             let wg = WaitGroup::new();
-            for recipient in self.recipients() {
-                recipient.drain(wg.guard());
+            for route in self.mailboxes() {
+                route.drain(wg.guard());
             }
             wg.wait();
 
@@ -382,13 +380,6 @@ impl EventStream {
                 return Ok(());
             }
         }
-    }
-
-    pub fn roll(&self) -> RadiateResult<()> {
-        self.lazy_publish(|| {
-            let stats = self.stats();
-            StreamEvent::Stats(stats)
-        })
     }
 
     pub fn defer<E: Event>(&self, event: E) {
@@ -425,7 +416,7 @@ impl EventStream {
             }
 
             subscription.counters.record_delivered();
-            (registration.forward)(Delivery {
+            registration.route.deliver(Delivery {
                 payload: Arc::clone(&payload),
                 scope: scope.clone(),
                 counters: Arc::clone(&subscription.counters),
@@ -435,9 +426,9 @@ impl EventStream {
         self.shared.event_count.fetch_add(1, Ordering::SeqCst);
     }
 
-    /// One handle per live mailbox. A mailbox with several subscriptions
+    /// One route per live mailbox. A mailbox with several subscriptions
     /// appears once.
-    fn recipients(&self) -> Vec<Arc<dyn Recipient>> {
+    fn mailboxes(&self) -> Vec<Arc<dyn Route>> {
         let mut seen = HashSet::new();
         self.shared
             .subscribers
@@ -445,8 +436,8 @@ impl EventStream {
             .unwrap()
             .values()
             .flat_map(|group| group.iter())
-            .filter(|reg| reg.subscription.is_alive() && seen.insert(reg.recipient.id()))
-            .map(|reg| Arc::clone(&reg.recipient))
+            .filter(|reg| reg.subscription.is_alive() && seen.insert(reg.route.id()))
+            .map(|reg| Arc::clone(&reg.route))
             .collect()
     }
 }
@@ -472,11 +463,8 @@ impl EventStream {
         H: Handler<E>,
     {
         let subscription = Subscription::new(mailbox.id());
-        let target = mailbox.clone();
-
         let registration = Registration {
-            forward: Arc::new(move |delivery| target.deliver::<E>(delivery)),
-            recipient: mailbox.recipient(),
+            route: mailbox.route::<E>(),
             subscription: subscription.clone(),
             event: std::any::type_name::<E>(),
             handler: TypeId::of::<H>(),

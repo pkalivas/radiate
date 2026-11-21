@@ -9,6 +9,7 @@ use radiate_core::{Executor, Inbox, WaitGuard, error::RadiateResult};
 use radiate_utils::{generate_metric_key, sentry_id};
 use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
 use std::sync::{Arc, Mutex, Weak};
+use std::{any::Any, marker::PhantomData};
 
 sentry_id!(MailBoxId);
 
@@ -16,12 +17,47 @@ sentry_id!(MailBoxId);
 /// worker back to the executor. On a serial executor the drain just keeps going.
 const PROCESS_BATCH_SIZE: usize = 64;
 
-/// The untyped face of a mailbox. Everything the stream can ask of a mailbox
-/// without knowing its handler type.
-pub(super) trait Recipient: Send + Sync {
+/// The stream's only handle to a mailbox: one per registration, typed on the
+/// event behind the trait object so the stream never sees the handler type.
+pub(super) trait Route: Send + Sync {
+    /// The mailbox this route leads to. Several routes can share one.
     fn id(&self) -> MailBoxId;
 
+    /// Queue an event delivery.
+    fn deliver(&self, delivery: Delivery);
+
+    /// Queue `guard` behind everything already in the mailbox. It's released
+    /// once all of that has been handled (or discarded after a panic).
     fn drain(&self, guard: WaitGuard);
+}
+
+/// A [`Route`] for event `E` into a `MailBox<H>`.
+struct Typed<E, H> {
+    mailbox: MailBox<H>,
+    // fn(E): carries the type without owning an E, so Send/Sync follow H only.
+    _event: PhantomData<fn(E)>,
+}
+
+impl<E, H> Route for Typed<E, H>
+where
+    E: Event,
+    H: Handler<E>,
+{
+    fn id(&self) -> MailBoxId {
+        self.mailbox.0.id
+    }
+
+    #[inline]
+    fn deliver(&self, delivery: Delivery) {
+        self.mailbox.enqueue(Item::Deliver {
+            delivery,
+            handle: handle::<E, H>,
+        });
+    }
+
+    fn drain(&self, guard: WaitGuard) {
+        self.mailbox.enqueue(Item::Drain(guard));
+    }
 }
 
 /// Monomorphized per (E, H) and stored as a fn pointer, so one queue can hold
@@ -112,9 +148,16 @@ impl<H: Send + 'static> MailBox<H> {
         }
     }
 
-    /// The type-erased handle the stream keeps for barriers.
-    pub(super) fn recipient(&self) -> Arc<dyn Recipient> {
-        Arc::new(self.clone())
+    /// The handle the stream keeps to route `E` events (and drains) here.
+    pub(super) fn route<E>(&self) -> Arc<dyn Route>
+    where
+        E: Event,
+        H: Handler<E>,
+    {
+        Arc::new(Typed::<E, H> {
+            mailbox: self.clone(),
+            _event: PhantomData,
+        })
     }
 
     /// Run the handler's `start`. The inbox is claimed for the duration, so any
@@ -141,20 +184,27 @@ impl<H: Send + 'static> MailBox<H> {
         result
     }
 
-    pub(super) fn deliver<E>(&self, delivery: Delivery)
-    where
-        E: Event,
-        H: Handler<E>,
-    {
-        self.enqueue(Item::Deliver {
-            delivery,
-            handle: handle::<E, H>,
-        });
-    }
-
     fn enqueue(&self, item: Item<H>) {
-        if self.0.inbox.push(item) {
-            self.schedule();
+        if self.0.executor.is_parallel() {
+            if self.0.inbox.push(item) {
+                self.schedule();
+            }
+        } else {
+            let Ok(mut handler) = self.0.handler.lock() else {
+                self.discard();
+                panic!(
+                    "event handler `{}` panicked on an earlier event",
+                    std::any::type_name::<H>()
+                );
+            };
+
+            if let Err(payload) = self.process_item(item, &mut handler) {
+                panic!(
+                    "event handler `{}` panicked: {:?}",
+                    std::any::type_name::<H>(),
+                    payload
+                );
+            }
         }
     }
 
@@ -190,23 +240,8 @@ impl<H: Send + 'static> MailBox<H> {
                     return;
                 }
 
-                match item {
-                    Item::Deliver { delivery, handle } => {
-                        let ctx = EventContext {
-                            scope: delivery.scope(),
-                            mailbox: self,
-                        };
-
-                        let outcome = catch_unwind(AssertUnwindSafe(|| {
-                            handle(&mut handler, &delivery, &ctx)
-                        }));
-
-                        match outcome {
-                            Ok(()) => delivery.complete(),
-                            Err(payload) => panicked = Some(payload),
-                        }
-                    }
-                    Item::Drain(guard) => drop(guard),
+                if let Err(payload) = self.process_item(item, &mut handler) {
+                    panicked = Some(payload);
                 }
             });
 
@@ -226,19 +261,33 @@ impl<H: Send + 'static> MailBox<H> {
         }
     }
 
+    fn process_item(&self, item: Item<H>, handler: &mut H) -> Result<(), Box<dyn Any + Send>> {
+        match item {
+            Item::Deliver { delivery, handle } => {
+                let ctx = EventContext {
+                    scope: delivery.scope(),
+                    mailbox: self,
+                };
+
+                let output = catch_unwind(AssertUnwindSafe(|| handle(handler, &delivery, &ctx)));
+                match output {
+                    Ok(_) => {
+                        delivery.complete();
+                        Ok(())
+                    }
+                    err @ Err(_) => err,
+                }
+            }
+            Item::Drain(guard) => {
+                drop(guard);
+                Ok(())
+            }
+        }
+    }
+
     /// Drop everything queued and release the claim. Must hold the claim.
     fn discard(&self) {
         self.0.inbox.drain(usize::MAX, drop);
-    }
-}
-
-impl<H: Send + 'static> Recipient for MailBox<H> {
-    fn id(&self) -> MailBoxId {
-        self.0.id
-    }
-
-    fn drain(&self, guard: WaitGuard) {
-        self.enqueue(Item::Drain(guard));
     }
 }
 

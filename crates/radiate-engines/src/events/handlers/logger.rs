@@ -1,6 +1,6 @@
 use crate::{
     Event, Handler, Warning,
-    events::{CheckpointSaved, EngineStateChange, EventContext, EventHandler},
+    events::{EngineStateChange, EventContext, EventHandler},
 };
 use crate::{LimitTriggered, events::EpochComplete};
 use radiate_core::Objective;
@@ -31,7 +31,6 @@ where
 {
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
         ctx.subscribe::<LimitTriggered>();
-        ctx.subscribe::<CheckpointSaved>();
         ctx.subscribe::<EpochComplete<T>>();
         ctx.subscribe::<EngineStateChange>();
         ctx.subscribe::<Warning>();
@@ -47,21 +46,6 @@ where
         ctx.publish(LogEvent(
             LogLevel::Info,
             format!("Limit triggered: {:?}", message.1),
-        ));
-    }
-}
-
-impl<T> Handler<CheckpointSaved> for EngineLogger<T>
-where
-    T: Send + Sync + 'static,
-{
-    fn handle(&mut self, message: &CheckpointSaved, ctx: &EventContext<'_, Self>) {
-        ctx.publish(LogEvent(
-            LogLevel::Info,
-            format!(
-                "Checkpoint saved at index {}: {}",
-                message.index, message.path
-            ),
         ));
     }
 }

@@ -197,9 +197,8 @@ where
     fn stop(&mut self) -> Result<()> {
         self.context.set_stopped();
         self.stream.publish(EngineStop::from(&self.context));
-        self.stream.wait()?;
+        self.stream.drain()?;
 
-        println!("{:#?}", self.stream.stats());
         Ok(())
     }
 

@@ -53,7 +53,7 @@ fn main() -> RadiateResult<()> {
 
     engine.subscribe(|event: &StreamEvent| {
         if let StreamEvent::Stats(stats) = event {
-            println!("{:#?}", stats.event_count);
+            println!("HERE {:#?}", stats.event_count);
         }
     });
 
