@@ -51,13 +51,13 @@ fn main() -> RadiateResult<()> {
                 println!("{:?}", event.generation.index());
             },
         )
-        .schedule(2)?;
+        .schedule(10)?;
 
-    engine.subscribe(|event: &StreamEvent| {
-        if let StreamEvent::Stats(stats) = event {
-            println!("HERE {:#?}", stats.event_count);
-        }
-    });
+    // engine.subscribe(|event: &StreamEvent| {
+    //     if let StreamEvent::Stats(stats) = event {
+    //         println!("HERE {:#?}", stats.event_count);
+    //     }
+    // });
 
     let start = Instant::now();
     let result = engine

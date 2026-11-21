@@ -14,17 +14,12 @@ pub trait Event: Send + Sync + 'static {
     }
 }
 
-pub trait Handler<E: Event>: Send + 'static {
-    fn handle(&mut self, event: &E, ctx: &EventContext<'_, Self>)
-    where
-        Self: Sized;
+pub trait Handler<E: Event>: Sized + Send + 'static {
+    fn handle(&mut self, event: &E, ctx: &EventContext<'_, Self>);
 }
 
-pub trait EventHandler: Send + 'static {
-    fn start(&mut self, _ctx: &EventContext<'_, Self>) -> RadiateResult<()>
-    where
-        Self: Sized,
-    {
+pub trait EventHandler: Sized + Send + 'static {
+    fn start(&mut self, _ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
         Ok(())
     }
 }
@@ -39,24 +34,37 @@ where
     }
 }
 
-#[derive(Default)]
+/// The chain an event belongs to: the id of the event that started it, and,
+/// if something is waiting on the chain (see [`EventStream::flush`]), a guard
+/// that keeps the wait open until every event in it has been handled.
+///
+/// [`EventStream::flush`]: crate::EventStream::flush
+#[derive(Clone, Default)]
 pub struct EventScope {
-    pub id: EventId,
-    #[allow(dead_code)]
-    pub guard: Option<Arc<WaitGuard>>,
+    id: EventId,
+    // Never read: holding it is the point. It's released once the last
+    // clone of this scope is dropped.
+    _guard: Option<Arc<WaitGuard>>,
 }
 
 impl EventScope {
+    /// A new chain that nothing is waiting on.
+    pub(super) fn new() -> Self {
+        EventScope {
+            id: EventId::new(),
+            _guard: None,
+        }
+    }
+
+    /// A new chain that holds `guard` until it's finished.
+    pub(super) fn guarded(guard: WaitGuard) -> Self {
+        EventScope {
+            id: EventId::new(),
+            _guard: Some(Arc::new(guard)),
+        }
+    }
+
     pub fn id(&self) -> EventId {
         self.id
-    }
-}
-
-impl Clone for EventScope {
-    fn clone(&self) -> Self {
-        EventScope {
-            id: self.id,
-            guard: self.guard.clone(),
-        }
     }
 }

@@ -1,5 +1,5 @@
 use crate::{
-    EventHandler, EventId, EventScope, StreamStats, SubscriptionInfo,
+    EventHandler, EventScope, StreamStats, SubscriptionInfo,
     events::{
         Event, Handler, Subscription, SubscriptionId,
         event::Payload,
@@ -23,8 +23,10 @@ type SubscriberList = Arc<Vec<Registration>>;
 type SubscriberMap = HashMap<TypeId, SubscriberList>;
 
 enum DispatchMode {
-    Scheduled,
-    Immediate,
+    /// `lazy_publish`: each subscription already reserved its delivery.
+    Lazy,
+    /// `publish`: tick each subscription's schedule now.
+    Eager,
 }
 
 #[derive(Clone)]
@@ -36,7 +38,11 @@ struct Registration {
 }
 
 impl Registration {
-    fn subscription_info(&self) -> SubscriptionInfo {
+    fn is_alive(&self) -> bool {
+        self.subscription.is_alive()
+    }
+
+    fn info(&self) -> SubscriptionInfo {
         SubscriptionInfo {
             id: self.subscription.id(),
             mailbox_id: self.subscription.mailbox_id(),
@@ -105,27 +111,19 @@ pub(super) struct Shared {
 }
 
 impl Shared {
-    fn group<E: Event>(&self) -> Option<SubscriberList> {
-        let type_id = TypeId::of::<E>();
-        self.subscribers.read().unwrap().get(&type_id).cloned()
+    #[inline]
+    fn group(&self, event: TypeId) -> Option<SubscriberList> {
+        self.subscribers.read().unwrap().get(&event).cloned()
     }
 
-    fn group_by_type(&self, id: TypeId) -> Option<SubscriberList> {
-        self.subscribers.read().unwrap().get(&id).cloned()
-    }
-
-    fn scope(&self) -> EventScope {
-        EventScope {
-            id: EventId::new(),
-            guard: None,
-        }
-    }
-
-    fn scoped(&self, guard: WaitGuard) -> EventScope {
-        EventScope {
-            id: EventId::new(),
-            guard: Some(Arc::new(guard)),
-        }
+    /// Run `f` over every live registration, under the read lock.
+    fn live<R>(&self, f: impl FnOnce(&mut dyn Iterator<Item = &Registration>) -> R) -> R {
+        let subscribers = self.subscribers.read().unwrap();
+        let mut live = subscribers
+            .values()
+            .flat_map(|group| group.iter())
+            .filter(|reg| reg.is_alive());
+        f(&mut live)
     }
 }
 
@@ -136,18 +134,16 @@ pub struct EventStreamScope<'a> {
 
 impl EventStreamScope<'_> {
     pub fn publish<E: Event>(&self, event: E) {
-        self.stream
-            .publish_scoped(event, self.stream.gaurded_scope(self.wg.guard()));
+        self.stream.publish_scoped(event, self.guarded_scope());
     }
 
     pub fn lazy_publish<E: Event>(&self, f: impl FnOnce() -> E) -> RadiateResult<()> {
-        let ctx = self.stream.gaurded_scope(self.wg.guard());
-        self.stream.lazy_publish_scoped(f, ctx)
+        self.stream.lazy_publish_scoped(f, self.guarded_scope())
     }
 
     pub fn publish_payload(&self, payload: Payload) {
         self.stream
-            .publish_payload_scoped(payload, self.stream.gaurded_scope(self.wg.guard()));
+            .publish_payload_scoped(payload, self.guarded_scope());
     }
 
     pub fn mailboxes(&self) -> Vec<Arc<dyn Route>> {
@@ -164,6 +160,10 @@ impl EventStreamScope<'_> {
 
     pub fn guard(&self) -> WaitGuard {
         self.wg.guard()
+    }
+
+    fn guarded_scope(&self) -> EventScope {
+        EventScope::guarded(self.wg.guard())
     }
 }
 
@@ -184,24 +184,24 @@ impl EventStream {
     pub fn set_executor(&mut self, executor: Arc<Executor>) {
         self.executor = executor;
     }
+}
 
-    pub fn get_subsribers<E: Event>(&self) -> Vec<SubscriptionInfo> {
-        let type_id = TypeId::of::<E>();
-        let subscribers = self.shared.subscribers.read().unwrap();
-
-        subscribers
-            .get(&type_id)
+/// Queries
+impl EventStream {
+    /// The live subscriptions to `E`.
+    pub fn subscribers<E: Event>(&self) -> Vec<SubscriptionInfo> {
+        self.shared
+            .group(TypeId::of::<E>())
             .map(|group| {
                 group
                     .iter()
-                    .filter(|reg| reg.subscription.is_alive())
-                    .map(|reg| reg.subscription_info())
-                    .collect::<Vec<_>>()
+                    .filter(|reg| reg.is_alive())
+                    .map(Registration::info)
+                    .collect()
             })
             .unwrap_or_default()
     }
 
-    /// A snapshot of every live subscription on this stream.
     /// Whether a handler of type `H` currently has a live subscription on this
     /// stream. Use it to avoid attaching the same handler twice.
     ///
@@ -211,24 +211,16 @@ impl EventStream {
     pub fn handler_registered<H: 'static>(&self) -> bool {
         let handler = TypeId::of::<H>();
         self.shared
-            .subscribers
-            .read()
-            .unwrap()
-            .values()
-            .flat_map(|group| group.iter())
-            .any(|reg| reg.handler == handler && reg.subscription.is_alive())
+            .live(|live| live.map(|reg| reg.handler).any(|h| h == handler))
     }
 
+    /// A snapshot of every live subscription on this stream.
     pub fn stats(&self) -> StreamStats {
-        let subscribers = self.shared.subscribers.read().unwrap();
         StreamStats {
-            event_count: self.shared.event_count.load(Ordering::SeqCst),
-            subscribers: subscribers
-                .values()
-                .flat_map(|group| group.iter())
-                .filter(|reg| reg.subscription.is_alive())
-                .map(|reg| reg.subscription_info())
-                .collect(),
+            event_count: self.event_count(),
+            subscribers: self
+                .shared
+                .live(|live| live.map(Registration::info).collect()),
         }
     }
 
@@ -236,6 +228,7 @@ impl EventStream {
         self.shared.event_count.load(Ordering::SeqCst)
     }
 
+    /// Take every deferred event, leaving none behind.
     pub fn deferred(&self) -> Vec<Payload> {
         std::mem::take(&mut *self.shared.pending.write().unwrap())
     }
@@ -244,84 +237,184 @@ impl EventStream {
     /// appears once.
     pub fn mailboxes(&self) -> Vec<Arc<dyn Route>> {
         let mut seen = HashSet::new();
-        self.shared
-            .subscribers
-            .read()
-            .unwrap()
-            .values()
-            .flat_map(|group| group.iter())
-            .filter(|reg| reg.subscription.is_alive() && seen.insert(reg.route.id()))
-            .map(|reg| Arc::clone(&reg.route))
-            .collect()
+        self.shared.live(|live| {
+            live.filter(|reg| seen.insert(reg.route.id()))
+                .map(|reg| Arc::clone(&reg.route))
+                .collect()
+        })
     }
 }
 
+/// Subscribing
 impl EventStream {
     pub fn attach<H: EventHandler>(&self, handler: H) -> RadiateResult<MailBox<H>> {
-        let subscriber = MailBox::new(handler, Arc::clone(&self.executor), self);
-        subscriber.start()?;
-        Ok(subscriber)
+        let mailbox = MailBox::new(handler, Arc::clone(&self.executor), self);
+        mailbox.start()?;
+        Ok(mailbox)
     }
 
     pub fn subscribe<E: Event>(&self, handler: impl Handler<E>) -> Subscription {
-        let subscriber = MailBox::new(handler, Arc::clone(&self.executor), self);
-        self.register::<E, _>(&subscriber)
+        let mailbox = MailBox::new(handler, Arc::clone(&self.executor), self);
+        self.register::<E, _>(&mailbox)
     }
 
+    /// Remove every live subscription held by a handler of type `H`.
     pub fn detach<H: EventHandler>(&self) -> bool {
         let handler = TypeId::of::<H>();
-        let mut subscribers = self.shared.subscribers.write().unwrap();
-        let mut removed_stats = Vec::new();
-        for group in subscribers.values_mut() {
-            Arc::make_mut(group).retain(|r| {
-                if r.handler == handler && r.subscription.is_alive() {
-                    removed_stats.push(r.subscription_info());
-                    false
-                } else {
-                    true
-                }
-            });
-        }
-
-        for stats in removed_stats.drain(..) {
-            self.defer(StreamEvent::Removed(stats));
-        }
-
-        subscribers.retain(|_, group| !group.is_empty());
-        !removed_stats.is_empty()
+        self.remove_where(|reg| reg.handler == handler && reg.is_alive())
     }
 
     pub fn unsubscribe(&self, id: SubscriptionId) -> bool {
-        let mut subscribers = self.shared.subscribers.write().unwrap();
-        let mut total_removed = Vec::new();
-        for group in subscribers.values_mut() {
-            let to_remove = group
-                .iter()
-                .filter(|reg| reg.subscription.id() == id)
-                .map(|reg| reg.subscription_info())
-                .collect::<Vec<_>>();
+        self.remove_where(|reg| reg.subscription.id() == id)
+    }
 
-            let removed_ids = to_remove.iter().map(|info| info.id).collect::<HashSet<_>>();
+    pub(super) fn register<E, H>(&self, mailbox: &MailBox<H>) -> Subscription
+    where
+        E: Event,
+        H: Handler<E>,
+    {
+        let subscription = Subscription::new(mailbox.id());
+        let registration = Registration {
+            route: mailbox.route::<E>(Arc::clone(subscription.counters())),
+            subscription: subscription.clone(),
+            event: std::any::type_name::<E>(),
+            handler: TypeId::of::<H>(),
+        };
 
-            Arc::make_mut(group)
-                .retain(|registration| !removed_ids.contains(&registration.subscription.id()));
+        {
+            let mut subscribers = self.shared.subscribers.write().unwrap();
+            let group = Arc::make_mut(subscribers.entry(TypeId::of::<E>()).or_default());
+            group.retain(Registration::is_alive);
+            group.push(registration);
+        }
 
-            if !to_remove.is_empty() {
-                total_removed.extend(to_remove);
+        self.defer(StreamEvent::Added(subscription.clone()));
+        subscription
+    }
+
+    /// Drop every registration matching `remove`, deferring a
+    /// [`StreamEvent::Removed`] for each.
+    fn remove_where(&self, remove: impl Fn(&Registration) -> bool) -> bool {
+        let mut removed = Vec::new();
+        {
+            let mut subscribers = self.shared.subscribers.write().unwrap();
+            for group in subscribers.values_mut() {
+                Arc::make_mut(group).retain(|reg| {
+                    if remove(reg) {
+                        removed.push(reg.info());
+                        false
+                    } else {
+                        true
+                    }
+                });
             }
+            subscribers.retain(|_, group| !group.is_empty());
         }
 
-        let removed = !total_removed.is_empty();
-
-        for stats in total_removed.drain(..) {
-            self.defer(StreamEvent::Removed(stats));
+        let any = !removed.is_empty();
+        for info in removed {
+            self.defer(StreamEvent::Removed(info));
         }
-
-        removed
+        any
     }
 }
 
+/// Publishing
 impl EventStream {
+    pub fn defer<E: Event>(&self, event: E) {
+        self.shared
+            .pending
+            .write()
+            .unwrap()
+            .push(Arc::new(DeferredEvent(event)));
+    }
+
+    #[inline]
+    pub fn publish<E: Event>(&self, event: E) {
+        self.publish_scoped(event, EventScope::new())
+    }
+
+    pub fn lazy_publish<E: Event>(&self, f: impl FnOnce() -> E) -> RadiateResult<()> {
+        self.lazy_publish_scoped(f, EventScope::new())
+    }
+
+    pub fn publish_payload(&self, payload: Payload) {
+        self.publish_payload_scoped(payload, EventScope::new());
+    }
+
+    #[inline]
+    pub(crate) fn publish_scoped<E: Event>(&self, event: E, scope: EventScope) {
+        if let Some(group) = self.shared.group(TypeId::of::<E>()) {
+            self.dispatch(&group, Arc::new(event), scope, DispatchMode::Eager);
+        }
+    }
+
+    pub(crate) fn lazy_publish_scoped<E: Event>(
+        &self,
+        f: impl FnOnce() -> E,
+        scope: EventScope,
+    ) -> RadiateResult<()> {
+        let Some(group) = self.shared.group(TypeId::of::<E>()) else {
+            return Ok(());
+        };
+
+        // Not `any`: every subscription has to tick, even after one is due.
+        let reserved = group
+            .iter()
+            .fold(false, |any, reg| reg.subscription.reserve() | any);
+
+        if reserved {
+            self.dispatch(&group, Arc::new(f()), scope, DispatchMode::Lazy);
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn publish_payload_scoped(&self, payload: Payload, scope: EventScope) {
+        if let Some(group) = self.shared.group((*payload).type_id()) {
+            self.dispatch(&group, payload, scope, DispatchMode::Eager);
+        }
+    }
+
+    #[inline]
+    fn dispatch(
+        &self,
+        group: &SubscriberList,
+        payload: Payload,
+        scope: EventScope,
+        mode: DispatchMode,
+    ) {
+        let published = Published {
+            payload: &payload,
+            scope: &scope,
+        };
+
+        for registration in group.iter() {
+            let subscription = &registration.subscription;
+            if !subscription.is_alive() {
+                continue;
+            }
+
+            let due = match mode {
+                DispatchMode::Lazy => subscription.take_reserved(),
+                DispatchMode::Eager => subscription.tick(),
+            };
+
+            if due {
+                subscription.counters().record_delivered();
+                registration.route.deliver(&published);
+            }
+        }
+
+        // Relaxed: drain reads this after a WaitGroup handoff, which orders it.
+        self.shared.event_count.fetch_add(1, Ordering::Relaxed);
+    }
+}
+
+/// Waiting
+impl EventStream {
+    /// Run `func`, then block until every event it published through the
+    /// scope, and everything those events caused, has been handled.
     pub fn scope<R>(
         &self,
         func: impl FnOnce(EventStreamScope) -> RadiateResult<R>,
@@ -335,21 +428,8 @@ impl EventStream {
         result
     }
 
-    pub fn open(&self) -> RadiateResult<()> {
-        let deferred = self.deferred();
-        if deferred.is_empty() {
-            return Ok(());
-        }
-
-        self.scope(|stream| {
-            for payload in deferred {
-                stream.publish_payload(payload);
-            }
-
-            Ok(())
-        })
-    }
-
+    /// Publish everything deferred so far and wait for it to be handled,
+    /// along with everything it causes.
     pub fn flush(&self) -> RadiateResult<()> {
         let deferred = self.deferred();
         if deferred.is_empty() {
@@ -392,104 +472,9 @@ impl EventStream {
             }
         }
     }
-
-    pub fn defer<E: Event>(&self, event: E) {
-        self.shared
-            .pending
-            .write()
-            .unwrap()
-            .push(Arc::new(DeferredEvent(event)));
-    }
-
-    #[inline]
-    pub fn publish<E: Event>(&self, event: E) {
-        self.publish_scoped(event, self.shared.scope())
-    }
-
-    pub fn lazy_publish<E: Event>(&self, f: impl FnOnce() -> E) -> RadiateResult<()> {
-        self.lazy_publish_scoped(f, self.shared.scope())
-    }
-
-    pub fn publish_payload(&self, payload: Payload) {
-        self.publish_payload_scoped(payload, self.shared.scope());
-    }
-
-    #[inline]
-    pub(crate) fn publish_scoped<E: Event>(&self, event: E, scope: EventScope) {
-        if let Some(group) = self.shared.group::<E>() {
-            self.dispatch(&group, Arc::new(event), scope, DispatchMode::Immediate);
-        }
-    }
-
-    pub(crate) fn lazy_publish_scoped<E: Event>(
-        &self,
-        f: impl FnOnce() -> E,
-        scope: EventScope,
-    ) -> RadiateResult<()> {
-        let Some(group) = self.shared.group::<E>() else {
-            return Ok(());
-        };
-
-        let mut any_due = false;
-        for registration in group.iter() {
-            if registration.subscription.reserve().is_ok_and(|val| val) {
-                any_due = true;
-            }
-        }
-
-        if !any_due {
-            return Ok(());
-        }
-
-        self.dispatch(&group, Arc::new(f()), scope, DispatchMode::Scheduled);
-        Ok(())
-    }
-
-    pub(crate) fn publish_payload_scoped(&self, payload: Payload, ctx: EventScope) {
-        if let Some(group) = self.shared.group_by_type((*payload).type_id()) {
-            self.dispatch(&group, payload, ctx, DispatchMode::Immediate);
-        }
-    }
-
-    #[inline]
-    fn dispatch(
-        &self,
-        group: &SubscriberList,
-        payload: Payload,
-        scope: EventScope,
-        mode: DispatchMode,
-    ) {
-        let published = Published {
-            payload: &payload,
-            scope: &scope,
-        };
-
-        for registration in group.iter() {
-            let subscription = &registration.subscription;
-            if !subscription.is_alive() {
-                continue;
-            }
-
-            let due = match mode {
-                // lazy: already reserved
-                DispatchMode::Scheduled => subscription.take_permit(),
-                // eager: tick now
-                DispatchMode::Immediate => subscription.is_due(),
-            };
-
-            if !due {
-                continue;
-            }
-
-            subscription.counters.record_delivered();
-            registration.route.deliver(&published);
-        }
-
-        // Relaxed: drain reads this after a WaitGroup handoff, which orders it.
-        self.shared.event_count.fetch_add(1, Ordering::Relaxed);
-    }
 }
 
+/// Internal
 impl EventStream {
     /// A weak handle to this stream's shared state, for subscribers to hold.
     pub(super) fn downgrade(&self) -> Weak<Shared> {
@@ -503,40 +488,6 @@ impl EventStream {
             executor: Arc::clone(executor),
             shared,
         })
-    }
-
-    pub(super) fn register<E, H>(&self, mailbox: &MailBox<H>) -> Subscription
-    where
-        E: Event,
-        H: Handler<E>,
-    {
-        let subscription = Subscription::new(mailbox.id());
-        let registration = Registration {
-            route: mailbox.route::<E>(Arc::clone(&subscription.counters)),
-            subscription: subscription.clone(),
-            event: std::any::type_name::<E>(),
-            handler: TypeId::of::<H>(),
-        };
-
-        let mut subscribers = self.shared.subscribers.write().unwrap();
-        let type_id = TypeId::of::<E>();
-        let list = subscribers
-            .entry(type_id)
-            .or_insert_with(|| Arc::new(Vec::new()));
-        let list = Arc::make_mut(list);
-
-        list.retain(|registration| registration.subscription.is_alive());
-        list.push(registration);
-
-        drop(subscribers);
-
-        self.defer(StreamEvent::Added(subscription.clone()));
-
-        subscription
-    }
-
-    fn gaurded_scope(&self, guard: WaitGuard) -> EventScope {
-        self.shared.scoped(guard)
     }
 }
 

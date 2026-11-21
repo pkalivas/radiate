@@ -414,8 +414,7 @@ where
         let view = GenerationView::new(ctx);
         let proceed = !(self)(view);
         if !proceed {
-            ctx.stream()
-                .publish(LimitTriggered(ctx.index, Limit::Fn));
+            ctx.stream().publish(LimitTriggered(ctx.index, Limit::Fn));
         }
         Ok(proceed)
     }

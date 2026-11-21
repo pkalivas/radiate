@@ -6,23 +6,23 @@ use radiate_core::{EngineState, error::RadiateResult};
 use std::collections::HashMap;
 use std::time::Instant;
 
-/// Snapshots in a row with a growing backlog before a handler is reported as
+/// Snapshots in a row with a growing queue before a handler is reported as
 /// falling behind.
 const DEFAULT_FALLING_BEHIND_SNAPSHOTS: usize = 5;
 
 /// Watches the stream's own [`StreamEvent::Stats`] snapshots and reports how
 /// each handler is keeping up.
 ///
-/// - Publishes a [`Warning`] when a handler's backlog (delivered but not yet
+/// - Publishes a [`Warning`] when a handler's queue (delivered but not yet
 ///   handled) grows for several snapshots in a row. Each streak warns once.
 /// - Logs a per-handler summary when the engine stops: events handled, the
-///   rate over the run, peak backlog, and anything still queued.
+///   rate over the run, peak queue length, and anything still queued.
 ///
 /// Snapshots are published once per generation, but only while something is
 /// subscribed to them, so the stream pays nothing until this is attached. To
 /// sample less often, put a schedule on its `StreamEvent` subscription.
 ///
-/// On a serial executor every handler runs inline, so backlogs are always
+/// On a serial executor every handler runs inline, so queues are always
 /// zero and only the totals and rates mean anything.
 pub struct StreamMonitor {
     falling_behind_after: usize,
@@ -35,7 +35,7 @@ pub struct StreamMonitor {
 struct Tracked {
     info: SubscriptionInfo,
     first_handled: u64,
-    peak_backlog: u64,
+    peak_queued: u64,
     growing: usize,
     warned: usize,
 }
@@ -51,7 +51,7 @@ impl StreamMonitor {
         }
     }
 
-    /// How many snapshots in a row a backlog has to grow before warning.
+    /// How many snapshots in a row a queue has to grow before warning.
     pub fn falling_behind_after(mut self, snapshots: usize) -> Self {
         self.falling_behind_after = snapshots.max(1);
         self
@@ -77,8 +77,8 @@ impl StreamMonitor {
                     stats.handled.to_string(),
                     stats.skipped.to_string(),
                     rate(handled_since, elapsed),
-                    tracked.peak_backlog.to_string(),
-                    stats.in_flight().to_string(),
+                    tracked.peak_queued.to_string(),
+                    stats.queued().to_string(),
                     match tracked.warned {
                         0 => String::new(),
                         n => format!("fell behind {n}x"),
@@ -216,18 +216,18 @@ impl Handler<StreamEvent> for StreamMonitor {
 
         let own = ctx.mailbox_id();
         for info in stats.subscribers.iter().filter(|s| s.mailbox_id != own) {
-            let backlog = info.stats.in_flight();
+            let queued = info.stats.queued();
 
             let tracked = self.handlers.entry(info.id).or_insert_with(|| Tracked {
                 info: info.clone(),
                 first_handled: info.stats.handled,
-                peak_backlog: 0,
+                peak_queued: 0,
                 growing: 0,
                 warned: 0,
             });
 
-            let previous = tracked.info.stats.in_flight();
-            tracked.growing = if backlog > previous {
+            let previous = tracked.info.stats.queued();
+            tracked.growing = if queued > previous {
                 tracked.growing + 1
             } else {
                 0
@@ -238,12 +238,12 @@ impl Handler<StreamEvent> for StreamMonitor {
                 ctx.publish(Warning(format!(
                     "Stream | {} is falling behind: {} events queued, growing for {} snapshots",
                     label(info),
-                    backlog,
+                    queued,
                     tracked.growing
                 )));
             }
 
-            tracked.peak_backlog = tracked.peak_backlog.max(backlog);
+            tracked.peak_queued = tracked.peak_queued.max(queued);
             tracked.info = info.clone();
         }
     }

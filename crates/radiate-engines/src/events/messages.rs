@@ -24,7 +24,6 @@ pub enum StreamEvent {
     Added(Subscription),
     Removed(SubscriptionInfo),
     Stats(StreamStats),
-    Drained(StreamStats),
 }
 
 impl Event for StreamEvent {}
@@ -33,8 +32,6 @@ impl Event for StreamEvent {}
 pub struct BuilderEvent(pub String);
 
 impl Event for BuilderEvent {}
-
-/// ---------------
 
 #[derive(Clone, Debug)]
 pub struct EngineStateChange {

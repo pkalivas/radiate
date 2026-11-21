@@ -1,13 +1,12 @@
 use crate::{SubscriptionStats, events::mailbox::MailBoxId};
-use radiate_core::{Expr, RadiateError, error::RadiateResult, radiate_err};
+use radiate_core::{Expr, error::RadiateResult};
 use radiate_error::radiate_bail;
 use radiate_utils::{SmallStr, sentry_id};
-use std::sync::atomic::{AtomicU64, AtomicUsize};
 use std::{
     fmt::Debug,
     sync::{
-        Arc, RwLock,
-        atomic::{AtomicBool, Ordering},
+        Arc, Mutex, RwLock,
+        atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
     },
 };
 
@@ -37,155 +36,158 @@ impl Counters {
     pub(crate) fn record_handled(&self) {
         self.handled.fetch_add(1, Ordering::Relaxed);
     }
+
+    fn snapshot(&self) -> SubscriptionStats {
+        SubscriptionStats {
+            delivered: self.delivered.load(Ordering::Relaxed),
+            skipped: self.skipped.load(Ordering::Relaxed),
+            handled: self.handled.load(Ordering::Relaxed),
+        }
+    }
 }
 
-#[derive(Clone)]
-pub struct Subscription {
-    pub(crate) id: SubscriptionId,
-    pub(crate) mailbox_id: MailBoxId,
-    pub(crate) name: Arc<RwLock<Option<SmallStr>>>,
-    pub(crate) schedule: Arc<RwLock<Option<Expr>>>,
-    pub(crate) permits: Arc<AtomicUsize>,
-    pub(crate) alive: Arc<AtomicBool>,
-    pub(crate) is_scheduled: Arc<AtomicBool>,
-    pub(crate) counters: Arc<Counters>,
+struct Inner {
+    id: SubscriptionId,
+    mailbox_id: MailBoxId,
+    name: RwLock<Option<SmallStr>>,
+    schedule: Mutex<Option<Expr>>,
+    /// Set once a schedule is installed, so unscheduled subscriptions never
+    /// touch the lock.
+    is_scheduled: AtomicBool,
+    /// Deliveries [`reserve`](Subscription::reserve)d by a lazy publish and
+    /// not yet taken by its dispatch.
+    permits: AtomicUsize,
+    alive: AtomicBool,
+    counters: Arc<Counters>,
 }
+
+/// A handle to one handler's subscription to one event type. Clones share
+/// the same subscription.
+#[derive(Clone)]
+pub struct Subscription(Arc<Inner>);
 
 impl Subscription {
     pub(super) fn new(mailbox_id: MailBoxId) -> Self {
-        Subscription {
+        Subscription(Arc::new(Inner {
             id: SubscriptionId::new(),
             mailbox_id,
-            name: Arc::new(RwLock::new(None)),
-            schedule: Arc::new(RwLock::new(None)),
-            permits: Arc::new(AtomicUsize::new(0)),
-            alive: Arc::new(AtomicBool::new(true)),
-            is_scheduled: Arc::new(AtomicBool::new(false)),
-            counters: Arc::new(Counters::default()),
-        }
+            name: RwLock::new(None),
+            schedule: Mutex::new(None),
+            is_scheduled: AtomicBool::new(false),
+            permits: AtomicUsize::new(0),
+            alive: AtomicBool::new(true),
+            counters: Arc::default(),
+        }))
+    }
+
+    pub fn id(&self) -> SubscriptionId {
+        self.0.id
+    }
+
+    pub fn mailbox_id(&self) -> MailBoxId {
+        self.0.mailbox_id
     }
 
     /// Attach a name to this subscription, used to identify it in
     /// [`EventStream::stats`](crate::events::EventStream::stats).
     pub fn named(self, name: impl Into<SmallStr>) -> Self {
-        *self.name.write().unwrap() = Some(name.into());
+        *self.0.name.write().unwrap() = Some(name.into());
         self
     }
 
     pub fn name(&self) -> Option<SmallStr> {
-        self.name.read().unwrap().clone()
+        self.0.name.read().unwrap().clone()
     }
 
     /// A snapshot of how many events this subscription has been delivered,
     /// skipped, and handled.
     pub fn stats(&self) -> SubscriptionStats {
-        SubscriptionStats {
-            delivered: self.counters.delivered.load(Ordering::Relaxed),
-            skipped: self.counters.skipped.load(Ordering::Relaxed),
-            handled: self.counters.handled.load(Ordering::Relaxed),
-        }
+        self.0.counters.snapshot()
     }
 
+    #[inline]
     pub fn is_alive(&self) -> bool {
-        self.alive.load(Ordering::Acquire)
+        self.0.alive.load(Ordering::Acquire)
     }
 
-    pub fn id(&self) -> SubscriptionId {
-        self.id
-    }
+    /// Only deliver events when `schedule` evaluates to true. It's evaluated
+    /// once per published event.
+    pub fn schedule(&self, schedule: impl Into<Expr>) -> RadiateResult<()> {
+        let expr = schedule.into();
+        let Some(schedule) = expr.clone().into_schedule() else {
+            radiate_bail!(Expr: format!("Invalid schedule expression: {:?}", expr));
+        };
 
-    pub fn mailbox_id(&self) -> MailBoxId {
-        self.mailbox_id
-    }
-
-    pub fn schedule(&self, schedule: impl Into<Expr>) -> Result<bool, RadiateError> {
-        let maybe_expr = schedule.into();
-
-        match maybe_expr.clone().into_schedule() {
-            Some(expr) => {
-                *self.schedule.write().unwrap() = Some(expr);
-                self.is_scheduled.store(true, Ordering::Release);
-                Ok(true)
-            }
-            _ => {
-                radiate_bail!(Expr: format!("Invalid schedule expression: {:?}", maybe_expr))
-            }
-        }
+        *self.0.schedule.lock().unwrap() = Some(schedule);
+        self.0.is_scheduled.store(true, Ordering::Release);
+        Ok(())
     }
 
     pub fn unsubscribe(&self) {
-        self.alive.store(false, Ordering::Release);
-        self.permits.store(0, Ordering::Release);
+        self.0.alive.store(false, Ordering::Release);
+        self.0.permits.store(0, Ordering::Release);
     }
 
-    pub(super) fn reserve(&self) -> RadiateResult<bool> {
-        if !self.is_alive() {
-            return Ok(false);
-        }
-
-        if !self.try_schedule()? {
-            self.counters.record_skipped();
-            return Ok(false);
-        }
-
-        self.permits.fetch_add(1, Ordering::Release);
-
-        Ok(true)
+    #[inline]
+    pub(super) fn counters(&self) -> &Arc<Counters> {
+        &self.0.counters
     }
 
-    /// For eager publishes: advance the schedule and say whether this event is due.
-    pub(super) fn is_due(&self) -> bool {
+    /// For eager publishes: advance the schedule and say whether this event
+    /// is due.
+    #[inline]
+    pub(super) fn tick(&self) -> bool {
         if !self.is_alive() {
             return false;
         }
 
-        // Same as lazy_publish: an expression that fails to evaluate counts as not due.
-        let due = self.try_schedule().unwrap_or(false);
+        let due = self.try_schedule();
         if !due {
-            self.counters.record_skipped();
+            self.0.counters.record_skipped();
         }
         due
     }
 
-    pub(super) fn take_permit(&self) -> bool {
-        let mut current = self.permits.load(Ordering::Acquire);
-
-        loop {
-            if current == 0 {
-                return false;
-            }
-
-            match self.permits.compare_exchange_weak(
-                current,
-                current - 1,
-                Ordering::AcqRel,
-                Ordering::Acquire,
-            ) {
-                Ok(_) => return true,
-                Err(next) => current = next,
-            }
+    /// For lazy publishes: advance the schedule and, if this event is due,
+    /// hold a permit for the dispatch to [`take`](Self::take_reserved).
+    pub(super) fn reserve(&self) -> bool {
+        if !self.tick() {
+            return false;
         }
+
+        self.0.permits.fetch_add(1, Ordering::Release);
+        true
     }
 
-    fn try_schedule(&self) -> RadiateResult<bool> {
-        if !self.is_scheduled.load(Ordering::Acquire) {
-            return Ok(true); // fast path: no lock, no expression
-        }
+    #[inline]
+    pub(super) fn take_reserved(&self) -> bool {
+        self.0
+            .permits
+            .try_update(Ordering::AcqRel, Ordering::Acquire, |n| n.checked_sub(1))
+            .is_ok()
+    }
 
-        let mut guard = self.schedule.write().unwrap();
-        if let Some(expr) = &mut *guard {
-            return expr
-                .trigger()?
-                .extract_bool()
-                .ok_or_else(|| radiate_err!(Expr: "Failed to compute schedule as bool"));
-        }
+    #[inline]
+    fn try_schedule(&self) -> bool {
+        // Fast path: no lock, no expression.
+        !self.0.is_scheduled.load(Ordering::Acquire) || self.evaluate_schedule()
+    }
 
-        Ok(true)
+    /// An expression that fails to evaluate counts as not due.
+    #[cold]
+    fn evaluate_schedule(&self) -> bool {
+        let mut schedule = self.0.schedule.lock().unwrap();
+        let Some(expr) = schedule.as_mut() else {
+            return true;
+        };
+
+        let due = expr.trigger().map(|value| value.extract_bool());
+        matches!(due, Ok(Some(true)))
     }
 }
 
 impl Debug for Subscription {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Subscription(id={})", self.id)
+        write!(f, "Subscription(id={})", self.0.id)
     }
 }

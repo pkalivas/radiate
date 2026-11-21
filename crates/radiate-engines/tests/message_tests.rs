@@ -195,7 +195,7 @@ mod publish {
         assert_eq!(ping.name.as_ref().map(|n| n.as_str()), Some("pings"));
         assert!(ping.event.ends_with("Ping"));
         assert_eq!((ping.stats.delivered, ping.stats.handled), (1, 1));
-        assert_eq!(ping.stats.in_flight(), 0);
+        assert_eq!(ping.stats.queued(), 0);
 
         let add = report
             .subscribers

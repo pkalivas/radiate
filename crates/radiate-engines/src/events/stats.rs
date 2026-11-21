@@ -22,7 +22,7 @@ pub struct SubscriptionStats {
 impl SubscriptionStats {
     /// Events delivered but not yet handled. Always zero on a serial executor;
     /// on a worker pool this is how far the handler is behind the engine.
-    pub fn in_flight(&self) -> u64 {
+    pub fn queued(&self) -> u64 {
         self.delivered.saturating_sub(self.handled)
     }
 }

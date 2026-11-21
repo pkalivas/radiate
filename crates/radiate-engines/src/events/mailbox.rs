@@ -9,9 +9,10 @@ use crate::{
 };
 use radiate_core::{Executor, Inbox, WaitGuard, error::RadiateResult};
 use radiate_utils::{generate_metric_key, sentry_id};
+use std::marker::PhantomData;
 use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
-use std::sync::{Arc, Mutex, Weak};
-use std::{any::Any, marker::PhantomData};
+use std::sync::{Arc, Mutex, MutexGuard, Weak};
+use std::thread;
 
 sentry_id!(MailBoxId);
 
@@ -35,13 +36,13 @@ pub trait Route: Send + Sync {
 }
 
 /// A [`Route`] for event `E` into a `MailBox<H>`.
-struct Typed<E, H> {
+struct TypedRoute<E, H> {
     mailbox: MailBox<H>,
     counters: Arc<Counters>,
     _event: PhantomData<fn(E)>,
 }
 
-impl<E, H> Route for Typed<E, H>
+impl<E, H> Route for TypedRoute<E, H>
 where
     E: Event,
     H: Handler<E>,
@@ -177,7 +178,7 @@ impl<H: Send + 'static> MailBox<H> {
         E: Event,
         H: Handler<E>,
     {
-        Arc::new(Typed::<E, H> {
+        Arc::new(TypedRoute::<E, H> {
             mailbox: self.clone(),
             counters,
             _event: PhantomData,
@@ -193,7 +194,7 @@ impl<H: Send + 'static> MailBox<H> {
     {
         let claimed = self.0.inbox.try_claim();
         let result = {
-            let scope = EventScope::default();
+            let scope = EventScope::new();
             let ctx = EventContext {
                 scope: &scope,
                 mailbox: self,
@@ -223,16 +224,22 @@ impl<H: Send + 'static> MailBox<H> {
         }
     }
 
+    /// Start a drain on the executor. On a serial executor this runs inline.
+    fn schedule(&self) {
+        let mailbox = self.clone();
+        self.0.executor.submit(move || mailbox.process_queue());
+    }
+
     /// With the claim held: run `first`, then drain whatever queued up behind
     /// it, all under one lock of the handler.
-    fn run_claimed(&self, first: impl FnOnce(&mut H) -> std::thread::Result<()>) {
+    fn run_claimed(&self, first: impl FnOnce(&mut H) -> thread::Result<()>) {
         let more = {
             let mut handler = self.lock();
             if let Err(payload) = first(&mut handler) {
                 self.discard();
                 resume_unwind(payload); // still holding the lock, so it poisons
             }
-            self.drain_locked(&mut handler)
+            self.process_batch(&mut handler)
         };
 
         if more {
@@ -240,7 +247,7 @@ impl<H: Send + 'static> MailBox<H> {
         }
     }
 
-    fn lock(&self) -> std::sync::MutexGuard<'_, H> {
+    fn lock(&self) -> MutexGuard<'_, H> {
         match self.0.handler.lock() {
             Ok(handler) => handler,
             Err(_) => {
@@ -253,24 +260,10 @@ impl<H: Send + 'static> MailBox<H> {
         }
     }
 
-    /// Start a drain on the executor. On a serial executor this runs inline.
-    fn schedule(&self) {
-        let mailbox = self.clone();
-        self.0.executor.submit(move || mailbox.process_queue());
-    }
-
-    fn budget(&self) -> usize {
-        if self.0.executor.is_parallel() {
-            PROCESS_BATCH_SIZE
-        } else {
-            usize::MAX
-        }
-    }
-
     fn process_queue(&self) {
         let more = {
             let mut handler = self.lock();
-            self.drain_locked(&mut handler)
+            self.process_batch(&mut handler)
         };
 
         if more {
@@ -279,7 +272,7 @@ impl<H: Send + 'static> MailBox<H> {
     }
 
     /// Drain one budget's worth of queued items. Must hold the claim.
-    fn drain_locked(&self, handler: &mut H) -> bool {
+    fn process_batch(&self, handler: &mut H) -> bool {
         let mut panicked = None;
         let more = self.0.inbox.drain(self.budget(), |item| {
             if panicked.is_some() {
@@ -304,7 +297,7 @@ impl<H: Send + 'static> MailBox<H> {
         more
     }
 
-    fn process_item(&self, item: Item<H>, handler: &mut H) -> Result<(), Box<dyn Any + Send>> {
+    fn process_item(&self, item: Item<H>, handler: &mut H) -> thread::Result<()> {
         match item {
             Item::Deliver { delivery, handle } => {
                 let ctx = EventContext {
@@ -312,16 +305,10 @@ impl<H: Send + 'static> MailBox<H> {
                     mailbox: self,
                 };
 
-                let output = catch_unwind(AssertUnwindSafe(|| {
+                catch_unwind(AssertUnwindSafe(|| {
                     handle(handler, delivery.payload(), &ctx)
-                }));
-                match output {
-                    Ok(_) => {
-                        delivery.complete();
-                        Ok(())
-                    }
-                    err @ Err(_) => err,
-                }
+                }))
+                .map(|()| delivery.complete())
             }
             Item::Drain(guard) => {
                 drop(guard);
@@ -333,6 +320,14 @@ impl<H: Send + 'static> MailBox<H> {
     /// Drop everything queued and release the claim. Must hold the claim.
     fn discard(&self) {
         self.0.inbox.drain(usize::MAX, drop);
+    }
+
+    fn budget(&self) -> usize {
+        if self.0.executor.is_parallel() {
+            PROCESS_BATCH_SIZE
+        } else {
+            usize::MAX
+        }
     }
 }
 
