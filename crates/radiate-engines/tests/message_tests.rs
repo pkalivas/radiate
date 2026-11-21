@@ -972,3 +972,90 @@ mod mailbox_tests {
         assert_eq!(seen, (0..N).collect::<Vec<_>>());
     }
 }
+
+#[cfg(test)]
+mod monitor_tests {
+    use radiate_core::{EngineState, Executor};
+    use radiate_engines::events::{
+        EngineStateChange, EventStream, LogEvent, StreamEvent, StreamMonitor, Warning,
+    };
+    use std::sync::{Arc, Mutex, mpsc};
+    use std::time::Duration;
+
+    const GENEROUS: Duration = Duration::from_secs(5);
+
+    #[derive(Clone)]
+    struct Ping;
+    impl radiate_engines::events::Event for Ping {}
+
+    fn stopped() -> EngineStateChange {
+        EngineStateChange {
+            index: 0,
+            from: EngineState::Running,
+            to: EngineState::Stopped,
+        }
+    }
+
+    #[test]
+    fn warns_when_a_handler_backlog_keeps_growing() {
+        let stream = EventStream::new(Arc::new(Executor::FixedSizedWorkerPool(2)));
+
+        // The first Ping parks this handler until the gate opens, so every
+        // later Ping piles up in its mailbox.
+        let (open, gate) = mpsc::channel::<()>();
+        let gate = Mutex::new(gate);
+        stream.subscribe(move |_: &Ping| {
+            let _ = gate.lock().unwrap().recv();
+        });
+
+        let (warn_tx, warnings) = mpsc::channel();
+        stream.subscribe(move |w: &Warning| {
+            let _ = warn_tx.send(w.0.clone());
+        });
+
+        stream
+            .attach(StreamMonitor::new().falling_behind_after(3))
+            .unwrap();
+
+        for _ in 0..5 {
+            stream.publish(Ping);
+            stream.publish(StreamEvent::Stats(stream.stats()));
+        }
+
+        let warning = warnings.recv_timeout(GENEROUS).unwrap();
+        assert!(warning.contains("falling behind"), "{warning}");
+
+        drop(open);
+        stream.drain().unwrap();
+    }
+
+    #[test]
+    fn logs_a_summary_when_the_engine_stops() {
+        let stream = EventStream::from(Executor::Serial);
+        stream.subscribe(|_: &Ping| {});
+
+        let (log_tx, logs) = mpsc::channel();
+        stream.subscribe(move |l: &LogEvent| {
+            let _ = log_tx.send(l.1.clone());
+        });
+
+        stream.attach(StreamMonitor::new()).unwrap();
+
+        for _ in 0..3 {
+            stream.publish(Ping);
+            stream.publish(StreamEvent::Stats(stream.stats()));
+        }
+        stream.publish(stopped());
+
+        let summary = logs.try_recv().expect("serial: summary logged inline");
+        assert!(summary.contains("3 snapshots"), "{summary}");
+
+        let ping = summary
+            .lines()
+            .find(|line| line.contains("Ping"))
+            .unwrap_or_else(|| panic!("no row for Ping:\n{summary}"));
+        let handled = ping.split_whitespace().skip_while(|c| *c != "Ping").nth(1);
+        assert_eq!(handled, Some("3"), "{summary}");
+        assert!(logs.try_recv().is_err(), "only one summary");
+    }
+}

@@ -47,6 +47,32 @@ impl Registration {
     }
 }
 
+/// One event routed to one subscription: what the stream hands a mailbox.
+///
+/// The mailbox reads it and calls [`complete`](Delivery::complete) once the
+/// handler returns. Dropping it without completing (a panic, a discard) still
+/// releases its scope, but it isn't counted as handled.
+pub struct Delivery {
+    payload: Payload,
+    scope: EventScope,
+    counters: Arc<Counters>,
+}
+
+impl Delivery {
+    pub(super) fn scope(&self) -> &EventScope {
+        &self.scope
+    }
+
+    pub(super) fn event<E: Event>(&self) -> Option<&E> {
+        self.payload.downcast_ref()
+    }
+
+    /// The handler finished with this delivery.
+    pub(super) fn complete(self) {
+        self.counters.record_handled();
+    }
+}
+
 /// The state every clone of an [`EventStream`] shares.
 ///
 /// Mailboxes only hold a [`Weak`] reference to it. Each registration's
@@ -80,32 +106,6 @@ impl Shared {
     }
 }
 
-/// One event routed to one subscription: what the stream hands a mailbox.
-///
-/// The mailbox reads it and calls [`complete`](Delivery::complete) once the
-/// handler returns. Dropping it without completing (a panic, a discard) still
-/// releases its scope, but it isn't counted as handled.
-pub(super) struct Delivery {
-    payload: Payload,
-    scope: EventScope,
-    counters: Arc<Counters>,
-}
-
-impl Delivery {
-    pub(super) fn scope(&self) -> &EventScope {
-        &self.scope
-    }
-
-    pub(super) fn event<E: Event>(&self) -> Option<&E> {
-        self.payload.downcast_ref()
-    }
-
-    /// The handler finished with this delivery.
-    pub(super) fn complete(self) {
-        self.counters.record_handled();
-    }
-}
-
 // stream.rs
 pub struct EventStreamScope<'a> {
     stream: &'a EventStream,
@@ -128,12 +128,20 @@ impl EventStreamScope<'_> {
             .publish_payload_scoped(payload, self.stream.gaurded_scope(self.wg.guard()));
     }
 
+    pub fn mailboxes(&self) -> Vec<Arc<dyn Route>> {
+        self.stream.mailboxes()
+    }
+
     pub fn deferred(&self) -> Vec<Payload> {
         self.stream.deferred()
     }
 
     pub fn wait(&self) {
         self.wg.wait();
+    }
+
+    pub fn guard(&self) -> WaitGuard {
+        self.wg.guard()
     }
 }
 
@@ -208,6 +216,21 @@ impl EventStream {
 
     pub fn deferred(&self) -> Vec<Payload> {
         std::mem::take(&mut *self.shared.pending.write().unwrap())
+    }
+
+    /// One route per live mailbox. A mailbox with several subscriptions
+    /// appears once.
+    pub fn mailboxes(&self) -> Vec<Arc<dyn Route>> {
+        let mut seen = HashSet::new();
+        self.shared
+            .subscribers
+            .read()
+            .unwrap()
+            .values()
+            .flat_map(|group| group.iter())
+            .filter(|reg| reg.subscription.is_alive() && seen.insert(reg.route.id()))
+            .map(|reg| Arc::clone(&reg.route))
+            .collect()
     }
 }
 
@@ -290,6 +313,57 @@ impl EventStream {
         result
     }
 
+    pub fn flush(&self) -> RadiateResult<()> {
+        let deferred = self.deferred();
+        if deferred.is_empty() {
+            return Ok(());
+        }
+
+        self.scope(|stream| {
+            for payload in deferred {
+                stream.publish_payload(payload);
+            }
+
+            Ok(())
+        })
+    }
+
+    /// Block until every mailbox has handled everything published so far,
+    /// including events handlers publish while catching up.
+    ///
+    /// Each pass queues a barrier behind the work already in every mailbox and
+    /// waits for all of them to pass it. If handlers published more in the
+    /// meantime, it goes around again.
+    ///
+    /// Don't call this from inside a handler: its own mailbox can't pass the
+    /// barrier until the handler returns.
+    pub fn drain(&self) -> RadiateResult<()> {
+        loop {
+            self.flush()?;
+            let before = self.event_count();
+
+            self.scope(|stream| {
+                for route in stream.mailboxes() {
+                    route.drain(stream.guard());
+                }
+
+                Ok(())
+            })?;
+
+            if self.event_count() == before {
+                return Ok(());
+            }
+        }
+    }
+
+    pub fn defer<E: Event>(&self, event: E) {
+        self.shared
+            .pending
+            .write()
+            .unwrap()
+            .push(Arc::new(DeferredEvent(event)));
+    }
+
     #[inline]
     pub fn publish<E: Event>(&self, event: E) {
         self.publish_scoped(event, self.shared.scope())
@@ -341,55 +415,6 @@ impl EventStream {
         }
     }
 
-    pub fn flush(&self) -> RadiateResult<()> {
-        let deferred = self.deferred();
-        if deferred.is_empty() {
-            return Ok(());
-        }
-
-        self.scope(|stream| {
-            for payload in deferred {
-                stream.publish_payload(payload);
-            }
-
-            Ok(())
-        })
-    }
-
-    /// Block until every mailbox has handled everything published so far,
-    /// including events handlers publish while catching up.
-    ///
-    /// Each pass queues a barrier behind the work already in every mailbox and
-    /// waits for all of them to pass it. If handlers published more in the
-    /// meantime, it goes around again.
-    ///
-    /// Don't call this from inside a handler: its own mailbox can't pass the
-    /// barrier until the handler returns.
-    pub fn drain(&self) -> RadiateResult<()> {
-        loop {
-            self.flush()?;
-            let before = self.event_count();
-
-            let wg = WaitGroup::new();
-            for route in self.mailboxes() {
-                route.drain(wg.guard());
-            }
-            wg.wait();
-
-            if self.event_count() == before {
-                return Ok(());
-            }
-        }
-    }
-
-    pub fn defer<E: Event>(&self, event: E) {
-        self.shared
-            .pending
-            .write()
-            .unwrap()
-            .push(Arc::new(DeferredEvent(event)));
-    }
-
     #[inline]
     fn dispatch(
         &self,
@@ -424,21 +449,6 @@ impl EventStream {
         }
 
         self.shared.event_count.fetch_add(1, Ordering::SeqCst);
-    }
-
-    /// One route per live mailbox. A mailbox with several subscriptions
-    /// appears once.
-    fn mailboxes(&self) -> Vec<Arc<dyn Route>> {
-        let mut seen = HashSet::new();
-        self.shared
-            .subscribers
-            .read()
-            .unwrap()
-            .values()
-            .flat_map(|group| group.iter())
-            .filter(|reg| reg.subscription.is_alive() && seen.insert(reg.route.id()))
-            .map(|reg| Arc::clone(&reg.route))
-            .collect()
     }
 }
 

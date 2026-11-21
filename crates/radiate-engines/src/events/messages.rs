@@ -24,6 +24,7 @@ pub enum StreamEvent {
     Added(Subscription),
     Removed(SubscriptionInfo),
     Stats(StreamStats),
+    Drained(StreamStats),
 }
 
 impl Event for StreamEvent {}

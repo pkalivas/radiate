@@ -19,7 +19,7 @@ const PROCESS_BATCH_SIZE: usize = 64;
 
 /// The stream's only handle to a mailbox: one per registration, typed on the
 /// event behind the trait object so the stream never sees the handler type.
-pub(super) trait Route: Send + Sync {
+pub trait Route: Send + Sync {
     /// The mailbox this route leads to. Several routes can share one.
     fn id(&self) -> MailBoxId;
 
@@ -34,7 +34,6 @@ pub(super) trait Route: Send + Sync {
 /// A [`Route`] for event `E` into a `MailBox<H>`.
 struct Typed<E, H> {
     mailbox: MailBox<H>,
-    // fn(E): carries the type without owning an E, so Send/Sync follow H only.
     _event: PhantomData<fn(E)>,
 }
 
@@ -178,40 +177,41 @@ impl<H: Send + 'static> MailBox<H> {
         };
 
         if claimed {
-            self.process();
+            self.process_queue();
         }
 
         result
     }
 
     fn enqueue(&self, item: Item<H>) {
-        if self.0.executor.is_parallel() {
-            if self.0.inbox.push(item) {
-                self.schedule();
+        if !self.0.executor.is_parallel() && self.0.inbox.try_claim() {
+            {
+                let Ok(mut handler) = self.0.handler.lock() else {
+                    self.discard();
+                    panic!(
+                        "event handler `{}` panicked on an earlier event",
+                        std::any::type_name::<H>()
+                    );
+                };
+                if let Err(payload) = self.process_item(item, &mut handler) {
+                    self.discard();
+                    resume_unwind(payload);
+                }
             }
-        } else {
-            let Ok(mut handler) = self.0.handler.lock() else {
-                self.discard();
-                panic!(
-                    "event handler `{}` panicked on an earlier event",
-                    std::any::type_name::<H>()
-                );
-            };
 
-            if let Err(payload) = self.process_item(item, &mut handler) {
-                panic!(
-                    "event handler `{}` panicked: {:?}",
-                    std::any::type_name::<H>(),
-                    payload
-                );
-            }
+            self.process_queue();
+            return;
+        }
+
+        if self.0.inbox.push(item) {
+            self.schedule();
         }
     }
 
     /// Start a drain on the executor. On a serial executor this runs inline.
     fn schedule(&self) {
         let mailbox = self.clone();
-        self.0.executor.submit(move || mailbox.process());
+        self.0.executor.submit(move || mailbox.process_queue());
     }
 
     fn budget(&self) -> usize {
@@ -222,7 +222,7 @@ impl<H: Send + 'static> MailBox<H> {
         }
     }
 
-    fn process(&self) {
+    fn process_queue(&self) {
         let more = {
             let Ok(mut handler) = self.0.handler.lock() else {
                 self.discard();
@@ -317,6 +317,12 @@ impl<H> EventContext<'_, H> {
     /// The id of the event that started the chain this handler is running in.
     pub fn root_id(&self) -> EventId {
         self.scope.id()
+    }
+
+    /// The id of the mailbox this handler runs in, as it appears in
+    /// [`SubscriptionInfo::mailbox_id`](crate::SubscriptionInfo).
+    pub fn mailbox_id(&self) -> MailBoxId {
+        self.mailbox.0.id
     }
 
     pub fn subscribe<E>(&self) -> Subscription

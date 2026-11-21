@@ -60,6 +60,7 @@ fn main() -> RadiateResult<()> {
     let result = engine
         .iter()
         .logging()
+        .attach(StreamMonitor::new())
         .until(|epoch| epoch.score().as_f32() < MIN_SCORE || epoch.seconds() > MAX_SECONDS)
         .last()?;
 

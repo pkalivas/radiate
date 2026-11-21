@@ -42,7 +42,7 @@ impl Handler<DeferredEvent<StreamEvent>> for LifecycleHandler {
                     ),
                 ));
             }
-            StreamEvent::Stats(_) => {}
+            _ => {}
         }
     }
 }

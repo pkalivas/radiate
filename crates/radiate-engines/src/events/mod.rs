@@ -10,6 +10,7 @@ mod subscription;
 pub use handlers::CheckpointWriterHandler;
 pub use handlers::{
     EngineLogger, HealthMonitor, LifecycleHandler, LogEvent, LogLevel, LoggingHandler,
+    StreamMonitor,
 };
 pub use messages::{
     BuilderEvent, CheckpointSaved, DeferredEvent, EngineStart, EngineStateChange, EngineStop,
