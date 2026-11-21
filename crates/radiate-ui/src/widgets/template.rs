@@ -218,6 +218,33 @@ impl<C: Chromosome + Debug> Default for LayoutNode<C> {
                                     },
                                 },
                                 TabNode {
+                                    title: "Events",
+                                    condition: |_| true,
+                                    content: Horizontal {
+                                        constraints: vec![
+                                            Constraint::Percentage(50),
+                                            Constraint::Percentage(50),
+                                        ],
+                                        children: vec![
+                                            Widget(|a, b, s| EventLogWidget.render(a, b, s)),
+                                            Vertical {
+                                                constraints: vec![
+                                                    Constraint::Percentage(60),
+                                                    Constraint::Percentage(40),
+                                                ],
+                                                children: vec![
+                                                    Widget(|a, b, s| {
+                                                        StreamHandlersWidget.render(a, b, s)
+                                                    }),
+                                                    Widget(|a, b, s| {
+                                                        StreamEventsWidget.render(a, b, s)
+                                                    }),
+                                                ],
+                                            },
+                                        ],
+                                    },
+                                },
+                                TabNode {
                                     title: "Population",
                                     condition: |_| true,
                                     content: Horizontal {
@@ -294,33 +321,6 @@ impl<C: Chromosome + Debug> Default for LayoutNode<C> {
                                                 )
                                                 .render(a, b, s)
                                             }),
-                                        ],
-                                    },
-                                },
-                                TabNode {
-                                    title: "Events",
-                                    condition: |_| true,
-                                    content: Horizontal {
-                                        constraints: vec![
-                                            Constraint::Percentage(50),
-                                            Constraint::Percentage(50),
-                                        ],
-                                        children: vec![
-                                            Widget(|a, b, s| EventLogWidget.render(a, b, s)),
-                                            Vertical {
-                                                constraints: vec![
-                                                    Constraint::Percentage(60),
-                                                    Constraint::Percentage(40),
-                                                ],
-                                                children: vec![
-                                                    Widget(|a, b, s| {
-                                                        StreamHandlersWidget.render(a, b, s)
-                                                    }),
-                                                    Widget(|a, b, s| {
-                                                        StreamEventsWidget.render(a, b, s)
-                                                    }),
-                                                ],
-                                            },
                                         ],
                                     },
                                 },

@@ -96,7 +96,7 @@ impl Subscription {
 
     /// Only deliver events when `schedule` evaluates to true. It's evaluated
     /// once per published event.
-    pub fn schedule(&self, schedule: impl Into<Expr>) -> RadiateResult<()> {
+    pub fn schedule(&self, schedule: impl Into<Expr>) -> RadiateResult<Self> {
         let expr = schedule.into();
         let Some(schedule) = expr.clone().into_schedule() else {
             radiate_bail!(Expr: format!("Invalid schedule expression: {:?}", expr));
@@ -104,7 +104,7 @@ impl Subscription {
 
         *self.0.schedule.lock().unwrap() = Some(schedule);
         self.0.is_scheduled.store(true, Ordering::Release);
-        Ok(())
+        Ok(self.clone())
     }
 
     /// Stop delivering to this subscription. Takes effect for any publish

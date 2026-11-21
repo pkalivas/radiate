@@ -5,8 +5,8 @@ use crate::{
 use color_eyre::{Result, eyre::Context};
 use crossbeam::channel;
 use radiate_engines::{
-    Chromosome, EngineStart, EventContext, EventHandler, GenerationSnapshot, Handler, Improvement,
-    StreamClosed, StreamEvent, StreamSnapshot, error::RadiateResult, sync::IntoPair,
+    Chromosome, EngineStart, EventContext, EventHandler, Expr, GenerationSnapshot, Handler,
+    Improvement, StreamClosed, StreamEvent, StreamSnapshot, error::RadiateResult, sync::IntoPair,
 };
 use radiate_engines::{LogEvent, ThreadSync};
 use std::{fmt::Debug, sync::atomic::Ordering, time::Duration};
@@ -73,11 +73,15 @@ where
 {
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
         let mut subs = Vec::new();
+
         subs.push(ctx.subscribe::<EngineStart<C>>());
         subs.push(ctx.subscribe::<GenerationSnapshot<C, T>>());
         subs.push(ctx.subscribe::<Improvement<T>>());
         subs.push(ctx.subscribe::<LogEvent>());
-        subs.push(ctx.subscribe::<StreamEvent<StreamSnapshot>>());
+        subs.push(
+            ctx.subscribe::<StreamEvent<StreamSnapshot>>()
+                .schedule(Expr::every(10))?,
+        );
         subs.push(ctx.subscribe::<StreamEvent<StreamClosed>>());
 
         for subscription in subs {

@@ -16,11 +16,11 @@ pub enum DashboardTab {
     Stats,
     Time,
     Distribution,
+    Events,
     Population,
     Species,
     Log,
     Front,
-    Events,
 }
 
 impl DashboardTab {
@@ -28,25 +28,25 @@ impl DashboardTab {
         match self {
             DashboardTab::Stats => DashboardTab::Time,
             DashboardTab::Time => DashboardTab::Distribution,
-            DashboardTab::Distribution => DashboardTab::Population,
+            DashboardTab::Distribution => DashboardTab::Events,
+            DashboardTab::Events => DashboardTab::Population,
             DashboardTab::Population => DashboardTab::Species,
             DashboardTab::Species => DashboardTab::Log,
             DashboardTab::Log => DashboardTab::Front,
-            DashboardTab::Front => DashboardTab::Events,
-            DashboardTab::Events => DashboardTab::Stats,
+            DashboardTab::Front => DashboardTab::Stats,
         }
     }
 
     pub fn previous(self) -> Self {
         match self {
-            DashboardTab::Stats => DashboardTab::Events,
+            DashboardTab::Stats => DashboardTab::Front,
             DashboardTab::Time => DashboardTab::Stats,
             DashboardTab::Distribution => DashboardTab::Time,
-            DashboardTab::Population => DashboardTab::Distribution,
+            DashboardTab::Events => DashboardTab::Distribution,
+            DashboardTab::Population => DashboardTab::Events,
             DashboardTab::Species => DashboardTab::Population,
             DashboardTab::Log => DashboardTab::Species,
             DashboardTab::Front => DashboardTab::Log,
-            DashboardTab::Events => DashboardTab::Front,
         }
     }
 
@@ -200,11 +200,11 @@ impl NavState {
             DashboardTab::Stats => 0,
             DashboardTab::Time => 1,
             DashboardTab::Distribution => 2,
-            DashboardTab::Population => 3,
-            DashboardTab::Species => 4,
-            DashboardTab::Log => 5,
-            DashboardTab::Front => 6,
-            DashboardTab::Events => 7,
+            DashboardTab::Events => 3,
+            DashboardTab::Population => 4,
+            DashboardTab::Species => 5,
+            DashboardTab::Log => 6,
+            DashboardTab::Front => 7,
         }
     }
 
