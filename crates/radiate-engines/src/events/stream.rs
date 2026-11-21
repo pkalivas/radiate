@@ -8,6 +8,7 @@ use crate::{
         subscription::Counters,
     },
 };
+use arc_swap::ArcSwap;
 use radiate_core::{Executor, SmallStr, WaitGroup, WaitGuard, error::RadiateResult};
 use radiate_error::radiate_bail;
 use smallvec::SmallVec;
@@ -16,14 +17,40 @@ use std::{
     collections::{HashMap, HashSet},
     fmt::Debug,
     sync::{
-        Arc, RwLock, Weak,
+        Arc, Mutex, PoisonError, RwLock, Weak,
         atomic::{AtomicBool, AtomicU64, Ordering},
     },
     time::Instant,
 };
 
+use std::hash::{BuildHasherDefault, Hasher};
+
+#[derive(Default)]
+struct TypeIdHasher(u64);
+
+impl Hasher for TypeIdHasher {
+    // The path TypeId takes today: keep the value as the hash.
+    fn write_u64(&mut self, n: u64) {
+        self.0 = n;
+    }
+
+    // Fallback in case std ever hashes TypeId as bytes. That's an
+    // implementation detail, not a guarantee, so stay correct if it changes.
+    fn write(&mut self, bytes: &[u8]) {
+        for &b in bytes {
+            self.0 = (self.0.rotate_left(5) ^ b as u64).wrapping_mul(0x517c_c1b7_2722_0a95);
+        }
+    }
+
+    fn finish(&self) -> u64 {
+        self.0
+    }
+}
+
+type SubscriberMap = HashMap<TypeId, SubscriberList, BuildHasherDefault<TypeIdHasher>>;
+
 type SubscriberList = Arc<Group>;
-type SubscriberMap = HashMap<TypeId, SubscriberList>;
+// type SubscriberMap = HashMap<TypeId, SubscriberList>;
 type Due<'a> = SmallVec<[&'a Registration; 4]>;
 
 #[derive(Clone, Debug)]
@@ -167,39 +194,44 @@ impl Delivery {
 /// A group is never removed once created, even when its last subscription
 /// goes, so its counts (and [`EventStream::event_count`]) only ever grow.
 pub(super) struct Shared {
-    subscribers: RwLock<SubscriberMap>,
+    subscribers: ArcSwap<SubscriberMap>,
+    writer: Mutex<()>,
     pending: RwLock<Vec<Payload>>,
     closed: AtomicBool,
     created: Instant,
 }
 
 impl Shared {
-    #[inline]
-    fn group(&self, event: TypeId) -> Option<SubscriberList> {
-        self.subscribers.read().unwrap().get(&event).cloned()
+    fn update<R>(&self, f: impl FnOnce(&mut SubscriberMap) -> R) -> R {
+        let (out, old) = {
+            // The guarded value is (), so a poisoned lock protects nothing.
+            let _writer = self.writer.lock().unwrap_or_else(PoisonError::into_inner);
+            let mut next = SubscriberMap::clone(&self.subscribers.load());
+            let out = f(&mut next);
+            (out, self.subscribers.swap(Arc::new(next)))
+        };
+
+        // Outside the lock: this may be the last reference to removed handlers,
+        // and their Drop is allowed to subscribe or unsubscribe.
+        drop(old);
+        out
     }
 
-    /// Run `f` over every live registration, under the read lock.
     fn live<R>(&self, f: impl FnOnce(&mut dyn Iterator<Item = &Registration>) -> R) -> R {
-        let subscribers = self.subscribers.read().unwrap();
-        let mut live = subscribers
+        let map = self.subscribers.load();
+        let mut live = map
             .values()
             .flat_map(|group| group.registrations.iter())
             .filter(|reg| reg.is_alive());
         f(&mut live)
-    }
-
-    fn groups<R>(&self, f: impl FnOnce(&mut dyn Iterator<Item = &Group>) -> R) -> R {
-        let subscribers = self.subscribers.read().unwrap();
-        let mut groups = subscribers.values().map(|group| group.as_ref());
-        f(&mut groups)
     }
 }
 
 impl Default for Shared {
     fn default() -> Self {
         Shared {
-            subscribers: RwLock::default(),
+            subscribers: ArcSwap::from_pointee(HashMap::default()),
+            writer: Mutex::default(),
             pending: RwLock::default(),
             closed: AtomicBool::new(false),
             created: Instant::now(),
@@ -233,7 +265,9 @@ impl EventStream {
     /// The live subscriptions to `E`.
     pub fn subscribers<E: Event>(&self) -> Vec<SubscriptionInfo> {
         self.shared
-            .group(TypeId::of::<E>())
+            .subscribers
+            .load()
+            .get(&TypeId::of::<E>())
             .map(|group| {
                 group
                     .registrations
@@ -260,31 +294,31 @@ impl EventStream {
     /// A snapshot of every event type and live subscription on this stream.
     pub fn stats(&self) -> StreamSnapshot {
         let at = self.shared.created.elapsed();
-        let events = self.shared.groups(|groups| {
-            groups
-                .into_iter()
-                .map(|group| group.counts.stats())
-                .collect::<Vec<_>>()
-        });
+        let map = self.shared.subscribers.load();
+
+        let events: Vec<_> = map.values().map(|group| group.counts.stats()).collect();
+        let subscribers = map
+            .values()
+            .flat_map(|group| group.registrations.iter())
+            .filter(|reg| reg.is_alive())
+            .map(Registration::info)
+            .collect();
 
         StreamSnapshot {
             at,
             event_count: events.iter().map(|e| e.published as usize).sum(),
             events,
-            subscribers: self
-                .shared
-                .live(|live| live.map(Registration::info).collect()),
+            subscribers,
         }
     }
 
-    /// Events published so far, of every type anything has subscribed to.
     pub fn event_count(&self) -> usize {
-        self.shared.groups(|groups| {
-            groups
-                .into_iter()
-                .map(|group| group.counts.published.load(Ordering::Relaxed) as usize)
-                .sum()
-        })
+        self.shared
+            .subscribers
+            .load()
+            .values()
+            .map(|group| group.counts.published.load(Ordering::Relaxed) as usize)
+            .sum()
     }
 
     /// Take every deferred event, leaving none behind.
@@ -340,16 +374,15 @@ impl EventStream {
             handler: TypeId::of::<H>(),
         };
 
-        {
-            let mut subscribers = self.shared.subscribers.write().unwrap();
-            let group = subscribers
+        // register
+        self.shared.update(|map| {
+            let group = map
                 .entry(TypeId::of::<E>())
                 .or_insert_with(|| Arc::new(Group::new(registration.event)));
             let registrations = &mut Arc::make_mut(group).registrations;
-
             registrations.retain(Registration::is_alive);
             registrations.push(registration);
-        }
+        });
 
         self.defer(StreamEvent(SubscriptionAdded(subscription.clone())));
         subscription
@@ -358,10 +391,14 @@ impl EventStream {
     /// Drop every registration matching `remove`, deferring a
     /// [`SubscriptionRemoved`] for each. Emptied groups stay, with their counts.
     fn remove_where(&self, remove: impl Fn(&Registration) -> bool) -> bool {
-        let mut removed = Vec::new();
-        {
-            let mut subscribers = self.shared.subscribers.write().unwrap();
-            for group in subscribers.values_mut() {
+        let removed = self.shared.update(|map| {
+            let mut removed = Vec::new();
+            for group in map.values_mut() {
+                // Only copy groups that actually change. make_mut always copies here,
+                // because the previous map still shares every group.
+                if !group.registrations.iter().any(&remove) {
+                    continue;
+                }
                 Arc::make_mut(group).registrations.retain(|reg| {
                     if remove(reg) {
                         reg.subscription.unsubscribe();
@@ -372,12 +409,14 @@ impl EventStream {
                     }
                 });
             }
-        }
+            removed
+        });
 
         let any = !removed.is_empty();
         for info in removed {
             self.defer(StreamEvent(SubscriptionRemoved(info)));
         }
+
         any
     }
 }
@@ -407,7 +446,15 @@ impl EventStream {
         event: E,
         scope: EventScope,
     ) -> RadiateResult<()> {
-        self.publish_payload_scoped(Arc::new(event), scope)
+        self.ensure_open()?;
+
+        let map = self.shared.subscribers.load();
+        if let Some(group) = map.get(&TypeId::of::<E>()) {
+            let due = group.due();
+            self.dispatch(group, &due, Arc::new(event), scope);
+        }
+
+        Ok(())
     }
 
     /// Ticks every schedule, and builds the event only if at least one
@@ -420,7 +467,8 @@ impl EventStream {
     ) -> RadiateResult<()> {
         self.ensure_open()?;
 
-        let Some(group) = self.shared.group(TypeId::of::<E>()) else {
+        let map = self.shared.subscribers.load();
+        let Some(group) = map.get(&TypeId::of::<E>()) else {
             return Ok(());
         };
 
@@ -430,7 +478,7 @@ impl EventStream {
             return Ok(());
         }
 
-        self.dispatch(&group, &due, Arc::new(f()), scope);
+        self.dispatch(group, &due, Arc::new(f()), scope);
         Ok(())
     }
 
@@ -441,9 +489,10 @@ impl EventStream {
     ) -> RadiateResult<()> {
         self.ensure_open()?;
 
-        if let Some(group) = self.shared.group((*payload).type_id()) {
+        let map = self.shared.subscribers.load();
+        if let Some(group) = map.get(&(*payload).type_id()) {
             let due = group.due();
-            self.dispatch(&group, &due, payload, scope);
+            self.dispatch(group, &due, payload, scope);
         }
 
         Ok(())
@@ -601,7 +650,7 @@ impl Debug for EventStream {
         write!(
             f,
             "EventStream(subscribers={}, executor={:?})",
-            self.shared.subscribers.read().unwrap().len(),
+            self.shared.subscribers.load().len(),
             self.executor,
         )
     }
