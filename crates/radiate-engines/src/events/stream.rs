@@ -67,7 +67,6 @@ impl EventStream {
     }
 }
 
-// --- Queries ---
 impl EventStream {
     pub fn subscribers<E: Event>(&self) -> Vec<SubscriptionInfo> {
         self.shared.registry.subscribers(TypeId::of::<E>())
@@ -77,7 +76,7 @@ impl EventStream {
         self.shared.registry.has_handler(TypeId::of::<H>())
     }
 
-    pub fn stats(&self) -> StreamSnapshot {
+    pub fn snapshot(&self) -> StreamSnapshot {
         self.shared.registry.stats(self.shared.created.elapsed())
     }
 
@@ -89,8 +88,6 @@ impl EventStream {
         std::mem::take(&mut *self.shared.pending.lock().unwrap())
     }
 }
-
-// --- Subscribing ---
 
 impl EventStream {
     pub fn attach<H: EventHandler>(&self, handler: H) -> RadiateResult<MailBox<H>> {
@@ -207,12 +204,6 @@ impl EventStream {
         Ok(())
     }
 
-    fn flush_deferred(&self) -> RadiateResult<()> {
-        self.deferred()
-            .into_iter()
-            .try_for_each(|payload| self.publish_payload(payload))
-    }
-
     #[inline]
     fn ensure_open(&self) -> RadiateResult<()> {
         if self.shared.closed.load(Ordering::Relaxed) {
@@ -237,7 +228,7 @@ impl EventStream {
 
     pub fn open(&self) -> RadiateResult<()> {
         self.scope(|stream| {
-            stream.lazy_publish(|| StreamEvent(StreamOpened))?;
+            stream.lazy_publish(|| StreamEvent(StreamOpened(stream.snapshot())))?;
             stream.wait();
             stream.flush_deferred()
         })
@@ -245,13 +236,9 @@ impl EventStream {
 
     pub fn close(&self) -> RadiateResult<()> {
         self.drain()?;
-        self.scope(|stream| stream.lazy_publish(|| StreamEvent(StreamClosed(stream.stats()))))?;
+        self.scope(|stream| stream.lazy_publish(|| StreamEvent(StreamClosed(stream.snapshot()))))?;
         self.shared.closed.store(true, Ordering::Relaxed);
         Ok(())
-    }
-
-    pub fn snapshot(&self) -> RadiateResult<()> {
-        self.lazy_publish(|| StreamEvent(self.stats()))
     }
 
     pub fn drain(&self) -> RadiateResult<()> {
@@ -275,6 +262,13 @@ impl EventStream {
                 return Ok(());
             }
         }
+    }
+
+    pub fn flush_deferred(&self) -> RadiateResult<()> {
+        self.deferred()
+            .into_iter()
+            .try_for_each(|payload| self.publish_payload(payload))?;
+        self.lazy_publish(|| StreamEvent(self.snapshot()))
     }
 }
 

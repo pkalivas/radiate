@@ -105,6 +105,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
             self.previous_score = self.score.clone();
             self.score = best.score().cloned();
             self.best = self.problem.decode(best.genotype());
+
             self.stream().lazy_publish(|| Improvement::from(&*self))?;
         }
 
@@ -119,14 +120,9 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         let stream = self.stream();
 
         stream.lazy_publish(|| GenerationSnapshot::from(&*self))?;
-        stream
-            .deferred()
-            .into_iter()
-            .try_for_each(|payload| stream.publish_payload(payload))?;
-        stream.snapshot()?;
+        stream.flush_deferred()?;
 
         self.index += 1;
-
         self.metrics
             .replace(metric!(metric_names::INDEX, self.index));
         self.metrics.bump(self.index);

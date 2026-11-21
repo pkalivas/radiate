@@ -30,7 +30,7 @@ impl<T> Deref for StreamEvent<T> {
 }
 
 #[derive(Clone, Debug)]
-pub struct StreamOpened;
+pub struct StreamOpened(pub StreamSnapshot);
 
 #[derive(Clone, Debug)]
 pub struct StreamClosed(pub StreamSnapshot);

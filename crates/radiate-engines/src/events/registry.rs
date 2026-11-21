@@ -20,11 +20,11 @@ use std::{
     time::Duration,
 };
 
-type SubscriberMap = HashMap<TypeId, Arc<Group>, BuildHasherDefault<TypeIdHasher>>;
+type Groups = HashMap<TypeId, Arc<Group>, BuildHasherDefault<TypeIdHasher>>;
 type Due<'a> = SmallVec<[&'a Registration; 4]>;
 
 /// Every live registration in `map`, with the group it belongs to.
-fn live(map: &SubscriberMap) -> impl Iterator<Item = (&Group, &Registration)> {
+fn live(map: &Groups) -> impl Iterator<Item = (&Group, &Registration)> {
     map.values().flat_map(|group| {
         group
             .registrations
@@ -74,15 +74,15 @@ impl Registration {
 }
 
 pub(super) struct Registry {
-    subscribers: ArcSwap<SubscriberMap>,
+    groups: ArcSwap<Groups>,
     writer: Mutex<()>,
 }
 
 // --- Reading ---
 impl Registry {
     #[inline]
-    fn map(&self) -> Guard<Arc<SubscriberMap>> {
-        self.subscribers.load()
+    fn map(&self) -> Guard<Arc<Groups>> {
+        self.groups.load()
     }
 
     pub(super) fn subscribers(&self, event: TypeId) -> Vec<SubscriptionInfo> {
@@ -193,13 +193,13 @@ impl Registry {
 
     /// Copy the map, change it, publish the copy. Copying costs one `Arc` per
     /// event type. A publish already running keeps the map it loaded.
-    fn update<R>(&self, f: impl FnOnce(&mut SubscriberMap) -> R) -> R {
+    fn update<R>(&self, f: impl FnOnce(&mut Groups) -> R) -> R {
         let (out, old) = {
             // The guarded value is (), so a poisoned lock protects nothing.
             let _writer = self.writer.lock().unwrap_or_else(PoisonError::into_inner);
-            let mut next = SubscriberMap::clone(&self.map());
+            let mut next = Groups::clone(&self.map());
             let out = f(&mut next);
-            (out, self.subscribers.swap(Arc::new(next)))
+            (out, self.groups.swap(Arc::new(next)))
         };
 
         drop(old);
@@ -210,7 +210,7 @@ impl Registry {
 impl Default for Registry {
     fn default() -> Self {
         Registry {
-            subscribers: ArcSwap::from_pointee(SubscriberMap::default()),
+            groups: ArcSwap::from_pointee(Groups::default()),
             writer: Mutex::default(),
         }
     }

@@ -171,7 +171,7 @@ mod publish {
         stream.publish(Add(1)).unwrap();
         stream.publish(Add(2)).unwrap();
 
-        let report = stream.stats();
+        let report = stream.snapshot();
         assert_eq!(report.subscribers.len(), 2);
 
         let ping = report
@@ -193,7 +193,7 @@ mod publish {
         assert_eq!((add.stats.delivered, add.stats.handled), (2, 2));
 
         adds.unsubscribe();
-        let report = stream.stats();
+        let report = stream.snapshot();
         assert_eq!(report.subscribers.len(), 1);
         assert_eq!(report.subscribers[0].id, pings.id());
     }
@@ -220,7 +220,7 @@ mod publish {
             (stats.published, stats.unbuilt, stats.undelivered)
         };
 
-        let first = stream.stats();
+        let first = stream.snapshot();
         assert_eq!(event(&first, "Ping"), (4, 0, 2));
         assert_eq!(event(&first, "Add"), (1, 2, 0));
         assert_eq!(first.event_count, 5);
@@ -230,7 +230,7 @@ mod publish {
         stream.unsubscribe(pings.id());
         stream.publish(Ping).unwrap();
 
-        let second = stream.stats();
+        let second = stream.snapshot();
         assert_eq!(event(&second, "Ping"), (5, 0, 3));
         assert!(second.at >= first.at, "stamped when taken");
     }
@@ -507,7 +507,7 @@ mod monitor {
 
         for _ in 0..5 {
             stream.publish(Ping).unwrap();
-            stream.publish(StreamEvent(stream.stats())).unwrap();
+            stream.publish(StreamEvent(stream.snapshot())).unwrap();
         }
 
         let warning = warnings.recv_timeout(GENEROUS).unwrap();
@@ -531,7 +531,7 @@ mod monitor {
 
         for _ in 0..3 {
             stream.publish(Ping).unwrap();
-            stream.publish(StreamEvent(stream.stats())).unwrap();
+            stream.publish(StreamEvent(stream.snapshot())).unwrap();
         }
         stream.close().unwrap();
 
@@ -742,7 +742,7 @@ mod pool_tests {
         let elapsed = start.elapsed();
 
         let deliveries = stream
-            .stats()
+            .snapshot()
             .subscribers
             .iter()
             .map(|s| s.stats.delivered)
