@@ -24,9 +24,9 @@ use crate::{
 use crate::{FileWriter, io::FileReader};
 use crate::{Generation, Result};
 use crate::{Handler, builder::evaluators::EvaluationParams};
-use crate::{LifecycleHandler, builder::objectives::OptimizeParams};
 use crate::{LogEvent, builder::filters::FilterParams};
 use crate::{LogLevel, builder::problem::ProblemParams};
+use crate::{StreamHandler, builder::objectives::OptimizeParams};
 use crate::{
     builder::evaluators::ExecutorParams,
     steps::{
@@ -278,7 +278,7 @@ where
 
         stream.set_executor(stream_executor.executor);
 
-        stream.attach(LifecycleHandler)?;
+        stream.attach(StreamHandler)?;
 
         self.params.event_stream = stream;
 
@@ -592,14 +592,17 @@ where
     }
 
     fn add_step_event(config: &EngineConfig<C, T>, message: impl Into<String>) {
-        Self::add_builder_event(&config.event_stream(), format!("Step: {}", message.into()));
+        Self::add_builder_event(
+            &config.event_stream(),
+            "Step",
+            format!("{}", message.into()),
+        );
     }
 
-    fn add_builder_event(stream: &EventStream, message: impl Into<String>) {
-        // stream.defer(BuilderEvent(format!("Builder: {}", message.into())));
+    fn add_builder_event(stream: &EventStream, cat: impl AsRef<str>, message: impl Into<String>) {
         stream.defer(LogEvent(
             LogLevel::Info,
-            format!("Builder: {}", message.into()),
+            radiate_utils::three_col_format("Builder", cat.as_ref(), &message.into()),
         ));
     }
 }

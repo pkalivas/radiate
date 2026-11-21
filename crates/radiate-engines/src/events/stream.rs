@@ -1,5 +1,5 @@
 use crate::{
-    EventHandler, EventScope, StreamSnapshot, SubscriptionInfo,
+    EventHandler, EventScope, EventStats, StreamSnapshot, SubscriptionInfo,
     events::{
         Event, Handler, Subscription, SubscriptionId,
         event::Payload,
@@ -16,11 +16,12 @@ use std::{
     fmt::Debug,
     sync::{
         Arc, RwLock, Weak,
-        atomic::{AtomicBool, AtomicUsize, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
     },
+    time::Instant,
 };
 
-type SubscriberList = Arc<Vec<Registration>>;
+type SubscriberList = Arc<Group>;
 type SubscriberMap = HashMap<TypeId, SubscriberList>;
 
 #[derive(Clone, Debug)]
@@ -38,6 +39,46 @@ pub struct SubscriptionRemoved(pub Subscription);
 enum DispatchMode {
     Lazy,
     Eager,
+}
+
+/// Everything subscribed to one event type. Copied on write when a
+/// subscription is added or removed; the counts are shared across copies.
+#[derive(Clone)]
+struct Group {
+    registrations: Vec<Registration>,
+    counts: Arc<EventCounts>,
+}
+
+impl Group {
+    fn new(event: &'static str) -> Self {
+        Group {
+            registrations: Vec::new(),
+            counts: Arc::new(EventCounts {
+                event,
+                ..Default::default()
+            }),
+        }
+    }
+}
+
+/// Live per-event-type counters behind [`EventStats`].
+#[derive(Default)]
+struct EventCounts {
+    event: &'static str,
+    published: AtomicU64,
+    unbuilt: AtomicU64,
+    undelivered: AtomicU64,
+}
+
+impl EventCounts {
+    fn stats(&self) -> EventStats {
+        EventStats {
+            event: SmallStr::from_static(self.event),
+            published: self.published.load(Ordering::Relaxed),
+            unbuilt: self.unbuilt.load(Ordering::Relaxed),
+            undelivered: self.undelivered.load(Ordering::Relaxed),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -114,12 +155,25 @@ impl Delivery {
 /// [`Route`] owns a clone of its [`MailBox`], so a strong reference there
 /// would form a cycle (stream -> registration -> mailbox -> stream) and no
 /// handler would ever be dropped.
-#[derive(Default)]
+///
+/// A group is never removed once created, even when its last subscription
+/// goes, so its counts (and [`EventStream::event_count`]) only ever grow.
 pub(super) struct Shared {
     subscribers: RwLock<SubscriberMap>,
     pending: RwLock<Vec<Payload>>,
-    event_count: AtomicUsize,
     closed: AtomicBool,
+    created: Instant,
+}
+
+impl Default for Shared {
+    fn default() -> Self {
+        Shared {
+            subscribers: RwLock::default(),
+            pending: RwLock::default(),
+            closed: AtomicBool::new(false),
+            created: Instant::now(),
+        }
+    }
 }
 
 impl Shared {
@@ -133,9 +187,15 @@ impl Shared {
         let subscribers = self.subscribers.read().unwrap();
         let mut live = subscribers
             .values()
-            .flat_map(|group| group.iter())
+            .flat_map(|group| group.registrations.iter())
             .filter(|reg| reg.is_alive());
         f(&mut live)
+    }
+
+    fn groups<R>(&self, f: impl FnOnce(&mut dyn Iterator<Item = &Group>) -> R) -> R {
+        let subscribers = self.subscribers.read().unwrap();
+        let mut groups = subscribers.values().map(|group| group.as_ref()).into_iter();
+        f(&mut groups)
     }
 }
 
@@ -168,6 +228,7 @@ impl EventStream {
             .group(TypeId::of::<E>())
             .map(|group| {
                 group
+                    .registrations
                     .iter()
                     .filter(|reg| reg.is_alive())
                     .map(Registration::info)
@@ -188,18 +249,34 @@ impl EventStream {
             .live(|live| live.map(|reg| reg.handler).any(|h| h == handler))
     }
 
-    /// A snapshot of every live subscription on this stream.
+    /// A snapshot of every event type and live subscription on this stream.
     pub fn stats(&self) -> StreamSnapshot {
+        let at = self.shared.created.elapsed();
+        let events = self.shared.groups(|groups| {
+            groups
+                .into_iter()
+                .map(|group| group.counts.stats())
+                .collect::<Vec<_>>()
+        });
+
         StreamSnapshot {
-            event_count: self.event_count(),
+            at,
+            event_count: events.iter().map(|e| e.published as usize).sum(),
+            events,
             subscribers: self
                 .shared
                 .live(|live| live.map(Registration::info).collect()),
         }
     }
 
+    /// Events published so far, of every type anything has subscribed to.
     pub fn event_count(&self) -> usize {
-        self.shared.event_count.load(Ordering::SeqCst)
+        self.shared.groups(|groups| {
+            groups
+                .into_iter()
+                .map(|group| group.counts.published.load(Ordering::Relaxed) as usize)
+                .sum()
+        })
     }
 
     /// Take every deferred event, leaving none behind.
@@ -257,9 +334,13 @@ impl EventStream {
 
         {
             let mut subscribers = self.shared.subscribers.write().unwrap();
-            let group = Arc::make_mut(subscribers.entry(TypeId::of::<E>()).or_default());
-            group.retain(Registration::is_alive);
-            group.push(registration);
+            let group = subscribers
+                .entry(TypeId::of::<E>())
+                .or_insert_with(|| Arc::new(Group::new(registration.event)));
+            let registrations = &mut Arc::make_mut(group).registrations;
+
+            registrations.retain(Registration::is_alive);
+            registrations.push(registration);
         }
 
         self.defer(StreamEvent(SubscriptionAdded(subscription.clone())));
@@ -267,13 +348,13 @@ impl EventStream {
     }
 
     /// Drop every registration matching `remove`, deferring a
-    /// [`StreamEvent::Removed`] for each.
+    /// [`SubscriptionRemoved`] for each. Emptied groups stay, with their counts.
     fn remove_where(&self, remove: impl Fn(&Registration) -> bool) -> bool {
         let mut removed = Vec::new();
         {
             let mut subscribers = self.shared.subscribers.write().unwrap();
             for group in subscribers.values_mut() {
-                Arc::make_mut(group).retain(|reg| {
+                Arc::make_mut(group).registrations.retain(|reg| {
                     if remove(reg) {
                         removed.push(reg.subscription.clone());
                         false
@@ -282,7 +363,6 @@ impl EventStream {
                     }
                 });
             }
-            subscribers.retain(|_, group| !group.is_empty());
         }
 
         let any = !removed.is_empty();
@@ -344,11 +424,14 @@ impl EventStream {
 
         // Not `any`: every subscription has to tick, even after one is due.
         let reserved = group
+            .registrations
             .iter()
             .fold(false, |any, reg| reg.subscription.reserve() | any);
 
         if reserved {
             self.dispatch(&group, Arc::new(f()), scope, DispatchMode::Lazy);
+        } else {
+            group.counts.unbuilt.fetch_add(1, Ordering::Relaxed);
         }
 
         Ok(())
@@ -383,7 +466,8 @@ impl EventStream {
             scope: &scope,
         };
 
-        for registration in group.iter() {
+        let mut delivered = false;
+        for registration in group.registrations.iter() {
             let subscription = &registration.subscription;
             if !subscription.is_alive() {
                 continue;
@@ -395,13 +479,18 @@ impl EventStream {
             };
 
             if due {
+                delivered = true;
                 subscription.counters().record_delivered();
                 registration.route.deliver(&published);
             }
         }
 
-        // Relaxed: drain reads this after a WaitGroup handoff, which orders it.
-        self.shared.event_count.fetch_add(1, Ordering::Relaxed);
+        // Relaxed: drain reads these after a WaitGroup handoff, which orders them.
+        let counts = &group.counts;
+        counts.published.fetch_add(1, Ordering::Relaxed);
+        if !delivered {
+            counts.undelivered.fetch_add(1, Ordering::Relaxed);
+        }
     }
 }
 
@@ -430,26 +519,7 @@ impl EventStream {
     }
 
     pub fn close(&self) -> RadiateResult<()> {
-        loop {
-            self.flush()?;
-            let before = self.event_count();
-
-            self.scope(|stream| {
-                for route in stream.mailboxes() {
-                    match stream.guard() {
-                        Some(guard) => route.drain(guard),
-                        None => radiate_bail!(Engine: "Failed to acquire wait guard"),
-                    }
-                }
-
-                Ok(())
-            })?;
-
-            if self.event_count() == before {
-                break;
-            }
-        }
-
+        self.drain()?;
         self.scope(|stream| stream.lazy_publish(|| StreamEvent(StreamClosed(stream.stats()))))?;
         self.shared.closed.store(true, Ordering::Relaxed);
         Ok(())
@@ -470,7 +540,14 @@ impl EventStream {
     /// barrier until the handler returns.
     pub fn drain(&self) -> RadiateResult<()> {
         loop {
-            self.flush()?;
+            self.scope(|stream| {
+                stream
+                    .deferred()
+                    .into_iter()
+                    .map(|payload| stream.publish_payload(payload))
+                    .collect::<RadiateResult<()>>()
+            })?;
+
             let before = self.event_count();
 
             self.scope(|stream| {
@@ -485,27 +562,9 @@ impl EventStream {
             })?;
 
             if self.event_count() == before {
-                // self.scope(|stream| stream.lazy_publish(|| StreamSnapshot(stream.stream.stats())))?;
                 return Ok(());
             }
         }
-    }
-
-    /// Publish everything deferred so far and wait for it to be handled,
-    /// along with everything it causes.
-    pub fn flush(&self) -> RadiateResult<()> {
-        let deferred = self.deferred();
-        if deferred.is_empty() {
-            return Ok(());
-        }
-
-        self.scope(|stream| {
-            for payload in deferred {
-                stream.publish_payload(payload)?;
-            }
-
-            Ok(())
-        })
     }
 }
 

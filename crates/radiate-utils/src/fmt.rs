@@ -83,6 +83,19 @@ impl ToSnakeCase<String> for String {
     }
 }
 
+pub fn three_col_format(
+    left: impl AsRef<str>,
+    middle: impl AsRef<str>,
+    right: impl AsRef<str>,
+) -> String {
+    format!(
+        "{:<10} | {:<15} | {:<10}",
+        left.as_ref(),
+        middle.as_ref(),
+        right.as_ref()
+    )
+}
+
 pub fn generate_metric_key<T: ?Sized>(category: &str) -> String {
     let struct_type_name = std::any::type_name::<T>();
     let head = struct_type_name

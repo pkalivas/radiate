@@ -9,8 +9,7 @@ mod subscription;
 #[cfg(feature = "serde")]
 pub use handlers::CheckpointWriterHandler;
 pub use handlers::{
-    EngineLogger, HealthMonitor, LifecycleHandler, LogEvent, LogLevel, LoggingHandler,
-    StreamMonitor,
+    EngineLogger, HealthMonitor, LogEvent, LogLevel, LoggingHandler, StreamHandler, StreamMonitor,
 };
 pub use messages::{
     CheckpointSaved, EngineStart, EngineStateChange, EngineStop, EpochComplete, EpochStart,
@@ -20,6 +19,6 @@ pub use messages::{
 pub(crate) use event::EventScope;
 pub use event::{Event, EventHandler, EventId, Handler};
 pub use mailbox::{EventContext, MailBoxId};
-pub use stats::{StreamSnapshot, SubscriptionInfo, SubscriptionStats};
+pub use stats::{EventStats, StreamSnapshot, SubscriptionInfo, SubscriptionStats};
 pub use stream::{EventStream, StreamClosed, StreamOpened, SubscriptionAdded, SubscriptionRemoved};
 pub use subscription::{Subscription, SubscriptionId};

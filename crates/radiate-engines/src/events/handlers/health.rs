@@ -62,9 +62,10 @@ fn check_stagnation<T, H>(message: &EpochComplete<T>, ctx: &EventContext<'_, H>)
     };
 
     if should_warn {
-        ctx.publish(Warning(format!(
-            "Health | Stagnation | {} Epochs",
-            stag_count
+        ctx.publish(Warning(radiate_utils::three_col_format(
+            "Health",
+            "Stagnation",
+            &format!("{} Epochs", stag_count),
         )));
     }
 }
@@ -76,9 +77,10 @@ fn check_diversity<T, H>(message: &EpochComplete<T>, ctx: &EventContext<'_, H>) 
 
     let ratio = ratio.last_value();
     if ratio < DIVERSITY_WARNING_THRESHOLD {
-        ctx.publish(Warning(format!(
-            "Health | Diversity collapse | {:.1}% ",
-            ratio * 100.0
+        ctx.publish(Warning(radiate_utils::three_col_format(
+            "Health",
+            "Low Diversity",
+            &format!("{:.1}%", ratio * 100.0),
         )));
     }
 }
@@ -90,9 +92,10 @@ fn check_species_collapse<T, H>(message: &EpochComplete<T>, ctx: &EventContext<'
 
     let share = share.last_value();
     if share >= LARGEST_SPECIES_SHARE_WARNING_THRESHOLD {
-        ctx.publish(Warning(format!(
-            "Health | Species collapse | Largest species {:.1}%",
-            share * 100.0
+        ctx.publish(Warning(radiate_utils::three_col_format(
+            "Health",
+            "Species Dom.",
+            &format!("Largest species {:.1}%", share * 100.0),
         )));
     }
 }

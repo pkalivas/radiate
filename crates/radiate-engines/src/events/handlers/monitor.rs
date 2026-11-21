@@ -1,34 +1,39 @@
 use crate::{
-    EventContext, EventHandler, Handler, LogEvent, LogLevel, StreamClosed, StreamSnapshot,
-    SubscriptionId, SubscriptionInfo, Warning, events::messages::StreamEvent,
+    EventContext, EventHandler, EventStats, Handler, LogEvent, LogLevel, StreamClosed,
+    StreamSnapshot, SubscriptionId, SubscriptionInfo, Warning, events::messages::StreamEvent,
 };
-use radiate_core::error::RadiateResult;
+use radiate_core::{SmallStr, error::RadiateResult};
 use std::collections::HashMap;
-use std::time::Instant;
+use std::time::Duration;
 
 /// Snapshots in a row with a growing queue before a handler is reported as
 /// falling behind.
 const DEFAULT_FALLING_BEHIND_SNAPSHOTS: usize = 5;
 
-/// Watches the stream's own [`StreamEvent::Stats`] snapshots and reports how
-/// each handler is keeping up.
+/// Watches the stream's own [`StreamSnapshot`]s and reports how each handler
+/// is keeping up and how often each event is published.
 ///
 /// - Publishes a [`Warning`] when a handler's queue (delivered but not yet
 ///   handled) grows for several snapshots in a row. Each streak warns once.
-/// - Logs a per-handler summary when the engine stops: events handled, the
-///   rate over the run, peak queue length, and anything still queued.
+/// - Logs a summary when the stream closes: per handler, events handled, the
+///   rate over the run, peak queue length, and anything still queued; per
+///   event, how many were published, never built, or delivered to nobody.
 ///
 /// Snapshots are published once per generation, but only while something is
 /// subscribed to them, so the stream pays nothing until this is attached. To
-/// sample less often, put a schedule on its `StreamEvent` subscription.
+/// sample less often, put a schedule on its snapshot subscription.
+///
+/// Rates are measured between snapshots' own timestamps, so they stay right
+/// even when this runs well behind the engine on a worker pool.
 ///
 /// On a serial executor every handler runs inline, so queues are always
 /// zero and only the totals and rates mean anything.
 pub struct StreamMonitor {
     falling_behind_after: usize,
     handlers: HashMap<SubscriptionId, Tracked>,
-    first: Option<Instant>,
-    last: Option<Instant>,
+    events: HashMap<SmallStr, TrackedEvent>,
+    first: Option<Duration>,
+    last: Option<Duration>,
     snapshots: usize,
 }
 
@@ -40,11 +45,17 @@ struct Tracked {
     warned: usize,
 }
 
+struct TrackedEvent {
+    stats: EventStats,
+    first_published: u64,
+}
+
 impl StreamMonitor {
     pub fn new() -> Self {
         StreamMonitor {
             falling_behind_after: DEFAULT_FALLING_BEHIND_SNAPSHOTS,
             handlers: HashMap::new(),
+            events: HashMap::new(),
             first: None,
             last: None,
             snapshots: 0,
@@ -57,13 +68,17 @@ impl StreamMonitor {
         self
     }
 
-    fn summary(&self) -> String {
-        let elapsed = match (self.first, self.last) {
+    fn elapsed(&self) -> f64 {
+        match (self.first, self.last) {
             (Some(first), Some(last)) => (last - first).as_secs_f64(),
             _ => 0.0,
-        };
+        }
+    }
 
-        let mut rows = self
+    fn summary(&self) -> String {
+        let elapsed = self.elapsed();
+
+        let mut handlers = self
             .handlers
             .values()
             .map(|tracked| {
@@ -71,7 +86,7 @@ impl StreamMonitor {
                 let (handler, event) = split_name(&tracked.info);
                 let handled_since = stats.handled.saturating_sub(tracked.first_handled);
 
-                [
+                vec![
                     handler,
                     event,
                     stats.handled.to_string(),
@@ -86,66 +101,64 @@ impl StreamMonitor {
                 ]
             })
             .collect::<Vec<_>>();
-        rows.sort();
+        handlers.sort();
 
         // Show each handler's name once, on the first row of its group.
-        for i in (1..rows.len()).rev() {
-            if rows[i][0] == rows[i - 1][0] {
-                rows[i][0].clear();
+        for i in (1..handlers.len()).rev() {
+            if handlers[i][0] == handlers[i - 1][0] {
+                handlers[i][0].clear();
             }
         }
 
-        let header = HEADER.map(String::from);
-        let widths = (0..HEADER.len())
-            .map(|col| {
-                std::iter::once(&header)
-                    .chain(&rows)
-                    .map(|row| row[col].len())
-                    .max()
-                    .unwrap_or(0)
+        let mut events = self
+            .events
+            .values()
+            .map(|tracked| {
+                let stats = &tracked.stats;
+                let published_since = stats.published.saturating_sub(tracked.first_published);
+
+                vec![
+                    short_type_name(&stats.event),
+                    stats.published.to_string(),
+                    rate(published_since, elapsed),
+                    stats.unbuilt.to_string(),
+                    stats.undelivered.to_string(),
+                ]
             })
             .collect::<Vec<_>>();
+        events.sort();
 
         let mut out = format!(
-            "Stream | {} subscriptions | {} snapshots over {:.2}s",
-            rows.len(),
+            "Stream | {} subscriptions | {} events | {} snapshots over {:.2}s",
+            handlers.len(),
+            events.len(),
             self.snapshots,
             elapsed
         );
 
-        let rule = widths.iter().take(HEADER.len() - 1).sum::<usize>() + 2 * (HEADER.len() - 2);
-        for (i, row) in std::iter::once(&header).chain(&rows).enumerate() {
-            out.push_str("\n  ");
-            for (col, cell) in row.iter().enumerate() {
-                let width = widths[col];
-                match col {
-                    0 | 1 => out.push_str(&format!("{cell:<width$}  ")),
-                    // last column (notes) isn't padded, so lines don't trail spaces
-                    _ if col == HEADER.len() - 1 => out.push_str(cell),
-                    _ => out.push_str(&format!("{cell:>width$}  ")),
-                }
-            }
-            out.truncate(out.trim_end().len());
-
-            if i == 0 {
-                out.push_str("\n  ");
-                out.push_str(&"-".repeat(rule));
-            }
-        }
-
+        out.push_str(&table(&HANDLER_COLUMNS, &handlers));
+        out.push('\n');
+        out.push_str(&table(&EVENT_COLUMNS, &events));
         out
     }
 
-    fn handle_snap(&mut self, event: &StreamSnapshot, ctx: &EventContext<'_, Self>) {
-        let stats = &event;
-
-        let now = Instant::now();
-        self.first.get_or_insert(now);
-        self.last = Some(now);
+    fn handle_snap(&mut self, snapshot: &StreamSnapshot, ctx: &EventContext<'_, Self>) {
+        self.first.get_or_insert(snapshot.at);
+        self.last = Some(snapshot.at);
         self.snapshots += 1;
 
+        for stats in &snapshot.events {
+            self.events
+                .entry(stats.event.clone())
+                .and_modify(|tracked| tracked.stats = stats.clone())
+                .or_insert_with(|| TrackedEvent {
+                    stats: stats.clone(),
+                    first_published: stats.published,
+                });
+        }
+
         let own = ctx.mailbox_id();
-        for info in stats.subscribers.iter().filter(|s| s.mailbox_id != own) {
+        for info in snapshot.subscribers.iter().filter(|s| s.mailbox_id != own) {
             let queued = info.stats.queued();
 
             let tracked = self.handlers.entry(info.id).or_insert_with(|| Tracked {
@@ -179,9 +192,79 @@ impl StreamMonitor {
     }
 }
 
-const HEADER: [&str; 8] = [
-    "handler", "event", "handled", "skipped", "rate", "peak", "queued", "",
+#[derive(Clone, Copy)]
+enum Align {
+    Left,
+    Right,
+    /// Left-aligned and unpadded: only for the last column, so lines don't
+    /// trail spaces.
+    Notes,
+}
+
+const HANDLER_COLUMNS: [(&str, Align); 8] = [
+    ("handler", Align::Left),
+    ("event", Align::Left),
+    ("handled", Align::Right),
+    ("skipped", Align::Right),
+    ("rate", Align::Right),
+    ("peak", Align::Right),
+    ("queued", Align::Right),
+    ("", Align::Notes),
 ];
+
+const EVENT_COLUMNS: [(&str, Align); 5] = [
+    ("event", Align::Left),
+    ("published", Align::Right),
+    ("rate", Align::Right),
+    ("unbuilt", Align::Right),
+    ("undelivered", Align::Right),
+];
+
+/// Render `rows` under a header and a dash rule, each line indented and
+/// starting with a newline.
+fn table(columns: &[(&str, Align)], rows: &[Vec<String>]) -> String {
+    let header = columns
+        .iter()
+        .map(|(name, _)| name.to_string())
+        .collect::<Vec<_>>();
+    let widths = (0..columns.len())
+        .map(|col| {
+            std::iter::once(&header)
+                .chain(rows)
+                .map(|row| row[col].len())
+                .max()
+                .unwrap_or(0)
+        })
+        .collect::<Vec<_>>();
+
+    let padded = columns
+        .iter()
+        .zip(&widths)
+        .filter(|((_, align), _)| !matches!(align, Align::Notes))
+        .map(|(_, width)| width)
+        .collect::<Vec<_>>();
+    let rule = padded.iter().copied().sum::<usize>() + 2 * padded.len().saturating_sub(1);
+
+    let mut out = String::new();
+    for (i, row) in std::iter::once(&header).chain(rows).enumerate() {
+        out.push_str("\n  ");
+        for (cell, ((_, align), &width)) in row.iter().zip(columns.iter().zip(&widths)) {
+            match align {
+                Align::Left => out.push_str(&format!("{cell:<width$}  ")),
+                Align::Right => out.push_str(&format!("{cell:>width$}  ")),
+                Align::Notes => out.push_str(cell),
+            }
+        }
+        out.truncate(out.trim_end().len());
+
+        if i == 0 {
+            out.push_str("\n  ");
+            out.push_str(&"-".repeat(rule));
+        }
+    }
+
+    out
+}
 
 /// Split a subscription name like `handler.engine.logger.event.epoch.complete`
 /// into (`engine.logger`, `epoch.complete`). Plain subscriptions are named by

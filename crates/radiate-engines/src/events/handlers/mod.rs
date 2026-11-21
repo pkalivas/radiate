@@ -7,6 +7,6 @@ mod monitor;
 #[cfg(feature = "serde")]
 pub use checkpoint::CheckpointWriterHandler;
 pub use health::HealthMonitor;
-pub use lifecycle::LifecycleHandler;
+pub use lifecycle::StreamHandler;
 pub use logger::{EngineLogger, LogEvent, LogLevel, LoggingHandler};
 pub use monitor::StreamMonitor;

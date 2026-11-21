@@ -1,19 +1,17 @@
-use radiate_core::{EngineState, Executor, error::RadiateResult};
+use radiate_core::{Executor, error::RadiateResult};
 use radiate_engines::events::{
-    EngineStateChange, Event, EventContext, EventHandler, EventId, EventStream, Handler, LogEvent,
-    StreamMonitor, Warning,
+    Event, EventContext, EventHandler, EventStream, Handler, LogEvent, StreamMonitor, Warning,
 };
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::mpsc::{self, RecvTimeoutError};
+use std::sync::mpsc::{self};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 // Long enough that a passing run never hits it; only a hang or regression does.
 const GENEROUS: Duration = Duration::from_secs(5);
-// How long to watch for something that must NOT happen yet.
-const BRIEF: Duration = Duration::from_millis(50);
 
 struct Ping;
+#[allow(dead_code)]
 struct Pong;
 struct Add(usize);
 struct Tick(u32);
@@ -67,17 +65,6 @@ fn gated_handler<E: Event>(
     });
 
     (started_rx, release_tx, finished)
-}
-
-/// Run `f(stream)` on another thread; the receiver fires when it returns.
-fn on_thread(stream: &EventStream, f: fn(&EventStream) -> RadiateResult<()>) -> mpsc::Receiver<()> {
-    let (done_tx, done_rx) = mpsc::channel();
-    let stream = stream.clone();
-    std::thread::spawn(move || {
-        f(&stream).unwrap();
-        done_tx.send(()).unwrap();
-    });
-    done_rx
 }
 
 mod publish {
@@ -209,6 +196,43 @@ mod publish {
         let report = stream.stats();
         assert_eq!(report.subscribers.len(), 1);
         assert_eq!(report.subscribers[0].id, pings.id());
+    }
+
+    #[test]
+    fn stream_stats_count_publishes_per_event_type() {
+        let stream = serial();
+        let pings = stream.subscribe(|_: &Ping| {});
+        pings.schedule(2_usize).unwrap();
+        stream.subscribe(|_: &Add| {}).schedule(3_usize).unwrap();
+
+        // Eager: built every time, delivered to nobody when the schedule skips.
+        for _ in 0..4 {
+            stream.publish(Ping).unwrap();
+        }
+        // Lazy: only built when the schedule is due.
+        for _ in 0..3 {
+            stream.lazy_publish(|| Add(1)).unwrap();
+        }
+
+        let event = |report: &radiate_engines::StreamSnapshot, name: &str| {
+            let stats = report.events.iter().find(|e| e.event.ends_with(name));
+            let stats = stats.unwrap_or_else(|| panic!("no stats for {name}"));
+            (stats.published, stats.unbuilt, stats.undelivered)
+        };
+
+        let first = stream.stats();
+        assert_eq!(event(&first, "Ping"), (4, 0, 2));
+        assert_eq!(event(&first, "Add"), (1, 2, 0));
+        assert_eq!(first.event_count, 5);
+        assert_eq!(stream.event_count(), 5);
+
+        // A type keeps its counts after its last subscription goes.
+        stream.unsubscribe(pings.id());
+        stream.publish(Ping).unwrap();
+
+        let second = stream.stats();
+        assert_eq!(event(&second, "Ping"), (5, 0, 3));
+        assert!(second.at >= first.at, "stamped when taken");
     }
 
     #[test]
@@ -459,169 +483,6 @@ mod ordering {
     }
 }
 
-mod waiting {
-    use super::*;
-
-    /// Turns each deferred Ping into a Pong, published through the handler's context.
-    struct Relay;
-
-    impl EventHandler for Relay {
-        fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
-            ctx.subscribe::<Ping>();
-            Ok(())
-        }
-    }
-
-    impl Handler<Ping> for Relay {
-        fn handle(&mut self, _: &Ping, ctx: &EventContext<'_, Self>) {
-            ctx.publish(Pong);
-        }
-    }
-
-    #[test]
-    fn flush_waits_for_events_published_by_deferred_handlers() {
-        let stream = pool();
-        stream.attach(Relay).unwrap();
-        let (started, release, finished) = gated_handler::<Pong>(&stream);
-
-        stream.defer(Ping);
-        let flushed = on_thread(&stream, EventStream::flush);
-
-        // The Pong handler (one hop from the deferred Ping) is running and blocked...
-        started.recv_timeout(GENEROUS).unwrap();
-        // ...so flush must still be waiting.
-        assert_eq!(flushed.recv_timeout(BRIEF), Err(RecvTimeoutError::Timeout));
-
-        release.send(()).unwrap();
-        flushed.recv_timeout(GENEROUS).unwrap();
-        assert!(finished.load(Ordering::SeqCst));
-    }
-
-    #[test]
-    fn flush_does_not_wait_on_plain_publishes() {
-        let stream = pool();
-        stream.attach(Relay).unwrap();
-        let (started, release, finished) = gated_handler::<Add>(&stream);
-
-        // A plain publish, outside any chain, blocks a worker...
-        stream.publish(Add(1)).unwrap();
-        started.recv_timeout(GENEROUS).unwrap();
-
-        // ...but flushing an unrelated deferred event must not wait for it.
-        stream.defer(Ping);
-        on_thread(&stream, EventStream::flush)
-            .recv_timeout(GENEROUS)
-            .unwrap();
-        assert!(!finished.load(Ordering::SeqCst));
-
-        release.send(()).unwrap();
-    }
-
-    #[test]
-    fn drain_waits_for_plain_publishes_too() {
-        let stream = pool();
-        let (started, release, finished) = gated_handler::<Add>(&stream);
-
-        stream.publish(Add(1)).unwrap();
-        started.recv_timeout(GENEROUS).unwrap();
-
-        // Unlike flush, drain waits for everything published so far.
-        let drained = on_thread(&stream, EventStream::drain);
-        assert_eq!(drained.recv_timeout(BRIEF), Err(RecvTimeoutError::Timeout));
-
-        release.send(()).unwrap();
-        drained.recv_timeout(GENEROUS).unwrap();
-        assert!(finished.load(Ordering::SeqCst));
-    }
-
-    /// Turns a deferred Ping into a Tick for itself, so flush must wait on a
-    /// delivery that was queued behind the running handler.
-    struct Echo(Arc<AtomicUsize>);
-
-    impl EventHandler for Echo {
-        fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
-            ctx.subscribe::<Ping>();
-            ctx.subscribe::<Tick>();
-            Ok(())
-        }
-    }
-
-    impl Handler<Ping> for Echo {
-        fn handle(&mut self, _: &Ping, ctx: &EventContext<'_, Self>) {
-            ctx.publish(Tick(0));
-        }
-    }
-
-    impl Handler<Tick> for Echo {
-        fn handle(&mut self, _: &Tick, _: &EventContext<'_, Self>) {
-            self.0.fetch_add(1, Ordering::SeqCst);
-        }
-    }
-
-    #[test]
-    fn flush_waits_for_events_a_handler_queued_to_itself() {
-        for executor in [Executor::Serial, Executor::FixedSizedWorkerPool(4)] {
-            let handled = within(move || {
-                let handled = Arc::new(AtomicUsize::new(0));
-                let stream = EventStream::from(executor);
-                stream.attach(Echo(Arc::clone(&handled))).unwrap();
-                stream.defer(Ping);
-                stream.flush().unwrap();
-                handled.load(Ordering::SeqCst)
-            });
-
-            assert_eq!(handled, 1);
-        }
-    }
-
-    struct Recorder(mpsc::Sender<EventId>);
-
-    impl EventHandler for Recorder {
-        fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
-            ctx.subscribe::<Ping>();
-            ctx.subscribe::<Pong>();
-            Ok(())
-        }
-    }
-
-    impl Handler<Ping> for Recorder {
-        fn handle(&mut self, _: &Ping, ctx: &EventContext<'_, Self>) {
-            self.0.send(ctx.root_id()).unwrap();
-            ctx.publish(Pong);
-        }
-    }
-
-    impl Handler<Pong> for Recorder {
-        fn handle(&mut self, _: &Pong, ctx: &EventContext<'_, Self>) {
-            self.0.send(ctx.root_id()).unwrap();
-        }
-    }
-
-    #[test]
-    fn events_in_a_chain_share_the_root_id() {
-        let (tx, rx) = mpsc::channel();
-        let stream = pool();
-        stream.attach(Recorder(tx)).unwrap();
-
-        stream.defer(Ping);
-        stream.flush().unwrap();
-        stream.publish(Pong).unwrap();
-
-        let ping = rx.recv_timeout(GENEROUS).unwrap();
-        let chained_pong = rx.recv_timeout(GENEROUS).unwrap();
-        let plain_pong = rx.recv_timeout(GENEROUS).unwrap();
-
-        assert_eq!(
-            ping, chained_pong,
-            "a Pong published by the Ping handler joins its chain"
-        );
-        assert_ne!(
-            chained_pong, plain_pong,
-            "a plain publish starts a new chain"
-        );
-    }
-}
-
 mod monitor {
     use radiate_engines::StreamEvent;
 
@@ -653,7 +514,7 @@ mod monitor {
         assert!(warning.contains("falling behind"), "{warning}");
 
         drop(release);
-        stream.drain().unwrap();
+        stream.close().unwrap();
     }
 
     #[test]
@@ -672,16 +533,11 @@ mod monitor {
             stream.publish(Ping).unwrap();
             stream.publish(StreamEvent(stream.stats())).unwrap();
         }
-        stream
-            .publish(EngineStateChange {
-                index: 0,
-                from: EngineState::Running,
-                to: EngineState::Stopped,
-            })
-            .unwrap();
+        stream.close().unwrap();
 
+        // The three above plus the one `close` takes.
         let summary = logs.try_recv().expect("serial: summary logged inline");
-        assert!(summary.contains("3 snapshots"), "{summary}");
+        assert!(summary.contains("4 snapshots"), "{summary}");
 
         let ping = summary
             .lines()

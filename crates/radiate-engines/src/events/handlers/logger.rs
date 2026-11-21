@@ -45,7 +45,11 @@ where
     fn handle(&mut self, message: &LimitTriggered, ctx: &EventContext<'_, Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
-            format!("Limit triggered: {:?}", message.1),
+            radiate_utils::three_col_format(
+                "Engine",
+                "Limit Triggered",
+                &format!("{:?}", message.1),
+            ),
         ));
     }
 }
@@ -92,7 +96,11 @@ where
     fn handle(&mut self, event: &EngineStateChange, ctx: &EventContext<'_, Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
-            format!("State Change: {:?} -> {:?}", event.from, event.to),
+            radiate_utils::three_col_format(
+                "Engine",
+                "State Change",
+                &format!("{:?} -> {:?}", event.from, event.to),
+            ),
         ));
     }
 }

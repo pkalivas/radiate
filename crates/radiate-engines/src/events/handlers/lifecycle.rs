@@ -4,9 +4,9 @@ use crate::{
 };
 use radiate_core::error::RadiateResult;
 
-pub struct LifecycleHandler;
+pub struct StreamHandler;
 
-impl EventHandler for LifecycleHandler {
+impl EventHandler for StreamHandler {
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
         ctx.subscribe::<StreamEvent<SubscriptionAdded>>();
         ctx.subscribe::<StreamEvent<SubscriptionRemoved>>();
@@ -17,37 +17,41 @@ impl EventHandler for LifecycleHandler {
     }
 }
 
-impl Handler<StreamEvent<StreamOpened>> for LifecycleHandler {
+impl Handler<StreamEvent<StreamOpened>> for StreamHandler {
     fn handle(&mut self, _: &StreamEvent<StreamOpened>, ctx: &EventContext<'_, Self>) {
-        ctx.publish(LogEvent(LogLevel::Info, format!("Stream | Opened")));
-    }
-}
-
-impl Handler<StreamEvent<StreamClosed>> for LifecycleHandler {
-    fn handle(&mut self, _: &StreamEvent<StreamClosed>, ctx: &EventContext<'_, Self>) {
-        ctx.publish(LogEvent(LogLevel::Info, format!("Stream | Closed")));
-    }
-}
-
-impl Handler<StreamEvent<SubscriptionAdded>> for LifecycleHandler {
-    fn handle(&mut self, event: &StreamEvent<SubscriptionAdded>, ctx: &EventContext<'_, Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
-            format!(
-                "Subscription | Added   | {:?}",
-                event.0.0.name().unwrap_or_default()
-            ),
+            radiate_utils::three_col_format("Stream", "Opened", ""),
         ));
     }
 }
 
-impl Handler<StreamEvent<SubscriptionRemoved>> for LifecycleHandler {
+impl Handler<StreamEvent<StreamClosed>> for StreamHandler {
+    fn handle(&mut self, _: &StreamEvent<StreamClosed>, ctx: &EventContext<'_, Self>) {
+        ctx.publish(LogEvent(
+            LogLevel::Info,
+            radiate_utils::three_col_format("Stream", "Closed", ""),
+        ));
+    }
+}
+
+impl Handler<StreamEvent<SubscriptionAdded>> for StreamHandler {
+    fn handle(&mut self, event: &StreamEvent<SubscriptionAdded>, ctx: &EventContext<'_, Self>) {
+        ctx.publish(LogEvent(
+            LogLevel::Info,
+            radiate_utils::three_col_format("Sub", "Added", &event.0.0.name().unwrap_or_default()),
+        ));
+    }
+}
+
+impl Handler<StreamEvent<SubscriptionRemoved>> for StreamHandler {
     fn handle(&mut self, event: &StreamEvent<SubscriptionRemoved>, ctx: &EventContext<'_, Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
-            format!(
-                "Subscription | Removed | {:?}",
-                event.0.0.name().unwrap_or_default()
+            radiate_utils::three_col_format(
+                "Sub",
+                "Removed",
+                &event.0.0.name().unwrap_or_default(),
             ),
         ));
     }

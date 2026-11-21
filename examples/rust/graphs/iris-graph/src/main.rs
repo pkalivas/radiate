@@ -37,7 +37,7 @@ fn main() -> RadiateResult<()> {
         .fitness_fn(Regression::new(train.clone(), Loss::XEnt))
         .offspring_selector(TournamentSelector::new(4))
         .minimizing()
-        // .parallel()
+        .parallel()
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.02, 0.05),
@@ -61,7 +61,7 @@ fn main() -> RadiateResult<()> {
     let result = engine
         .iter()
         .logging()
-        .attach(StreamMonitor::new())
+        // .attach(StreamMonitor::new())
         .until(|epoch| epoch.score().as_f32() < MIN_SCORE || epoch.seconds() > MAX_SECONDS)
         .last()?;
     let elapsed = start.elapsed();

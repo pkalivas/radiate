@@ -1,5 +1,8 @@
 use crate::{Event, Generation, Limit, context::EvolutionContext};
-use radiate_core::{Chromosome, EngineState, Front, MetricSet, Objective, Phenotype, Score};
+use radiate_core::{
+    Chromosome, EngineState, Front, MetricSet, Objective, Phenotype, Score, SmallStr,
+};
+use radiate_utils::generate_metric_key;
 use std::{
     fmt::Debug,
     ops::Deref,
@@ -8,7 +11,15 @@ use std::{
 
 #[derive(Clone, Debug)]
 pub struct StreamEvent<T>(pub T);
-impl<T> Event for StreamEvent<T> where T: Send + Sync + 'static {}
+impl<T> Event for StreamEvent<T>
+where
+    T: Send + Sync + 'static,
+{
+    fn name() -> radiate_core::SmallStr {
+        const NAME: &str = "event";
+        SmallStr::from_string(generate_metric_key::<T>(NAME))
+    }
+}
 
 impl<T> Deref for StreamEvent<T> {
     type Target = T;
