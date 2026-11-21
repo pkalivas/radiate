@@ -483,46 +483,51 @@ mod event_stream_tests {
     fn throughput_publish_worker_pool() {
         const WARMUP: usize = 20_000;
         const N: usize = 200_000;
-        let stream = EventStream::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
-        let count = Arc::new(AtomicUsize::new(0));
-        let count_clone = Arc::clone(&count);
 
-        stream.subscribe(move |_: &Ping| {
-            count_clone.fetch_add(1, Ordering::SeqCst);
-        });
+        let s_one = EventStream::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
+        let s_two = EventStream::new(serial());
+        let streams = vec![s_one, s_two];
+        for stream in &streams {
+            let count = Arc::new(AtomicUsize::new(0));
+            let count_clone = Arc::clone(&count);
 
-        for i in 0..WARMUP {
-            stream.publish(Ping(i as u32));
-        }
-        let warmup_deadline = Instant::now() + Duration::from_secs(30);
-        while count.load(Ordering::SeqCst) < WARMUP {
-            assert!(
-                Instant::now() < warmup_deadline,
-                "warmup did not drain in time"
+            stream.subscribe(move |_: &Ping| {
+                count_clone.fetch_add(1, Ordering::SeqCst);
+            });
+
+            for i in 0..WARMUP {
+                stream.publish(Ping(i as u32));
+            }
+            let warmup_deadline = Instant::now() + Duration::from_secs(30);
+            while count.load(Ordering::SeqCst) < WARMUP {
+                assert!(
+                    Instant::now() < warmup_deadline,
+                    "warmup did not drain in time"
+                );
+                std::thread::yield_now();
+            }
+            let baseline = count.load(Ordering::SeqCst);
+
+            let start = Instant::now();
+            for i in 0..N {
+                stream.publish(Ping(i as u32));
+            }
+
+            let deadline = Instant::now() + Duration::from_secs(30);
+            while count.load(Ordering::SeqCst) - baseline < N {
+                assert!(
+                    Instant::now() < deadline,
+                    "events not fully delivered in time"
+                );
+                std::thread::yield_now();
+            }
+            let elapsed = start.elapsed();
+
+            println!(
+                "[stream/publish pool]    {N} events in {elapsed:?} = {:.0} events/sec",
+                throughput(N, elapsed)
             );
-            std::thread::yield_now();
         }
-        let baseline = count.load(Ordering::SeqCst);
-
-        let start = Instant::now();
-        for i in 0..N {
-            stream.publish(Ping(i as u32));
-        }
-
-        let deadline = Instant::now() + Duration::from_secs(30);
-        while count.load(Ordering::SeqCst) - baseline < N {
-            assert!(
-                Instant::now() < deadline,
-                "events not fully delivered in time"
-            );
-            std::thread::yield_now();
-        }
-        let elapsed = start.elapsed();
-
-        println!(
-            "[stream/publish pool]    {N} events in {elapsed:?} = {:.0} events/sec",
-            throughput(N, elapsed)
-        );
     }
 }
 

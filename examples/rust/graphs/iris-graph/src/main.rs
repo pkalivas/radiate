@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use radiate::prelude::*;
 
 const MIN_SCORE: f32 = 0.1;
@@ -49,7 +51,7 @@ fn main() -> RadiateResult<()> {
                 println!("{:?}", event.generation.index());
             },
         )
-        .schedule(7)?;
+        .schedule(2)?;
 
     engine.subscribe(|event: &StreamEvent| {
         if let StreamEvent::Stats(stats) = event {
@@ -57,12 +59,15 @@ fn main() -> RadiateResult<()> {
         }
     });
 
+    let start = Instant::now();
     let result = engine
         .iter()
         .logging()
         .attach(StreamMonitor::new())
         .until(|epoch| epoch.score().as_f32() < MIN_SCORE || epoch.seconds() > MAX_SECONDS)
         .last()?;
+    let elapsed = start.elapsed();
+    println!("Elapsed time: {:?}", elapsed);
 
     display(&train, &test, &result);
 
