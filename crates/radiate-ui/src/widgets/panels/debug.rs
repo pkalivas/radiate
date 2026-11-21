@@ -26,7 +26,7 @@ impl DebugPanel {
 
 impl<C: Chromosome + Debug> AppWidget<C> for DebugPanel {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
-        let row = state.tables.population.selected_row;
+        let row = state.tables.population.selection.selected_row;
         let count = state.selected_chromosome_count();
         state.inspect.sync(row, count);
 

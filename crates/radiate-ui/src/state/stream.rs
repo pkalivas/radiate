@@ -30,7 +30,6 @@ pub struct EventRow {
 pub struct StreamState {
     pub handlers: Vec<HandlerRow>,
     pub events: Vec<EventRow>,
-    /// The start of the current rate window.
     window: Option<StreamSnapshot>,
     handler_rates: HashMap<SubscriptionId, f64>,
     event_rates: HashMap<SmallStr, f64>,

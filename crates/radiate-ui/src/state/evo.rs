@@ -9,7 +9,7 @@ use radiate_utils::WindowBuffer;
 use std::sync::{Arc, RwLock};
 
 const MAX_IMPROVEMENT_LOG: usize = 100;
-const MAX_EVENT_LOG: usize = 200;
+const MAX_EVENT_LOG: usize = 500;
 
 pub struct ImprovementEntry {
     pub generation: usize,
@@ -62,24 +62,6 @@ impl<C: Chromosome> EvoState<C> {
             return;
         }
 
-        // if self.pareto.objective.is_single() {
-        //     let prev = self.score.as_f32();
-        //     let next = new_score.as_f32();
-        //     let delta = match &self.pareto.objective {
-        //         Objective::Single(Optimize::Minimize) => prev - next,
-        //         _ => next - prev,
-        //     };
-
-        //     if delta > 0.0 {
-        //         self.best_score = new_score.clone();
-        //         self.improvement_log.push_front(ImprovementEntry {
-        //             generation: self.index,
-        //             score: next,
-        //             delta,
-        //         });
-        //     }
-        // }
-
         self.score = new_score;
     }
 
@@ -94,10 +76,6 @@ impl<C: Chromosome> EvoState<C> {
                 .delta(&event.score, &event.objective)
                 .map(|val| val.as_f32())
                 .unwrap_or(0.0);
-            // let delta = match &event.objective {
-            //     Objective::Single(Optimize::Minimize) => prev - next,
-            //     _ => next - prev,
-            // };
 
             if delta > 0.0 {
                 self.best_score = event.score.clone();

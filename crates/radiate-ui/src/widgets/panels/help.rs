@@ -1,60 +1,86 @@
-use crate::widgets::Panel;
+use crate::keys::{BINDINGS, Binding};
+use crate::widgets::{FnWidget, Panel};
 use ratatui::{
     buffer::Buffer,
-    layout::Rect,
+    layout::{Constraint, Layout, Rect},
     style::{Modifier, Style},
     text::{Line, Span, Text},
-    widgets::Widget,
+    widgets::{Paragraph, Widget},
 };
 
+/// The key map, drawn from [`BINDINGS`] in two columns.
 pub struct HelpPanelWidget;
 
 impl Widget for HelpPanelWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let help_text = Text::from(vec![
-            Line::from(vec![Span::styled(
-                "Controls",
-                Style::default().add_modifier(Modifier::BOLD),
-            )]),
-            Line::from(""),
-            Line::from("General"),
-            Line::from("  q           Quit UI"),
-            Line::from("  ? / H       Toggle this help"),
-            Line::from("  p           Pause / Resume engine"),
-            Line::from("  n           Step one epoch (stays paused)"),
-            Line::from(""),
-            Line::from("Navigation"),
-            Line::from("  j / ↓       Move selection down"),
-            Line::from("  k / ↑       Move selection up"),
-            Line::from("  d / PgDn    Page down"),
-            Line::from("  u / PgUp    Page up"),
-            Line::from("  g / Home    Jump to top"),
-            Line::from("  G / End     Jump to bottom"),
-            Line::from("  h / ←       Previous tab"),
-            Line::from("  l / →       Next tab"),
-            Line::from(""),
-            Line::from("Charts / Objective pairs"),
-            Line::from("  [ / ]       Prev / next objective-pair page"),
-            Line::from("  + / -       Expand / shrink objective pairs"),
-            Line::from("  Enter       Toggle metric chart modal"),
-            Line::from("  0-9         Select a specific objective index."),
-            Line::from(""),
-            Line::from("Population"),
-            Line::from("  Tab / S-Tab Next / previous chromosome"),
-            Line::from("  J / K       Scroll chromosome down / up"),
-            Line::from("  D / U       Page chromosome down / up"),
-            Line::from(""),
-            Line::from("Filters"),
-            Line::from("  /           Move focus to search bar"),
-            Line::from("  Enter       Select search and move focus back"),
-            Line::from("  Esc         Clear all search filters"),
-            Line::from(""),
-            Line::from(vec![Span::styled(
-                "Press Esc to close",
-                Style::default().add_modifier(Modifier::DIM),
-            )]),
-        ]);
+        let groups = groups();
+        let width = BINDINGS
+            .iter()
+            .filter(|b| !b.help.is_empty())
+            .map(|b| b.label().chars().count())
+            .max()
+            .unwrap_or(0);
 
-        Panel::new(help_text).titled(" Help ").render(area, buf);
+        // Split between whole sections so the taller column is as short as it
+        // can be.
+        let heights = groups.iter().map(|(_, g)| g.len() + 2).collect::<Vec<_>>();
+        let split = (0..=groups.len())
+            .min_by_key(|&i| {
+                let left = heights[..i].iter().sum::<usize>();
+                let right = heights[i..].iter().sum::<usize>();
+                left.max(right)
+            })
+            .unwrap_or(0);
+
+        let column = |groups: &[(&str, Vec<&Binding>)]| {
+            let mut text = Vec::new();
+            for (name, bindings) in groups {
+                text.push(Line::from(Span::styled(
+                    name.to_string(),
+                    Style::default().add_modifier(Modifier::BOLD),
+                )));
+                for binding in bindings {
+                    text.push(Line::from(format!(
+                        "  {:<width$}  {}",
+                        binding.label(),
+                        binding.help
+                    )));
+                }
+                text.push(Line::from(""));
+            }
+            Paragraph::new(Text::from(text))
+        };
+
+        let (first, second) = groups.split_at(split);
+        let body = FnWidget::new(|area: Rect, buf: &mut Buffer| {
+            let [left, right] = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)])
+                .horizontal_margin(1)
+                .spacing(2)
+                .areas(area);
+            column(first).render(left, buf);
+            column(second).render(right, buf);
+        });
+
+        Panel::new(body)
+            .render_inside_block(true)
+            .titled(" Help ")
+            .titled_bottom(Line::from(Span::styled(
+                " Esc to close ",
+                Style::default().add_modifier(Modifier::DIM),
+            )))
+            .render(area, buf);
     }
+}
+
+/// Bindings with help text, grouped by section in the order sections first
+/// appear.
+fn groups() -> Vec<(&'static str, Vec<&'static Binding>)> {
+    let mut groups: Vec<(&str, Vec<&Binding>)> = Vec::new();
+    for binding in BINDINGS.iter().filter(|b| !b.help.is_empty()) {
+        match groups.iter_mut().find(|(name, _)| *name == binding.group) {
+            Some((_, group)) => group.push(binding),
+            None => groups.push((binding.group, vec![binding])),
+        }
+    }
+    groups
 }

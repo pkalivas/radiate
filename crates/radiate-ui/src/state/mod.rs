@@ -18,6 +18,24 @@ pub use tables::{AppTableState, TableStates};
 
 use crate::state::nav::DashboardTab;
 
+/// Which way a cycling action goes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Dir {
+    Next,
+    Prev,
+}
+
+/// A movement through a list or a scrolled body.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Motion {
+    Up,
+    Down,
+    PageUp,
+    PageDown,
+    Top,
+    Bottom,
+}
+
 pub struct AppState<C: Chromosome> {
     pub run: RunState,
     pub nav: NavState,
@@ -28,46 +46,11 @@ pub struct AppState<C: Chromosome> {
 }
 
 impl<C: Chromosome> AppState<C> {
-    pub fn move_selection_down(&mut self) {
-        if matches!(self.nav.mode, UiMode::MetricModal) {
-            return;
-        }
-        self.tables.move_down(self.nav.dashboard_tab);
-    }
-
-    pub fn move_selection_up(&mut self) {
-        if matches!(self.nav.mode, UiMode::MetricModal) {
-            return;
-        }
-        self.tables.move_up(self.nav.dashboard_tab);
-    }
-
-    pub fn move_selection_page_down(&mut self) {
-        if matches!(self.nav.mode, UiMode::MetricModal) {
-            return;
-        }
-        self.tables.move_page_down(self.nav.dashboard_tab);
-    }
-
-    pub fn move_selection_page_up(&mut self) {
-        if matches!(self.nav.mode, UiMode::MetricModal) {
-            return;
-        }
-        self.tables.move_page_up(self.nav.dashboard_tab);
-    }
-
-    pub fn move_selection_to_top(&mut self) {
-        if matches!(self.nav.mode, UiMode::MetricModal) {
-            return;
-        }
-        self.tables.move_to_top(self.nav.dashboard_tab);
-    }
-
-    pub fn move_selection_to_bottom(&mut self) {
-        if matches!(self.nav.mode, UiMode::MetricModal) {
-            return;
-        }
-        self.tables.move_to_bottom(self.nav.dashboard_tab);
+    /// Move the cursor in the active tab's list.
+    pub fn move_selection(&mut self, motion: Motion) {
+        self.tables
+            .selection_mut(self.nav.dashboard_tab)
+            .apply(motion);
     }
 
     pub fn get_selected_metric(&self) -> Option<&str> {
@@ -79,7 +62,7 @@ impl<C: Chromosome> AppState<C> {
             return None;
         }
 
-        let index = self.tables.population.selected_row;
+        let index = self.tables.population.selection.selected_row;
         self.evo
             .ecosystem
             .as_ref()
@@ -92,14 +75,25 @@ impl<C: Chromosome> AppState<C> {
             .unwrap_or(0)
     }
 
-    pub fn next_chromosome(&mut self) {
-        let count = self.selected_chromosome_count();
-        self.inspect.next_chromosome(count);
-    }
+    /// Tab / Shift-Tab: step through the selected phenotype's chromosomes on
+    /// Population, and through the selected metric's chart views elsewhere.
+    pub fn cycle(&mut self, dir: Dir) {
+        if self.nav.dashboard_tab == DashboardTab::Population {
+            let count = self.selected_chromosome_count();
+            match dir {
+                Dir::Next => self.inspect.next_chromosome(count),
+                Dir::Prev => self.inspect.previous_chromosome(count),
+            }
+            return;
+        }
 
-    pub fn previous_chromosome(&mut self) {
-        let count = self.selected_chromosome_count();
-        self.inspect.previous_chromosome(count);
+        let views = self.selected_metric_views();
+        let n = views.len();
+        let i = match dir {
+            Dir::Next => (self.chart_view_index() + 1) % n,
+            Dir::Prev => (self.chart_view_index() + n - 1) % n,
+        };
+        self.nav.set_chart_tab(views[i]);
     }
 
     pub fn metric_matches_search(&self, metric: &Metric) -> bool {
@@ -129,18 +123,6 @@ impl<C: Chromosome> AppState<C> {
             .iter()
             .position(|v| *v == current)
             .unwrap_or(0)
-    }
-
-    pub fn next_chart_view(&mut self) {
-        let views = self.selected_metric_views();
-        let next = (self.chart_view_index() + 1) % views.len();
-        self.nav.set_chart_tab(views[next]);
-    }
-
-    pub fn prev_chart_view(&mut self) {
-        let views = self.selected_metric_views();
-        let prev = (self.chart_view_index() + views.len() - 1) % views.len();
-        self.nav.set_chart_tab(views[prev]);
     }
 }
 

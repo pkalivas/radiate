@@ -261,6 +261,7 @@ pub(super) fn render_scrollable_table<T>(
     table: Table,
     state: &mut AppTableState<T>,
 ) {
+    let state = &mut state.selection;
     let [tbl, scroll] =
         Layout::horizontal([Constraint::Fill(1), Constraint::Length(1)]).areas(area);
 

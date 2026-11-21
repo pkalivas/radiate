@@ -1,11 +1,12 @@
 mod app;
 mod chart;
-mod runtime;
+mod keys;
 mod state;
 mod styles;
+mod tui;
 mod widgets;
 
-pub use crate::runtime::Tui;
+pub use crate::tui::Tui;
 use radiate_engines::{Chromosome, EngineRuntime, GeneticEngine};
 use std::fmt::Debug;
 use std::time::Duration;

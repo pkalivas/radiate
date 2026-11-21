@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use crate::{
-    state::{AppState, MetricChartType},
+    state::{AppState, MetricChartType, nav::DashboardTab},
     widgets::{
         AppWidget, DeltaBarChartWidget, EngineStatusPanelWidget, EventLogWidget, FnWidget,
         FrontEventLogWidget, ImprovementLogWidget, MetricDetailPanelWidget, MetricTableWidget,
@@ -22,9 +22,10 @@ use ratatui::{
     widgets::Widget,
 };
 
+/// One tab's content. Which tabs exist, their order and their titles all come
+/// from [`DashboardTab`], so the order these are listed in doesn't matter.
 pub struct TabNode<C: Chromosome> {
-    pub title: &'static str,
-    pub condition: fn(&AppState<C>) -> bool,
+    pub tab: DashboardTab,
     pub content: LayoutNode<C>,
 }
 
@@ -73,7 +74,7 @@ impl<C: Chromosome> LayoutNode<C> {
                 }
             }
             LayoutNode::Tabbed { children } => {
-                let active_tab_idx = state.nav.dashboard_tab_index();
+                let active = state.nav.dashboard_tab;
                 let active_objective_idx = state.evo.pareto.objective_index;
 
                 let areas = Layout::default()
@@ -81,16 +82,12 @@ impl<C: Chromosome> LayoutNode<C> {
                     .constraints([Constraint::Length(3), Constraint::Fill(1)])
                     .split(area);
 
-                let titles = children
-                    .iter()
-                    .filter(|t| (t.condition)(state))
-                    .map(|t| t.title)
+                let visible = DashboardTab::ALL
+                    .into_iter()
+                    .filter(|tab| tab.available(&state.evo))
                     .collect::<Vec<_>>();
-
-                let select = children[..active_tab_idx]
-                    .iter()
-                    .filter(|t| (t.condition)(state))
-                    .count();
+                let titles = visible.iter().map(|tab| tab.title()).collect::<Vec<_>>();
+                let select = visible.iter().position(|&tab| tab == active).unwrap_or(0);
 
                 Panel::new(FnWidget::new(|area, buf| {
                     TabComponent::from(titles).select(select).render(area, buf);
@@ -109,7 +106,7 @@ impl<C: Chromosome> LayoutNode<C> {
                 )
                 .render(areas[0], buf);
 
-                if let Some(active_child) = children.get(active_tab_idx) {
+                if let Some(active_child) = children.iter().find(|t| t.tab == active) {
                     active_child.content.draw(areas[1], buf, state);
                 }
             }
@@ -148,8 +145,7 @@ impl<C: Chromosome + Debug> Default for LayoutNode<C> {
                         Tabbed {
                             children: vec![
                                 TabNode {
-                                    title: "Stats",
-                                    condition: |_| true,
+                                    tab: DashboardTab::Stats,
                                     content: Horizontal {
                                         constraints: vec![
                                             Constraint::Fill(1),
@@ -172,8 +168,7 @@ impl<C: Chromosome + Debug> Default for LayoutNode<C> {
                                     },
                                 },
                                 TabNode {
-                                    title: "Time",
-                                    condition: |_| true,
+                                    tab: DashboardTab::Time,
                                     content: Horizontal {
                                         constraints: vec![
                                             Constraint::Fill(1),
@@ -194,8 +189,7 @@ impl<C: Chromosome + Debug> Default for LayoutNode<C> {
                                     },
                                 },
                                 TabNode {
-                                    title: "Distribution",
-                                    condition: |_| true,
+                                    tab: DashboardTab::Distribution,
                                     content: Horizontal {
                                         constraints: vec![
                                             Constraint::Fill(1),
@@ -218,8 +212,7 @@ impl<C: Chromosome + Debug> Default for LayoutNode<C> {
                                     },
                                 },
                                 TabNode {
-                                    title: "Events",
-                                    condition: |_| true,
+                                    tab: DashboardTab::Events,
                                     content: Horizontal {
                                         constraints: vec![
                                             Constraint::Percentage(50),
@@ -245,8 +238,7 @@ impl<C: Chromosome + Debug> Default for LayoutNode<C> {
                                     },
                                 },
                                 TabNode {
-                                    title: "Population",
-                                    condition: |_| true,
+                                    tab: DashboardTab::Population,
                                     content: Horizontal {
                                         constraints: vec![
                                             Constraint::Percentage(30),
@@ -261,8 +253,7 @@ impl<C: Chromosome + Debug> Default for LayoutNode<C> {
                                     },
                                 },
                                 TabNode {
-                                    title: "Species",
-                                    condition: |s| s.evo.has_species(),
+                                    tab: DashboardTab::Species,
                                     content: Horizontal {
                                         constraints: vec![
                                             Constraint::Fill(1),
@@ -283,8 +274,7 @@ impl<C: Chromosome + Debug> Default for LayoutNode<C> {
                                     },
                                 },
                                 TabNode {
-                                    title: "Improvements",
-                                    condition: |s| !s.evo.is_multi(),
+                                    tab: DashboardTab::Log,
                                     content: Horizontal {
                                         constraints: vec![
                                             Constraint::Fill(1),
@@ -297,8 +287,7 @@ impl<C: Chromosome + Debug> Default for LayoutNode<C> {
                                     },
                                 },
                                 TabNode {
-                                    title: "Front",
-                                    condition: |s| s.evo.is_multi(),
+                                    tab: DashboardTab::Front,
                                     content: Horizontal {
                                         constraints: vec![
                                             Constraint::Fill(1),

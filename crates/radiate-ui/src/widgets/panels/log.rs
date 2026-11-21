@@ -257,7 +257,7 @@ impl<C: Chromosome + Debug> AppWidget<C> for DeltaBarChartWidget {
         }
 
         let max_delta = entries.iter().map(|e| e.delta).fold(0.0_f32, f32::max);
-        let selected_row = state.tables.log.selected_row;
+        let selected_row = state.tables.log.selection.selected_row;
 
         // Log is newest-first; in the bar chart, oldest is leftmost (chart pos 0).
         // selected_row is the log index (0 = newest), which maps to chart pos = total-1-selected_row.

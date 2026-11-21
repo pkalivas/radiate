@@ -1,8 +1,9 @@
-use crate::state::{AppState, RunState, UiMode, nav::DashboardTab};
+use crate::keys::{self, Action};
+use crate::state::{AppState, Dir, RunState, UiMode};
 use crate::widgets::{AppWidget, HelpPanelWidget, LayoutNode, MetricModalWidget, ModalWidget};
 use color_eyre::Result;
 use crossbeam::channel;
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{Event, KeyCode, KeyEvent};
 use radiate_engines::{
     Chromosome, CommandChannel, Ecosystem, Front, GenerationSnapshot, Improvement, MetricSet,
     Objective, Phenotype, Score, StreamSnapshot, Subscription, ThreadSync, events::LogLevel,
@@ -134,13 +135,10 @@ where
     fn throttle_next(&mut self) -> Result<bool> {
         match self.channel.next()? {
             InputEvent::Crossterm(event) => {
-                if let Event::Key(key_event) = event {
-                    match self.state.nav.mode {
-                        UiMode::Search => self.handle_search_event(key_event),
-                        UiMode::Help => self.handle_help_event(key_event),
-                        UiMode::MetricModal => self.handle_metric_modal_event(key_event),
-                        UiMode::Dashboard => self.handle_dashboard_event(key_event.code),
-                    }
+                if let Event::Key(key) = event
+                    && let Some(action) = keys::action(self.state.nav.mode, &key)
+                {
+                    self.apply(action, key);
                 }
             }
             InputEvent::EngineStart(front) => {
@@ -185,123 +183,54 @@ where
         Ok(true)
     }
 
-    fn handle_metric_modal_event(&mut self, key: KeyEvent) {
-        match key.code {
-            KeyCode::Esc | KeyCode::Enter | KeyCode::Char('q') => {
-                self.state.nav.toggle_metric_modal()
-            }
-
-            KeyCode::Right | KeyCode::Tab => self.state.next_chart_view(),
-            KeyCode::Left | KeyCode::BackTab => self.state.prev_chart_view(),
-
-            KeyCode::Char('p') => {
-                let paused = self.control.toggle_pause();
-                self.state.run.paused = paused;
-            }
-            KeyCode::Char('n') => {
-                self.control.step_once();
-                self.state.run.paused = true;
-            }
-
-            _ => {}
-        }
-    }
-
-    fn handle_help_event(&mut self, key: KeyEvent) {
-        match (key.code, key.modifiers) {
-            (KeyCode::Esc, _) | (KeyCode::Char('H'), _) | (KeyCode::Char('?'), _) => {
-                self.state.nav.toggle_help();
-            }
-            _ => {}
-        }
-    }
-
-    fn handle_search_event(&mut self, key: KeyEvent) {
-        match (key.code, key.modifiers) {
-            (KeyCode::Esc, _) | (KeyCode::Enter, _) | (KeyCode::Char('/'), _) => {
-                self.state.nav.close_search()
-            }
-            (KeyCode::Backspace, _) => self.state.nav.pop_search_char(),
-
-            (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
-                self.state.nav.close_search();
-                self.state.nav.clear_search();
-            }
-
-            (KeyCode::Char(c), _) => self.state.nav.push_search_char(c),
-            _ => {}
-        }
-    }
-
-    fn handle_dashboard_event(&mut self, key: KeyCode) {
-        match key {
-            KeyCode::Char('/') => self.state.nav.open_search(),
-
-            KeyCode::Char('q') => {
+    fn apply(&mut self, action: Action, key: KeyEvent) {
+        let state = &mut self.state;
+        match action {
+            Action::Quit => {
                 self.control.stop();
-                for subscription in &self.state.run.subscriptions {
+                for subscription in state.run.subscriptions.drain(..) {
                     subscription.unsubscribe();
                 }
-                self.state.run.subscriptions.clear();
-                self.state.run.ui = false
+                state.run.ui = false;
             }
-
-            KeyCode::Char('?') | KeyCode::Char('H') => self.state.nav.toggle_help(),
-
-            KeyCode::Down | KeyCode::Char('j') => self.state.move_selection_down(),
-            KeyCode::Up | KeyCode::Char('k') => self.state.move_selection_up(),
-            KeyCode::PageDown | KeyCode::Char('d') => self.state.move_selection_page_down(),
-            KeyCode::PageUp | KeyCode::Char('u') => self.state.move_selection_page_up(),
-            KeyCode::Home | KeyCode::Char('g') => self.state.move_selection_to_top(),
-            KeyCode::End | KeyCode::Char('G') => self.state.move_selection_to_bottom(),
-
-            KeyCode::Char(']') => self.state.evo.next_objective_pair_page(),
-            KeyCode::Char('[') => self.state.evo.previous_objective_pair_page(),
-            KeyCode::Char('+') => self.state.evo.expand_objective_pairs(),
-            KeyCode::Char('-') => self.state.evo.shrink_objective_pairs(),
-
-            KeyCode::Right | KeyCode::Char('l') => self
-                .state
-                .nav
-                .next_tab(self.state.evo.has_species(), self.state.evo.is_multi()),
-            KeyCode::Left | KeyCode::Char('h') => self
-                .state
-                .nav
-                .previous_tab(self.state.evo.has_species(), self.state.evo.is_multi()),
-
-            KeyCode::Tab => match self.state.nav.dashboard_tab {
-                DashboardTab::Population => self.state.next_chromosome(),
-                _ => self.state.next_chart_view(),
-            },
-            KeyCode::BackTab => match self.state.nav.dashboard_tab {
-                DashboardTab::Population => self.state.previous_chromosome(),
-                _ => self.state.prev_chart_view(),
-            },
-
-            KeyCode::Char('J') => self.state.inspect.scroll_by(1),
-            KeyCode::Char('K') => self.state.inspect.scroll_by(-1),
-            KeyCode::Char('D') => self.state.inspect.scroll_page(1),
-            KeyCode::Char('U') => self.state.inspect.scroll_page(-1),
-
-            KeyCode::Char('p') => {
-                let paused = self.control.toggle_pause();
-                self.state.run.paused = paused;
-            }
-            KeyCode::Char('n') => {
+            Action::ToggleHelp => state.nav.toggle_help(),
+            Action::TogglePause => state.run.paused = self.control.toggle_pause(),
+            Action::Step => {
                 self.control.step_once();
-                self.state.run.paused = true;
+                state.run.paused = true;
             }
 
-            KeyCode::Esc => self.state.nav.clear_search_query(),
-            KeyCode::Enter => self.state.nav.toggle_metric_modal(),
+            Action::Select(motion) => state.move_selection(motion),
+            Action::Tab(dir) => state.nav.step_tab(dir, &state.evo),
+            Action::Cycle(dir) => state.cycle(dir),
+            Action::Inspect(motion) => state.inspect.scroll(motion),
 
-            KeyCode::Char(c) => {
-                if let Some(digit) = c.to_digit(10) {
-                    self.state.evo.set_objective_index(digit as usize);
+            Action::ToggleModal => state.nav.toggle_metric_modal(),
+            Action::ObjectivePage(Dir::Next) => state.evo.next_objective_pair_page(),
+            Action::ObjectivePage(Dir::Prev) => state.evo.previous_objective_pair_page(),
+            Action::ObjectivePairs(Dir::Next) => state.evo.expand_objective_pairs(),
+            Action::ObjectivePairs(Dir::Prev) => state.evo.shrink_objective_pairs(),
+            Action::Objective => {
+                if let KeyCode::Char(c) = key.code
+                    && let Some(digit) = c.to_digit(10)
+                {
+                    state.evo.set_objective_index(digit as usize);
                 }
             }
 
-            _ => {}
+            Action::OpenSearch => state.nav.open_search(),
+            Action::CloseSearch => state.nav.close_search(),
+            Action::CancelSearch => {
+                state.nav.close_search();
+                state.nav.clear_search();
+            }
+            Action::ClearFilter => state.nav.clear_search_query(),
+            Action::Type => {
+                if let KeyCode::Char(c) = key.code {
+                    state.nav.push_search_char(c);
+                }
+            }
+            Action::Backspace => state.nav.pop_search_char(),
         }
     }
 
@@ -311,9 +240,7 @@ where
         self.state.evo.update_ecosystem(event.ecosystem);
         self.state.evo.update_metrics(event.metrics);
 
-        self.state
-            .nav
-            .ensure_tab_available(self.state.evo.has_species(), self.state.evo.is_multi());
+        self.state.nav.ensure_tab_available(&self.state.evo);
         self.state.run.event_count += 1;
     }
 

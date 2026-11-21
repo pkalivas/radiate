@@ -1,3 +1,5 @@
+use super::Motion;
+
 /// Where the population tab's debug panel is looking: which chromosome of the
 /// selected phenotype is shown and how far down it's scrolled.
 #[derive(Default)]
@@ -44,6 +46,17 @@ impl InspectState {
         if chromosomes > 0 {
             self.chromosome = (self.chromosome + chromosomes - 1) % chromosomes;
             self.scroll = 0;
+        }
+    }
+
+    pub fn scroll(&mut self, motion: Motion) {
+        match motion {
+            Motion::Down => self.scroll_by(1),
+            Motion::Up => self.scroll_by(-1),
+            Motion::PageDown => self.scroll_page(1),
+            Motion::PageUp => self.scroll_page(-1),
+            Motion::Top => self.scroll = 0,
+            Motion::Bottom => self.scroll = self.max_scroll,
         }
     }
 
