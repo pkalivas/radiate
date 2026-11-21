@@ -51,6 +51,12 @@ fn main() -> RadiateResult<()> {
         )
         .schedule(7)?;
 
+    engine.subscribe(|event: &StreamEvent| {
+        if let StreamEvent::Stats(stats) = event {
+            println!("{:#?}", stats.event_count);
+        }
+    });
+
     let result = engine
         .iter()
         .logging()

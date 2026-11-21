@@ -588,7 +588,7 @@ mod trace_tests {
         let (flushed_tx, flushed_rx) = mpsc::channel();
         let stream = stream.clone();
         std::thread::spawn(move || {
-            stream.flush();
+            stream.flush().unwrap();
             flushed_tx.send(()).unwrap();
         });
         flushed_rx
@@ -668,7 +668,7 @@ mod trace_tests {
         stream.attach(Recorder(tx)).unwrap();
 
         stream.defer(Ping);
-        stream.flush();
+        stream.flush().unwrap();
         stream.publish(Pong);
 
         let ping = rx.recv_timeout(GENEROUS).unwrap();
@@ -880,7 +880,7 @@ mod mailbox_tests {
                 let stream = EventStream::new(Arc::new(executor));
                 stream.attach(Echo(Arc::clone(&handled))).unwrap();
                 stream.defer(Ping);
-                stream.flush();
+                stream.flush().unwrap();
                 handled.load(Ordering::SeqCst)
             });
 

@@ -1,4 +1,4 @@
-use crate::SubscriptionId;
+use crate::{MailBoxId, SubscriptionId};
 use radiate_core::SmallStr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -31,6 +31,7 @@ impl SubscriptionStats {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SubscriptionInfo {
     pub id: SubscriptionId,
+    pub mailbox_id: MailBoxId,
     pub name: Option<SmallStr>,
     pub event: SmallStr,
     pub stats: SubscriptionStats,

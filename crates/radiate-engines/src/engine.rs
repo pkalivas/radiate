@@ -183,31 +183,32 @@ where
         self.context.state
     }
 
-    fn start(&mut self) {
-        self.stream.flush();
+    fn start(&mut self) -> Result<()> {
+        self.stream.flush()?;
         self.context.set_running();
         self.context
             .metrics
             .upsert(metric_names::INDEX, self.context.index());
         self.stream.publish(EngineStart::from(&self.context));
+        Ok(())
     }
 
-    fn stop(&mut self) {
+    fn stop(&mut self) -> Result<()> {
         self.context.set_stopped();
         self.stream.publish(EngineStop::from(&self.context));
 
-        // println!("{:#?}", self.stream.stats());
+        println!("{:#?}", self.stream.stats());
+        self.stream.wait()
     }
 
     #[inline]
     fn step(&mut self) -> Result<()> {
         match self.state() {
-            EngineState::PreStart => self.start(),
+            EngineState::PreStart => self.start()?,
             EngineState::Stopped => return Ok(()),
             _ => {
                 if self.context.stop_requested() {
-                    self.stop();
-                    return Ok(());
+                    return self.stop();
                 }
 
                 if self.context.pause_requested() {
@@ -215,8 +216,7 @@ where
                     self.context.wait();
 
                     if self.context.stop_requested() {
-                        self.stop();
-                        return Ok(());
+                        return self.stop();
                     }
 
                     self.context.set_running();

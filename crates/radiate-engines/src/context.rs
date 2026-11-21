@@ -111,9 +111,11 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         C: Chromosome + Clone + 'static,
         T: Clone + Send + Sync + 'static,
     {
-        self.event_stream().flush();
-        self.event_stream()
-            .lazy_publish(|| GenerationSnapshot::from(&*self))?;
+        let stream = self.event_stream();
+
+        stream.flush()?;
+        stream.lazy_publish(|| GenerationSnapshot::from(&*self))?;
+        stream.roll()?;
 
         self.index += 1;
 

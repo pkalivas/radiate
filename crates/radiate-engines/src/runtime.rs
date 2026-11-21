@@ -49,8 +49,7 @@ impl<E: Engine> EngineRuntime<E> {
 
         for limit in self.limits.iter_mut() {
             if !limit.proceed(ctx)? {
-                self.engine.stop();
-                return Ok(());
+                return self.engine.stop();
             }
         }
 

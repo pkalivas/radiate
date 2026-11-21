@@ -13,12 +13,13 @@ pub use handlers::{
 };
 pub use messages::{
     BuilderEvent, CheckpointSaved, DeferredEvent, EngineStart, EngineStateChange, EngineStop,
-    EpochComplete, EpochStart, GenerationSnapshot, Improvement, LimitTriggered, Warning,
+    EpochComplete, EpochStart, GenerationSnapshot, Improvement, LimitTriggered, StreamEvent,
+    Warning,
 };
 
 pub(crate) use event::Trace;
 pub use event::{Event, EventHandler, EventId, Handler};
-pub use mailbox::EventContext;
+pub use mailbox::{EventContext, MailBoxId};
 pub use stats::{StreamStats, SubscriptionInfo, SubscriptionStats};
 pub use stream::EventStream;
 pub use subscription::{Subscription, SubscriptionId};

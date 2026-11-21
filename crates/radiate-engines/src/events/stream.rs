@@ -4,10 +4,10 @@ use crate::{
         Event, Handler, Subscription, SubscriptionId,
         event::Payload,
         mailbox::MailBox,
-        messages::{DeferredEvent, SubscriptionEvent},
+        messages::{DeferredEvent, StreamEvent},
     },
 };
-use radiate_core::{Executor, SmallStr, WaitGroup, error::RadiateResult};
+use radiate_core::{Executor, SmallStr, WaitGroup, WaitGuard, error::RadiateResult};
 use std::{
     any::TypeId,
     collections::{HashMap, HashSet},
@@ -18,14 +18,24 @@ use std::{
     },
 };
 
-type Forward = Arc<dyn Fn(PayloadWrapper) + Send + Sync>;
+type Forward = Arc<dyn Fn(StreamMessage) + Send + Sync>;
 type SubscriberList = Arc<Vec<Registration>>;
 type SubscriberMap = HashMap<TypeId, SubscriberList>;
 
 #[derive(Clone)]
-struct PayloadWrapper {
-    payload: Payload,
-    trace: Trace,
+pub(crate) enum StreamMessage {
+    Event {
+        payload: Payload,
+        trace: Trace,
+    },
+    #[allow(dead_code)]
+    Wait(Arc<WaitGuard>),
+}
+
+enum DispatchMode {
+    Scheduled,
+    Immediate,
+    All,
 }
 
 #[derive(Clone)]
@@ -40,6 +50,7 @@ impl Registration {
     fn subscription_info(&self) -> SubscriptionInfo {
         SubscriptionInfo {
             id: self.subscription.id(),
+            mailbox_id: self.subscription.mailbox_id(),
             name: self.subscription.name(),
             event: SmallStr::from_static(self.event),
             stats: self.subscription.stats(),
@@ -58,6 +69,35 @@ pub(super) struct Shared {
     subscribers: RwLock<SubscriberMap>,
     pending: RwLock<Vec<Payload>>,
     event_count: AtomicUsize,
+}
+
+impl Shared {
+    fn group<E: Event>(&self) -> Option<SubscriberList> {
+        let type_id = TypeId::of::<E>();
+        self.subscribers.read().unwrap().get(&type_id).cloned()
+    }
+
+    fn group_by_type(&self, id: TypeId) -> Option<SubscriberList> {
+        self.subscribers.read().unwrap().get(&id).cloned()
+    }
+}
+
+// stream.rs
+pub struct EventStreamScope<'a> {
+    stream: &'a EventStream,
+    wg: WaitGroup,
+}
+
+impl EventStreamScope<'_> {
+    pub fn publish<E: Event>(&self, event: E) {
+        self.stream
+            .publish_traced(event, Trace::scoped(self.wg.guard()));
+    }
+
+    pub fn lazy_publish<E: Event>(&self, f: impl FnOnce() -> E) -> RadiateResult<()> {
+        self.stream
+            .lazy_publish_traced(f, Trace::scoped(self.wg.guard()))
+    }
 }
 
 #[derive(Clone, Default)]
@@ -137,6 +177,11 @@ impl EventStream {
         Ok(subscriber)
     }
 
+    pub fn subscribe<E: Event>(&self, handler: impl Handler<E>) -> Subscription {
+        let subscriber = MailBox::new(handler, Arc::clone(&self.executor), self);
+        self.register::<E, _>(&subscriber)
+    }
+
     pub fn detach<H: EventHandler>(&self) -> bool {
         let handler = TypeId::of::<H>();
         let mut subscribers = self.shared.subscribers.write().unwrap();
@@ -153,16 +198,11 @@ impl EventStream {
         }
 
         for stats in removed_stats.drain(..) {
-            self.defer(SubscriptionEvent::Removed(stats));
+            self.defer(StreamEvent::Removed(stats));
         }
 
         subscribers.retain(|_, group| !group.is_empty());
         !removed_stats.is_empty()
-    }
-
-    pub fn subscribe<E: Event>(&self, handler: impl Handler<E>) -> Subscription {
-        let subscriber = MailBox::new(handler, Arc::clone(&self.executor), self);
-        self.register::<E, _>(&subscriber)
     }
 
     pub fn unsubscribe(&self, id: SubscriptionId) -> bool {
@@ -188,52 +228,44 @@ impl EventStream {
         let removed = !total_removed.is_empty();
 
         for stats in total_removed.drain(..) {
-            self.defer(SubscriptionEvent::Removed(stats));
+            self.defer(StreamEvent::Removed(stats));
         }
 
         removed
     }
+}
 
+impl EventStream {
     #[inline]
     pub fn publish<E: Event>(&self, event: E) {
         self.publish_traced(event, Trace::new());
     }
 
+    pub fn lazy_publish<E: Event>(&self, f: impl FnOnce() -> E) -> RadiateResult<()> {
+        self.lazy_publish_traced(f, Trace::new())
+    }
+
     /// Publish `event` as part of an existing chain.
     #[inline]
     pub(crate) fn publish_traced<E: Event>(&self, event: E, trace: Trace) {
-        let type_id = TypeId::of::<E>();
-        let group = self
-            .shared
-            .subscribers
-            .read()
-            .unwrap()
-            .get(&type_id)
-            .cloned();
-
-        let Some(group) = group else {
+        let Some(group) = self.shared.group::<E>() else {
             return;
         };
 
-        let wrapper = PayloadWrapper {
+        let wrapper = StreamMessage::Event {
             payload: Arc::new(event),
             trace,
         };
 
-        self.dispatch(&group, wrapper, false);
+        self.dispatch(&group, wrapper, DispatchMode::Immediate);
     }
 
-    pub fn lazy_publish<E: Event>(&self, f: impl FnOnce() -> E) -> RadiateResult<()> {
-        let type_id = TypeId::of::<E>();
-        let group = self
-            .shared
-            .subscribers
-            .read()
-            .unwrap()
-            .get(&type_id)
-            .cloned();
-
-        let Some(group) = group else {
+    pub(crate) fn lazy_publish_traced<E: Event>(
+        &self,
+        f: impl FnOnce() -> E,
+        trace: Trace,
+    ) -> RadiateResult<()> {
+        let Some(group) = self.shared.group::<E>() else {
             return Ok(());
         };
 
@@ -248,12 +280,24 @@ impl EventStream {
             return Ok(());
         }
 
-        let wrapper = PayloadWrapper {
+        let wrapper = StreamMessage::Event {
             payload: Arc::new(f()),
-            trace: Trace::new(),
+            trace,
         };
-        self.dispatch(&group, wrapper, true);
+
+        self.dispatch(&group, wrapper, DispatchMode::Scheduled);
         Ok(())
+    }
+
+    pub fn scope<R>(&self, func: impl FnOnce(EventStreamScope) -> R) -> R {
+        let wg = WaitGroup::new();
+        let result = func(EventStreamScope {
+            stream: self,
+            wg: wg.clone(),
+        });
+
+        wg.wait();
+        result
     }
 
     /// Publish every deferred event, then block until each one's whole chain
@@ -267,35 +311,71 @@ impl EventStream {
     ///
     /// Don't call this from inside a handler running on the stream's worker
     /// pool. It would wait on work that may need that same pool to finish.
-    pub fn flush(&self) {
+    pub fn flush(&self) -> RadiateResult<()> {
         let deferred = std::mem::take(&mut *self.shared.pending.write().unwrap());
         if deferred.is_empty() {
-            return;
+            return Ok(());
         }
 
         let scope = WaitGroup::new();
         for payload in deferred {
             let type_id = (*payload).type_id();
-            let group = self
-                .shared
-                .subscribers
-                .read()
-                .unwrap()
-                .get(&type_id)
-                .cloned();
+            let group = self.shared.group_by_type(type_id);
 
             let Some(group) = group else {
                 continue;
             };
 
-            let wrapper = PayloadWrapper {
+            let wrapper = StreamMessage::Event {
                 payload: Arc::clone(&payload),
                 trace: Trace::scoped(scope.guard()),
             };
-            self.dispatch(&group, wrapper, false);
+
+            self.dispatch(&group, wrapper, DispatchMode::All);
         }
 
         scope.wait();
+
+        Ok(())
+    }
+
+    pub fn wait(&self) -> RadiateResult<()> {
+        let waiter = WaitGroup::new();
+
+        loop {
+            let subscribers = self.shared.subscribers.read().unwrap();
+            for group in subscribers.values() {
+                let guard = Arc::new(waiter.guard());
+                let message = StreamMessage::Wait(guard);
+
+                self.dispatch(&group, message, DispatchMode::All);
+            }
+
+            waiter.wait();
+
+            self.flush()?;
+
+            let stats = self.stats();
+            let in_flight = stats
+                .subscribers
+                .iter()
+                .map(|sub| sub.stats.in_flight())
+                .sum::<u64>();
+
+            if in_flight == 0 {
+                break;
+            }
+        }
+
+        waiter.wait();
+        Ok(())
+    }
+
+    pub fn roll(&self) -> RadiateResult<()> {
+        self.lazy_publish(|| {
+            let stats = self.stats();
+            StreamEvent::Stats(stats)
+        })
     }
 
     pub fn defer<E: Event>(&self, event: E) {
@@ -307,18 +387,22 @@ impl EventStream {
     }
 
     #[inline]
-    fn dispatch(&self, group: &SubscriberList, payload: PayloadWrapper, scheduled: bool) {
+    fn dispatch(&self, group: &SubscriberList, payload: StreamMessage, scheduled: DispatchMode) {
         for registration in group.iter() {
             if !registration.subscription.is_alive() {
                 continue;
             }
 
-            let due = if scheduled {
-                // lazy: already reserved
-                registration.subscription.take_permit()
-            } else {
-                // eager: tick now
-                registration.subscription.is_due()
+            let due = match scheduled {
+                DispatchMode::Scheduled => {
+                    // lazy: already reserved
+                    registration.subscription.take_permit()
+                }
+                DispatchMode::Immediate => {
+                    // eager: tick now
+                    registration.subscription.is_due()
+                }
+                DispatchMode::All => true,
             };
 
             if !due {
@@ -353,12 +437,12 @@ impl EventStream {
         E: Event,
         H: Handler<E>,
     {
-        let subscription = Subscription::new();
+        let subscription = Subscription::new(mailbox.id());
         let counters = Arc::clone(&subscription.counters);
         let target = mailbox.clone();
 
-        let forward: Forward = Arc::new(move |payload: PayloadWrapper| {
-            target.send::<E>(payload.payload, Arc::clone(&counters), payload.trace);
+        let forward: Forward = Arc::new(move |payload: StreamMessage| {
+            target.send::<E>(payload, Arc::clone(&counters));
         });
 
         let registration = Registration {
@@ -378,7 +462,9 @@ impl EventStream {
         list.retain(|registration| registration.subscription.is_alive());
         list.push(registration);
 
-        self.defer(SubscriptionEvent::Added(subscription.clone()));
+        drop(subscribers);
+
+        self.defer(StreamEvent::Added(subscription.clone()));
 
         subscription
     }

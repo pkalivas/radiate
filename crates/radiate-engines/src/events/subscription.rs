@@ -1,4 +1,4 @@
-use crate::SubscriptionStats;
+use crate::{SubscriptionStats, events::mailbox::MailBoxId};
 use radiate_core::{Expr, RadiateError, error::RadiateResult, radiate_err};
 use radiate_error::radiate_bail;
 use radiate_utils::{SmallStr, sentry_id};
@@ -42,6 +42,7 @@ impl Counters {
 #[derive(Clone)]
 pub struct Subscription {
     pub(crate) id: SubscriptionId,
+    pub(crate) mailbox_id: MailBoxId,
     pub(crate) name: Arc<RwLock<Option<SmallStr>>>,
     pub(crate) schedule: Arc<RwLock<Option<Expr>>>,
     pub(crate) permits: Arc<AtomicUsize>,
@@ -51,9 +52,10 @@ pub struct Subscription {
 }
 
 impl Subscription {
-    pub(super) fn new() -> Self {
+    pub(super) fn new(mailbox_id: MailBoxId) -> Self {
         Subscription {
             id: SubscriptionId::new(),
+            mailbox_id,
             name: Arc::new(RwLock::new(None)),
             schedule: Arc::new(RwLock::new(None)),
             permits: Arc::new(AtomicUsize::new(0)),
@@ -90,6 +92,10 @@ impl Subscription {
 
     pub fn id(&self) -> SubscriptionId {
         self.id
+    }
+
+    pub fn mailbox_id(&self) -> MailBoxId {
+        self.mailbox_id
     }
 
     pub fn schedule(&self, schedule: impl Into<Expr>) -> Result<bool, RadiateError> {

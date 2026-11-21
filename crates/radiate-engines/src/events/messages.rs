@@ -1,4 +1,7 @@
-use crate::{Event, Generation, Limit, Subscription, SubscriptionInfo, context::EvolutionContext};
+use crate::{
+    Event, Generation, Limit, StreamStats, Subscription, SubscriptionInfo,
+    context::EvolutionContext,
+};
 use radiate_core::{
     Chromosome, EngineState, Front, MetricSet, Objective, Phenotype, Score, SmallStr,
 };
@@ -17,12 +20,13 @@ impl<E: Event> Event for DeferredEvent<E> {
 }
 
 #[derive(Clone, Debug)]
-pub enum SubscriptionEvent {
+pub enum StreamEvent {
     Added(Subscription),
     Removed(SubscriptionInfo),
+    Stats(StreamStats),
 }
 
-impl Event for SubscriptionEvent {}
+impl Event for StreamEvent {}
 
 #[derive(Clone, Debug)]
 pub struct BuilderEvent(pub String);

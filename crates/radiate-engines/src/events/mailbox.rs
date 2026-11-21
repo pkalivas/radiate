@@ -1,6 +1,9 @@
 use crate::{
     Event, EventId, Trace,
-    events::{event::Payload, stream::Shared},
+    events::{
+        event::Payload,
+        stream::{Shared, StreamMessage},
+    },
 };
 use crate::{
     EventHandler,
@@ -8,9 +11,11 @@ use crate::{
 };
 use crate::{Handler, events::subscription::Counters};
 use radiate_core::{Executor, Inbox, error::RadiateResult};
-use radiate_utils::generate_metric_key;
+use radiate_utils::{generate_metric_key, sentry_id};
 use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
 use std::sync::{Arc, Mutex, Weak};
+
+sentry_id!(MailBoxId);
 
 /// Deliveries a [`MailBox`] drains per turn on a worker pool before handing the
 /// worker back to the executor. On a serial executor the drain just keeps going.
@@ -32,13 +37,13 @@ where
 /// One queued delivery: the published event plus everything needed to hand it
 /// to the handler once this mailbox's drain reaches it.
 struct Envelope<H> {
-    payload: Payload,
-    trace: Trace,
+    payload: StreamMessage,
     counters: Arc<Counters>,
     deliver: fn(&mut H, &Payload, &EventContext<'_, H>),
 }
 
 struct Inner<H> {
+    id: MailBoxId,
     handler: Mutex<H>,
     inbox: Inbox<Envelope<H>>,
     executor: Arc<Executor>,
@@ -67,11 +72,16 @@ impl<H> MailBox<H> {
 impl<H: Send + 'static> MailBox<H> {
     pub(super) fn new(handler: H, executor: Arc<Executor>, stream: &EventStream) -> Self {
         MailBox(Arc::new(Inner {
+            id: MailBoxId::new(),
             handler: Mutex::new(handler),
             inbox: Inbox::new(),
             executor,
             stream: stream.downgrade(),
         }))
+    }
+
+    pub fn id(&self) -> MailBoxId {
+        self.0.id
     }
 
     /// Subscribe this handler to `E`. If the stream has already been dropped,
@@ -84,7 +94,7 @@ impl<H: Send + 'static> MailBox<H> {
         match self.stream() {
             Some(stream) => stream.register::<E, H>(self),
             None => {
-                let subscription = Subscription::new();
+                let subscription = Subscription::new(self.0.id);
                 subscription.unsubscribe();
                 subscription
             }
@@ -106,9 +116,10 @@ impl<H: Send + 'static> MailBox<H> {
     {
         let claimed = self.0.inbox.try_claim();
         let result = {
+            let trace = Trace::new();
             let ctx = EventContext {
                 mailbox: self,
-                trace: Trace::new(),
+                trace: &trace,
             };
             self.0.handler.lock().unwrap().start(&ctx)
         };
@@ -120,15 +131,13 @@ impl<H: Send + 'static> MailBox<H> {
         result
     }
 
-    /// Queue `payload` (an `E`) for this handler and make sure a drain is running.
-    pub(super) fn send<E>(&self, payload: Payload, counters: Arc<Counters>, trace: Trace)
+    pub(super) fn send<E>(&self, payload: StreamMessage, counters: Arc<Counters>)
     where
         E: Event,
         H: Handler<E>,
     {
         let envelope = Envelope {
             payload,
-            trace,
             counters,
             deliver: deliver::<E, H>,
         };
@@ -144,14 +153,16 @@ impl<H: Send + 'static> MailBox<H> {
         self.0.executor.submit(move || mailbox.process());
     }
 
-    fn process(&self) {
-        // A serial drain has no shared worker to give back, so it runs to empty.
-        let budget = if self.0.executor.is_parallel() {
+    fn budget(&self) -> usize {
+        if self.0.executor.is_parallel() {
             PROCESS_BATCH_SIZE
         } else {
             usize::MAX
-        };
+        }
+    }
 
+    fn process(&self) {
+        let mut shutdown = None;
         let more = {
             let Ok(mut handler) = self.0.handler.lock() else {
                 self.discard();
@@ -162,24 +173,29 @@ impl<H: Send + 'static> MailBox<H> {
             };
 
             let mut panicked = None;
-            let more = self.0.inbox.drain(budget, |envelope| {
-                if panicked.is_some() {
-                    // dropped: releases its trace
-                    return;
-                }
-
-                let ctx = EventContext {
-                    mailbox: self,
-                    trace: envelope.trace,
+            let more = self.0.inbox.drain(self.budget(), |envelope| {
+                let outcome = match &envelope.payload {
+                    StreamMessage::Event { payload, trace } => {
+                        let ctx = EventContext {
+                            mailbox: self,
+                            trace,
+                        };
+                        catch_unwind(AssertUnwindSafe(|| {
+                            (envelope.deliver)(&mut handler, payload, &ctx)
+                        }))
+                    }
+                    StreamMessage::Wait(guard) => {
+                        shutdown = Some(Arc::clone(guard));
+                        Ok(())
+                    }
                 };
-
-                let outcome = catch_unwind(AssertUnwindSafe(|| {
-                    (envelope.deliver)(&mut handler, &envelope.payload, &ctx)
-                }));
 
                 match outcome {
                     Ok(()) => envelope.counters.record_handled(),
-                    Err(payload) => panicked = Some(payload),
+                    Err(payload) => {
+                        panicked = Some(payload);
+                        return;
+                    }
                 }
             });
 
@@ -192,6 +208,8 @@ impl<H: Send + 'static> MailBox<H> {
 
             more
         };
+
+        drop(shutdown);
 
         if more {
             // Only reachable on a pool: give the worker back, continue as a new job
@@ -213,7 +231,7 @@ impl<H> Clone for MailBox<H> {
 
 pub struct EventContext<'a, H> {
     mailbox: &'a MailBox<H>,
-    trace: Trace,
+    trace: &'a Trace,
 }
 
 impl<H> EventContext<'_, H> {
