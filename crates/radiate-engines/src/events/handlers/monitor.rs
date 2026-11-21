@@ -1,5 +1,5 @@
 use crate::{
-    EventContext, EventHandler, Handler, LogEvent, LogLevel, StreamEvent, SubscriptionId,
+    EventContext, EventHandler, Handler, LogEvent, LogLevel, StreamSnapshot, SubscriptionId,
     SubscriptionInfo, Warning, events::EngineStateChange,
 };
 use radiate_core::{EngineState, error::RadiateResult};
@@ -197,17 +197,15 @@ impl Default for StreamMonitor {
 
 impl EventHandler for StreamMonitor {
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
-        ctx.subscribe::<StreamEvent>();
+        ctx.subscribe::<StreamSnapshot>();
         ctx.subscribe::<EngineStateChange>();
         Ok(())
     }
 }
 
-impl Handler<StreamEvent> for StreamMonitor {
-    fn handle(&mut self, event: &StreamEvent, ctx: &EventContext<'_, Self>) {
-        let StreamEvent::Stats(stats) = event else {
-            return;
-        };
+impl Handler<StreamSnapshot> for StreamMonitor {
+    fn handle(&mut self, event: &StreamSnapshot, ctx: &EventContext<'_, Self>) {
+        let StreamSnapshot(stats) = event;
 
         let now = Instant::now();
         self.first.get_or_insert(now);

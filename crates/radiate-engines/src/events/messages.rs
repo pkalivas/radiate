@@ -2,36 +2,27 @@ use crate::{
     Event, Generation, Limit, StreamStats, Subscription, SubscriptionInfo,
     context::EvolutionContext,
 };
-use radiate_core::{
-    Chromosome, EngineState, Front, MetricSet, Objective, Phenotype, Score, SmallStr,
-};
+use radiate_core::{Chromosome, EngineState, Front, MetricSet, Objective, Phenotype, Score};
 use std::{
     fmt::Debug,
     sync::{Arc, RwLock},
 };
 
 #[derive(Clone, Debug)]
-pub struct DeferredEvent<E>(pub E);
-
-impl<E: Event> Event for DeferredEvent<E> {
-    fn name() -> SmallStr {
-        SmallStr::from_string(format!("{}.deferred", E::name()))
-    }
-}
+pub struct SubscriptionAdded(pub Subscription);
+impl Event for SubscriptionAdded {}
 
 #[derive(Clone, Debug)]
-pub enum StreamEvent {
-    Added(Subscription),
-    Removed(SubscriptionInfo),
-    Stats(StreamStats),
-}
-
-impl Event for StreamEvent {}
+pub struct SubscriptionRemoved(pub SubscriptionInfo);
+impl Event for SubscriptionRemoved {}
 
 #[derive(Clone, Debug)]
-pub struct BuilderEvent(pub String);
+pub struct StreamDrained;
+impl Event for StreamDrained {}
 
-impl Event for BuilderEvent {}
+#[derive(Clone, Debug)]
+pub struct StreamSnapshot(pub StreamStats);
+impl Event for StreamSnapshot {}
 
 #[derive(Clone, Debug)]
 pub struct EngineStateChange {

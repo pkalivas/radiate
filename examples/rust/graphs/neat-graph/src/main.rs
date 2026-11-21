@@ -30,7 +30,7 @@ fn main() -> RadiateResult<()> {
         ))
         .build();
 
-    let result = engine.iter().ui().until_score(MIN_SCORE).last()?;
+    let result = engine.iter().logging().ui().until_score(MIN_SCORE).last()?;
 
     display(&data, &result);
 

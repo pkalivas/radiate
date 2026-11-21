@@ -4,7 +4,7 @@ use crate::{
         Event, Handler, Subscription, SubscriptionId,
         event::Payload,
         mailbox::{MailBox, Route},
-        messages::{DeferredEvent, StreamEvent},
+        messages::{SubscriptionAdded, SubscriptionRemoved},
         subscription::Counters,
     },
 };
@@ -288,7 +288,7 @@ impl EventStream {
             group.push(registration);
         }
 
-        self.defer(StreamEvent::Added(subscription.clone()));
+        self.defer(SubscriptionAdded(subscription.clone()));
         subscription
     }
 
@@ -313,7 +313,7 @@ impl EventStream {
 
         let any = !removed.is_empty();
         for info in removed {
-            self.defer(StreamEvent::Removed(info));
+            self.defer(SubscriptionRemoved(info));
         }
         any
     }
@@ -322,11 +322,7 @@ impl EventStream {
 /// Publishing
 impl EventStream {
     pub fn defer<E: Event>(&self, event: E) {
-        self.shared
-            .pending
-            .write()
-            .unwrap()
-            .push(Arc::new(DeferredEvent(event)));
+        self.shared.pending.write().unwrap().push(Arc::new(event));
     }
 
     #[inline]
@@ -468,6 +464,7 @@ impl EventStream {
             })?;
 
             if self.event_count() == before {
+                // self.scope(|stream| stream.lazy_publish(|| StreamSnapshot(stream.stream.stats())))?;
                 return Ok(());
             }
         }

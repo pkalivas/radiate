@@ -189,14 +189,17 @@ where
         self.context
             .metrics
             .upsert(metric_names::INDEX, self.context.index());
-        self.stream.publish(EngineStart::from(&self.context));
+        self.stream
+            .lazy_publish(|| EngineStart::from(&self.context))?;
 
         Ok(())
     }
 
     fn stop(&mut self) -> Result<()> {
         self.context.set_stopped();
-        self.stream.publish(EngineStop::from(&self.context));
+        self.stream
+            .lazy_publish(|| EngineStop::from(&self.context))?;
+
         self.stream.drain()?;
 
         Ok(())
@@ -225,12 +228,14 @@ where
             }
         }
 
-        self.stream.publish(EpochStart::from(&self.context));
+        self.stream
+            .lazy_publish(|| EpochStart::from(&self.context))?;
 
         self.pipeline.run(&mut self.context)?;
         self.context.finalize()?;
 
-        self.stream.publish(EpochComplete::from(&self.context));
+        self.stream
+            .lazy_publish(|| EpochComplete::from(&self.context))?;
 
         self.context.roll()?;
 

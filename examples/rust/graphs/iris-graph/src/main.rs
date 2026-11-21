@@ -53,6 +53,10 @@ fn main() -> RadiateResult<()> {
         )
         .schedule(10)?;
 
+    engine.subscribe(|event: &LimitTriggered| {
+        println!("Limit triggered: {:?}", event);
+    });
+
     // engine.subscribe(|event: &StreamEvent| {
     //     if let StreamEvent::Stats(stats) = event {
     //         println!("HERE {:#?}", stats.event_count);

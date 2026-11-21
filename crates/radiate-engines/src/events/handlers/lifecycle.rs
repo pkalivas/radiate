@@ -1,6 +1,6 @@
 use crate::{
     EventContext, EventHandler, Handler, LogEvent, LogLevel,
-    events::messages::{BuilderEvent, DeferredEvent, StreamEvent},
+    events::messages::{StreamDrained, SubscriptionAdded, SubscriptionRemoved},
 };
 use radiate_core::error::RadiateResult;
 
@@ -8,41 +8,40 @@ pub struct LifecycleHandler;
 
 impl EventHandler for LifecycleHandler {
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
-        ctx.subscribe::<DeferredEvent<BuilderEvent>>();
-        ctx.subscribe::<DeferredEvent<StreamEvent>>();
+        ctx.subscribe::<SubscriptionAdded>();
+        ctx.subscribe::<SubscriptionRemoved>();
+        ctx.subscribe::<StreamDrained>();
 
         Ok(())
     }
 }
 
-impl Handler<DeferredEvent<BuilderEvent>> for LifecycleHandler {
-    fn handle(&mut self, event: &DeferredEvent<BuilderEvent>, ctx: &EventContext<'_, Self>) {
-        ctx.publish(LogEvent(LogLevel::Info, event.0.0.clone()));
+impl Handler<SubscriptionAdded> for LifecycleHandler {
+    fn handle(&mut self, event: &SubscriptionAdded, ctx: &EventContext<'_, Self>) {
+        ctx.publish(LogEvent(
+            LogLevel::Info,
+            format!(
+                "Subscription | Added   | {:?}",
+                event.0.name().unwrap_or_default()
+            ),
+        ));
     }
 }
 
-impl Handler<DeferredEvent<StreamEvent>> for LifecycleHandler {
-    fn handle(&mut self, event: &DeferredEvent<StreamEvent>, ctx: &EventContext<'_, Self>) {
-        match &event.0 {
-            StreamEvent::Added(sub) => {
-                ctx.publish(LogEvent(
-                    LogLevel::Info,
-                    format!(
-                        "Subscription | Added   | {:?}",
-                        sub.name().unwrap_or_default()
-                    ),
-                ));
-            }
-            StreamEvent::Removed(stats) => {
-                ctx.publish(LogEvent(
-                    LogLevel::Info,
-                    format!(
-                        "Subscription | Removed | {:?}",
-                        stats.name.clone().unwrap_or_default()
-                    ),
-                ));
-            }
-            _ => {}
-        }
+impl Handler<SubscriptionRemoved> for LifecycleHandler {
+    fn handle(&mut self, event: &SubscriptionRemoved, ctx: &EventContext<'_, Self>) {
+        ctx.publish(LogEvent(
+            LogLevel::Info,
+            format!(
+                "Subscription | Removed | {:?}",
+                event.0.name.clone().unwrap_or_default()
+            ),
+        ));
+    }
+}
+
+impl Handler<StreamDrained> for LifecycleHandler {
+    fn handle(&mut self, _event: &StreamDrained, ctx: &EventContext<'_, Self>) {
+        ctx.publish(LogEvent(LogLevel::Info, "Stream drained".to_string()));
     }
 }

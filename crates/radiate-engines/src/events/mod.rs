@@ -13,9 +13,8 @@ pub use handlers::{
     StreamMonitor,
 };
 pub use messages::{
-    BuilderEvent, CheckpointSaved, DeferredEvent, EngineStart, EngineStateChange, EngineStop,
-    EpochComplete, EpochStart, GenerationSnapshot, Improvement, LimitTriggered, StreamEvent,
-    Warning,
+    CheckpointSaved, EngineStart, EngineStateChange, EngineStop, EpochComplete, EpochStart,
+    GenerationSnapshot, Improvement, LimitTriggered, StreamDrained, StreamSnapshot, Warning,
 };
 
 pub(crate) use event::EventScope;

@@ -1,7 +1,7 @@
 use radiate_core::{EngineState, Executor, error::RadiateResult};
 use radiate_engines::events::{
-    DeferredEvent, EngineStateChange, Event, EventContext, EventHandler, EventId, EventStream,
-    Handler, LogEvent, StreamEvent, StreamMonitor, Warning,
+    EngineStateChange, Event, EventContext, EventHandler, EventId, EventStream, Handler, LogEvent,
+    StreamMonitor, Warning,
 };
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::mpsc::{self, RecvTimeoutError};
@@ -467,13 +467,13 @@ mod waiting {
 
     impl EventHandler for Relay {
         fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
-            ctx.subscribe::<DeferredEvent<Ping>>();
+            ctx.subscribe::<Ping>();
             Ok(())
         }
     }
 
-    impl Handler<DeferredEvent<Ping>> for Relay {
-        fn handle(&mut self, _: &DeferredEvent<Ping>, ctx: &EventContext<'_, Self>) {
+    impl Handler<Ping> for Relay {
+        fn handle(&mut self, _: &Ping, ctx: &EventContext<'_, Self>) {
             ctx.publish(Pong);
         }
     }
@@ -540,14 +540,14 @@ mod waiting {
 
     impl EventHandler for Echo {
         fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
-            ctx.subscribe::<DeferredEvent<Ping>>();
+            ctx.subscribe::<Ping>();
             ctx.subscribe::<Tick>();
             Ok(())
         }
     }
 
-    impl Handler<DeferredEvent<Ping>> for Echo {
-        fn handle(&mut self, _: &DeferredEvent<Ping>, ctx: &EventContext<'_, Self>) {
+    impl Handler<Ping> for Echo {
+        fn handle(&mut self, _: &Ping, ctx: &EventContext<'_, Self>) {
             ctx.publish(Tick(0));
         }
     }
@@ -578,14 +578,14 @@ mod waiting {
 
     impl EventHandler for Recorder {
         fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
-            ctx.subscribe::<DeferredEvent<Ping>>();
+            ctx.subscribe::<Ping>();
             ctx.subscribe::<Pong>();
             Ok(())
         }
     }
 
-    impl Handler<DeferredEvent<Ping>> for Recorder {
-        fn handle(&mut self, _: &DeferredEvent<Ping>, ctx: &EventContext<'_, Self>) {
+    impl Handler<Ping> for Recorder {
+        fn handle(&mut self, _: &Ping, ctx: &EventContext<'_, Self>) {
             self.0.send(ctx.root_id()).unwrap();
             ctx.publish(Pong);
         }
@@ -623,6 +623,8 @@ mod waiting {
 }
 
 mod monitor {
+    use radiate_engines::StreamSnapshot;
+
     use super::*;
 
     #[test]
@@ -644,7 +646,7 @@ mod monitor {
 
         for _ in 0..5 {
             stream.publish(Ping);
-            stream.publish(StreamEvent::Stats(stream.stats()));
+            stream.publish(StreamSnapshot(stream.stats()));
         }
 
         let warning = warnings.recv_timeout(GENEROUS).unwrap();
@@ -668,7 +670,7 @@ mod monitor {
 
         for _ in 0..3 {
             stream.publish(Ping);
-            stream.publish(StreamEvent::Stats(stream.stats()));
+            stream.publish(StreamSnapshot(stream.stats()));
         }
         stream.publish(EngineStateChange {
             index: 0,

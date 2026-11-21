@@ -8,15 +8,13 @@ mod problem;
 mod selectors;
 mod species;
 
-use crate::builder::filters::FilterParams;
-use crate::builder::problem::ProblemParams;
+use crate::builder::population::PopulationParams;
 use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
 use crate::events::{Event, EventStream};
 use crate::genome::phenotype::Phenotype;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
-use crate::{BuilderEvent, builder::population::PopulationParams};
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
@@ -27,6 +25,8 @@ use crate::{FileWriter, io::FileReader};
 use crate::{Generation, Result};
 use crate::{Handler, builder::evaluators::EvaluationParams};
 use crate::{LifecycleHandler, builder::objectives::OptimizeParams};
+use crate::{LogEvent, builder::filters::FilterParams};
+use crate::{LogLevel, builder::problem::ProblemParams};
 use crate::{
     builder::evaluators::ExecutorParams,
     steps::{
@@ -110,7 +110,7 @@ where
     pub(self) fn defer_event(&mut self, message: &str) {
         self.params
             .event_stream
-            .defer(BuilderEvent(message.to_string()));
+            .defer(LogEvent(LogLevel::Info, message.to_string()));
     }
 
     /// The [ReplacementStrategy] is used to determine how a new individual is added to the [Population]
@@ -596,7 +596,11 @@ where
     }
 
     fn add_builder_event(stream: &EventStream, message: impl Into<String>) {
-        stream.defer(BuilderEvent(format!("Builder: {}", message.into())));
+        // stream.defer(BuilderEvent(format!("Builder: {}", message.into())));
+        stream.defer(LogEvent(
+            LogLevel::Info,
+            format!("Builder: {}", message.into()),
+        ));
     }
 }
 

@@ -1,5 +1,6 @@
 use crate::{
-    Chromosome, GenerationSnapshot, Improvement, StreamEvent, ThreadSync, events::EngineStateChange,
+    Chromosome, GenerationSnapshot, Improvement, StreamSnapshot, ThreadSync,
+    events::EngineStateChange,
 };
 use crate::{builder::config::EngineConfig, events::EventStream};
 use radiate_core::ExprSet;
@@ -116,12 +117,12 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
     {
         let stream = self.stream();
 
-        for deferred in stream.deferred() {
+        stream.deferred().into_iter().for_each(|deferred| {
             stream.publish_payload(deferred);
-        }
+        });
 
         stream.lazy_publish(|| GenerationSnapshot::from(&*self))?;
-        stream.lazy_publish(|| StreamEvent::Stats(stream.stats()))?;
+        stream.lazy_publish(|| StreamSnapshot(stream.stats()))?;
 
         self.index += 1;
 
