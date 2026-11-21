@@ -18,6 +18,7 @@ pub struct EvolutionContext<C: Chromosome, T> {
     pub(crate) objective: Objective,
     pub(crate) sync: ThreadSync,
     pub(crate) score: Option<Score>,
+    pub(crate) previous_score: Option<Score>,
     pub(crate) front: Arc<RwLock<Front<Phenotype<C>>>>,
     pub(crate) problem: Arc<dyn Problem<C, T>>,
     pub(crate) exprs: Option<Arc<Mutex<ExprSet>>>,
@@ -99,6 +100,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
             .unwrap_or(false);
 
         if best_improved && let Some(best) = best {
+            self.previous_score = self.score.clone();
             self.score = best.score().cloned();
             self.best = self.problem.decode(best.genotype());
             self.stream().lazy_publish(|| Improvement::from(&*self))?;
@@ -158,6 +160,7 @@ where
                 index: generation.index(),
                 metrics: generation.metrics().clone(),
                 score: Some(generation.score().clone()),
+                previous_score: None,
                 front: config.front(),
                 objective: config.objective().clone(),
                 problem: config.problem().clone(),
@@ -179,6 +182,7 @@ where
             index: 0,
             metrics: MetricSet::default(),
             score: None,
+            previous_score: None,
             front: config.front(),
             objective: config.objective().clone(),
             problem: config.problem().clone(),

@@ -43,8 +43,10 @@ impl<'a, C: Chromosome> Widget for SearchBarWidget<'a, C> {
             format!("{}", metric_summary.metrics).fg(Color::LightGreen),
             ", ".fg(Color::Gray).bold(),
             format!("{} ", metric_summary.updates).fg(Color::LightGreen),
-            "| Renders: ".fg(Color::Gray).bold(),
+            "| ".fg(Color::Gray).bold(),
             format!("{} ", total_renders).fg(Color::LightGreen),
+            format!("/ ").fg(Color::Gray).bold(),
+            format!("{} ", self.state.run.event_count).fg(Color::LightGreen),
         ];
 
         Paragraph::new(self.state.nav.search.query.as_str())

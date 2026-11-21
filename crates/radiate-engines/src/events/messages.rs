@@ -81,8 +81,10 @@ where
 #[derive(Clone)]
 pub struct Improvement<T> {
     pub index: usize,
+    pub objective: Objective,
     pub best: T,
     pub score: Score,
+    pub previous_score: Option<Score>,
 }
 
 impl<T> Event for Improvement<T> where T: Send + Sync + 'static {}
@@ -101,8 +103,10 @@ where
     fn from(ctx: &EvolutionContext<C, T>) -> Self {
         Improvement {
             index: ctx.index,
+            objective: ctx.objective.clone(),
             best: ctx.best.clone(),
             score: ctx.score.clone().unwrap_or_default(),
+            previous_score: ctx.previous_score.clone(),
         }
     }
 }

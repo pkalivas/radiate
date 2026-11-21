@@ -1,11 +1,11 @@
 use crate::{
     DEFAULT_RENDER_INTERVAL,
-    app::{App, GenerationEvent, InputEvent},
+    app::{App, GenerationEvent, ImprovementEvent, InputEvent},
 };
 use color_eyre::{Result, eyre::Context};
 use crossbeam::channel;
 use radiate_engines::{
-    Chromosome, EngineStart, EventContext, EventHandler, GenerationSnapshot, Handler,
+    Chromosome, EngineStart, EventContext, EventHandler, GenerationSnapshot, Handler, Improvement,
     error::RadiateResult, sync::IntoPair,
 };
 use radiate_engines::{LogEvent, ThreadSync};
@@ -75,6 +75,7 @@ where
         ctx.subscribe::<EngineStart<C>>();
         ctx.subscribe::<GenerationSnapshot<C, T>>();
         ctx.subscribe::<LogEvent>();
+        ctx.subscribe::<Improvement<T>>();
 
         Ok(())
     }
@@ -115,6 +116,19 @@ where
         self.dispatcher
             .send(InputEvent::Log(event.0, event.1.clone()))
             .context("Failed to send LogEvent")
+            .unwrap();
+    }
+}
+
+impl<C, T> Handler<Improvement<T>> for Tui<C, T>
+where
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    fn handle(&mut self, event: &Improvement<T>, _: &EventContext<'_, Self>) {
+        self.dispatcher
+            .send(InputEvent::Improvement(ImprovementEvent::from(event)))
+            .context("Failed to send Improvement event")
             .unwrap();
     }
 }

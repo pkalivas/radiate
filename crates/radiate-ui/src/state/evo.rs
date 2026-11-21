@@ -1,6 +1,6 @@
 use super::chart::{ChartState, MetricChartType};
-use crate::chart::RollingLineChart;
 use crate::widgets::num_pairs;
+use crate::{app::ImprovementEvent, chart::RollingLineChart};
 use radiate_engines::{
     Chromosome, Ecosystem, Front, MetricSet, Objective, Optimize, Phenotype, Population, Score,
     Species, events::LogLevel,
@@ -62,25 +62,52 @@ impl<C: Chromosome> EvoState<C> {
             return;
         }
 
+        // if self.pareto.objective.is_single() {
+        //     let prev = self.score.as_f32();
+        //     let next = new_score.as_f32();
+        //     let delta = match &self.pareto.objective {
+        //         Objective::Single(Optimize::Minimize) => prev - next,
+        //         _ => next - prev,
+        //     };
+
+        //     if delta > 0.0 {
+        //         self.best_score = new_score.clone();
+        //         self.improvement_log.push_front(ImprovementEntry {
+        //             generation: self.index,
+        //             score: next,
+        //             delta,
+        //         });
+        //     }
+        // }
+
+        self.score = new_score;
+    }
+
+    pub fn update_improvement(&mut self, event: ImprovementEvent) {
+        let Some(previous_score) = &event.previous_score else {
+            return;
+        };
+
         if self.pareto.objective.is_single() {
-            let prev = self.score.as_f32();
-            let next = new_score.as_f32();
-            let delta = match &self.pareto.objective {
-                Objective::Single(Optimize::Minimize) => prev - next,
-                _ => next - prev,
-            };
+            let next = event.score.as_f32();
+            let delta = previous_score
+                .delta(&event.score, &event.objective)
+                .map(|val| val.as_f32())
+                .unwrap_or(0.0);
+            // let delta = match &event.objective {
+            //     Objective::Single(Optimize::Minimize) => prev - next,
+            //     _ => next - prev,
+            // };
 
             if delta > 0.0 {
-                self.best_score = new_score.clone();
+                self.best_score = event.score.clone();
                 self.improvement_log.push_front(ImprovementEntry {
-                    generation: self.index,
+                    generation: event.index,
                     score: next,
                     delta,
                 });
             }
         }
-
-        self.score = new_score;
     }
 
     pub fn update_index(&mut self, index: usize) {

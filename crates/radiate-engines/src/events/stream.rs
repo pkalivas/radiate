@@ -331,6 +331,21 @@ impl EventStream {
         result
     }
 
+    pub fn open(&self) -> RadiateResult<()> {
+        let deferred = self.deferred();
+        if deferred.is_empty() {
+            return Ok(());
+        }
+
+        self.scope(|stream| {
+            for payload in deferred {
+                stream.publish_payload(payload);
+            }
+
+            Ok(())
+        })
+    }
+
     pub fn flush(&self) -> RadiateResult<()> {
         let deferred = self.deferred();
         if deferred.is_empty() {

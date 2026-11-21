@@ -359,6 +359,14 @@ impl<H> EventContext<'_, H> {
         }
     }
 
+    pub fn lazy_publish<E: Event>(&self, event: impl FnOnce() -> E + 'static) -> RadiateResult<()> {
+        if let Some(stream) = self.mailbox.stream() {
+            stream.lazy_publish_scoped(event, self.scope.clone())?;
+        }
+
+        Ok(())
+    }
+
     /// The id of the event that started the chain this handler is running in.
     pub fn root_id(&self) -> EventId {
         self.scope.id()

@@ -4,8 +4,8 @@ use color_eyre::Result;
 use crossbeam::channel;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use radiate_engines::{
-    Chromosome, CommandChannel, Ecosystem, Front, GenerationSnapshot, MetricSet, Phenotype, Score,
-    ThreadSync, events::LogLevel,
+    Chromosome, CommandChannel, Ecosystem, Front, GenerationSnapshot, Improvement, MetricSet,
+    Objective, Phenotype, Score, ThreadSync, events::LogLevel,
 };
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -46,6 +46,27 @@ where
     }
 }
 
+pub struct ImprovementEvent {
+    pub index: usize,
+    pub score: Score,
+    pub previous_score: Option<Score>,
+    pub objective: Objective,
+}
+
+impl<T> From<&Improvement<T>> for ImprovementEvent
+where
+    T: Clone + Send + Sync + 'static,
+{
+    fn from(improvement: &Improvement<T>) -> Self {
+        Self {
+            index: improvement.index,
+            score: improvement.score.clone(),
+            previous_score: improvement.previous_score.clone(),
+            objective: improvement.objective.clone(),
+        }
+    }
+}
+
 // Clippy assumes that the `CrossTerm(Event)` event is the high-frequency event and
 // `EpochComplete` is the low-frequency variant - but it is exactly the opposite. `EpochComplete` events can happen hundreds, if
 // not thousands, of times per second; boxing it would add a heap allocation on every generation tick,
@@ -60,6 +81,7 @@ where
     EngineStop,
     EpochComplete(GenerationEvent<C>),
     Log(LogLevel, String),
+    Improvement(ImprovementEvent),
 }
 
 pub(crate) struct App<C>
@@ -128,7 +150,12 @@ where
                 return self.throttle();
             }
             InputEvent::Log(level, message) => {
+                self.state.run.event_count += 1;
                 self.state.evo.push_event_log_entry(level, message);
+                return self.throttle();
+            }
+            InputEvent::Improvement(event) => {
+                self.handle_improvement(event);
                 return self.throttle();
             }
         }
@@ -274,6 +301,12 @@ where
         self.state
             .nav
             .ensure_tab_available(self.state.evo.has_species(), self.state.evo.is_multi());
+        self.state.run.event_count += 1;
+    }
+
+    pub fn handle_improvement(&mut self, event: ImprovementEvent) {
+        self.state.evo.update_improvement(event);
+        self.state.run.event_count += 1;
     }
 
     pub fn handle_engine_start(&mut self, front: Arc<RwLock<Front<Phenotype<C>>>>) {
@@ -294,6 +327,8 @@ where
         } else {
             self.state.evo.pareto.chart_start_index = 0;
         }
+
+        self.state.run.event_count += 1;
     }
 }
 
