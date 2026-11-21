@@ -137,7 +137,7 @@ where
     /// how to handle events of type `E`. You can use this to listen for events
     /// such as epoch completions, improvements, or custom messages emitted during the evolutionary process.
     pub fn subscribe<E: Event>(&self, handler: impl Handler<E>) -> Subscription {
-        self.stream.subscribe(handler).named(E::name())
+        self.stream.subscribe(handler).with_name(E::name())
     }
 }
 

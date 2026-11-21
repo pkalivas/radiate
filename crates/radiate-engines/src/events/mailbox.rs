@@ -382,6 +382,6 @@ impl<H> EventContext<'_, H> {
 
         let first = generate_metric_key::<H>(HANDLER_PREFIX);
         let second = format!("{}.{}", first, E::name());
-        self.mailbox.subscribe::<E>().named(second)
+        self.mailbox.subscribe::<E>().with_name(second)
     }
 }

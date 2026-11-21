@@ -164,7 +164,7 @@ mod publish {
     #[test]
     fn stream_stats_report_live_subscriptions_by_name_and_event() {
         let stream = serial();
-        let pings = stream.subscribe(|_: &Ping| {}).named("pings");
+        let pings = stream.subscribe(|_: &Ping| {}).with_name("pings");
         let adds = stream.subscribe(|_: &Add| {});
 
         stream.publish(Ping).unwrap();

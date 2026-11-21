@@ -90,7 +90,7 @@ impl Subscription {
 
     /// Attach a name to this subscription, used to identify it in
     /// [`EventStream::stats`](crate::events::EventStream::stats).
-    pub fn named(self, name: impl Into<SmallStr>) -> Self {
+    pub fn with_name(self, name: impl Into<SmallStr>) -> Self {
         *self.0.name.write().unwrap() = Some(name.into());
         self
     }

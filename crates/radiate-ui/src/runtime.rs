@@ -74,8 +74,8 @@ where
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
         ctx.subscribe::<EngineStart<C>>();
         ctx.subscribe::<GenerationSnapshot<C, T>>();
-        ctx.subscribe::<LogEvent>();
         ctx.subscribe::<Improvement<T>>();
+        ctx.subscribe::<LogEvent>();
 
         Ok(())
     }
@@ -107,19 +107,6 @@ where
     }
 }
 
-impl<C, T> Handler<LogEvent> for Tui<C, T>
-where
-    C: Chromosome + Clone + 'static,
-    T: Clone + Send + Sync + 'static,
-{
-    fn handle(&mut self, event: &LogEvent, _: &EventContext<'_, Self>) {
-        self.dispatcher
-            .send(InputEvent::Log(event.0, event.1.clone()))
-            .context("Failed to send LogEvent")
-            .unwrap();
-    }
-}
-
 impl<C, T> Handler<Improvement<T>> for Tui<C, T>
 where
     C: Chromosome + Clone + 'static,
@@ -129,6 +116,19 @@ where
         self.dispatcher
             .send(InputEvent::Improvement(ImprovementEvent::from(event)))
             .context("Failed to send Improvement event")
+            .unwrap();
+    }
+}
+
+impl<C, T> Handler<LogEvent> for Tui<C, T>
+where
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    fn handle(&mut self, event: &LogEvent, _: &EventContext<'_, Self>) {
+        self.dispatcher
+            .send(InputEvent::Log(event.0, event.1.clone()))
+            .context("Failed to send LogEvent")
             .unwrap();
     }
 }
