@@ -371,15 +371,15 @@ where
         let stream = self.engine.context().event_stream();
         stream.detach::<LoggingHandler>();
 
-        if !stream.has::<LoggingHandler>() {
+        if !stream.handler_registered::<LoggingHandler>() {
             stream.attach(LoggingHandler::new()).unwrap();
         }
 
-        if !stream.has::<HealthMonitor<T>>() {
+        if !stream.handler_registered::<HealthMonitor<T>>() {
             stream.attach(HealthMonitor::<T>::default()).unwrap();
         }
 
-        if !stream.has::<EngineLogger<T>>() {
+        if !stream.handler_registered::<EngineLogger<T>>() {
             stream.attach(EngineLogger::<T>::new()).unwrap();
         }
 

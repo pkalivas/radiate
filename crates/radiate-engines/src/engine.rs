@@ -196,7 +196,7 @@ where
         self.context.set_stopped();
         self.stream.publish(EngineStop::from(&self.context));
 
-        println!("{:#?}", self.stream.stats());
+        // println!("{:#?}", self.stream.stats());
     }
 
     #[inline]

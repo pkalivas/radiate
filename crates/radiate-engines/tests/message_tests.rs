@@ -428,6 +428,8 @@ mod event_stream_tests {
     // [stream/publish fanout x8] 800000 deliveries in 112.598375ms = 7,104,898 deliveries/sec
     // [stream/publish fanout x8] 800000 deliveries in 113.196709ms = 7,067,343 deliveries/sec
     // [stream/publish fanout x8] 800000 deliveries in 112.595708ms = 7,105,067 deliveries/sec
+    // [stream/publish fanout x8] 800000 deliveries in 354.411792ms = 2,257,261 deliveries/sec
+    // [stream/publish fanout x8] 800000 deliveries in 351.081541ms = 2,278,673 deliveries/sec
     #[test]
     #[ignore = "throughput smoke test: cargo test --release -- --ignored --nocapture"]
     fn throughput_publish_fanout() {
@@ -473,6 +475,8 @@ mod event_stream_tests {
     // [stream/publish pool]    200000 events in 288.747291ms = 692,647 events/sec
     // [stream/publish pool]    200000 events in 281.040792ms = 711,640 events/sec
     // [stream/publish pool]    200000 events in 289.552166ms = 690,722 events/sec
+    // [stream/publish pool]    200000 events in 254.11675ms = 787,040 events/sec
+    // [stream/publish pool]    200000 events in 246.222ms = 812,275 events/sec
     #[test]
     #[ignore = "throughput smoke test: cargo test --release -- --ignored --nocapture"]
     fn throughput_publish_worker_pool() {
@@ -679,5 +683,291 @@ mod trace_tests {
             chained_pong, plain_pong,
             "a plain publish starts a new chain"
         );
+    }
+}
+
+#[cfg(test)]
+mod mailbox_tests {
+    use radiate_core::Executor;
+    use radiate_core::error::RadiateResult;
+    use radiate_engines::events::{
+        DeferredEvent, Event, EventContext, EventHandler, EventStream, Handler,
+    };
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::{Arc, Mutex, mpsc};
+    use std::time::Duration;
+
+    // Long enough that a passing run never hits it; only a hang or regression does.
+    const GENEROUS: Duration = Duration::from_secs(5);
+
+    /// Run `f` on its own thread and fail (instead of hanging the suite) if it
+    /// doesn't finish. These tests cover paths that used to deadlock.
+    fn within<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> T {
+        let (tx, rx) = mpsc::channel();
+        std::thread::spawn(move || tx.send(f()).unwrap());
+        rx.recv_timeout(GENEROUS)
+            .expect("timed out: likely deadlocked")
+    }
+
+    struct Tick(u32);
+    impl Event for Tick {}
+
+    /// Counts down by publishing a smaller Tick to itself, recording when each
+    /// handle call starts and ends.
+    struct Countdown(Arc<Mutex<Vec<String>>>);
+
+    impl EventHandler for Countdown {
+        fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
+            ctx.subscribe::<Tick>();
+            Ok(())
+        }
+    }
+
+    impl Handler<Tick> for Countdown {
+        fn handle(&mut self, event: &Tick, ctx: &EventContext<'_, Self>) {
+            self.0.lock().unwrap().push(format!("enter {}", event.0));
+            if event.0 > 0 {
+                ctx.publish(Tick(event.0 - 1));
+            }
+            self.0.lock().unwrap().push(format!("exit {}", event.0));
+        }
+    }
+
+    #[test]
+    fn serial_handler_can_publish_to_itself_without_deadlocking() {
+        let log = within(|| {
+            let log = Arc::new(Mutex::new(Vec::new()));
+            let stream = EventStream::new(Arc::new(Executor::Serial));
+            stream.attach(Countdown(Arc::clone(&log))).unwrap();
+            stream.publish(Tick(2));
+            log.lock().unwrap().clone()
+        });
+
+        // Each self-published Tick runs after the current handle returns,
+        // never nested inside it, and all of them before publish returns.
+        assert_eq!(
+            log,
+            vec![
+                "enter 2", "exit 2", "enter 1", "exit 1", "enter 0", "exit 0"
+            ]
+        );
+    }
+
+    struct Serve(u32);
+    struct Volley;
+    impl Event for Serve {}
+    impl Event for Volley {}
+
+    struct PlayerA(Arc<AtomicUsize>);
+    struct PlayerB;
+
+    impl EventHandler for PlayerA {
+        fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
+            ctx.subscribe::<Serve>();
+            ctx.subscribe::<Volley>();
+            Ok(())
+        }
+    }
+
+    impl Handler<Serve> for PlayerA {
+        fn handle(&mut self, event: &Serve, ctx: &EventContext<'_, Self>) {
+            self.0.fetch_add(1, Ordering::SeqCst);
+            if event.0 > 0 {
+                ctx.publish(Serve(event.0 - 1));
+            }
+        }
+    }
+
+    impl Handler<Volley> for PlayerA {
+        fn handle(&mut self, _: &Volley, _: &EventContext<'_, Self>) {
+            self.0.fetch_add(100, Ordering::SeqCst);
+        }
+    }
+
+    impl EventHandler for PlayerB {
+        fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
+            ctx.subscribe::<Serve>();
+            Ok(())
+        }
+    }
+
+    impl Handler<Serve> for PlayerB {
+        fn handle(&mut self, _: &Serve, ctx: &EventContext<'_, Self>) {
+            ctx.publish(Volley);
+        }
+    }
+
+    #[test]
+    fn serial_cycle_between_two_handlers_does_not_deadlock() {
+        // A handles Serve and publishes Serve; B handles Serve and publishes
+        // Volley back to A. Both paths re-enter A while it is running.
+        let hits = within(|| {
+            let hits = Arc::new(AtomicUsize::new(0));
+            let stream = EventStream::new(Arc::new(Executor::Serial));
+            stream.attach(PlayerA(Arc::clone(&hits))).unwrap();
+            stream.attach(PlayerB).unwrap();
+            stream.publish(Serve(2));
+            hits.load(Ordering::SeqCst)
+        });
+
+        // Three Serves (2, 1, 0) reach A, and B turns each into a Volley for A.
+        assert_eq!(hits, 3 + 3 * 100);
+    }
+
+    struct Primed(Arc<AtomicUsize>);
+
+    impl EventHandler for Primed {
+        fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
+            ctx.subscribe::<Tick>();
+            ctx.publish(Tick(0));
+            Ok(())
+        }
+    }
+
+    impl Handler<Tick> for Primed {
+        fn handle(&mut self, _: &Tick, _: &EventContext<'_, Self>) {
+            self.0.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
+    #[test]
+    fn start_can_publish_to_its_own_subscription() {
+        let handled = within(|| {
+            let handled = Arc::new(AtomicUsize::new(0));
+            let stream = EventStream::new(Arc::new(Executor::Serial));
+            stream.attach(Primed(Arc::clone(&handled))).unwrap();
+            handled.load(Ordering::SeqCst)
+        });
+
+        assert_eq!(
+            handled, 1,
+            "the Tick published in start runs once start returns"
+        );
+    }
+
+    struct Ping;
+    impl Event for Ping {}
+
+    /// Turns a deferred Ping into a Tick for itself, so flush must wait on a
+    /// delivery that was queued behind the running handler.
+    struct Echo(Arc<AtomicUsize>);
+
+    impl EventHandler for Echo {
+        fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
+            ctx.subscribe::<DeferredEvent<Ping>>();
+            ctx.subscribe::<Tick>();
+            Ok(())
+        }
+    }
+
+    impl Handler<DeferredEvent<Ping>> for Echo {
+        fn handle(&mut self, _: &DeferredEvent<Ping>, ctx: &EventContext<'_, Self>) {
+            ctx.publish(Tick(0));
+        }
+    }
+
+    impl Handler<Tick> for Echo {
+        fn handle(&mut self, _: &Tick, _: &EventContext<'_, Self>) {
+            self.0.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
+    #[test]
+    fn flush_waits_for_events_a_handler_queued_to_itself() {
+        for executor in [Executor::Serial, Executor::FixedSizedWorkerPool(4)] {
+            let handled = within(move || {
+                let handled = Arc::new(AtomicUsize::new(0));
+                let stream = EventStream::new(Arc::new(executor));
+                stream.attach(Echo(Arc::clone(&handled))).unwrap();
+                stream.defer(Ping);
+                stream.flush();
+                handled.load(Ordering::SeqCst)
+            });
+
+            assert_eq!(handled, 1);
+        }
+    }
+
+    struct Even(usize);
+    struct Odd(usize);
+    struct Done;
+    impl Event for Even {}
+    impl Event for Odd {}
+    impl Event for Done {}
+
+    /// Records the sequence numbers it sees across two event types, and reports
+    /// whether it was ever entered by two threads at once.
+    struct Sequencer {
+        seen: Vec<usize>,
+        active: Arc<AtomicUsize>,
+        overlapped: bool,
+        report: mpsc::Sender<(Vec<usize>, bool)>,
+    }
+
+    impl Sequencer {
+        fn record(&mut self, n: usize) {
+            if self.active.fetch_add(1, Ordering::SeqCst) != 0 {
+                self.overlapped = true;
+            }
+            self.seen.push(n);
+            self.active.fetch_sub(1, Ordering::SeqCst);
+        }
+    }
+
+    impl EventHandler for Sequencer {
+        fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
+            ctx.subscribe::<Even>();
+            ctx.subscribe::<Odd>();
+            ctx.subscribe::<Done>();
+            Ok(())
+        }
+    }
+
+    impl Handler<Even> for Sequencer {
+        fn handle(&mut self, event: &Even, _: &EventContext<'_, Self>) {
+            self.record(event.0);
+        }
+    }
+
+    impl Handler<Odd> for Sequencer {
+        fn handle(&mut self, event: &Odd, _: &EventContext<'_, Self>) {
+            self.record(event.0);
+        }
+    }
+
+    impl Handler<Done> for Sequencer {
+        fn handle(&mut self, _: &Done, _: &EventContext<'_, Self>) {
+            let seen = std::mem::take(&mut self.seen);
+            self.report.send((seen, self.overlapped)).unwrap();
+        }
+    }
+
+    #[test]
+    fn pooled_handler_sees_events_of_every_type_in_publish_order() {
+        const N: usize = 10_000;
+
+        let stream = EventStream::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
+        let (report, results) = mpsc::channel();
+        stream
+            .attach(Sequencer {
+                seen: Vec::new(),
+                active: Arc::new(AtomicUsize::new(0)),
+                overlapped: false,
+                report,
+            })
+            .unwrap();
+
+        for i in 0..N {
+            if i % 2 == 0 {
+                stream.publish(Even(i));
+            } else {
+                stream.publish(Odd(i));
+            }
+        }
+        stream.publish(Done);
+
+        let (seen, overlapped) = results.recv_timeout(GENEROUS).unwrap();
+        assert!(!overlapped, "handler ran on two threads at once");
+        assert_eq!(seen, (0..N).collect::<Vec<_>>());
     }
 }

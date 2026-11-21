@@ -21,6 +21,7 @@ fn main() -> RadiateResult<()> {
         .fitness_fn(Regression::new(data.clone(), Loss::MSE))
         .minimizing()
         .diversity(NeatDistance::default())
+        .parallel()
         .target_species(TARGET_SPECIES)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),

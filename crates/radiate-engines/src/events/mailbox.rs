@@ -1,106 +1,77 @@
-use crate::{Event, EventId, events::stream::Shared};
+use crate::{
+    Event, EventId, Trace,
+    events::{event::Payload, stream::Shared},
+};
 use crate::{
     EventHandler,
     events::{EventStream, Subscription, SubscriptionId},
 };
 use crate::{Handler, events::subscription::Counters};
-use radiate_core::{Executor, WaitGuard, error::RadiateResult};
+use radiate_core::{Executor, Inbox, error::RadiateResult};
 use radiate_utils::generate_metric_key;
+use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
 use std::sync::{Arc, Mutex, Weak};
 
-const HANDLER_PREFIX: &str = "handler";
+/// Deliveries a [`MailBox`] drains per turn on a worker pool before handing the
+/// worker back to the executor. On a serial executor the drain just keeps going.
+const PROCESS_BATCH_SIZE: usize = 64;
 
-/// The causal chain an event belongs to.
-///
-/// Every event published from inside a handler (through its [`EventContext`])
-/// inherits the trace of the event being handled, so all events in a chain share
-/// the same `root` id. When the chain is `scoped`, each event in it holds a clone
-/// of the scope's [`WaitGuard`]. The guard is released only once every handler
-/// in the chain has returned, which lets the code that started the chain wait
-/// for it to finish (see [`EventStream::flush`]).
-#[derive(Clone)]
-pub(crate) struct Trace {
-    root: EventId,
-    // Never read: only held, so its Drop releases the scope once the chain is done.
-    #[allow(dead_code)]
-    scope: Option<Arc<WaitGuard>>,
-}
-
-impl Trace {
-    /// A new, unscoped chain. Used by plain `publish` calls; nothing waits on it.
-    pub(crate) fn new() -> Self {
-        Trace {
-            root: EventId::new(),
-            scope: None,
-        }
-    }
-
-    /// A new chain that holds `guard` until every event in it has been handled.
-    pub(crate) fn scoped(guard: WaitGuard) -> Self {
-        Trace {
-            root: EventId::new(),
-            scope: Some(Arc::new(guard)),
-        }
-    }
-
-    pub(crate) fn root(&self) -> EventId {
-        self.root
+/// Downcast and hand a payload to `H`'s handler for `E`. Stored as a plain fn
+/// pointer in each [`Envelope`], so queueing costs no extra allocation.
+fn deliver<E, H>(handler: &mut H, payload: &Payload, ctx: &EventContext<'_, H>)
+where
+    E: Event,
+    H: Handler<E>,
+{
+    // The stream routes by TypeId, so this always matches.
+    if let Some(event) = payload.downcast_ref::<E>() {
+        handler.handle(event, ctx);
     }
 }
 
-pub struct EventContext<'a, H> {
-    subscriber: &'a MailBox<H>,
+/// One queued delivery: the published event plus everything needed to hand it
+/// to the handler once this mailbox's drain reaches it.
+struct Envelope<H> {
+    payload: Payload,
     trace: Trace,
+    counters: Arc<Counters>,
+    deliver: fn(&mut H, &Payload, &EventContext<'_, H>),
 }
 
-impl<H> EventContext<'_, H> {
-    /// Publish an event as part of the chain currently being handled. If that
-    /// chain is being waited on (for example by [`EventStream::flush`]), the wait
-    /// also covers this event and everything it causes.
-    ///
-    /// Does nothing if the stream has already been dropped.
-    pub fn publish<E: Event>(&self, event: E) {
-        if let Some(stream) = self.subscriber.stream() {
-            stream.publish_traced(event, self.trace.clone());
-        }
-    }
-
-    /// The id of the event that started the chain this handler is running in.
-    pub fn root_id(&self) -> EventId {
-        self.trace.root()
-    }
-
-    pub fn subscribe<E>(&self) -> Subscription
-    where
-        E: Event,
-        H: Handler<E>,
-    {
-        let first = generate_metric_key::<H>(HANDLER_PREFIX);
-        let second = format!("{}.{}", first, E::name());
-        self.subscriber.subscribe::<E>().named(second)
-    }
-}
-
-pub struct MailBox<H> {
-    handler: Arc<Mutex<H>>,
+struct Inner<H> {
+    handler: Mutex<H>,
+    inbox: Inbox<Envelope<H>>,
     executor: Arc<Executor>,
     stream: Weak<Shared>,
 }
 
+/// A handler plus its queue of pending deliveries.
+///
+/// Every event routed to the handler is pushed onto its [`Inbox`], and at most
+/// one drain runs at a time, inline on a serial executor or as a single job on a
+/// worker pool. So a handler sees its events in publish order, never runs on two
+/// threads at once, and never parks pool workers waiting on its lock.
+///
+/// An event a handler publishes to itself (directly, or through a cycle of other
+/// handlers) is queued and handled after the current `handle` call returns,
+/// rather than re-entering it.
+pub struct MailBox<H>(Arc<Inner<H>>);
+
 impl<H> MailBox<H> {
     /// The stream this subscriber belongs to, if it's still alive.
     fn stream(&self) -> Option<EventStream> {
-        EventStream::upgrade(&self.executor, &self.stream)
+        EventStream::upgrade(&self.0.executor, &self.0.stream)
     }
 }
 
 impl<H: Send + 'static> MailBox<H> {
     pub(super) fn new(handler: H, executor: Arc<Executor>, stream: &EventStream) -> Self {
-        MailBox {
-            handler: Arc::new(Mutex::new(handler)),
+        MailBox(Arc::new(Inner {
+            handler: Mutex::new(handler),
+            inbox: Inbox::new(),
             executor,
             stream: stream.downgrade(),
-        }
+        }))
     }
 
     /// Subscribe this handler to `E`. If the stream has already been dropped,
@@ -111,7 +82,7 @@ impl<H: Send + 'static> MailBox<H> {
         H: Handler<E>,
     {
         match self.stream() {
-            Some(stream) => stream.subscribe_existing::<E, H>(self),
+            Some(stream) => stream.register::<E, H>(self),
             None => {
                 let subscription = Subscription::new();
                 subscription.unsubscribe();
@@ -126,55 +97,151 @@ impl<H: Send + 'static> MailBox<H> {
         }
     }
 
+    /// Run the handler's `start`. The inbox is claimed for the duration, so any
+    /// event `start` publishes to this handler (or that arrives from elsewhere
+    /// once `start` has subscribed) queues up and is drained right after.
     pub(super) fn start(&self) -> RadiateResult<()>
     where
         H: EventHandler,
     {
-        let ctx = EventContext {
-            subscriber: self,
-            trace: Trace::new(),
+        let claimed = self.0.inbox.try_claim();
+        let result = {
+            let ctx = EventContext {
+                mailbox: self,
+                trace: Trace::new(),
+            };
+            self.0.handler.lock().unwrap().start(&ctx)
         };
-        self.handler.lock().unwrap().start(&ctx)
+
+        if claimed {
+            self.process();
+        }
+
+        result
     }
 
-    /// Run the handler for `event`. The `trace` (and with it any scope guard) is
-    /// kept alive until the handler returns, so a scope can't close while this
-    /// handler, or anything it publishes, is still running.
-    pub(super) fn send_shared<E>(&self, event: Arc<E>, counters: Arc<Counters>, trace: Trace)
+    /// Queue `payload` (an `E`) for this handler and make sure a drain is running.
+    pub(super) fn send<E>(&self, payload: Payload, counters: Arc<Counters>, trace: Trace)
     where
         E: Event,
         H: Handler<E>,
     {
-        match self.executor.as_ref() {
-            Executor::Serial => {
-                let ctx = EventContext {
-                    subscriber: self,
-                    trace,
-                };
-                self.handler.lock().unwrap().handle(event.as_ref(), &ctx);
-                counters.record_handled();
-            }
-            _ => {
-                let owned = self.clone();
-                self.executor.submit(move || {
-                    let ctx = EventContext {
-                        subscriber: &owned,
-                        trace,
-                    };
-                    owned.handler.lock().unwrap().handle(event.as_ref(), &ctx);
-                    counters.record_handled();
-                });
-            }
+        let envelope = Envelope {
+            payload,
+            trace,
+            counters,
+            deliver: deliver::<E, H>,
+        };
+
+        if self.0.inbox.push(envelope) {
+            self.schedule();
         }
+    }
+
+    /// Start a drain on the executor. On a serial executor this runs inline.
+    fn schedule(&self) {
+        let mailbox = self.clone();
+        self.0.executor.submit(move || mailbox.process());
+    }
+
+    fn process(&self) {
+        // A serial drain has no shared worker to give back, so it runs to empty.
+        let budget = if self.0.executor.is_parallel() {
+            PROCESS_BATCH_SIZE
+        } else {
+            usize::MAX
+        };
+
+        let more = {
+            let Ok(mut handler) = self.0.handler.lock() else {
+                self.discard();
+                panic!(
+                    "event handler `{}` panicked on an earlier event",
+                    std::any::type_name::<H>()
+                );
+            };
+
+            let mut panicked = None;
+            let more = self.0.inbox.drain(budget, |envelope| {
+                if panicked.is_some() {
+                    // dropped: releases its trace
+                    return;
+                }
+
+                let ctx = EventContext {
+                    mailbox: self,
+                    trace: envelope.trace,
+                };
+
+                let outcome = catch_unwind(AssertUnwindSafe(|| {
+                    (envelope.deliver)(&mut handler, &envelope.payload, &ctx)
+                }));
+
+                match outcome {
+                    Ok(()) => envelope.counters.record_handled(),
+                    Err(payload) => panicked = Some(payload),
+                }
+            });
+
+            if let Some(payload) = panicked {
+                if more {
+                    self.discard();
+                }
+                resume_unwind(payload);
+            }
+
+            more
+        };
+
+        if more {
+            // Only reachable on a pool: give the worker back, continue as a new job
+            self.schedule();
+        }
+    }
+
+    /// Drop everything queued and release the claim. Must hold the claim.
+    fn discard(&self) {
+        self.0.inbox.drain(usize::MAX, drop);
     }
 }
 
 impl<H> Clone for MailBox<H> {
     fn clone(&self) -> Self {
-        MailBox {
-            handler: Arc::clone(&self.handler),
-            executor: Arc::clone(&self.executor),
-            stream: Weak::clone(&self.stream),
+        MailBox(Arc::clone(&self.0))
+    }
+}
+
+pub struct EventContext<'a, H> {
+    mailbox: &'a MailBox<H>,
+    trace: Trace,
+}
+
+impl<H> EventContext<'_, H> {
+    /// Publish an event as part of the chain currently being handled. If that
+    /// chain is being waited on (for example by [`EventStream::flush`]), the wait
+    /// also covers this event and everything it causes.
+    ///
+    /// Does nothing if the stream has already been dropped.
+    pub fn publish<E: Event>(&self, event: E) {
+        if let Some(stream) = self.mailbox.stream() {
+            stream.publish_traced(event, self.trace.clone());
         }
+    }
+
+    /// The id of the event that started the chain this handler is running in.
+    pub fn root_id(&self) -> EventId {
+        self.trace.root()
+    }
+
+    pub fn subscribe<E>(&self) -> Subscription
+    where
+        E: Event,
+        H: Handler<E>,
+    {
+        const HANDLER_PREFIX: &str = "handler";
+
+        let first = generate_metric_key::<H>(HANDLER_PREFIX);
+        let second = format!("{}.{}", first, E::name());
+        self.mailbox.subscribe::<E>().named(second)
     }
 }

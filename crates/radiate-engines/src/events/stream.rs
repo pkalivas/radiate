@@ -1,15 +1,15 @@
 use crate::{
-    EventHandler, StreamStats, SubscriptionInfo,
+    EventHandler, StreamStats, SubscriptionInfo, Trace,
     events::{
         Event, Handler, Subscription, SubscriptionId,
-        mailbox::{MailBox, Trace},
+        event::Payload,
+        mailbox::MailBox,
         messages::{DeferredEvent, SubscriptionEvent},
     },
 };
 use radiate_core::{Executor, SmallStr, WaitGroup, error::RadiateResult};
-
 use std::{
-    any::{Any, TypeId},
+    any::TypeId,
     collections::{HashMap, HashSet},
     fmt::Debug,
     sync::{
@@ -18,8 +18,9 @@ use std::{
     },
 };
 
-type Payload = Arc<dyn Any + Send + Sync>;
 type Forward = Arc<dyn Fn(PayloadWrapper) + Send + Sync>;
+type SubscriberList = Arc<Vec<Registration>>;
+type SubscriberMap = HashMap<TypeId, SubscriberList>;
 
 #[derive(Clone)]
 struct PayloadWrapper {
@@ -45,9 +46,6 @@ impl Registration {
         }
     }
 }
-
-type SubscriberList = Arc<Vec<Registration>>;
-type SubscriberMap = HashMap<TypeId, SubscriberList>;
 
 /// The state every clone of an [`EventStream`] shares.
 ///
@@ -83,16 +81,17 @@ impl EventStream {
     pub fn get_subsribers<E: Event>(&self) -> Vec<SubscriptionInfo> {
         let type_id = TypeId::of::<E>();
         let subscribers = self.shared.subscribers.read().unwrap();
-        let group = match subscribers.get(&type_id) {
-            Some(group) => group,
-            None => return Vec::new(),
-        };
 
-        group
-            .iter()
-            .filter(|registration| registration.subscription.is_alive())
-            .map(|registration| registration.subscription_info())
-            .collect()
+        subscribers
+            .get(&type_id)
+            .map(|group| {
+                group
+                    .iter()
+                    .filter(|reg| reg.subscription.is_alive())
+                    .map(|reg| reg.subscription_info())
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default()
     }
 
     /// A snapshot of every live subscription on this stream.
@@ -102,7 +101,7 @@ impl EventStream {
     /// A handler only counts once it has subscribed to at least one event.
     /// Checking and then attaching isn't atomic, so it doesn't guard against
     /// two threads attaching the same handler at the same time.
-    pub fn has<H: 'static>(&self) -> bool {
+    pub fn handler_registered<H: 'static>(&self) -> bool {
         let handler = TypeId::of::<H>();
         self.shared
             .subscribers
@@ -110,9 +109,7 @@ impl EventStream {
             .unwrap()
             .values()
             .flat_map(|group| group.iter())
-            .any(|registration| {
-                registration.handler == handler && registration.subscription.is_alive()
-            })
+            .any(|reg| reg.handler == handler && reg.subscription.is_alive())
     }
 
     pub fn stats(&self) -> StreamStats {
@@ -122,8 +119,8 @@ impl EventStream {
             subscribers: subscribers
                 .values()
                 .flat_map(|group| group.iter())
-                .filter(|registration| registration.subscription.is_alive())
-                .map(|registration| registration.subscription_info())
+                .filter(|reg| reg.subscription.is_alive())
+                .map(|reg| reg.subscription_info())
                 .collect(),
         }
     }
@@ -143,11 +140,8 @@ impl EventStream {
     pub fn detach<H: EventHandler>(&self) -> bool {
         let handler = TypeId::of::<H>();
         let mut subscribers = self.shared.subscribers.write().unwrap();
-        let mut removed = false;
         let mut removed_stats = Vec::new();
         for group in subscribers.values_mut() {
-            let before = group.len();
-
             Arc::make_mut(group).retain(|r| {
                 if r.handler == handler && r.subscription.is_alive() {
                     removed_stats.push(r.subscription_info());
@@ -156,27 +150,29 @@ impl EventStream {
                     true
                 }
             });
-            removed |= group.len() != before;
         }
+
         for stats in removed_stats.drain(..) {
             self.defer(SubscriptionEvent::Removed(stats));
         }
+
         subscribers.retain(|_, group| !group.is_empty());
-        removed
+        !removed_stats.is_empty()
     }
 
     pub fn subscribe<E: Event>(&self, handler: impl Handler<E>) -> Subscription {
         let subscriber = MailBox::new(handler, Arc::clone(&self.executor), self);
-        self.subscribe_existing::<E, _>(&subscriber)
+        self.register::<E, _>(&subscriber)
     }
 
-    pub fn unsubscribe(&self, id: SubscriptionId) {
+    pub fn unsubscribe(&self, id: SubscriptionId) -> bool {
         let mut subscribers = self.shared.subscribers.write().unwrap();
+        let mut total_removed = Vec::new();
         for group in subscribers.values_mut() {
             let to_remove = group
                 .iter()
-                .filter(|registration| registration.subscription.id() == id)
-                .map(|registration| registration.subscription_info())
+                .filter(|reg| reg.subscription.id() == id)
+                .map(|reg| reg.subscription_info())
                 .collect::<Vec<_>>();
 
             let removed_ids = to_remove.iter().map(|info| info.id).collect::<HashSet<_>>();
@@ -185,11 +181,17 @@ impl EventStream {
                 .retain(|registration| !removed_ids.contains(&registration.subscription.id()));
 
             if !to_remove.is_empty() {
-                for stats in to_remove {
-                    self.defer(SubscriptionEvent::Removed(stats));
-                }
+                total_removed.extend(to_remove);
             }
         }
+
+        let removed = !total_removed.is_empty();
+
+        for stats in total_removed.drain(..) {
+            self.defer(SubscriptionEvent::Removed(stats));
+        }
+
+        removed
     }
 
     #[inline]
@@ -346,7 +348,7 @@ impl EventStream {
         })
     }
 
-    pub(super) fn subscribe_existing<E, H>(&self, mailbox: &MailBox<H>) -> Subscription
+    pub(super) fn register<E, H>(&self, mailbox: &MailBox<H>) -> Subscription
     where
         E: Event,
         H: Handler<E>,
@@ -356,19 +358,9 @@ impl EventStream {
         let target = mailbox.clone();
 
         let forward: Forward = Arc::new(move |payload: PayloadWrapper| {
-            if let Ok(event) = payload.payload.downcast::<E>() {
-                target.send_shared(event, Arc::clone(&counters), payload.trace);
-            }
+            target.send::<E>(payload.payload, Arc::clone(&counters), payload.trace);
         });
 
-        self.register::<E, H>(forward, subscription)
-    }
-
-    fn register<E: Event, H: 'static>(
-        &self,
-        forward: Forward,
-        subscription: Subscription,
-    ) -> Subscription {
         let registration = Registration {
             forward,
             subscription: subscription.clone(),
