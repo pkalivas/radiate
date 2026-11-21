@@ -5,7 +5,7 @@ use crossbeam::channel;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use radiate_engines::{
     Chromosome, CommandChannel, Ecosystem, Front, GenerationSnapshot, Improvement, MetricSet,
-    Objective, Phenotype, Score, ThreadSync, events::LogLevel,
+    Objective, Phenotype, Score, StreamSnapshot, Subscription, ThreadSync, events::LogLevel,
 };
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -82,6 +82,8 @@ where
     EpochComplete(GenerationEvent<C>),
     Log(LogLevel, String),
     Improvement(ImprovementEvent),
+    Stream(StreamSnapshot),
+    Subscription(Subscription),
 }
 
 pub(crate) struct App<C>
@@ -158,6 +160,13 @@ where
                 self.handle_improvement(event);
                 return self.throttle();
             }
+            InputEvent::Stream(snapshot) => {
+                self.state.stream.update(snapshot);
+                return self.throttle();
+            }
+            InputEvent::Subscription(subscription) => {
+                self.state.run.subscriptions.push(subscription);
+            }
         }
 
         Ok(true)
@@ -230,6 +239,10 @@ where
 
             KeyCode::Char('q') => {
                 self.control.stop();
+                for subscription in &self.state.run.subscriptions {
+                    subscription.unsubscribe();
+                }
+                self.state.run.subscriptions.clear();
                 self.state.run.ui = false
             }
 

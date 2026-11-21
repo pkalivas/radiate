@@ -22,15 +22,17 @@ pub struct StreamSnapshot {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct EventStats {
     pub event: SmallStr,
-    /// Built and dispatched to its subscriptions.
     pub published: u64,
-    /// Lazy publishes that were never built because no subscription was due.
     pub unbuilt: u64,
-    /// Published, but every subscription skipped it on its schedule.
     pub undelivered: u64,
 }
 
-/// A point-in-time copy of a [`Subscription`]'s delivery counters.
+impl EventStats {
+    pub fn short_name(&self) -> String {
+        radiate_utils::type_name_from_str(&self.event)
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SubscriptionStats {
@@ -40,8 +42,6 @@ pub struct SubscriptionStats {
 }
 
 impl SubscriptionStats {
-    /// Events delivered but not yet handled. Always zero on a serial executor;
-    /// on a worker pool this is how far the handler is behind the engine.
     pub fn queued(&self) -> u64 {
         self.delivered.saturating_sub(self.handled)
     }
@@ -55,4 +55,22 @@ pub struct SubscriptionInfo {
     pub name: Option<SmallStr>,
     pub event: SmallStr,
     pub stats: SubscriptionStats,
+}
+
+impl SubscriptionInfo {
+    pub fn label(&self) -> &str {
+        self.name.as_deref().unwrap_or(&self.event)
+    }
+
+    pub fn labels(&self) -> (String, String) {
+        let name = self.label();
+        if let Some((handler, event)) = name.split_once(".event.") {
+            let handler = handler.strip_prefix("handler.").unwrap_or(handler);
+            (handler.to_string(), event.to_string())
+        } else if let Some(event) = name.strip_prefix("event.") {
+            ("-".to_string(), event.to_string())
+        } else {
+            ("-".to_string(), radiate_utils::type_name_from_str(name))
+        }
+    }
 }

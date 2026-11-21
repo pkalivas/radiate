@@ -10,7 +10,7 @@ mod subscription;
 #[cfg(feature = "serde")]
 pub use handlers::CheckpointWriterHandler;
 pub use handlers::{
-    EngineLogger, HealthMonitor, LogEvent, LogLevel, LoggingHandler, StreamHandler, StreamMonitor,
+    EngineLogger, HealthMonitor, LogEvent, LogLevel, LoggingHandler, StreamHandler,
 };
 pub use messages::{
     CheckpointSaved, EngineStart, EngineStateChange, EngineStop, EpochComplete, EpochStart,

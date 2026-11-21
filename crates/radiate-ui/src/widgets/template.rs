@@ -8,7 +8,7 @@ use crate::{
         Panel, ParetoPagingWidget, SearchBarWidget, TabComponent,
         components::{SpeciesPieChartComponent, SpeciesSparklineComponent, TimePieChartComponent},
         panels::{
-            DebugPanel, MetricLineChartWidget,
+            DebugPanel, MetricLineChartWidget, StreamEventsWidget, StreamHandlersWidget,
             tables::{PopulationTableWidget, SpeciesTableWidget},
         },
     },
@@ -305,10 +305,27 @@ impl<C: Chromosome + Debug> Default for LayoutNode<C> {
                                     title: "Events",
                                     condition: |_| true,
                                     content: Horizontal {
-                                        constraints: vec![Constraint::Fill(1)],
-                                        children: vec![Widget(|a, b, s| {
-                                            EventLogWidget.render(a, b, s)
-                                        })],
+                                        constraints: vec![
+                                            Constraint::Percentage(50),
+                                            Constraint::Percentage(50),
+                                        ],
+                                        children: vec![
+                                            Widget(|a, b, s| EventLogWidget.render(a, b, s)),
+                                            Vertical {
+                                                constraints: vec![
+                                                    Constraint::Percentage(50),
+                                                    Constraint::Percentage(50),
+                                                ],
+                                                children: vec![
+                                                    Widget(|a, b, s| {
+                                                        StreamHandlersWidget.render(a, b, s)
+                                                    }),
+                                                    Widget(|a, b, s| {
+                                                        StreamEventsWidget.render(a, b, s)
+                                                    }),
+                                                ],
+                                            },
+                                        ],
                                     },
                                 },
                             ],

@@ -5,8 +5,8 @@ use crate::{
 use color_eyre::{Result, eyre::Context};
 use crossbeam::channel;
 use radiate_engines::{
-    Chromosome, EngineStart, EventContext, EventHandler, GenerationSnapshot, Handler, Improvement,
-    error::RadiateResult, sync::IntoPair,
+    Chromosome, EngineStart, EngineStop, EventContext, EventHandler, GenerationSnapshot, Handler,
+    Improvement, StreamEvent, StreamSnapshot, error::RadiateResult, sync::IntoPair,
 };
 use radiate_engines::{LogEvent, ThreadSync};
 use std::{fmt::Debug, sync::atomic::Ordering, time::Duration};
@@ -72,10 +72,28 @@ where
     T: Clone + Send + Sync + 'static,
 {
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
-        ctx.subscribe::<EngineStart<C>>();
-        ctx.subscribe::<GenerationSnapshot<C, T>>();
-        ctx.subscribe::<Improvement<T>>();
-        ctx.subscribe::<LogEvent>();
+        self.dispatcher
+            .send(InputEvent::Subscription(ctx.subscribe::<EngineStart<C>>()))
+            .unwrap();
+        self.dispatcher
+            .send(InputEvent::Subscription(
+                ctx.subscribe::<GenerationSnapshot<C, T>>(),
+            ))
+            .unwrap();
+        self.dispatcher
+            .send(InputEvent::Subscription(ctx.subscribe::<Improvement<T>>()))
+            .unwrap();
+        self.dispatcher
+            .send(InputEvent::Subscription(ctx.subscribe::<LogEvent>()))
+            .unwrap();
+        self.dispatcher
+            .send(InputEvent::Subscription(
+                ctx.subscribe::<StreamEvent<StreamSnapshot>>(),
+            ))
+            .unwrap();
+        self.dispatcher
+            .send(InputEvent::Subscription(ctx.subscribe::<EngineStop<T>>()))
+            .unwrap();
 
         Ok(())
     }
@@ -129,6 +147,32 @@ where
         self.dispatcher
             .send(InputEvent::Log(event.0, event.1.clone()))
             .context("Failed to send LogEvent")
+            .unwrap();
+    }
+}
+
+impl<C, T> Handler<StreamEvent<StreamSnapshot>> for Tui<C, T>
+where
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    fn handle(&mut self, event: &StreamEvent<StreamSnapshot>, _: &EventContext<'_, Self>) {
+        self.dispatcher
+            .send(InputEvent::Stream(event.0.clone()))
+            .context("Failed to send StreamSnapshot event")
+            .unwrap();
+    }
+}
+
+impl<C, T> Handler<EngineStop<T>> for Tui<C, T>
+where
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    fn handle(&mut self, _: &EngineStop<T>, _: &EventContext<'_, Self>) {
+        self.dispatcher
+            .send(InputEvent::EngineStop)
+            .context("Failed to send EngineStop event")
             .unwrap();
     }
 }

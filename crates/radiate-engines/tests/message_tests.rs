@@ -1,8 +1,6 @@
 use radiate_core::{Executor, error::RadiateResult};
-use radiate_engines::events::{
-    Event, EventContext, EventHandler, EventStream, Handler, LogEvent, StreamMonitor, Warning,
-};
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use radiate_engines::events::{Event, EventContext, EventHandler, EventStream, Handler};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{self};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -46,25 +44,6 @@ fn within<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> T {
     std::thread::spawn(move || tx.send(f()).unwrap());
     rx.recv_timeout(GENEROUS)
         .expect("timed out: likely deadlocked")
-}
-
-/// A handler for `E` that signals when it starts, then blocks until released.
-fn gated_handler<E: Event>(
-    stream: &EventStream,
-) -> (mpsc::Receiver<()>, mpsc::Sender<()>, Arc<AtomicBool>) {
-    let (started_tx, started_rx) = mpsc::channel();
-    let (release_tx, release_rx) = mpsc::channel::<()>();
-    let finished = Arc::new(AtomicBool::new(false));
-
-    let done = Arc::clone(&finished);
-    let release_rx = Mutex::new(release_rx);
-    stream.subscribe(move |_: &E| {
-        started_tx.send(()).unwrap();
-        release_rx.lock().unwrap().recv().unwrap();
-        done.store(true, Ordering::SeqCst);
-    });
-
-    (started_rx, release_tx, finished)
 }
 
 mod publish {
@@ -480,72 +459,6 @@ mod ordering {
         let (seen, overlapped) = results.recv_timeout(GENEROUS).unwrap();
         assert!(!overlapped, "handler ran on two threads at once");
         assert_eq!(seen, (0..N).collect::<Vec<_>>());
-    }
-}
-
-mod monitor {
-    use radiate_engines::StreamEvent;
-
-    use super::*;
-
-    #[test]
-    fn warns_when_a_handler_backlog_keeps_growing() {
-        let stream = pool();
-
-        // The first Ping parks this handler until the gate opens, so every
-        // later Ping piles up in its mailbox.
-        let (_started, release, _finished) = gated_handler::<Ping>(&stream);
-
-        let (warn_tx, warnings) = mpsc::channel();
-        stream.subscribe(move |w: &Warning| {
-            let _ = warn_tx.send(w.0.clone());
-        });
-
-        stream
-            .attach(StreamMonitor::new().falling_behind_after(3))
-            .unwrap();
-
-        for _ in 0..5 {
-            stream.publish(Ping).unwrap();
-            stream.publish(StreamEvent(stream.snapshot())).unwrap();
-        }
-
-        let warning = warnings.recv_timeout(GENEROUS).unwrap();
-        assert!(warning.contains("falling behind"), "{warning}");
-
-        drop(release);
-        stream.close().unwrap();
-    }
-
-    #[test]
-    fn logs_a_summary_when_the_engine_stops() {
-        let stream = serial();
-        stream.subscribe(|_: &Ping| {});
-
-        let (log_tx, logs) = mpsc::channel();
-        stream.subscribe(move |l: &LogEvent| {
-            let _ = log_tx.send(l.1.clone());
-        });
-
-        stream.attach(StreamMonitor::new()).unwrap();
-
-        for _ in 0..3 {
-            stream.publish(Ping).unwrap();
-            stream.publish(StreamEvent(stream.snapshot())).unwrap();
-        }
-        stream.close().unwrap();
-
-        // The three above plus the one `close` takes.
-        let summary = logs.try_recv().expect("serial: summary logged inline");
-        assert!(summary.contains("4 snapshots"), "{summary}");
-
-        let ping = summary
-            .lines()
-            .find(|line| line.contains("Ping"))
-            .unwrap_or_else(|| panic!("no row for Ping:\n{summary}"));
-        let handled = ping.split_whitespace().skip_while(|c| *c != "Ping").nth(1);
-        assert_eq!(handled, Some("3"), "{summary}");
-        assert!(logs.try_recv().is_err(), "only one summary");
     }
 }
 

@@ -3,6 +3,7 @@ pub mod evo;
 pub mod inspect;
 pub mod nav;
 pub mod run;
+pub mod stream;
 pub mod tables;
 
 use radiate_engines::{Chromosome, Metric, Phenotype};
@@ -12,6 +13,7 @@ pub use evo::EvoState;
 pub use inspect::InspectState;
 pub use nav::{NavState, Pane, UiMode};
 pub use run::RunState;
+pub use stream::StreamState;
 pub use tables::{AppTableState, TableStates};
 
 use crate::state::nav::DashboardTab;
@@ -22,6 +24,7 @@ pub struct AppState<C: Chromosome> {
     pub evo: EvoState<C>,
     pub tables: TableStates,
     pub inspect: InspectState,
+    pub stream: StreamState,
 }
 
 impl<C: Chromosome> AppState<C> {
@@ -149,6 +152,7 @@ impl<C: Chromosome> Default for AppState<C> {
             evo: EvoState::default(),
             tables: TableStates::default(),
             inspect: InspectState::default(),
+            stream: StreamState::default(),
         }
     }
 }

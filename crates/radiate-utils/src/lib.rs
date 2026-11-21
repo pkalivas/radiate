@@ -16,7 +16,9 @@ pub use data::DataSet;
 pub use datatype::{
     AnyValue, DType, DataType, dedup_slice, dtype, dtype_names, pow_anyvalue, value,
 };
-pub use fmt::{ToSnakeCase, generate_metric_key, short_type_name, three_col_format};
+pub use fmt::{
+    ToSnakeCase, generate_metric_key, short_type_name, three_col_format, type_name_from_str,
+};
 pub use intern::{STR_INTERN_CACHE, is_str_interned};
 pub use lru::LruCache;
 pub use primitives::{Float, Integer, Primitive};
