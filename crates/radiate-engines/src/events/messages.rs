@@ -153,9 +153,7 @@ where
     T: Clone,
 {
     fn from(ctx: &EvolutionContext<C, T>) -> Self {
-        EngineStart {
-            front: Arc::clone(&ctx.front()),
-        }
+        EngineStart { front: ctx.front() }
     }
 }
 

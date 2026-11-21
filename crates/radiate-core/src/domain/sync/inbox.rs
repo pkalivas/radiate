@@ -40,11 +40,10 @@ impl<T> Inbox<T> {
         self.sender
             .send(item)
             .expect("Inbox owns its receiver, so the channel can't disconnect");
-
         // Pairs with the fence in `drain`. Either the drainer sees this item
-        // after releasing its claim, or this claim attempt sees the release.
+        // after releasing its claim, or this load sees the release.
         std::sync::atomic::fence(Ordering::SeqCst);
-        self.try_claim()
+        !self.scheduled.load(Ordering::Relaxed) && self.try_claim()
     }
 
     /// Claim the inbox without pushing. Returns `true` if this call claimed it,

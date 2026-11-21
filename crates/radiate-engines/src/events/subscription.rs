@@ -6,7 +6,7 @@ use std::{
     fmt::Debug,
     sync::{
         Arc, Mutex, RwLock,
-        atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
     },
 };
 
@@ -54,9 +54,6 @@ struct Inner {
     /// Set once a schedule is installed, so unscheduled subscriptions never
     /// touch the lock.
     is_scheduled: AtomicBool,
-    /// Deliveries [`reserve`](Subscription::reserve)d by a lazy publish and
-    /// not yet taken by its dispatch.
-    permits: AtomicUsize,
     alive: AtomicBool,
     counters: Arc<Counters>,
 }
@@ -74,7 +71,6 @@ impl Subscription {
             name: RwLock::new(None),
             schedule: Mutex::new(None),
             is_scheduled: AtomicBool::new(false),
-            permits: AtomicUsize::new(0),
             alive: AtomicBool::new(true),
             counters: Arc::default(),
         }))
@@ -123,9 +119,10 @@ impl Subscription {
         Ok(())
     }
 
+    /// Stop delivering to this subscription. Takes effect for any publish
+    /// that hasn't reached it yet, including one already in progress.
     pub fn unsubscribe(&self) {
         self.0.alive.store(false, Ordering::Release);
-        self.0.permits.store(0, Ordering::Release);
     }
 
     #[inline]
@@ -133,8 +130,8 @@ impl Subscription {
         &self.0.counters
     }
 
-    /// For eager publishes: advance the schedule and say whether this event
-    /// is due.
+    /// Advance the schedule and say whether this event is due. Called exactly
+    /// once per live registration per published event, eager or lazy.
     #[inline]
     pub(super) fn tick(&self) -> bool {
         if !self.is_alive() {
@@ -146,25 +143,6 @@ impl Subscription {
             self.0.counters.record_skipped();
         }
         due
-    }
-
-    /// For lazy publishes: advance the schedule and, if this event is due,
-    /// hold a permit for the dispatch to [`take`](Self::take_reserved).
-    pub(super) fn reserve(&self) -> bool {
-        if !self.tick() {
-            return false;
-        }
-
-        self.0.permits.fetch_add(1, Ordering::Release);
-        true
-    }
-
-    #[inline]
-    pub(super) fn take_reserved(&self) -> bool {
-        self.0
-            .permits
-            .try_update(Ordering::AcqRel, Ordering::Acquire, |n| n.checked_sub(1))
-            .is_ok()
     }
 
     #[inline]

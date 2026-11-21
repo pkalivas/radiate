@@ -10,6 +10,7 @@ use crate::{
 };
 use radiate_core::{Executor, SmallStr, WaitGroup, WaitGuard, error::RadiateResult};
 use radiate_error::radiate_bail;
+use smallvec::SmallVec;
 use std::{
     any::TypeId,
     collections::{HashMap, HashSet},
@@ -23,6 +24,7 @@ use std::{
 
 type SubscriberList = Arc<Group>;
 type SubscriberMap = HashMap<TypeId, SubscriberList>;
+type Due<'a> = SmallVec<[&'a Registration; 4]>;
 
 #[derive(Clone, Debug)]
 pub struct StreamOpened;
@@ -35,11 +37,6 @@ pub struct SubscriptionAdded(pub Subscription);
 
 #[derive(Clone, Debug)]
 pub struct SubscriptionRemoved(pub Subscription);
-
-enum DispatchMode {
-    Lazy,
-    Eager,
-}
 
 /// Everything subscribed to one event type. Copied on write when a
 /// subscription is added or removed; the counts are shared across copies.
@@ -58,6 +55,17 @@ impl Group {
                 ..Default::default()
             }),
         }
+    }
+
+    /// Tick every registration and keep the ones that are due. `collect` drives
+    /// the whole iterator, so every schedule advances once per event, even
+    /// after the first due one is found.
+    #[inline]
+    fn due(&self) -> Due<'_> {
+        self.registrations
+            .iter()
+            .filter(|reg| reg.subscription.tick())
+            .collect()
     }
 }
 
@@ -165,17 +173,6 @@ pub(super) struct Shared {
     created: Instant,
 }
 
-impl Default for Shared {
-    fn default() -> Self {
-        Shared {
-            subscribers: RwLock::default(),
-            pending: RwLock::default(),
-            closed: AtomicBool::new(false),
-            created: Instant::now(),
-        }
-    }
-}
-
 impl Shared {
     #[inline]
     fn group(&self, event: TypeId) -> Option<SubscriberList> {
@@ -194,8 +191,19 @@ impl Shared {
 
     fn groups<R>(&self, f: impl FnOnce(&mut dyn Iterator<Item = &Group>) -> R) -> R {
         let subscribers = self.subscribers.read().unwrap();
-        let mut groups = subscribers.values().map(|group| group.as_ref()).into_iter();
+        let mut groups = subscribers.values().map(|group| group.as_ref());
         f(&mut groups)
+    }
+}
+
+impl Default for Shared {
+    fn default() -> Self {
+        Shared {
+            subscribers: RwLock::default(),
+            pending: RwLock::default(),
+            closed: AtomicBool::new(false),
+            created: Instant::now(),
+        }
     }
 }
 
@@ -356,6 +364,7 @@ impl EventStream {
             for group in subscribers.values_mut() {
                 Arc::make_mut(group).registrations.retain(|reg| {
                     if remove(reg) {
+                        reg.subscription.unsubscribe();
                         removed.push(reg.subscription.clone());
                         false
                     } else {
@@ -398,42 +407,30 @@ impl EventStream {
         event: E,
         scope: EventScope,
     ) -> RadiateResult<()> {
-        if self.shared.closed.load(Ordering::Relaxed) {
-            radiate_bail!("EventStream is closed, dropping event")
-        }
-
-        if let Some(group) = self.shared.group(TypeId::of::<E>()) {
-            self.dispatch(&group, Arc::new(event), scope, DispatchMode::Eager);
-        }
-
-        Ok(())
+        self.publish_payload_scoped(Arc::new(event), scope)
     }
 
+    /// Ticks every schedule, and builds the event only if at least one
+    /// subscription is due. If none is, the event is counted as unbuilt and
+    /// never constructed.
     pub(crate) fn lazy_publish_scoped<E: Event>(
         &self,
         f: impl FnOnce() -> E,
         scope: EventScope,
     ) -> RadiateResult<()> {
-        if self.shared.closed.load(Ordering::Relaxed) {
-            radiate_bail!("EventStream is closed, dropping event");
-        }
+        self.ensure_open()?;
 
         let Some(group) = self.shared.group(TypeId::of::<E>()) else {
             return Ok(());
         };
 
-        // Not `any`: every subscription has to tick, even after one is due.
-        let reserved = group
-            .registrations
-            .iter()
-            .fold(false, |any, reg| reg.subscription.reserve() | any);
-
-        if reserved {
-            self.dispatch(&group, Arc::new(f()), scope, DispatchMode::Lazy);
-        } else {
+        let due = group.due();
+        if due.is_empty() {
             group.counts.unbuilt.fetch_add(1, Ordering::Relaxed);
+            return Ok(());
         }
 
+        self.dispatch(&group, &due, Arc::new(f()), scope);
         Ok(())
     }
 
@@ -442,55 +439,50 @@ impl EventStream {
         payload: Payload,
         scope: EventScope,
     ) -> RadiateResult<()> {
-        if self.shared.closed.load(Ordering::Relaxed) {
-            radiate_bail!("EventStream is closed, dropping event");
-        }
+        self.ensure_open()?;
 
         if let Some(group) = self.shared.group((*payload).type_id()) {
-            self.dispatch(&group, payload, scope, DispatchMode::Eager);
+            let due = group.due();
+            self.dispatch(&group, &due, payload, scope);
         }
 
         Ok(())
     }
 
+    /// Deliver to the registrations that were due when the event was
+    /// published. Liveness is checked again here: building the payload, or a
+    /// handler run inline earlier in this loop, may have unsubscribed one.
     #[inline]
-    fn dispatch(
-        &self,
-        group: &SubscriberList,
-        payload: Payload,
-        scope: EventScope,
-        mode: DispatchMode,
-    ) {
+    fn dispatch(&self, group: &Group, due: &[&Registration], payload: Payload, scope: EventScope) {
         let published = Published {
             payload: &payload,
             scope: &scope,
         };
 
         let mut delivered = false;
-        for registration in group.registrations.iter() {
-            let subscription = &registration.subscription;
-            if !subscription.is_alive() {
+        for reg in due {
+            if !reg.is_alive() {
                 continue;
             }
 
-            let due = match mode {
-                DispatchMode::Lazy => subscription.take_reserved(),
-                DispatchMode::Eager => subscription.tick(),
-            };
-
-            if due {
-                delivered = true;
-                subscription.counters().record_delivered();
-                registration.route.deliver(&published);
-            }
+            delivered = true;
+            reg.subscription.counters().record_delivered();
+            reg.route.deliver(&published);
         }
 
         // Relaxed: drain reads these after a WaitGroup handoff, which orders them.
-        let counts = &group.counts;
-        counts.published.fetch_add(1, Ordering::Relaxed);
+        group.counts.published.fetch_add(1, Ordering::Relaxed);
         if !delivered {
-            counts.undelivered.fetch_add(1, Ordering::Relaxed);
+            group.counts.undelivered.fetch_add(1, Ordering::Relaxed);
         }
+    }
+
+    #[inline]
+    fn ensure_open(&self) -> RadiateResult<()> {
+        if self.shared.closed.load(Ordering::Relaxed) {
+            radiate_bail!("EventStream is closed, dropping event");
+        }
+        Ok(())
     }
 }
 
