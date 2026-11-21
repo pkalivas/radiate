@@ -1,16 +1,11 @@
 use crate::{
-    Event, EventId, WeakScope,
+    Event, EventHandler, EventId, EventScope, Handler,
     events::{
-        event::Payload,
-        stream::{Shared, StreamMessage},
+        EventStream, Subscription, SubscriptionId,
+        stream::{Delivery, Shared},
     },
 };
-use crate::{
-    EventHandler,
-    events::{EventStream, Subscription, SubscriptionId},
-};
-use crate::{Handler, events::subscription::Counters};
-use radiate_core::{Executor, Inbox, error::RadiateResult};
+use radiate_core::{Executor, Inbox, WaitGuard, error::RadiateResult};
 use radiate_utils::{generate_metric_key, sentry_id};
 use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
 use std::sync::{Arc, Mutex, Weak};
@@ -21,41 +16,51 @@ sentry_id!(MailBoxId);
 /// worker back to the executor. On a serial executor the drain just keeps going.
 const PROCESS_BATCH_SIZE: usize = 64;
 
-/// Downcast and hand a payload to `H`'s handler for `E`. Stored as a plain fn
-/// pointer in each [`Envelope`], so queueing costs no extra allocation.
-fn deliver<E, H>(handler: &mut H, payload: &Payload, ctx: &EventContext<'_, H>)
+/// The untyped face of a mailbox. Everything the stream can ask of a mailbox
+/// without knowing its handler type.
+pub(super) trait Recipient: Send + Sync {
+    fn id(&self) -> MailBoxId;
+
+    fn drain(&self, guard: WaitGuard);
+}
+
+/// Monomorphized per (E, H) and stored as a fn pointer, so one queue can hold
+/// deliveries of every event type the handler subscribes to.
+type HandleFn<H> = fn(&mut H, &Delivery, &EventContext<'_, H>);
+
+fn handle<E, H>(handler: &mut H, delivery: &Delivery, ctx: &EventContext<'_, H>)
 where
     E: Event,
     H: Handler<E>,
 {
-    // The stream routes by TypeId, so this always matches.
-    if let Some(event) = payload.downcast_ref::<E>() {
+    if let Some(event) = delivery.event::<E>() {
         handler.handle(event, ctx);
     }
 }
 
-/// One queued delivery: the published event plus everything needed to hand it
-/// to the handler once this mailbox's drain reaches it.
-struct Envelope<H> {
-    payload: StreamMessage,
-    counters: Arc<Counters>,
-    deliver: fn(&mut H, &Payload, &EventContext<'_, H>),
+/// One unit of work in a mailbox's queue.
+enum Item<H> {
+    Deliver {
+        delivery: Delivery,
+        handle: HandleFn<H>,
+    },
+    Drain(WaitGuard),
 }
 
 struct Inner<H> {
     id: MailBoxId,
     handler: Mutex<H>,
-    inbox: Inbox<Envelope<H>>,
+    inbox: Inbox<Item<H>>,
     executor: Arc<Executor>,
     stream: Weak<Shared>,
 }
 
-/// A handler plus its queue of pending deliveries.
+/// A handler plus its queue of pending work.
 ///
-/// Every event routed to the handler is pushed onto its [`Inbox`], and at most
-/// one drain runs at a time, inline on a serial executor or as a single job on a
-/// worker pool. So a handler sees its events in publish order, never runs on two
-/// threads at once, and never parks pool workers waiting on its lock.
+/// Every delivery routed to the handler is pushed onto its [`Inbox`], and at
+/// most one drain runs at a time, inline on a serial executor or as a single job
+/// on a worker pool. So a handler sees its events in publish order, never runs
+/// on two threads at once, and never parks pool workers waiting on its lock.
 ///
 /// An event a handler publishes to itself (directly, or through a cycle of other
 /// handlers) is queued and handled after the current `handle` call returns,
@@ -107,6 +112,11 @@ impl<H: Send + 'static> MailBox<H> {
         }
     }
 
+    /// The type-erased handle the stream keeps for barriers.
+    pub(super) fn recipient(&self) -> Arc<dyn Recipient> {
+        Arc::new(self.clone())
+    }
+
     /// Run the handler's `start`. The inbox is claimed for the duration, so any
     /// event `start` publishes to this handler (or that arrives from elsewhere
     /// once `start` has subscribed) queues up and is drained right after.
@@ -116,11 +126,10 @@ impl<H: Send + 'static> MailBox<H> {
     {
         let claimed = self.0.inbox.try_claim();
         let result = {
-            let trace = WeakScope::default();
+            let scope = EventScope::default();
             let ctx = EventContext {
-                id: EventId::new(),
+                scope: &scope,
                 mailbox: self,
-                context: &trace,
             };
             self.0.handler.lock().unwrap().start(&ctx)
         };
@@ -132,18 +141,19 @@ impl<H: Send + 'static> MailBox<H> {
         result
     }
 
-    pub(super) fn deliver<E>(&self, payload: StreamMessage, counters: Arc<Counters>)
+    pub(super) fn deliver<E>(&self, delivery: Delivery)
     where
         E: Event,
         H: Handler<E>,
     {
-        let envelope = Envelope {
-            payload,
-            counters,
-            deliver: deliver::<E, H>,
-        };
+        self.enqueue(Item::Deliver {
+            delivery,
+            handle: handle::<E, H>,
+        });
+    }
 
-        if self.0.inbox.push(envelope) {
+    fn enqueue(&self, item: Item<H>) {
+        if self.0.inbox.push(item) {
             self.schedule();
         }
     }
@@ -163,7 +173,6 @@ impl<H: Send + 'static> MailBox<H> {
     }
 
     fn process(&self) {
-        let mut shutdown = None;
         let more = {
             let Ok(mut handler) = self.0.handler.lock() else {
                 self.discard();
@@ -174,34 +183,30 @@ impl<H: Send + 'static> MailBox<H> {
             };
 
             let mut panicked = None;
-            let more = self.0.inbox.drain(self.budget(), |envelope| {
-                let outcome = match &envelope.payload {
-                    StreamMessage::Event {
-                        id,
-                        payload,
-                        scope: trace,
-                    } => {
-                        let ctx = EventContext {
-                            id: *id,
-                            mailbox: self,
-                            context: trace,
-                        };
-                        catch_unwind(AssertUnwindSafe(|| {
-                            (envelope.deliver)(&mut handler, payload, &ctx)
-                        }))
-                    }
-                    StreamMessage::Wait(guard) => {
-                        shutdown = Some(guard.clone());
-                        Ok(())
-                    }
-                };
+            let more = self.0.inbox.drain(self.budget(), |item| {
+                if panicked.is_some() {
+                    // Drop the rest of this turn's items, releasing their
+                    // scopes and barrier guards.
+                    return;
+                }
 
-                match outcome {
-                    Ok(()) => envelope.counters.record_handled(),
-                    Err(payload) => {
-                        panicked = Some(payload);
-                        return;
+                match item {
+                    Item::Deliver { delivery, handle } => {
+                        let ctx = EventContext {
+                            scope: delivery.scope(),
+                            mailbox: self,
+                        };
+
+                        let outcome = catch_unwind(AssertUnwindSafe(|| {
+                            handle(&mut handler, &delivery, &ctx)
+                        }));
+
+                        match outcome {
+                            Ok(()) => delivery.complete(),
+                            Err(payload) => panicked = Some(payload),
+                        }
                     }
+                    Item::Drain(guard) => drop(guard),
                 }
             });
 
@@ -209,16 +214,14 @@ impl<H: Send + 'static> MailBox<H> {
                 if more {
                     self.discard();
                 }
+
                 resume_unwind(payload);
             }
 
             more
         };
 
-        drop(shutdown);
-
         if more {
-            // Only reachable on a pool: give the worker back, continue as a new job
             self.schedule();
         }
     }
@@ -229,6 +232,16 @@ impl<H: Send + 'static> MailBox<H> {
     }
 }
 
+impl<H: Send + 'static> Recipient for MailBox<H> {
+    fn id(&self) -> MailBoxId {
+        self.0.id
+    }
+
+    fn drain(&self, guard: WaitGuard) {
+        self.enqueue(Item::Drain(guard));
+    }
+}
+
 impl<H> Clone for MailBox<H> {
     fn clone(&self) -> Self {
         MailBox(Arc::clone(&self.0))
@@ -236,9 +249,8 @@ impl<H> Clone for MailBox<H> {
 }
 
 pub struct EventContext<'a, H> {
-    id: EventId,
+    scope: &'a EventScope,
     mailbox: &'a MailBox<H>,
-    context: &'a WeakScope,
 }
 
 impl<H> EventContext<'_, H> {
@@ -249,13 +261,13 @@ impl<H> EventContext<'_, H> {
     /// Does nothing if the stream has already been dropped.
     pub fn publish<E: Event>(&self, event: E) {
         if let Some(stream) = self.mailbox.stream() {
-            stream.publish_scoped(event, self.context.clone());
+            stream.publish_scoped(event, self.scope.clone());
         }
     }
 
     /// The id of the event that started the chain this handler is running in.
     pub fn root_id(&self) -> EventId {
-        self.id
+        self.scope.id()
     }
 
     pub fn subscribe<E>(&self) -> Subscription

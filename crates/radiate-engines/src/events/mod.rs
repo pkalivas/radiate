@@ -18,7 +18,7 @@ pub use messages::{
 };
 
 pub use event::{Event, EventHandler, EventId, Handler};
-pub(crate) use event::{StreamContext, WeakScope};
+pub(crate) use event::{StreamContext, EventScope};
 pub use mailbox::{EventContext, MailBoxId};
 pub use stats::{StreamStats, SubscriptionInfo, SubscriptionStats};
 pub use stream::EventStream;

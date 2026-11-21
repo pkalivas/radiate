@@ -42,26 +42,6 @@ where
     }
 }
 
-// #[derive(Default, Clone)]
-// pub struct Scope {
-//     in_flight: Arc<()>,
-//     #[allow(dead_code)]
-//     guard: Option<Arc<WaitGuard>>,
-// }
-
-// impl Scope {
-//     pub fn count(&self) -> usize {
-//         Arc::strong_count(&self.in_flight)
-//     }
-
-//     pub fn guarded(&self, guard: WaitGuard) -> Scope {
-//         Scope {
-//             in_flight: Arc::clone(&self.in_flight),
-//             guard: Some(Arc::new(guard)),
-//         }
-//     }
-// }
-
 #[derive(Default, Clone)]
 pub struct StreamContext {
     in_flight: Arc<()>,
@@ -70,19 +50,22 @@ pub struct StreamContext {
 }
 
 impl StreamContext {
-    pub fn weak_count(&self) -> usize {
+    #[allow(dead_code)]
+    pub fn in_flight(&self) -> usize {
         Arc::weak_count(&self.in_flight)
     }
 
-    pub fn weak(&self) -> WeakScope {
-        WeakScope {
+    pub fn weak(&self) -> EventScope {
+        EventScope {
+            id: EventId::new(),
             in_flight: Arc::downgrade(&self.in_flight),
             guard: self.guard.clone(),
         }
     }
 
-    pub fn guarded(&self, guard: WaitGuard) -> WeakScope {
-        WeakScope {
+    pub fn guarded(&self, guard: WaitGuard) -> EventScope {
+        EventScope {
+            id: EventId::new(),
             in_flight: Arc::downgrade(&self.in_flight),
             guard: Some(Arc::new(guard)),
         }
@@ -90,15 +73,23 @@ impl StreamContext {
 }
 
 #[derive(Default)]
-pub struct WeakScope {
+pub struct EventScope {
+    id: EventId,
     in_flight: Weak<()>,
     #[allow(dead_code)]
     guard: Option<Arc<WaitGuard>>,
 }
 
-impl Clone for WeakScope {
+impl EventScope {
+    pub fn id(&self) -> EventId {
+        self.id
+    }
+}
+
+impl Clone for EventScope {
     fn clone(&self) -> Self {
-        WeakScope {
+        EventScope {
+            id: self.id,
             in_flight: Weak::clone(&self.in_flight),
             guard: self.guard.clone(),
         }

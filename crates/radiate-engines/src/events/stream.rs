@@ -1,10 +1,11 @@
 use crate::{
-    EventHandler, EventId, StreamContext, StreamStats, SubscriptionInfo, WeakScope,
+    EventHandler, EventScope, StreamContext, StreamStats, SubscriptionInfo,
     events::{
         Event, Handler, Subscription, SubscriptionId,
         event::Payload,
-        mailbox::MailBox,
+        mailbox::{MailBox, Recipient},
         messages::{DeferredEvent, StreamEvent},
+        subscription::Counters,
     },
 };
 use radiate_core::{Executor, SmallStr, WaitGroup, WaitGuard, error::RadiateResult};
@@ -18,30 +19,19 @@ use std::{
     },
 };
 
-type Forward = Arc<dyn Fn(StreamMessage) + Send + Sync>;
+type Forward = Arc<dyn Fn(Delivery) + Send + Sync>;
 type SubscriberList = Arc<Vec<Registration>>;
 type SubscriberMap = HashMap<TypeId, SubscriberList>;
-
-#[derive(Clone)]
-pub(crate) enum StreamMessage {
-    Event {
-        id: EventId,
-        payload: Payload,
-        scope: WeakScope,
-    },
-    #[allow(dead_code)]
-    Wait(WeakScope),
-}
 
 enum DispatchMode {
     Scheduled,
     Immediate,
-    All,
 }
 
 #[derive(Clone)]
 struct Registration {
     forward: Forward,
+    recipient: Arc<dyn Recipient>,
     subscription: Subscription,
     event: &'static str,
     handler: TypeId,
@@ -83,16 +73,38 @@ impl Shared {
         self.subscribers.read().unwrap().get(&id).cloned()
     }
 
-    fn in_flight(&self) -> usize {
-        self.context.weak_count()
-    }
-
-    fn scope(&self) -> WeakScope {
+    fn scope(&self) -> EventScope {
         self.context.weak()
     }
 
-    fn scoped(&self, guard: WaitGuard) -> WeakScope {
+    fn scoped(&self, guard: WaitGuard) -> EventScope {
         self.context.guarded(guard)
+    }
+}
+
+/// One event routed to one subscription: what the stream hands a mailbox.
+///
+/// The mailbox reads it and calls [`complete`](Delivery::complete) once the
+/// handler returns. Dropping it without completing (a panic, a discard) still
+/// releases its scope, but it isn't counted as handled.
+pub(super) struct Delivery {
+    payload: Payload,
+    scope: EventScope,
+    counters: Arc<Counters>,
+}
+
+impl Delivery {
+    pub(super) fn scope(&self) -> &EventScope {
+        &self.scope
+    }
+
+    pub(super) fn event<E: Event>(&self) -> Option<&E> {
+        self.payload.downcast_ref()
+    }
+
+    /// The handler finished with this delivery.
+    pub(super) fn complete(self) {
+        self.counters.record_handled();
     }
 }
 
@@ -105,27 +117,17 @@ pub struct EventStreamScope<'a> {
 impl EventStreamScope<'_> {
     pub fn publish<E: Event>(&self, event: E) {
         self.stream
-            .publish_scoped(event, self.stream.guarded_context(self.wg.guard()));
+            .publish_scoped(event, self.stream.gaurded_scope(self.wg.guard()));
     }
 
     pub fn lazy_publish<E: Event>(&self, f: impl FnOnce() -> E) -> RadiateResult<()> {
-        let ctx = self.stream.guarded_context(self.wg.guard());
+        let ctx = self.stream.gaurded_scope(self.wg.guard());
         self.stream.lazy_publish_scoped(f, ctx)
     }
 
     pub fn publish_payload(&self, payload: Payload) {
         self.stream
-            .publish_payload_scoped(payload, self.stream.guarded_context(self.wg.guard()));
-    }
-
-    pub fn handle_all(&self) -> bool {
-        let groups = self.stream.shared.subscribers.read().unwrap();
-        for group in groups.values() {
-            let message = StreamMessage::Wait(self.stream.guarded_context(self.wg.guard()));
-            self.stream.dispatch(group, message, DispatchMode::All);
-        }
-
-        false
+            .publish_payload_scoped(payload, self.stream.gaurded_scope(self.wg.guard()));
     }
 
     pub fn deferred(&self) -> Vec<Payload> {
@@ -305,24 +307,16 @@ impl EventStream {
 
     /// Publish `event` as part of an existing chain.
     #[inline]
-    pub(crate) fn publish_scoped<E: Event>(&self, event: E, scope: WeakScope) {
-        let Some(group) = self.shared.group::<E>() else {
-            return;
-        };
-
-        let wrapper = StreamMessage::Event {
-            id: EventId::new(),
-            payload: Arc::new(event),
-            scope,
-        };
-
-        self.dispatch(&group, wrapper, DispatchMode::Immediate);
+    pub(crate) fn publish_scoped<E: Event>(&self, event: E, scope: EventScope) {
+        if let Some(group) = self.shared.group::<E>() {
+            self.dispatch(&group, Arc::new(event), scope, DispatchMode::Immediate);
+        }
     }
 
     pub(crate) fn lazy_publish_scoped<E: Event>(
         &self,
         f: impl FnOnce() -> E,
-        scope: WeakScope,
+        scope: EventScope,
     ) -> RadiateResult<()> {
         let Some(group) = self.shared.group::<E>() else {
             return Ok(());
@@ -339,31 +333,14 @@ impl EventStream {
             return Ok(());
         }
 
-        let wrapper = StreamMessage::Event {
-            id: EventId::new(),
-            payload: Arc::new(f()),
-            scope,
-        };
-
-        self.dispatch(&group, wrapper, DispatchMode::Scheduled);
+        self.dispatch(&group, Arc::new(f()), scope, DispatchMode::Scheduled);
         Ok(())
     }
 
-    pub(crate) fn publish_payload_scoped(&self, payload: Payload, ctx: WeakScope) {
-        let type_id = (*payload).type_id();
-        let group = self.shared.group_by_type(type_id);
-
-        let Some(group) = group else {
-            return;
-        };
-
-        let wrapper = StreamMessage::Event {
-            id: EventId::new(),
-            payload,
-            scope: ctx,
-        };
-
-        self.dispatch(&group, wrapper, DispatchMode::Immediate);
+    pub(crate) fn publish_payload_scoped(&self, payload: Payload, ctx: EventScope) {
+        if let Some(group) = self.shared.group_by_type((*payload).type_id()) {
+            self.dispatch(&group, payload, ctx, DispatchMode::Immediate);
+        }
     }
 
     pub fn flush(&self) -> RadiateResult<()> {
@@ -381,42 +358,30 @@ impl EventStream {
         })
     }
 
+    /// Block until every mailbox has handled everything published so far,
+    /// including events handlers publish while catching up.
+    ///
+    /// Each pass queues a barrier behind the work already in every mailbox and
+    /// waits for all of them to pass it. If handlers published more in the
+    /// meantime, it goes around again.
+    ///
+    /// Don't call this from inside a handler: its own mailbox can't pass the
+    /// barrier until the handler returns.
     pub fn wait(&self) -> RadiateResult<()> {
-        self.scope(|stream| {
-            stream.handle_all();
-            Ok(())
-        })?;
+        loop {
+            self.flush()?;
+            let before = self.event_count();
 
-        println!("{:?}", self.shared.in_flight());
+            let wg = WaitGroup::new();
+            for recipient in self.recipients() {
+                recipient.drain(wg.guard());
+            }
+            wg.wait();
 
-        // let waiter = WaitGroup::new();
-
-        // loop {
-        //     let subscribers = self.shared.subscribers.read().unwrap();
-        //     for group in subscribers.values() {
-        //         let message = StreamMessage::Wait(self.guarded_context(waiter.guard()));
-        //         self.dispatch(&group, message, DispatchMode::All);
-        //     }
-
-        //     self.flush()?;
-
-        //     waiter.wait();
-
-        //     let stats = self.stats();
-        //     let in_flight = stats
-        //         .subscribers
-        //         .iter()
-        //         .map(|sub| sub.stats.in_flight())
-        //         .sum::<u64>();
-
-        //     if in_flight == 0 {
-        //         break;
-        //     }
-        // }
-
-        // waiter.wait();
-
-        Ok(())
+            if self.event_count() == before {
+                return Ok(());
+            }
+        }
     }
 
     pub fn roll(&self) -> RadiateResult<()> {
@@ -435,33 +400,54 @@ impl EventStream {
     }
 
     #[inline]
-    fn dispatch(&self, group: &SubscriberList, payload: StreamMessage, scheduled: DispatchMode) {
+    fn dispatch(
+        &self,
+        group: &SubscriberList,
+        payload: Payload,
+        scope: EventScope,
+        mode: DispatchMode,
+    ) {
         for registration in group.iter() {
-            if !registration.subscription.is_alive() {
+            let subscription = &registration.subscription;
+            if !subscription.is_alive() {
                 continue;
             }
 
-            let due = match scheduled {
-                DispatchMode::Scheduled => {
-                    // lazy: already reserved
-                    registration.subscription.take_permit()
-                }
-                DispatchMode::Immediate => {
-                    // eager: tick now
-                    registration.subscription.is_due()
-                }
-                DispatchMode::All => true,
+            let due = match mode {
+                // lazy: already reserved
+                DispatchMode::Scheduled => subscription.take_permit(),
+                // eager: tick now
+                DispatchMode::Immediate => subscription.is_due(),
             };
 
             if !due {
                 continue;
             }
 
-            registration.subscription.counters.record_delivered();
-            (registration.forward)(payload.clone());
+            subscription.counters.record_delivered();
+            (registration.forward)(Delivery {
+                payload: Arc::clone(&payload),
+                scope: scope.clone(),
+                counters: Arc::clone(&subscription.counters),
+            });
         }
 
         self.shared.event_count.fetch_add(1, Ordering::SeqCst);
+    }
+
+    /// One handle per live mailbox. A mailbox with several subscriptions
+    /// appears once.
+    fn recipients(&self) -> Vec<Arc<dyn Recipient>> {
+        let mut seen = HashSet::new();
+        self.shared
+            .subscribers
+            .read()
+            .unwrap()
+            .values()
+            .flat_map(|group| group.iter())
+            .filter(|reg| reg.subscription.is_alive() && seen.insert(reg.recipient.id()))
+            .map(|reg| Arc::clone(&reg.recipient))
+            .collect()
     }
 }
 
@@ -486,15 +472,11 @@ impl EventStream {
         H: Handler<E>,
     {
         let subscription = Subscription::new(mailbox.id());
-        let counters = Arc::clone(&subscription.counters);
         let target = mailbox.clone();
 
-        let forward: Forward = Arc::new(move |payload: StreamMessage| {
-            target.deliver::<E>(payload, Arc::clone(&counters));
-        });
-
         let registration = Registration {
-            forward,
+            forward: Arc::new(move |delivery| target.deliver::<E>(delivery)),
+            recipient: mailbox.recipient(),
             subscription: subscription.clone(),
             event: std::any::type_name::<E>(),
             handler: TypeId::of::<H>(),
@@ -517,7 +499,7 @@ impl EventStream {
         subscription
     }
 
-    fn guarded_context(&self, guard: WaitGuard) -> WeakScope {
+    fn gaurded_scope(&self, guard: WaitGuard) -> EventScope {
         self.shared.scoped(guard)
     }
 }
