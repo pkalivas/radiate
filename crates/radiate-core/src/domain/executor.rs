@@ -1,9 +1,7 @@
-use crate::sync::ThreadPool;
 use crate::sync::WaitGroup;
 use crate::sync::get_thread_pool;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use std::sync::Arc;
 
 #[derive(Clone, Debug, Default)]
 pub enum Executor {
@@ -12,21 +10,15 @@ pub enum Executor {
     #[cfg(feature = "rayon")]
     WorkerPool,
     FixedSizedWorkerPool(usize),
-    Pool(Arc<ThreadPool>),
 }
 
 impl Executor {
-    pub fn new_pool(workers: usize) -> Self {
-        Executor::Pool(Arc::new(ThreadPool::new(workers)))
-    }
-
     pub fn is_parallel(&self) -> bool {
         match self {
             Executor::Serial => false,
             #[cfg(feature = "rayon")]
             Executor::WorkerPool => true,
             Executor::FixedSizedWorkerPool(_) => true,
-            Executor::Pool(_) => true,
         }
     }
 
@@ -36,7 +28,6 @@ impl Executor {
             #[cfg(feature = "rayon")]
             Executor::WorkerPool => rayon::current_num_threads(),
             Executor::FixedSizedWorkerPool(num_workers) => *num_workers,
-            Executor::Pool(pool) => pool.num_workers(),
         }
     }
 
@@ -69,7 +60,6 @@ impl Executor {
 
                 (*result.lock().unwrap()).take().unwrap()
             }
-            Executor::Pool(pool) => pool.submit_with_result(f).result(),
         }
     }
 
@@ -104,20 +94,6 @@ impl Executor {
                 .into_par_iter()
                 .map(|func| func())
                 .collect(),
-            Executor::Pool(pool) => {
-                let (tx, rx) = crossbeam::channel::unbounded();
-
-                for (i, job) in jobs.into_iter().enumerate() {
-                    let tx = tx.clone();
-                    pool.submit(move || {
-                        tx.send((i, job())).unwrap();
-                    });
-                }
-
-                drop(tx);
-
-                rx.iter().map(|(_, result)| result).collect::<Vec<_>>()
-            }
         }
     }
 
@@ -136,10 +112,9 @@ impl Executor {
                 rayon::spawn_fifo(move || {
                     f();
                 });
-            }
-            Executor::Pool(pool) => {
-                pool.submit(f);
-            }
+            } // Executor::Pool(pool) => {
+              //     pool.submit(f);
+              // }
         }
     }
 
@@ -186,19 +161,18 @@ impl Executor {
                 });
 
                 wg.wait();
-            }
-            Executor::Pool(pool) => {
-                let wg = WaitGroup::new();
-                for job in jobs {
-                    let guard = wg.guard();
-                    pool.submit(move || {
-                        job();
-                        drop(guard);
-                    });
-                }
+            } // Executor::Pool(pool) => {
+              //     let wg = WaitGroup::new();
+              //     for job in jobs {
+              //         let guard = wg.guard();
+              //         pool.submit(move || {
+              //             job();
+              //             drop(guard);
+              //         });
+              //     }
 
-                wg.wait();
-            }
+              //     wg.wait();
+              // }
         }
     }
 }

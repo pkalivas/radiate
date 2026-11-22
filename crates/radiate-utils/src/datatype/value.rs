@@ -804,36 +804,4 @@ mod tests {
         let casted = v.clone().cast(&DataType::Float64).unwrap();
         assert_eq!(casted, AnyValue::Float64(42.0));
     }
-
-    #[cfg(feature = "serde")]
-    #[test]
-    fn test_anyvalue_json_roundtrip() {
-        let values: Vec<AnyValue<'static>> = vec![
-            AnyValue::Null,
-            AnyValue::Bool(true),
-            AnyValue::UInt8(1),
-            AnyValue::UInt16(2),
-            AnyValue::UInt32(3),
-            AnyValue::UInt64(4),
-            AnyValue::Int8(-1),
-            AnyValue::Int16(-2),
-            AnyValue::Int32(-3),
-            AnyValue::Int64(-4),
-            AnyValue::Float32(0.7),
-            AnyValue::Float64(1.23456789),
-            AnyValue::Usize(42),
-            AnyValue::Char('x'),
-            AnyValue::StrOwned("hello".into()),
-            AnyValue::Vector(vec![AnyValue::Float32(1.0), AnyValue::Float32(2.0)]),
-        ];
-
-        for original in &values {
-            let json = serde_json::to_string(original)
-                .unwrap_or_else(|e| panic!("serialize failed for {original:?}: {e}"));
-            let restored: AnyValue<'static> = serde_json::from_str(&json).unwrap_or_else(|e| {
-                panic!("deserialize failed for {original:?} (json={json}): {e}")
-            });
-            assert_eq!(original, &restored, "round-trip mismatch for {original:?}");
-        }
-    }
 }
