@@ -8,6 +8,7 @@ use crate::{
             StreamClosed, StreamEvent, StreamOpened, SubscriptionAdded, SubscriptionRemoved,
         },
         registry::{Build, Registration, Registry},
+        subscription::nanos,
     },
 };
 use radiate_core::{Executor, WaitGroup, WaitGuard, error::RadiateResult};
@@ -17,9 +18,47 @@ use std::{
     fmt::Debug,
     sync::{
         Arc, Mutex, Weak,
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
     },
+    time::Duration,
 };
+
+const RUNNING: u64 = 1 << 63;
+
+struct WallClock {
+    origin: quanta::Instant, // set at creation, never changes
+    state: AtomicU64,
+}
+
+impl WallClock {
+    fn now(&self) -> u64 {
+        nanos(self.origin.elapsed())
+    }
+
+    fn open(&self) {
+        let total = self.state.load(Ordering::Relaxed); // closed: time so far
+        if total & RUNNING == 0 {
+            self.state
+                .store(RUNNING | (self.now() - total), Ordering::Relaxed);
+        }
+    }
+
+    fn close(&self) {
+        let s = self.state.load(Ordering::Relaxed);
+        if s & RUNNING != 0 {
+            self.state
+                .store(self.now() - (s & !RUNNING), Ordering::Relaxed);
+        }
+    }
+
+    fn elapsed(&self) -> Duration {
+        let s = self.state.load(Ordering::Relaxed);
+        Duration::from_nanos(match s & RUNNING {
+            0 => s,                           // closed: f
+            _ => self.now() - (s & !RUNNING), // open: now − virtual start
+        })
+    }
+}
 
 /// The state every clone of an [`EventStream`] shares.
 ///
@@ -31,15 +70,20 @@ pub(super) struct Shared {
     registry: Registry,
     pending: Mutex<Vec<Payload>>,
     closed: AtomicBool,
+    wall_clock: WallClock,
 }
 
 impl Default for Shared {
     fn default() -> Self {
-        let _ = quanta::Instant::now();
+        let origin = quanta::Instant::now();
         Shared {
             registry: Registry::default(),
             pending: Mutex::default(),
             closed: AtomicBool::new(false),
+            wall_clock: WallClock {
+                origin,
+                state: AtomicU64::new(0),
+            },
         }
     }
 }
@@ -221,7 +265,8 @@ impl EventStream {
         result
     }
 
-    pub fn open(&self) -> RadiateResult<()> {
+    pub fn open(&mut self) -> RadiateResult<()> {
+        self.shared.wall_clock.open();
         self.scope(|stream| {
             stream.lazy_publish(|| StreamEvent(StreamOpened(stream.snapshot())))?;
             stream.wait();
@@ -232,6 +277,7 @@ impl EventStream {
     pub fn close(&self) -> RadiateResult<()> {
         self.drain()?;
         self.scope(|stream| stream.lazy_publish(|| StreamEvent(StreamClosed(stream.snapshot()))))?;
+        self.shared.wall_clock.close();
         self.shared.closed.store(true, Ordering::Relaxed);
         Ok(())
     }

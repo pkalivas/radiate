@@ -710,6 +710,7 @@ mod pool_tests {
     // [pool_logger_to_adder] 40000 deliveries in 28.807167ms = 1,388,543/s
     // [pool_logger_to_adder] 120000 deliveries in 38.944333ms = 3,081,321/s
     // [pool_logger_to_adder] 120000 deliveries in 14.414625ms = 8,324,878/s
+    // 2,792,282
     fn pool_logger_to_adder() {
         const N: usize = 10_000;
 
@@ -765,12 +766,19 @@ mod pool_tests {
             .sum::<u64>();
 
         let label = "pool_logger_to_adder";
+        let stream_metrics = stream.snapshot().stream_metrics();
 
         println!(
             "[{label}] {deliveries} deliveries in {elapsed:?} = {:.0}/s",
             deliveries as f64 / elapsed.as_secs_f64()
         );
 
-        // println!("{:#?}", stream.stats());
+        println!("{:#?}", stream_metrics);
+        println!("{:#?}", stream_metrics.capacity());
+        println!("{:#?}", stream_metrics.handling + stream_metrics.wait);
+        let delivered = stream_metrics.delivered;
+        let total_time = stream_metrics.mean_handling().unwrap();
+        let throughput = delivered as f64 / total_time.as_secs_f64();
+        println!("Throughput: {:.0}/s", throughput);
     }
 }
