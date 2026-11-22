@@ -23,7 +23,7 @@ use crate::{
 #[cfg(feature = "serde")]
 use crate::{FileWriter, io::FileReader};
 use crate::{Generation, Result};
-use crate::{Handler, builder::evaluators::EvaluationParams};
+use crate::{On, builder::evaluators::EvaluationParams};
 use crate::{LogEvent, builder::filters::FilterParams};
 use crate::{LogLevel, builder::problem::ProblemParams};
 use crate::{StreamHandler, builder::objectives::OptimizeParams};
@@ -144,7 +144,7 @@ where
     }
 
     /// Subscribe to an event of type `E` with the given event handler.
-    pub fn subscribe<E: Event>(self, handler: impl Handler<E>) -> Self {
+    pub fn subscribe<E: Event>(self, handler: impl On<E>) -> Self {
         self.params.event_stream.subscribe(handler);
         self
     }

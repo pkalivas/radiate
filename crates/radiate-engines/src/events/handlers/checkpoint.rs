@@ -6,7 +6,7 @@ use crate::{
 };
 use crate::{Generation, LogEvent};
 use crate::{
-    Handler,
+    On,
     events::{EventContext, EventHandler, GenerationSnapshot},
 };
 use radiate_core::{Chromosome, error::RadiateResult};
@@ -54,7 +54,7 @@ where
     }
 }
 
-impl<C, T> Handler<GenerationSnapshot<C, T>> for CheckpointWriterHandler<C, T>
+impl<C, T> On<GenerationSnapshot<C, T>> for CheckpointWriterHandler<C, T>
 where
     C: Chromosome + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,
@@ -83,7 +83,7 @@ where
     }
 }
 
-impl<C, T> Handler<CheckpointSaved> for CheckpointWriterHandler<C, T>
+impl<C, T> On<CheckpointSaved> for CheckpointWriterHandler<C, T>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,

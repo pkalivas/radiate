@@ -14,22 +14,22 @@ pub trait Event: Send + Sync + 'static {
     }
 }
 
-pub trait Handler<E: Event>: Sized + Send + 'static {
+pub trait On<E: Event>: Sized + Send + 'static {
     fn handle(&mut self, event: &E, ctx: &EventContext<'_, Self>);
 }
 
 pub trait EventHandler: Sized + Send + 'static {
-    fn start(&mut self, _ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
+    fn start(&mut self, _: &EventContext<'_, Self>) -> RadiateResult<()> {
         Ok(())
     }
 }
 
-impl<E, F> Handler<E> for F
+impl<E, F> On<E> for F
 where
     E: Event,
     F: FnMut(&E) + Send + 'static,
 {
-    fn handle(&mut self, event: &E, _ctx: &EventContext<'_, Self>) {
+    fn handle(&mut self, event: &E, _: &EventContext<'_, Self>) {
         self(event)
     }
 }

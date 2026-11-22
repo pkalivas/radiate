@@ -1,5 +1,5 @@
 use crate::{
-    Event, Handler, Warning,
+    Event, On, Warning,
     events::{EngineStateChange, EventContext, EventHandler},
 };
 use crate::{LimitTriggered, events::EpochComplete};
@@ -38,7 +38,7 @@ where
     }
 }
 
-impl<T> Handler<LimitTriggered> for EngineLogger<T>
+impl<T> On<LimitTriggered> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
@@ -54,7 +54,7 @@ where
     }
 }
 
-impl<T> Handler<EpochComplete<T>> for EngineLogger<T>
+impl<T> On<EpochComplete<T>> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
@@ -89,7 +89,7 @@ where
     }
 }
 
-impl<T> Handler<EngineStateChange> for EngineLogger<T>
+impl<T> On<EngineStateChange> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
@@ -105,7 +105,7 @@ where
     }
 }
 
-impl<T> Handler<Warning> for EngineLogger<T>
+impl<T> On<Warning> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
@@ -141,7 +141,7 @@ impl EventHandler for LoggingHandler {
     }
 }
 
-impl Handler<LogEvent> for LoggingHandler {
+impl On<LogEvent> for LoggingHandler {
     fn handle(&mut self, message: &LogEvent, _ctx: &EventContext<'_, Self>) {
         if !self.0 {
             return;

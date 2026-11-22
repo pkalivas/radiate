@@ -19,7 +19,7 @@ pub use messages::{
 };
 
 pub(crate) use event::EventScope;
-pub use event::{Event, EventHandler, EventId, Handler};
+pub use event::{Event, EventHandler, EventId, On};
 pub use mailbox::{EventContext, MailBoxId};
 pub use stats::{EventStats, StreamSnapshot, SubscriptionInfo, SubscriptionStats};
 pub use stream::EventStream;

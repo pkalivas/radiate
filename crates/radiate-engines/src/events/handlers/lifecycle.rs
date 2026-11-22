@@ -1,5 +1,5 @@
 use crate::{
-    EventContext, EventHandler, Handler, LogEvent, LogLevel, StreamClosed, StreamEvent,
+    EventContext, EventHandler, On, LogEvent, LogLevel, StreamClosed, StreamEvent,
     StreamOpened, SubscriptionAdded, SubscriptionRemoved,
 };
 use radiate_core::error::RadiateResult;
@@ -17,7 +17,7 @@ impl EventHandler for StreamHandler {
     }
 }
 
-impl Handler<StreamEvent<StreamOpened>> for StreamHandler {
+impl On<StreamEvent<StreamOpened>> for StreamHandler {
     fn handle(&mut self, _: &StreamEvent<StreamOpened>, ctx: &EventContext<'_, Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
@@ -26,7 +26,7 @@ impl Handler<StreamEvent<StreamOpened>> for StreamHandler {
     }
 }
 
-impl Handler<StreamEvent<StreamClosed>> for StreamHandler {
+impl On<StreamEvent<StreamClosed>> for StreamHandler {
     fn handle(&mut self, _: &StreamEvent<StreamClosed>, ctx: &EventContext<'_, Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
@@ -35,7 +35,7 @@ impl Handler<StreamEvent<StreamClosed>> for StreamHandler {
     }
 }
 
-impl Handler<StreamEvent<SubscriptionAdded>> for StreamHandler {
+impl On<StreamEvent<SubscriptionAdded>> for StreamHandler {
     fn handle(&mut self, event: &StreamEvent<SubscriptionAdded>, ctx: &EventContext<'_, Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
@@ -44,7 +44,7 @@ impl Handler<StreamEvent<SubscriptionAdded>> for StreamHandler {
     }
 }
 
-impl Handler<StreamEvent<SubscriptionRemoved>> for StreamHandler {
+impl On<StreamEvent<SubscriptionRemoved>> for StreamHandler {
     fn handle(&mut self, event: &StreamEvent<SubscriptionRemoved>, ctx: &EventContext<'_, Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,

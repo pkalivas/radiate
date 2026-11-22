@@ -1,6 +1,6 @@
 use crate::events::EpochComplete;
 use crate::{
-    Handler,
+    On,
     events::{EventContext, EventHandler, Warning},
 };
 use radiate_core::Objective;
@@ -33,7 +33,7 @@ where
     }
 }
 
-impl<T> Handler<EpochComplete<T>> for HealthMonitor<T>
+impl<T> On<EpochComplete<T>> for HealthMonitor<T>
 where
     T: Send + Sync + 'static,
 {

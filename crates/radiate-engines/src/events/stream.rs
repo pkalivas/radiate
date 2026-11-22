@@ -1,7 +1,7 @@
 use crate::{
     EventHandler, EventScope, StreamSnapshot, SubscriptionInfo,
     events::{
-        Event, Handler, Subscription, SubscriptionId,
+        Event, On, Subscription, SubscriptionId,
         event::Payload,
         mailbox::MailBox,
         messages::{
@@ -96,7 +96,7 @@ impl EventStream {
         Ok(mailbox)
     }
 
-    pub fn subscribe<E: Event>(&self, handler: impl Handler<E>) -> Subscription {
+    pub fn subscribe<E: Event>(&self, handler: impl On<E>) -> Subscription {
         let mailbox = MailBox::new(handler, Arc::clone(&self.executor), self);
         self.register::<E, _>(&mailbox)
     }
@@ -113,7 +113,7 @@ impl EventStream {
     pub(super) fn register<E, H>(&self, mailbox: &MailBox<H>) -> Subscription
     where
         E: Event,
-        H: Handler<E>,
+        H: On<E>,
     {
         let subscription = Subscription::new(mailbox.id());
         let registration = Registration {

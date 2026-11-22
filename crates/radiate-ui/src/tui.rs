@@ -5,8 +5,8 @@ use crate::{
 use color_eyre::{Result, eyre::Context};
 use crossbeam::channel;
 use radiate_engines::{
-    Chromosome, EngineStart, EventContext, EventHandler, Expr, GenerationSnapshot, Handler,
-    Improvement, StreamClosed, StreamEvent, StreamSnapshot, error::RadiateResult, sync::IntoPair,
+    Chromosome, EngineStart, EventContext, EventHandler, Expr, GenerationSnapshot, Improvement, On,
+    StreamClosed, StreamEvent, StreamSnapshot, error::RadiateResult, sync::IntoPair,
 };
 use radiate_engines::{LogEvent, ThreadSync};
 use std::{fmt::Debug, sync::atomic::Ordering, time::Duration};
@@ -95,7 +95,7 @@ where
     }
 }
 
-impl<C, T> Handler<EngineStart<C>> for Tui<C, T>
+impl<C, T> On<EngineStart<C>> for Tui<C, T>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
@@ -108,7 +108,7 @@ where
     }
 }
 
-impl<C, T> Handler<GenerationSnapshot<C, T>> for Tui<C, T>
+impl<C, T> On<GenerationSnapshot<C, T>> for Tui<C, T>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
@@ -121,7 +121,7 @@ where
     }
 }
 
-impl<C, T> Handler<Improvement<T>> for Tui<C, T>
+impl<C, T> On<Improvement<T>> for Tui<C, T>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
@@ -134,7 +134,7 @@ where
     }
 }
 
-impl<C, T> Handler<LogEvent> for Tui<C, T>
+impl<C, T> On<LogEvent> for Tui<C, T>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
@@ -147,7 +147,7 @@ where
     }
 }
 
-impl<C, T> Handler<StreamEvent<StreamSnapshot>> for Tui<C, T>
+impl<C, T> On<StreamEvent<StreamSnapshot>> for Tui<C, T>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
@@ -160,7 +160,7 @@ where
     }
 }
 
-impl<C, T> Handler<StreamEvent<StreamClosed>> for Tui<C, T>
+impl<C, T> On<StreamEvent<StreamClosed>> for Tui<C, T>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,

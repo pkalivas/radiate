@@ -1,5 +1,5 @@
 use radiate_core::{Executor, error::RadiateResult};
-use radiate_engines::events::{Event, EventContext, EventHandler, EventStream, Handler};
+use radiate_engines::events::{Event, EventContext, EventStream, On, EventHandler};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{self};
 use std::sync::{Arc, Mutex};
@@ -85,7 +85,7 @@ mod publish {
 
     struct Summer(Arc<AtomicUsize>);
 
-    impl Handler<Add> for Summer {
+    impl On<Add> for Summer {
         fn handle(&mut self, event: &Add, _: &EventContext<'_, Self>) {
             self.0.fetch_add(event.0, Ordering::SeqCst);
         }
@@ -291,7 +291,7 @@ mod ordering {
         }
     }
 
-    impl Handler<Tick> for Countdown {
+    impl On<Tick> for Countdown {
         fn handle(&mut self, event: &Tick, ctx: &EventContext<'_, Self>) {
             self.0.lock().unwrap().push(format!("enter {}", event.0));
             if event.0 > 0 {
@@ -337,7 +337,7 @@ mod ordering {
         }
     }
 
-    impl Handler<Serve> for PlayerA {
+    impl On<Serve> for PlayerA {
         fn handle(&mut self, event: &Serve, ctx: &EventContext<'_, Self>) {
             self.0.fetch_add(1, Ordering::SeqCst);
             if event.0 > 0 {
@@ -346,7 +346,7 @@ mod ordering {
         }
     }
 
-    impl Handler<Volley> for PlayerA {
+    impl On<Volley> for PlayerA {
         fn handle(&mut self, _: &Volley, _: &EventContext<'_, Self>) {
             self.0.fetch_add(100, Ordering::SeqCst);
         }
@@ -359,7 +359,7 @@ mod ordering {
         }
     }
 
-    impl Handler<Serve> for PlayerB {
+    impl On<Serve> for PlayerB {
         fn handle(&mut self, _: &Serve, ctx: &EventContext<'_, Self>) {
             ctx.publish(Volley);
         }
@@ -392,7 +392,7 @@ mod ordering {
         }
     }
 
-    impl Handler<Tick> for Primed {
+    impl On<Tick> for Primed {
         fn handle(&mut self, _: &Tick, _: &EventContext<'_, Self>) {
             self.0.fetch_add(1, Ordering::SeqCst);
         }
@@ -447,19 +447,19 @@ mod ordering {
         }
     }
 
-    impl Handler<Even> for Sequencer {
+    impl On<Even> for Sequencer {
         fn handle(&mut self, event: &Even, _: &EventContext<'_, Self>) {
             self.record(event.0);
         }
     }
 
-    impl Handler<Odd> for Sequencer {
+    impl On<Odd> for Sequencer {
         fn handle(&mut self, event: &Odd, _: &EventContext<'_, Self>) {
             self.record(event.0);
         }
     }
 
-    impl Handler<Done> for Sequencer {
+    impl On<Done> for Sequencer {
         fn handle(&mut self, _: &Done, _: &EventContext<'_, Self>) {
             let seen = std::mem::take(&mut self.seen);
             self.report.send((seen, self.overlapped)).unwrap();
@@ -599,7 +599,7 @@ mod pool_tests {
         }
     }
 
-    impl Handler<Tick> for Adder {
+    impl On<Tick> for Adder {
         fn handle(&mut self, event: &Tick, ctx: &EventContext<'_, Self>) {
             self.total_count.fetch_add(event.0, Ordering::SeqCst);
             self.handled.fetch_add(1, Ordering::SeqCst);
@@ -607,14 +607,14 @@ mod pool_tests {
         }
     }
 
-    impl Handler<Relay<i32>> for Adder {
+    impl On<Relay<i32>> for Adder {
         fn handle(&mut self, event: &Relay<i32>, _: &EventContext<'_, Self>) {
             self.relays.fetch_add(event.0, Ordering::SeqCst);
             self.handled.fetch_add(1, Ordering::SeqCst);
         }
     }
 
-    impl Handler<FromLogger> for Adder {
+    impl On<FromLogger> for Adder {
         fn handle(&mut self, event: &FromLogger, _ctx: &EventContext<'_, Self>) {
             self.from_logger.fetch_add(event.0, Ordering::SeqCst);
             self.handled.fetch_add(1, Ordering::SeqCst);
@@ -628,7 +628,7 @@ mod pool_tests {
         }
     }
 
-    impl Handler<Relay<i32>> for Logger {
+    impl On<Relay<i32>> for Logger {
         fn handle(&mut self, event: &Relay<i32>, ctx: &EventContext<'_, Self>) {
             self.relay_count.fetch_add(event.0, Ordering::SeqCst);
             self.handled.fetch_add(1, Ordering::SeqCst);

@@ -1,5 +1,5 @@
 use crate::{
-    Event, EventHandler, EventId, EventScope, Handler,
+    Event, EventHandler, EventId, EventScope, On,
     events::{EventStream, Subscription, SubscriptionId, event::Payload, stream::Shared},
 };
 use radiate_core::{Executor, Inbox, WaitGuard, error::RadiateResult};
@@ -22,7 +22,7 @@ type HandleFn<H> = fn(&mut H, &Payload, &EventContext<'_, H>);
 fn handle<E, H>(handler: &mut H, payload: &Payload, ctx: &EventContext<'_, H>)
 where
     E: Event,
-    H: Handler<E>,
+    H: On<E>,
 {
     if let Some(event) = payload.downcast_ref::<E>() {
         handler.handle(event, ctx);
@@ -72,7 +72,7 @@ struct TypedRoute<E, H> {
 impl<E, H> Route for TypedRoute<E, H>
 where
     E: Event,
-    H: Handler<E>,
+    H: On<E>,
 {
     fn id(&self) -> MailBoxId {
         self.mailbox.0.id
@@ -200,7 +200,7 @@ impl<H: Send + 'static> MailBox<H> {
     pub fn subscribe<E>(&self) -> Subscription
     where
         E: Event,
-        H: Handler<E>,
+        H: On<E>,
     {
         match self.stream() {
             Some(stream) => stream.register::<E, H>(self),
@@ -222,7 +222,7 @@ impl<H: Send + 'static> MailBox<H> {
     pub(super) fn route<E>(&self, subscription: Subscription) -> Arc<dyn Route>
     where
         E: Event,
-        H: Handler<E>,
+        H: On<E>,
     {
         Arc::new(TypedRoute::<E, H> {
             mailbox: self.clone(),
@@ -423,7 +423,7 @@ impl<H> EventContext<'_, H> {
     pub fn subscribe<E>(&self) -> Subscription
     where
         E: Event,
-        H: Handler<E>,
+        H: On<E>,
     {
         const HANDLER_PREFIX: &str = "handler";
 
