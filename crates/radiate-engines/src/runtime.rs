@@ -187,10 +187,10 @@ where
     ///     * This is a heavy clone (clones the entire `Ecosystem` and possibly the `Front` if it exists) so use it judiciously.
     /// * [`LogEvent`](crate::events::LogEvent) - emitted for logging purposes.
     ///     * Only emitted when [logging](Self::logging) is enabled. Produces a struct containing
-    ///  the appropriate [LogLevel](crate::events::LogLevel) and a message of what occurred. Logs can contain
-    ///  information about limits being triggered, checkpoints being saved, epochs completing, state changes,
-    ///  and other significant events within the engine's lifecycle. This is great for collecting simple logs without
-    ///  having to manually subscribe to each individual event.
+    ///       the appropriate [LogLevel](crate::events::LogLevel) and a message of what occurred. Logs can contain
+    ///       information about limits being triggered, checkpoints being saved, epochs completing, state changes,
+    ///       and other significant events within the engine's lifecycle. This is great for collecting simple logs without
+    ///       having to manually subscribe to each individual event.
     ///
     /// ## Simple fn subscriber
     /// ```rust
