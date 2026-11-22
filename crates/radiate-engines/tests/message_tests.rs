@@ -20,7 +20,7 @@ impl Event for Add {}
 impl Event for Tick {}
 
 fn serial() -> EventStream {
-    EventStream::from(Executor::Serial)
+    EventStream::from(Executor::Inline)
 }
 
 fn pool() -> EventStream {

@@ -63,8 +63,6 @@ struct Inner {
     mailbox_id: MailBoxId,
     name: RwLock<Option<SmallStr>>,
     schedule: Mutex<Option<Expr>>,
-    /// Set once a schedule is installed, so unscheduled subscriptions never
-    /// touch the lock.
     is_scheduled: AtomicBool,
     alive: AtomicBool,
     /// Its own allocation on purpose: the mailbox's thread writes these on

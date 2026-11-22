@@ -6,7 +6,7 @@ use std::sync::Arc;
 #[derive(Clone, Debug, Default)]
 pub enum Executor {
     #[default]
-    Serial,
+    Inline,
     ThreadPool(Arc<ThreadPool>),
     #[cfg(feature = "rayon")]
     WorkerPool,
@@ -19,7 +19,7 @@ impl Executor {
 
     pub fn is_parallel(&self) -> bool {
         match self {
-            Executor::Serial => false,
+            Executor::Inline => false,
             Executor::ThreadPool(_) => true,
             #[cfg(feature = "rayon")]
             Executor::WorkerPool => true,
@@ -28,7 +28,7 @@ impl Executor {
 
     pub fn num_workers(&self) -> usize {
         match self {
-            Executor::Serial => 1,
+            Executor::Inline => 1,
             Executor::ThreadPool(pool) => pool.num_workers(),
             #[cfg(feature = "rayon")]
             Executor::WorkerPool => rayon::current_num_threads(),
@@ -41,7 +41,7 @@ impl Executor {
         R: Send + 'static,
     {
         match self {
-            Executor::Serial => f(),
+            Executor::Inline => f(),
             Executor::ThreadPool(pool) => pool.submit_with_result(f).result(),
             #[cfg(feature = "rayon")]
             Executor::WorkerPool => {
@@ -72,7 +72,7 @@ impl Executor {
         R: Send + 'static,
     {
         match self {
-            Executor::Serial => jobs.into_iter().map(|func| func()).collect(),
+            Executor::Inline => jobs.into_iter().map(|func| func()).collect(),
             Executor::ThreadPool(pool) => {
                 let (tx, rx) = crossbeam::channel::unbounded();
 
@@ -110,7 +110,7 @@ impl Executor {
         F: FnOnce() + Send + 'static,
     {
         match self {
-            Executor::Serial => f(),
+            Executor::Inline => f(),
             Executor::ThreadPool(pool) => pool.submit(f),
             #[cfg(feature = "rayon")]
             Executor::WorkerPool => {
@@ -127,7 +127,7 @@ impl Executor {
         F: FnOnce() + Send + 'static,
     {
         match self {
-            Executor::Serial => {
+            Executor::Inline => {
                 for func in jobs {
                     func();
                 }
@@ -174,7 +174,7 @@ mod tests {
 
     #[test]
     fn test_executor_serial() {
-        let executor = Executor::Serial;
+        let executor = Executor::Inline;
         let result = executor.execute(|| 42);
         assert_eq!(result, 42);
 

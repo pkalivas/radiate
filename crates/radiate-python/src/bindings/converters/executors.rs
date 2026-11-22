@@ -27,7 +27,7 @@ impl FromPyEngineInput for Executor {
 }
 
 fn serial(_: &PyEngineInput) -> RadiateResult<Executor> {
-    Ok(Executor::Serial)
+    Ok(Executor::Inline)
 }
 
 fn worker_pool(_: &PyEngineInput) -> RadiateResult<Executor> {

@@ -145,7 +145,7 @@ where
 impl Default for FitnessEvaluator {
     fn default() -> Self {
         Self {
-            executor: Executor::Serial,
+            executor: Executor::Inline,
         }
     }
 }

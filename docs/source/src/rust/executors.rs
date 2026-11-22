@@ -24,7 +24,7 @@ fn main() {
     // Requires the `rayon` feature to be enabled in your Cargo.toml.
     let executor = Executor::WorkerPool;
     // Or for single-threaded execution, use Serial - this is the default if none is specified
-    let executor = Executor::Serial;
+    let executor = Executor::Inline;
 
     let engine = GeneticEngine::builder()
         .codec(codec)

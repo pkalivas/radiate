@@ -12,7 +12,7 @@ pub use control::ThreadSync;
 pub use group::{WaitGroup, WaitGuard};
 pub use inbox::Inbox;
 pub use scheduler::{Next, Scheduler, Timer};
-pub use thread_pool::{ThreadPool, WorkResult, get_thread_pool};
+pub use thread_pool::{ThreadPool, WorkResult};
 
 pub trait ArcExt<T> {
     fn pair(value: T) -> (Arc<T>, Arc<T>) {

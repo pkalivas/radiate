@@ -50,7 +50,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
     }
 
     pub fn wait(&self) {
-        self.sync.wait()
+        self.sync.wait();
     }
 
     pub fn sync(&self) -> ThreadSync {

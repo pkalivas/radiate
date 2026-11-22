@@ -193,7 +193,7 @@ pub fn mock_speciate_step<C: Chromosome>(
         Expr::lit(threshold),
         minimize(),
         Arc::new(distance),
-        Executor::Serial,
+        Executor::Inline,
     )
 }
 

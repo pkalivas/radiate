@@ -8,7 +8,7 @@ mod tests {
 
     #[test]
     fn test_fitness_evaluator_eval() {
-        let evaluator = FitnessEvaluator::new(Executor::Serial);
+        let evaluator = FitnessEvaluator::new(Executor::Inline);
         let mut ecosystem = float_ecosystem();
         let problem = Arc::new(FloatEvalProblem);
 
@@ -24,7 +24,7 @@ mod tests {
 
     #[test]
     fn test_batch_fitness_evaluator_eval() {
-        let evaluator = BatchFitnessEvaluator::new(Executor::Serial);
+        let evaluator = BatchFitnessEvaluator::new(Executor::Inline);
         let mut ecosystem = float_ecosystem();
         let problem = Arc::new(FloatEvalProblem);
 
@@ -41,7 +41,7 @@ mod tests {
     #[test]
     fn test_evaluator_trait_object() {
         let evaluator: Box<dyn Evaluator<FloatChromosome<f32>, f32>> =
-            Box::new(FitnessEvaluator::new(Executor::Serial));
+            Box::new(FitnessEvaluator::new(Executor::Inline));
 
         let mut ecosystem = float_ecosystem();
         let problem = Arc::new(FloatEvalProblem);
@@ -52,7 +52,7 @@ mod tests {
 
     #[test]
     fn test_empty_population() {
-        let evaluator = FitnessEvaluator::new(Executor::Serial);
+        let evaluator = FitnessEvaluator::new(Executor::Inline);
         let mut ecosystem = Ecosystem::<FloatChromosome<f32>>::default();
         let problem = Arc::new(FloatEvalProblem);
 
@@ -62,7 +62,7 @@ mod tests {
 
     #[test]
     fn test_already_evaluated_population() {
-        let evaluator = FitnessEvaluator::new(Executor::Serial);
+        let evaluator = FitnessEvaluator::new(Executor::Inline);
         let mut ecosystem = float_ecosystem();
         let problem = Arc::new(FloatEvalProblem);
 

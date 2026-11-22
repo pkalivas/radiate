@@ -23,20 +23,9 @@ use std::{
     time::Duration,
 };
 
-/// Set in [`WallClock::state`] while the stream is open.
 const RUNNING: u64 = 1 << 63;
 
-/// How long the stream has been open, as a stopwatch: it runs from
-/// [`open`](EventStream::open) to [`close`](EventStream::close), and picks up
-/// where it left off if the stream is opened again.
-///
-/// One atomic holds the whole state, so a reading never sees half of an
-/// open or close. Times are nanoseconds since `origin`. While open, `state` is
-/// `RUNNING` plus a virtual start: when the stream would have opened had all
-/// its open time been one stretch. While closed, it's the total so far.
 struct WallClock {
-    /// Fixed at creation. Taking it also calibrates quanta's clock, which can
-    /// take up to ~200ms, so that happens here rather than in a publish.
     origin: quanta::Instant,
     state: AtomicU64,
 }
@@ -48,7 +37,7 @@ impl WallClock {
 
     fn open(&self) {
         self.state.store(0, Ordering::Relaxed);
-        let total = self.state.load(Ordering::Relaxed); // closed: time so far
+        let total = self.state.load(Ordering::Relaxed);
         if total & RUNNING == 0 {
             self.state
                 .store(RUNNING | (self.now() - total), Ordering::Relaxed);
@@ -66,8 +55,8 @@ impl WallClock {
     fn elapsed(&self) -> Duration {
         let s = self.state.load(Ordering::Relaxed);
         Duration::from_nanos(match s & RUNNING {
-            0 => s,                           // closed: the frozen total
-            _ => self.now() - (s & !RUNNING), // open: now − virtual start
+            0 => s,
+            _ => self.now() - (s & !RUNNING),
         })
     }
 }
