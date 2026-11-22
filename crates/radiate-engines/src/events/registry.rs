@@ -17,6 +17,7 @@ use std::{
         Arc, Mutex, PoisonError,
         atomic::{AtomicU64, Ordering},
     },
+    time::Duration,
 };
 
 type Groups = HashMap<TypeId, Arc<Group>, BuildHasherDefault<TypeIdHasher>>;
@@ -102,7 +103,7 @@ impl Registry {
         live(&self.map()).any(|(_, reg)| reg.handler == handler)
     }
 
-    pub(super) fn stats(&self) -> StreamSnapshot {
+    pub(super) fn snapshot(&self, elapsed: Duration) -> StreamSnapshot {
         let map = self.map();
 
         let events = map
@@ -112,6 +113,7 @@ impl Registry {
         let subscribers = live(&map).map(|(group, reg)| group.info(reg)).collect();
 
         StreamSnapshot {
+            elapsed,
             event_count: events.iter().map(|e| e.published as usize).sum(),
             events,
             subscribers,

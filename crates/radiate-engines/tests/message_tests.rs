@@ -280,6 +280,28 @@ mod stats {
     use super::*;
 
     #[test]
+    fn the_stream_clock_runs_from_open_to_close() {
+        let stream = serial();
+        stream.subscribe(|_: &Ping| {});
+        assert_eq!(stream.snapshot().elapsed, Duration::ZERO);
+        assert_eq!(stream.snapshot().throughput(), None, "no rates before open");
+
+        stream.open().unwrap();
+        for _ in 0..3 {
+            stream.publish(Ping).unwrap();
+        }
+        stream.close().unwrap();
+
+        let closed = stream.snapshot();
+        assert_eq!(closed.stream_metrics().handled, 3);
+        assert_eq!(
+            stream.snapshot().elapsed,
+            closed.elapsed,
+            "frozen once closed"
+        );
+    }
+
+    #[test]
     fn serial_deliveries_run_inline_and_are_timed() {
         let stream = serial();
         let subscription = stream.subscribe(|_: &Ping| {});
@@ -751,7 +773,7 @@ mod pool_tests {
                 stream.publish(Tick(i as i32)).unwrap();
             }
 
-            stream.drain().unwrap();
+            stream.close().unwrap();
         };
 
         let start = Instant::now();
@@ -774,11 +796,10 @@ mod pool_tests {
         );
 
         println!("{:#?}", stream_metrics);
-        println!("{:#?}", stream_metrics.capacity());
-        println!("{:#?}", stream_metrics.handling + stream_metrics.wait);
-        let delivered = stream_metrics.delivered;
-        let total_time = stream_metrics.mean_handling().unwrap();
-        let throughput = delivered as f64 / total_time.as_secs_f64();
-        println!("Throughput: {:.0}/s", throughput);
+        println!("{:#?}", stream.snapshot().utilization());
+        println!(
+            "Throughput: {:.0}/s",
+            stream.snapshot().throughput().unwrap()
+        );
     }
 }

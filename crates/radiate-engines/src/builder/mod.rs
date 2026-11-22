@@ -624,7 +624,6 @@ where
     T: Clone + Send + 'static,
 {
     fn default() -> Self {
-        let _ = quanta::Instant::now();
         GeneticEngineBuilder {
             params: EngineParams {
                 population_params: PopulationParams {
