@@ -145,7 +145,7 @@ impl EventHandler for LoggingHandler {
 }
 
 impl On<LogEvent> for LoggingHandler {
-    fn handle(&mut self, message: &LogEvent, _ctx: &EventContext<'_, Self>) {
+    fn handle(&mut self, message: &LogEvent, _: &EventContext<'_, Self>) {
         if !self.0 {
             return;
         }

@@ -141,7 +141,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
                 to: state,
                 index: self.index,
             })
-            .ok();
+            .unwrap();
 
         self.state = state;
     }

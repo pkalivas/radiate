@@ -11,7 +11,7 @@ use crate::{
         subscription::nanos,
     },
 };
-use radiate_core::{Executor, Scheduler, WaitGroup, WaitGuard, error::RadiateResult};
+use radiate_core::{Executor, WaitGroup, WaitGuard, error::RadiateResult};
 use radiate_error::radiate_bail;
 use std::{
     any::TypeId,
@@ -95,7 +95,6 @@ pub(super) struct Shared {
     pending: Mutex<Vec<Payload>>,
     closed: AtomicBool,
     wall_clock: WallClock,
-    scheduler: Scheduler,
 }
 
 impl Default for Shared {
@@ -105,7 +104,6 @@ impl Default for Shared {
             pending: Mutex::default(),
             closed: AtomicBool::new(false),
             wall_clock: WallClock::default(),
-            scheduler: Scheduler::default(),
         }
     }
 }
@@ -232,9 +230,7 @@ impl EventStream {
         self.ensure_open()?;
         self.shared
             .registry
-            .publish(TypeId::of::<E>(), scope, Build::Always, || {
-                Arc::new(event) as Payload
-            });
+            .publish(TypeId::of::<E>(), scope, Build::Always, || Arc::new(event));
         Ok(())
     }
 
@@ -246,9 +242,7 @@ impl EventStream {
         self.ensure_open()?;
         self.shared
             .registry
-            .publish(TypeId::of::<E>(), scope, Build::IfDue, || {
-                Arc::new(f()) as Payload
-            });
+            .publish(TypeId::of::<E>(), scope, Build::IfDue, || Arc::new(f()));
         Ok(())
     }
 
@@ -296,7 +290,6 @@ impl EventStream {
     }
 
     pub fn close(&self) -> RadiateResult<()> {
-        self.shared.scheduler.close();
         self.drain()?;
         self.shared.wall_clock.close();
         self.scope(|stream| stream.lazy_publish(|| StreamEvent(StreamClosed(stream.snapshot()))))?;
@@ -349,15 +342,15 @@ impl EventStream {
         })
     }
 
-    pub(super) fn guard(&self) -> Option<WaitGuard> {
-        self.wg.as_ref().map(|wg| wg.guard())
-    }
-
     pub(super) fn event_scope(&self) -> EventScope {
         match self.guard() {
             Some(guard) => EventScope::guarded(guard),
             None => EventScope::new(),
         }
+    }
+
+    pub(super) fn guard(&self) -> Option<WaitGuard> {
+        self.wg.as_ref().map(|wg| wg.guard())
     }
 
     pub(super) fn wait(&self) -> Option<usize> {

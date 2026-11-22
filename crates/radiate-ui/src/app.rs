@@ -22,6 +22,8 @@ use std::{
     time::{Duration, Instant},
 };
 
+pub const DEFAULT_RENDER_INTERVAL: Duration = Duration::from_millis(100);
+
 pub struct GenerationEvent<C>
 where
     C: Chromosome,
@@ -101,13 +103,13 @@ impl<C> App<C>
 where
     C: Chromosome + Debug + Clone,
 {
-    pub fn new(render_interval: Duration, control: ThreadSync) -> Self {
+    pub fn new(control: ThreadSync) -> Self {
         Self {
             control,
             channel: CommandChannel::new(),
             state: AppState {
                 run: RunState {
-                    render_interval,
+                    render_interval: DEFAULT_RENDER_INTERVAL,
                     ..Default::default()
                 },
                 ..Default::default()

@@ -1,5 +1,5 @@
 use crate::{
-    Engine, EpochComplete, EventHandler, EvolutionContext, Generation, Limit, On,
+    Engine, EventHandler, EvolutionContext, Generation, Limit, On,
     events::{EngineLogger, Event, GenerationSnapshot, HealthMonitor, LoggingHandler},
 };
 use crate::{generation::GenerationView, init_logging};
@@ -46,7 +46,6 @@ impl<E: Engine> EngineRuntime<E> {
         self.engine.step()?;
 
         let ctx = self.engine.context();
-
         for limit in self.limits.iter_mut() {
             if !limit.proceed(ctx)? {
                 return self.engine.stop();
@@ -123,25 +122,6 @@ where
             .subscribe(move |ctx: &GenerationSnapshot<C, T>| {
                 let inner = &ctx.generation;
                 action_fn(GenerationView::from(inner.as_ref()));
-            })
-            .schedule(Expr::every(guarded_interval))
-            .unwrap();
-        self
-    }
-
-    pub fn pause_every(self, interval: usize) -> Self {
-        assert!(
-            interval > 0,
-            "pause_every interval must be greater than zero"
-        );
-        let guarded_interval = interval.max(1);
-        let control = self.engine.context().sync();
-
-        self.engine
-            .context()
-            .stream()
-            .subscribe(move |_: &EpochComplete<T>| {
-                control.set_paused(true);
             })
             .schedule(Expr::every(guarded_interval))
             .unwrap();

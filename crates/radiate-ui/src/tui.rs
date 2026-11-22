@@ -1,7 +1,4 @@
-use crate::{
-    DEFAULT_RENDER_INTERVAL,
-    app::{App, GenerationEvent, ImprovementEvent, InputEvent},
-};
+use crate::app::{App, GenerationEvent, ImprovementEvent, InputEvent};
 use color_eyre::{Result, eyre::Context};
 use crossbeam::channel;
 use radiate_engines::{
@@ -33,7 +30,7 @@ where
 {
     pub fn new(control: ThreadSync) -> Self {
         radiate_engines::disable_logging();
-        let app = App::new(DEFAULT_RENDER_INTERVAL, control.clone());
+        let app = App::new(control.clone());
         let (dispatch_one, dispatch_two) = app.dispatcher().into_pair();
         let stop_flag = control.stop_flag();
 

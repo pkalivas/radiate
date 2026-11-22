@@ -2,7 +2,7 @@ use crate::{
     Event, EventHandler, EventId, EventScope, On,
     events::{EventStream, Subscription, SubscriptionId, event::Payload, stream::Shared},
 };
-use quanta::Instant;
+use quanta;
 use radiate_core::{Executor, Inbox, WaitGuard, error::RadiateResult};
 use radiate_utils::{generate_metric_key, sentry_id};
 use std::marker::PhantomData;
@@ -37,7 +37,7 @@ pub trait Route: Send + Sync {
 pub struct Published<'a> {
     pub(super) payload: &'a Payload,
     pub(super) scope: &'a EventScope,
-    pub(super) published_at: Instant,
+    pub(super) published_at: quanta::Instant,
 }
 
 impl Published<'_> {
@@ -82,7 +82,7 @@ where
                     scope: event.scope,
                     mailbox,
                 };
-                let started = Instant::now();
+                let started = quanta::Instant::now();
                 let result = catch_unwind(AssertUnwindSafe(|| {
                     handle::<E, H>(handler, event.payload, &ctx)
                 }));
@@ -90,7 +90,7 @@ where
                     Ok(()) => self.subscription.record_handled(
                         event.published_at,
                         started,
-                        Instant::now(),
+                        quanta::Instant::now(),
                         true,
                     ),
                     Err(_) => self.subscription.record_panicked(),
@@ -127,7 +127,7 @@ struct Delivery {
     payload: Payload,
     scope: EventScope,
     subscription: Subscription,
-    published_at: Instant,
+    published_at: quanta::Instant,
     finished: bool,
 }
 
@@ -144,7 +144,7 @@ impl Delivery {
         self.subscription.is_alive()
     }
 
-    fn complete(mut self, started: Instant, ended: Instant) {
+    fn complete(mut self, started: quanta::Instant, ended: quanta::Instant) {
         self.finished = true;
         self.subscription
             .record_handled(self.published_at, started, ended, false);
@@ -375,7 +375,7 @@ impl<H: Send + 'static> MailBox<H> {
         &self,
         item: Item<H>,
         handler: &mut H,
-        cursor: &mut Option<Instant>,
+        cursor: &mut Option<quanta::Instant>,
     ) -> thread::Result<()> {
         match item {
             Item::Deliver { delivery, .. } if !delivery.is_live() => Ok(()),
@@ -385,13 +385,13 @@ impl<H: Send + 'static> MailBox<H> {
                     mailbox: self,
                 };
 
-                let started = cursor.take().unwrap_or_else(Instant::now);
+                let started = cursor.take().unwrap_or_else(quanta::Instant::now);
                 let result = catch_unwind(AssertUnwindSafe(|| {
                     handle(handler, delivery.payload(), &ctx)
                 }));
                 match result {
                     Ok(()) => {
-                        let ended = Instant::now();
+                        let ended = quanta::Instant::now();
                         delivery.complete(started, ended);
                         *cursor = Some(ended);
                     }
