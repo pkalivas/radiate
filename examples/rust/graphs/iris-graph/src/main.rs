@@ -45,20 +45,17 @@ fn main() -> RadiateResult<()> {
         ))
         .build();
 
-    engine
-        .subscribe(
-            |event: &GenerationSnapshot<GraphChromosome<Op<f32>>, Graph<Op<f32>>>| {
-                println!("{:?}", event.generation.index());
-            },
-        )
-        .schedule(10)?;
+    // engine
+    //     .subscribe(
+    //         |event: &GenerationSnapshot<GraphChromosome<Op<f32>>, Graph<Op<f32>>>| {
+    //             println!("{:?}", event.generation.index());
+    //         },
+    //     )
+    //     .schedule(10)?;
 
     engine.subscribe(|event: &StreamEvent<StreamClosed>| {
         println!("Stream closed: {:#?}", event.0);
-        println!("Elapsed time: {:#?}", event.0.0.stream_metrics());
-
-        println!("\n");
-        println!("{:#?}", event.0.0.mailbox_metrics());
+        println!("{:#?}", event.throughput());
     });
 
     let start = Instant::now();
@@ -97,9 +94,4 @@ fn display(
     println!("{:?}", result);
     println!("{:?}", train_acc);
     println!("{:?}", test_acc);
-
-    // let dot = result.value().to_dot();
-    // // save the dot representation to a file
-    // let curr_dir = std::env::current_dir().expect("Unable to get current directory");
-    // std::fs::write(curr_dir.join("graph.dot"), dot).expect("Unable to write file");
 }

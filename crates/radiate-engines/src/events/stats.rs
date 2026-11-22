@@ -7,10 +7,6 @@ use std::{collections::HashMap, time::Duration};
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct StreamSnapshot {
-    /// How long the stream had been open when this was taken. Only time
-    /// between `open` and `close` counts, so setup and teardown don't dilute
-    /// the rates. For a snapshot from [`since`](Self::since), the length of
-    /// that interval instead.
     pub elapsed: Duration,
     pub event_count: usize,
     pub events: Vec<EventStats>,
@@ -30,11 +26,6 @@ impl StreamSnapshot {
     /// as cores' worth of handler work.
     pub fn utilization(&self) -> Option<f64> {
         self.per_second(self.stream_metrics().handling.as_secs_f64())
-    }
-
-    fn per_second(&self, amount: f64) -> Option<f64> {
-        let seconds = self.elapsed.as_secs_f64();
-        (seconds > 0.0).then(|| amount / seconds)
     }
 
     /// What happened between `earlier` and `self`. Counts and times become the
@@ -93,6 +84,11 @@ impl StreamSnapshot {
                 acc
             },
         )
+    }
+
+    fn per_second(&self, amount: f64) -> Option<f64> {
+        let seconds = self.elapsed.as_secs_f64();
+        (seconds > 0.0).then(|| amount / seconds)
     }
 }
 

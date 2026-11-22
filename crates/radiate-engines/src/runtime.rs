@@ -352,8 +352,6 @@ where
     }
 }
 
-/// Action based configuration methods for the `EngineRuntime` struct, allowing users to specify various
-/// actions to be executed during the evolutionary process.
 impl<C, T, E> EngineRuntime<E>
 where
     E: Engine<Epoch = Generation<C, T>, Ctx = EvolutionContext<C, T>>,

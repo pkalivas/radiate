@@ -74,10 +74,11 @@ where
                 ctx.publish(CheckpointSaved {
                     index: generation.index(),
                     path: file_path.into_string().unwrap_or_default(),
-                });
+                })
+                .unwrap();
             }
             Err(err) => {
-                ctx.publish(Warning(err.to_string()));
+                ctx.publish(Warning(err.to_string())).unwrap();
             }
         };
     }
@@ -96,6 +97,7 @@ where
                 "Saved",
                 &format!("{}: {}", message.index, message.path),
             ),
-        ));
+        ))
+        .unwrap();
     }
 }

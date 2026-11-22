@@ -32,14 +32,46 @@ impl<T> Deref for StreamEvent<T> {
 #[derive(Clone, Debug)]
 pub struct StreamOpened(pub StreamSnapshot);
 
+impl Deref for StreamOpened {
+    type Target = StreamSnapshot;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct StreamClosed(pub StreamSnapshot);
+
+impl Deref for StreamClosed {
+    type Target = StreamSnapshot;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct SubscriptionAdded(pub Subscription);
 
+impl Deref for SubscriptionAdded {
+    type Target = Subscription;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct SubscriptionRemoved(pub Subscription);
+
+impl Deref for SubscriptionRemoved {
+    type Target = Subscription;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct EngineStateChange {

@@ -8,11 +8,10 @@ use crate::{
             StreamClosed, StreamEvent, StreamOpened, SubscriptionAdded, SubscriptionRemoved,
         },
         registry::{Build, Registration, Registry},
-        scheduler::{Job, Scheduler, Timer},
         subscription::nanos,
     },
 };
-use radiate_core::{Executor, WaitGroup, WaitGuard, error::RadiateResult};
+use radiate_core::{Executor, Scheduler, WaitGroup, WaitGuard, error::RadiateResult};
 use radiate_error::radiate_bail;
 use std::{
     any::TypeId,
@@ -141,8 +140,6 @@ impl EventStream {
         self.shared.registry.has_handler(TypeId::of::<H>())
     }
 
-    /// Every event type and live subscription, stamped with how long the
-    /// stream has been open.
     pub fn snapshot(&self) -> StreamSnapshot {
         self.shared
             .registry
@@ -151,14 +148,6 @@ impl EventStream {
 
     pub fn event_count(&self) -> usize {
         self.shared.registry.event_count()
-    }
-
-    pub fn executor(&self) -> Arc<Executor> {
-        Arc::clone(&self.executor)
-    }
-
-    pub(super) fn scheduler(&self) -> &Scheduler {
-        &self.shared.scheduler
     }
 
     pub fn deferred(&self) -> Vec<Payload> {
@@ -178,21 +167,8 @@ impl EventStream {
         self.register::<E, _>(&mailbox)
     }
 
-    /// so it costs nothing when no subscriber is due.
-    pub fn every<E: Event>(
-        &self,
-        period: Duration,
-        make: impl Fn() -> E + Send + 'static,
-    ) -> Timer {
-        let job: Job = Box::new(move |stream| stream.lazy_publish(&make));
-        self.shared
-            .scheduler
-            .schedule(self, period, Some(period), job)
-    }
-
     pub fn detach<H: EventHandler>(&self) -> bool {
-        let handler = TypeId::of::<H>();
-        self.remove_where(|reg| reg.handler == handler && reg.is_alive())
+        self.remove_where(|reg| reg.handler == TypeId::of::<H>() && reg.is_alive())
     }
 
     pub fn unsubscribe(&self, id: SubscriptionId) -> bool {
@@ -236,7 +212,6 @@ impl EventStream {
         self.shared.pending.lock().unwrap().push(Arc::new(event));
     }
 
-    #[inline]
     pub fn publish<E: Event>(&self, event: E) -> RadiateResult<()> {
         self.publish_scoped(event, self.event_scope())
     }
@@ -249,7 +224,6 @@ impl EventStream {
         self.publish_payload_scoped(payload, self.event_scope())
     }
 
-    #[inline]
     pub(crate) fn publish_scoped<E: Event>(
         &self,
         event: E,
@@ -314,7 +288,6 @@ impl EventStream {
 
     pub fn open(&self) -> RadiateResult<()> {
         self.shared.wall_clock.open();
-        // self.shared.scheduler.open(self);
         self.scope(|stream| {
             stream.lazy_publish(|| StreamEvent(StreamOpened(stream.snapshot())))?;
             stream.wait();
@@ -406,38 +379,5 @@ impl Debug for EventStream {
 impl From<Executor> for EventStream {
     fn from(executor: Executor) -> Self {
         EventStream::new(Arc::new(executor))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn clock() -> WallClock {
-        WallClock {
-            origin: quanta::Instant::now(),
-            state: AtomicU64::new(0),
-        }
-    }
-
-    #[test]
-    fn the_clock_only_runs_while_open() {
-        let clock = clock();
-        assert_eq!(clock.elapsed(), Duration::ZERO, "not opened yet");
-
-        clock.open();
-        let running = clock.elapsed();
-        assert!(clock.elapsed() >= running, "counts up while open");
-
-        clock.close();
-        let frozen = clock.elapsed();
-        assert!(frozen >= running);
-        assert_eq!(clock.elapsed(), frozen, "frozen once closed");
-
-        clock.open();
-        assert!(
-            clock.elapsed() >= frozen,
-            "reopening picks up where it left off"
-        );
     }
 }

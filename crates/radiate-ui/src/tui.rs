@@ -12,6 +12,7 @@ use radiate_engines::{LogEvent, ThreadSync};
 use std::{fmt::Debug, sync::atomic::Ordering, time::Duration};
 
 const KEY_REPEAT_DELAY: Duration = Duration::from_millis(100);
+const STREAM_SNAPSHOT_INTERVAL: usize = 10;
 
 pub struct Tui<C, T>
 where
@@ -72,17 +73,15 @@ where
     T: Clone + Send + Sync + 'static,
 {
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
-        let mut subs = Vec::new();
-
-        subs.push(ctx.subscribe::<EngineStart<C>>());
-        subs.push(ctx.subscribe::<GenerationSnapshot<C, T>>());
-        subs.push(ctx.subscribe::<Improvement<T>>());
-        subs.push(ctx.subscribe::<LogEvent>());
-        subs.push(
+        let subs = vec![
+            ctx.subscribe::<EngineStart<C>>(),
+            ctx.subscribe::<GenerationSnapshot<C, T>>(),
+            ctx.subscribe::<Improvement<T>>(),
+            ctx.subscribe::<LogEvent>(),
+            ctx.subscribe::<StreamEvent<StreamClosed>>(),
             ctx.subscribe::<StreamEvent<StreamSnapshot>>()
-                .schedule(Expr::every(10))?,
-        );
-        subs.push(ctx.subscribe::<StreamEvent<StreamClosed>>());
+                .schedule(Expr::every(STREAM_SNAPSHOT_INTERVAL))?,
+        ];
 
         for subscription in subs {
             self.dispatcher

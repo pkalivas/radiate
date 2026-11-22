@@ -162,13 +162,15 @@ impl Subscription {
         inline: bool,
     ) {
         let counters = &self.0.counters.mailbox;
+        let wait = started.saturating_duration_since(published_at);
+        let handling = ended.saturating_duration_since(started);
+
         counters.handled.fetch_add(1, Ordering::Relaxed);
         if inline {
             counters.inline.fetch_add(1, Ordering::Relaxed);
         }
-        let wait = started.saturating_duration_since(published_at);
+
         counters.wait_ns.fetch_add(nanos(wait), Ordering::Relaxed);
-        let handling = ended.saturating_duration_since(started);
         counters
             .handling_ns
             .fetch_add(nanos(handling), Ordering::Relaxed);

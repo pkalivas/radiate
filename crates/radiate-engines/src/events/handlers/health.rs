@@ -66,7 +66,8 @@ fn check_stagnation<T, H>(message: &EpochComplete<T>, ctx: &EventContext<'_, H>)
             "Health",
             "Stagnation",
             &format!("{} Epochs", stag_count),
-        )));
+        )))
+        .unwrap();
     }
 }
 
@@ -81,7 +82,8 @@ fn check_diversity<T, H>(message: &EpochComplete<T>, ctx: &EventContext<'_, H>) 
             "Health",
             "Low Diversity",
             &format!("{:.1}%", ratio * 100.0),
-        )));
+        )))
+        .unwrap();
     }
 }
 
@@ -96,6 +98,7 @@ fn check_species_collapse<T, H>(message: &EpochComplete<T>, ctx: &EventContext<'
             "Health",
             "Species Dom.",
             &format!("Largest species {:.1}%", share * 100.0),
-        )));
+        )))
+        .unwrap();
     }
 }

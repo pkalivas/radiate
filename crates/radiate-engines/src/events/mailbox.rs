@@ -31,13 +31,9 @@ pub trait Route: Send + Sync {
 
     fn deliver(&self, event: &Published<'_>);
 
-    /// Queue `guard` behind everything already in the mailbox. It's released
-    /// once all of that has been handled (or discarded after a panic).
     fn drain(&self, guard: WaitGuard);
 }
 
-/// One published event as the stream hands it to each route: borrowed, so a
-/// mailbox that handles it inline never clones anything.
 pub struct Published<'a> {
     pub(super) payload: &'a Payload,
     pub(super) scope: &'a EventScope,
@@ -45,7 +41,6 @@ pub struct Published<'a> {
 }
 
 impl Published<'_> {
-    /// An owned copy for a mailbox that has to queue it.
     fn to_delivery(&self, subscription: &Subscription) -> Delivery {
         Delivery {
             payload: Arc::clone(self.payload),
@@ -57,7 +52,6 @@ impl Published<'_> {
     }
 }
 
-/// A [`Route`] for event `E` into a `MailBox<H>`.
 struct TypedRoute<E, H> {
     mailbox: MailBox<H>,
     subscription: Subscription,
@@ -444,10 +438,12 @@ impl<H> EventContext<'_, H> {
     /// also covers this event and everything it causes.
     ///
     /// Does nothing if the stream has already been dropped.
-    pub fn publish<E: Event>(&self, event: E) {
+    pub fn publish<E: Event>(&self, event: E) -> RadiateResult<()> {
         if let Some(stream) = self.mailbox.stream() {
-            stream.publish_scoped(event, self.scope.clone()).ok();
+            stream.publish_scoped(event, self.scope.clone())?;
         }
+
+        Ok(())
     }
 
     pub fn lazy_publish<E: Event>(&self, event: impl FnOnce() -> E + 'static) -> RadiateResult<()> {

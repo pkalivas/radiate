@@ -3,7 +3,6 @@ mod handlers;
 mod mailbox;
 mod messages;
 mod registry;
-mod scheduler;
 mod stats;
 mod stream;
 mod subscription;

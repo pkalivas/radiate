@@ -50,7 +50,8 @@ where
                 "Limit Triggered",
                 &format!("{:?}", message.1),
             ),
-        ));
+        ))
+        .unwrap();
     }
 }
 
@@ -85,7 +86,7 @@ where
             }
         };
 
-        ctx.publish(LogEvent(LogLevel::Info, msg));
+        ctx.publish(LogEvent(LogLevel::Info, msg)).unwrap();
     }
 }
 
@@ -101,7 +102,8 @@ where
                 "State Change",
                 &format!("{:?} -> {:?}", event.from, event.to),
             ),
-        ));
+        ))
+        .unwrap();
     }
 }
 
@@ -110,7 +112,8 @@ where
     T: Send + Sync + 'static,
 {
     fn handle(&mut self, event: &Warning, ctx: &EventContext<'_, Self>) {
-        ctx.publish(LogEvent(LogLevel::Warn, event.0.clone()));
+        ctx.publish(LogEvent(LogLevel::Warn, event.0.clone()))
+            .unwrap();
     }
 }
 

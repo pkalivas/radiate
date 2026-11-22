@@ -36,9 +36,8 @@ fn main() {
 
     let result = engine
         .iter()
-        .ui()
         .until(|view| {
-            // println!("[ {:?} ]: {:?}", view.index(), view.score().as_f32());
+            println!("[ {:?} ]: {:?}", view.index(), view.score().as_f32());
             view.score().as_f32() < MIN_SCORE
                 || view.index() == MAX_INDEX
                 || view.seconds() > MAX_SECONDS

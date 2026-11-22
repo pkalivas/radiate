@@ -280,28 +280,6 @@ mod stats {
     use super::*;
 
     #[test]
-    fn the_stream_clock_runs_from_open_to_close() {
-        let stream = serial();
-        stream.subscribe(|_: &Ping| {});
-        assert_eq!(stream.snapshot().elapsed, Duration::ZERO);
-        assert_eq!(stream.snapshot().throughput(), None, "no rates before open");
-
-        stream.open().unwrap();
-        for _ in 0..3 {
-            stream.publish(Ping).unwrap();
-        }
-        stream.close().unwrap();
-
-        let closed = stream.snapshot();
-        assert_eq!(closed.stream_metrics().handled, 3);
-        assert_eq!(
-            stream.snapshot().elapsed,
-            closed.elapsed,
-            "frozen once closed"
-        );
-    }
-
-    #[test]
     fn serial_deliveries_run_inline_and_are_timed() {
         let stream = serial();
         let subscription = stream.subscribe(|_: &Ping| {});
@@ -377,7 +355,7 @@ mod ordering {
         fn handle(&mut self, event: &Tick, ctx: &EventContext<'_, Self>) {
             self.0.lock().unwrap().push(format!("enter {}", event.0));
             if event.0 > 0 {
-                ctx.publish(Tick(event.0 - 1));
+                ctx.publish(Tick(event.0 - 1)).unwrap();
             }
             self.0.lock().unwrap().push(format!("exit {}", event.0));
         }
@@ -423,7 +401,7 @@ mod ordering {
         fn handle(&mut self, event: &Serve, ctx: &EventContext<'_, Self>) {
             self.0.fetch_add(1, Ordering::SeqCst);
             if event.0 > 0 {
-                ctx.publish(Serve(event.0 - 1));
+                ctx.publish(Serve(event.0 - 1)).unwrap();
             }
         }
     }
@@ -443,7 +421,7 @@ mod ordering {
 
     impl On<Serve> for PlayerB {
         fn handle(&mut self, _: &Serve, ctx: &EventContext<'_, Self>) {
-            ctx.publish(Volley);
+            ctx.publish(Volley).unwrap();
         }
     }
 
@@ -469,7 +447,7 @@ mod ordering {
     impl EventHandler for Primed {
         fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
             ctx.subscribe::<Tick>();
-            ctx.publish(Tick(0));
+            ctx.publish(Tick(0)).unwrap();
             Ok(())
         }
     }
@@ -693,7 +671,7 @@ mod pool_tests {
         fn handle(&mut self, event: &Tick, ctx: &EventContext<'_, Self>) {
             self.total_count.fetch_add(event.0, Ordering::SeqCst);
             self.handled.fetch_add(1, Ordering::SeqCst);
-            ctx.publish(Relay(event.0));
+            ctx.publish(Relay(event.0)).unwrap();
         }
     }
 
@@ -722,7 +700,7 @@ mod pool_tests {
         fn handle(&mut self, event: &Relay<i32>, ctx: &EventContext<'_, Self>) {
             self.relay_count.fetch_add(event.0, Ordering::SeqCst);
             self.handled.fetch_add(1, Ordering::SeqCst);
-            ctx.publish(FromLogger(event.0));
+            ctx.publish(FromLogger(event.0)).unwrap();
         }
     }
 
@@ -769,7 +747,6 @@ mod pool_tests {
         stream.attach(logger).unwrap();
 
         let run = |events: usize| {
-            // stream.every(Duration::from_millis(1), || Tick(0));
             for i in 0..events {
                 stream.publish(Tick(i as i32)).unwrap();
             }
