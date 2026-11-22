@@ -2,6 +2,7 @@ use crate::{
     Event, EventHandler, EventId, EventScope, On,
     events::{EventStream, Subscription, SubscriptionId, event::Payload, stream::Shared},
 };
+use quanta::Instant;
 use radiate_core::{Executor, Inbox, WaitGuard, error::RadiateResult};
 use radiate_utils::{generate_metric_key, sentry_id};
 use std::marker::PhantomData;
@@ -11,12 +12,8 @@ use std::thread;
 
 sentry_id!(MailBoxId);
 
-/// Deliveries a [`MailBox`] drains per turn on a worker pool before handing the
-/// worker back to the executor. On a serial executor the drain just keeps going.
 const PROCESS_BATCH_SIZE: usize = 64;
 
-/// Monomorphized per (E, H) and stored as a fn pointer, so one queue can hold
-/// deliveries of every event type the handler subscribes to.
 type HandleFn<H> = fn(&mut H, &Payload, &EventContext<'_, H>);
 
 fn handle<E, H>(handler: &mut H, payload: &Payload, ctx: &EventContext<'_, H>)
@@ -29,14 +26,9 @@ where
     }
 }
 
-/// The stream's only handle to a mailbox: one per registration, typed on the
-/// event behind the trait object so the stream never sees the handler type.
 pub trait Route: Send + Sync {
-    /// The mailbox this route leads to. Several routes can share one.
     fn id(&self) -> MailBoxId;
 
-    /// Hand an event to the mailbox: handled inline if it's idle on a serial
-    /// executor, otherwise queued.
     fn deliver(&self, event: &Published<'_>);
 
     /// Queue `guard` behind everything already in the mailbox. It's released
@@ -49,6 +41,7 @@ pub trait Route: Send + Sync {
 pub struct Published<'a> {
     pub(super) payload: &'a Payload,
     pub(super) scope: &'a EventScope,
+    pub(super) published_at: Instant,
 }
 
 impl Published<'_> {
@@ -58,6 +51,8 @@ impl Published<'_> {
             payload: Arc::clone(self.payload),
             scope: self.scope.clone(),
             subscription: subscription.clone(),
+            published_at: self.published_at,
+            finished: false,
         }
     }
 }
@@ -86,16 +81,27 @@ where
         // publisher's borrow. A re-entrant or contended call fails the claim
         // and queues behind whatever is already there, so FIFO holds.
         if !mailbox.0.executor.is_parallel() && mailbox.0.inbox.try_claim() {
-            mailbox.run_claimed(|handler| {
+            let unreached = Unreached(&self.subscription);
+            mailbox.run_claimed(move |handler| {
+                std::mem::forget(unreached);
                 let ctx = EventContext {
                     scope: event.scope,
                     mailbox,
                 };
-                catch_unwind(AssertUnwindSafe(|| {
+                let started = Instant::now();
+                let result = catch_unwind(AssertUnwindSafe(|| {
                     handle::<E, H>(handler, event.payload, &ctx)
-                }))?;
-                self.subscription.record_handled();
-                Ok(())
+                }));
+                match result {
+                    Ok(()) => self.subscription.record_handled(
+                        event.published_at,
+                        started,
+                        Instant::now(),
+                        true,
+                    ),
+                    Err(_) => self.subscription.record_panicked(),
+                }
+                result
             });
             return;
         }
@@ -111,16 +117,24 @@ where
     }
 }
 
-/// One event routed to one subscription, queued in a mailbox.
-///
-/// The mailbox reads it and calls [`complete`](Delivery::complete) once the
-/// handler returns. Dropping it without completing (a panic, a discard, or
-/// its subscription ending while it was queued) still releases its scope, but
-/// it isn't counted as handled.
+/// Counts an inline delivery as discarded if it never reaches the handler.
+/// It moves into the closure that runs the handler and is forgotten there;
+/// if that closure is dropped unrun (a handler poisoned by an earlier panic
+/// refuses it), dropping this records the outcome instead.
+struct Unreached<'a>(&'a Subscription);
+
+impl Drop for Unreached<'_> {
+    fn drop(&mut self) {
+        self.0.record_discarded();
+    }
+}
+
 struct Delivery {
     payload: Payload,
     scope: EventScope,
     subscription: Subscription,
+    published_at: Instant,
+    finished: bool,
 }
 
 impl Delivery {
@@ -132,15 +146,27 @@ impl Delivery {
         &self.payload
     }
 
-    /// Whether its subscription is still live. One that ended while this sat
-    /// in the queue is dropped without reaching the handler.
     fn is_live(&self) -> bool {
         self.subscription.is_alive()
     }
 
-    /// The handler finished with this delivery.
-    fn complete(self) {
-        self.subscription.record_handled();
+    fn complete(mut self, started: Instant, ended: Instant) {
+        self.finished = true;
+        self.subscription
+            .record_handled(self.published_at, started, ended, false);
+    }
+
+    fn panicked(mut self) {
+        self.finished = true;
+        self.subscription.record_panicked();
+    }
+}
+
+impl Drop for Delivery {
+    fn drop(&mut self) {
+        if !self.finished {
+            self.subscription.record_discarded();
+        }
     }
 }
 
@@ -257,7 +283,7 @@ impl<H: Send + 'static> MailBox<H> {
 
     fn enqueue(&self, item: Item<H>) {
         if !self.0.executor.is_parallel() && self.0.inbox.try_claim() {
-            self.run_claimed(|handler| self.process_item(item, handler));
+            self.run_claimed(|handler| self.process_item(item, handler, &mut None));
             return;
         }
 
@@ -320,6 +346,11 @@ impl<H: Send + 'static> MailBox<H> {
     /// Drain one budget's worth of queued items. Must hold the claim.
     fn process_batch(&self, handler: &mut H) -> bool {
         let mut panicked = None;
+        // The last clock reading in this batch. One handler's end is the next
+        // one's start, so each delivery costs one read instead of two. It
+        // starts empty each batch so a reading never spans the gap between
+        // two drains.
+        let mut cursor = None;
         let result = self.0.inbox.drain(self.budget(), |item| {
             if panicked.is_some() {
                 // Drop the rest of this turn's items, releasing their
@@ -327,7 +358,7 @@ impl<H: Send + 'static> MailBox<H> {
                 return;
             }
 
-            if let Err(payload) = self.process_item(item, handler) {
+            if let Err(payload) = self.process_item(item, handler, &mut cursor) {
                 panicked = Some(payload);
             }
         });
@@ -343,7 +374,15 @@ impl<H: Send + 'static> MailBox<H> {
         result.more
     }
 
-    fn process_item(&self, item: Item<H>, handler: &mut H) -> thread::Result<()> {
+    /// Handle one item. `cursor` is the latest clock reading, if one was
+    /// taken just before this item: a delivery uses it as its start and
+    /// leaves its own end reading there for the next item.
+    fn process_item(
+        &self,
+        item: Item<H>,
+        handler: &mut H,
+        cursor: &mut Option<Instant>,
+    ) -> thread::Result<()> {
         match item {
             Item::Deliver { delivery, .. } if !delivery.is_live() => Ok(()),
             Item::Deliver { delivery, handle } => {
@@ -352,10 +391,20 @@ impl<H: Send + 'static> MailBox<H> {
                     mailbox: self,
                 };
 
-                catch_unwind(AssertUnwindSafe(|| {
+                let started = cursor.take().unwrap_or_else(Instant::now);
+                let result = catch_unwind(AssertUnwindSafe(|| {
                     handle(handler, delivery.payload(), &ctx)
-                }))
-                .map(|()| delivery.complete())
+                }));
+                match result {
+                    Ok(()) => {
+                        let ended = Instant::now();
+                        delivery.complete(started, ended);
+                        *cursor = Some(ended);
+                    }
+                    // Leave the cursor empty: the next item reads afresh.
+                    Err(_) => delivery.panicked(),
+                }
+                result
             }
             Item::Drain(guard) => {
                 drop(guard);

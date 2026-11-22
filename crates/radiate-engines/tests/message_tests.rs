@@ -1,5 +1,5 @@
 use radiate_core::{Executor, error::RadiateResult};
-use radiate_engines::events::{Event, EventContext, EventStream, On, EventHandler};
+use radiate_engines::events::{Event, EventContext, EventHandler, EventStream, On};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{self};
 use std::sync::{Arc, Mutex};
@@ -24,7 +24,7 @@ fn serial() -> EventStream {
 }
 
 fn pool() -> EventStream {
-    EventStream::from(Executor::FixedSizedWorkerPool(4))
+    EventStream::from(Executor::new_pool(4))
 }
 
 /// Subscribe a closure that counts every `E` it sees.
@@ -245,7 +245,6 @@ mod publish {
 
         let second = stream.snapshot();
         assert_eq!(event(&second, "Ping"), (5, 0, 3));
-        assert!(second.at >= first.at, "stamped when taken");
     }
 
     #[test]
@@ -274,6 +273,67 @@ mod publish {
 
         let handler_thread = rx.recv_timeout(GENEROUS).unwrap();
         assert_ne!(handler_thread, std::thread::current().id());
+    }
+}
+
+mod stats {
+    use super::*;
+
+    #[test]
+    fn serial_deliveries_run_inline_and_are_timed() {
+        let stream = serial();
+        let subscription = stream.subscribe(|_: &Ping| {});
+
+        for _ in 0..5 {
+            stream.publish(Ping).unwrap();
+        }
+        stream.drain().unwrap();
+
+        let stats = subscription.stats();
+        assert_eq!((stats.delivered, stats.handled, stats.inline), (5, 5, 5));
+        assert!(stats.mean_wait().is_some() && stats.mean_handling().is_some());
+        assert_eq!(stats.queued(), 0);
+    }
+
+    #[test]
+    fn pooled_deliveries_are_queued_and_timed() {
+        let stream = pool();
+        let subscription = stream.subscribe(|_: &Ping| {});
+
+        for _ in 0..50 {
+            stream.publish(Ping).unwrap();
+        }
+        stream.drain().unwrap();
+
+        let stats = subscription.stats();
+        assert_eq!((stats.delivered, stats.handled, stats.inline), (50, 50, 0));
+        assert!(stats.mean_wait().is_some() && stats.mean_handling().is_some());
+        assert_eq!(stats.queued(), 0);
+    }
+
+    #[test]
+    fn panics_and_refused_deliveries_are_accounted_for() {
+        let stream = serial();
+        let subscription = stream.subscribe(|_: &Add| panic!("simulated failure"));
+        let publish =
+            || std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| stream.publish(Add(1))));
+
+        assert!(publish().is_err());
+        // The handler is poisoned now, so this one never reaches it.
+        assert!(publish().is_err());
+
+        let stats = subscription.stats();
+        assert_eq!(
+            (stats.delivered, stats.panicked, stats.discarded),
+            (2, 1, 1)
+        );
+        assert_eq!(stats.handled, 0);
+        assert_eq!(
+            stats.handling,
+            Duration::ZERO,
+            "only finished calls are timed"
+        );
+        assert_eq!(stats.queued(), 0);
     }
 }
 
@@ -535,9 +595,16 @@ mod throughput {
         );
     }
 
+    //     cargo test --release -p radiate-engines --test message_tests -- \
+    //   --ignored --nocapture --test-threads=1 --exact \
+    //   throughput::pool_single_subscriber \
+    //   pool_tests::pool_logger_to_adder \
+    //   throughput::serial_single_subscriber
+
     #[test]
     #[ignore = "throughput smoke test"]
     // [serial x1] 500000 deliveries in 257.693542ms = 1,940,289/s
+    // serial x1] 500000 deliveries in 26.705292ms = 18,722,881/s
     fn serial_single_subscriber() {
         measure("serial x1", serial(), 1, 500_000);
     }
@@ -552,6 +619,7 @@ mod throughput {
     #[test]
     #[ignore = "throughput smoke test"]
     // [pool x1] 200000 deliveries in 252.708625ms = 791,425/s
+    // [pool x1] 200000 deliveries in 31.361083ms = 6,377,331/s
     fn pool_single_subscriber() {
         measure("pool x1", pool(), 1, 200_000);
     }
@@ -641,6 +709,7 @@ mod pool_tests {
     // [pool_logger_to_adder] 40000 deliveries in 28.829042ms = 1,387,490/s
     // [pool_logger_to_adder] 40000 deliveries in 28.807167ms = 1,388,543/s
     // [pool_logger_to_adder] 120000 deliveries in 38.944333ms = 3,081,321/s
+    // [pool_logger_to_adder] 120000 deliveries in 14.414625ms = 8,324,878/s
     fn pool_logger_to_adder() {
         const N: usize = 10_000;
 

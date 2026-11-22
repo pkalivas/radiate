@@ -17,7 +17,6 @@ use std::{
         Arc, Mutex, PoisonError,
         atomic::{AtomicU64, Ordering},
     },
-    time::Duration,
 };
 
 type Groups = HashMap<TypeId, Arc<Group>, BuildHasherDefault<TypeIdHasher>>;
@@ -103,14 +102,16 @@ impl Registry {
         live(&self.map()).any(|(_, reg)| reg.handler == handler)
     }
 
-    pub(super) fn stats(&self, at: Duration) -> StreamSnapshot {
+    pub(super) fn stats(&self) -> StreamSnapshot {
         let map = self.map();
 
-        let events: Vec<_> = map.values().map(|group| group.counts.stats()).collect();
+        let events = map
+            .values()
+            .map(|group| group.counts.stats())
+            .collect::<Vec<_>>();
         let subscribers = live(&map).map(|(group, reg)| group.info(reg)).collect();
 
         StreamSnapshot {
-            at,
             event_count: events.iter().map(|e| e.published as usize).sum(),
             events,
             subscribers,
@@ -191,8 +192,6 @@ impl Registry {
         group.dispatch(&due, payload(), scope);
     }
 
-    /// Copy the map, change it, publish the copy. Copying costs one `Arc` per
-    /// event type. A publish already running keeps the map it loaded.
     fn update<R>(&self, f: impl FnOnce(&mut Groups) -> R) -> R {
         let (out, old) = {
             // The guarded value is (), so a poisoned lock protects nothing.
@@ -216,8 +215,6 @@ impl Default for Registry {
     }
 }
 
-/// Everything subscribed to one event type. Copied on write when a
-/// subscription is added or removed; the counts are shared across copies.
 #[derive(Clone)]
 struct Group {
     registrations: Vec<Registration>,
@@ -235,9 +232,6 @@ impl Group {
         }
     }
 
-    /// Tick every registration and keep the ones that are due. `collect` drives
-    /// the whole iterator, so every schedule advances once per event, even
-    /// after the first due one is found.
     #[inline]
     fn due(&self) -> Due<'_> {
         self.registrations
@@ -246,14 +240,12 @@ impl Group {
             .collect()
     }
 
-    /// Deliver to the registrations that were due when the event was
-    /// published. Liveness is checked again here: building the payload, or a
-    /// handler run inline earlier in this loop, may have unsubscribed one.
     #[inline]
     fn dispatch(&self, due: &[&Registration], payload: Payload, scope: EventScope) {
         let published = Published {
             payload: &payload,
             scope: &scope,
+            published_at: quanta::Instant::now(),
         };
 
         let mut delivered = false;

@@ -1,7 +1,7 @@
 use crate::state::AppState;
 use crate::styles::{self, striped_rows};
 use crate::widgets::AppWidget;
-use radiate_engines::Chromosome;
+use radiate_engines::{Chromosome, stats::fmt_duration};
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Text};
 use ratatui::widgets::{Cell, Row, Table, Widget};
@@ -11,10 +11,16 @@ use ratatui::{
     style::Stylize,
 };
 use std::fmt::Debug;
+use std::time::Duration;
 
 /// Column titles, and how many leading columns are text. The rest are
 /// numbers, and their titles are right-aligned to sit over them.
-const HANDLER_HEADER: ([&str; 5], usize) = (["Handler", "Event", "Handled", "Rate", "Queued"], 2);
+const HANDLER_HEADER: ([&str; 7], usize) = (
+    [
+        "Handler", "Event", "Handled", "Rate", "Time", "Wait", "Queued",
+    ],
+    2,
+);
 const EVENT_HEADER: ([&str; 5], usize) =
     (["Event", "Published", "Rate", "Unbuilt", "Undelivered"], 1);
 
@@ -22,7 +28,8 @@ const EVENT_HEADER: ([&str; 5], usize) =
 const QUEUED_ALERT: u64 = 1_000;
 
 /// Every live subscription on the engine's event stream: how much it has
-/// handled, how fast, and how far behind it is.
+/// handled, how fast, how long its handler takes and its events wait (both
+/// averaged over the last second), and how far behind it is.
 pub struct StreamHandlersWidget;
 
 /// Every event type on the engine's event stream: how often it's published,
@@ -50,6 +57,8 @@ impl<C: Chromosome + Debug> AppWidget<C> for StreamHandlersWidget {
                     text_cell(&row.event),
                     number_cell(row.handled),
                     rate_cell(row.rate),
+                    duration_cell(row.time),
+                    duration_cell(row.wait),
                     queued_cell(row.queued, row.growing),
                 ])
             })
@@ -65,6 +74,8 @@ impl<C: Chromosome + Debug> AppWidget<C> for StreamHandlersWidget {
                 Constraint::Fill(1),
                 Constraint::Fill(1),
                 Constraint::Length(10),
+                Constraint::Length(9),
+                Constraint::Length(9),
                 Constraint::Length(9),
                 Constraint::Length(8),
             ],
@@ -106,13 +117,13 @@ impl<C: Chromosome + Debug> AppWidget<C> for StreamEventsWidget {
     }
 }
 
-fn render_table(
+fn render_table<const N: usize>(
     area: Rect,
     buf: &mut Buffer,
     title: &'static str,
-    (header, text_columns): ([&str; 5], usize),
+    (header, text_columns): ([&str; N], usize),
     rows: Vec<Row<'_>>,
-    widths: [Constraint; 5],
+    widths: [Constraint; N],
 ) {
     // Display only: never focused, so never highlighted.
     let block = styles::panel_block(false)
@@ -173,6 +184,12 @@ fn rate_cell(rate: Option<f64>) -> Cell<'static> {
         Some(r) if r >= 10.0 => format!("{r:.0}/s"),
         Some(r) => format!("{r:.1}/s"),
     };
+    Cell::from(center(text)).style(Style::default().fg(styles::TEXT_FG_COLOR))
+}
+
+/// A mean duration, or `-` before the first full window.
+fn duration_cell(duration: Option<Duration>) -> Cell<'static> {
+    let text = duration.map_or_else(|| "-".to_string(), fmt_duration);
     Cell::from(center(text)).style(Style::default().fg(styles::TEXT_FG_COLOR))
 }
 

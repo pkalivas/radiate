@@ -19,7 +19,6 @@ use std::{
         Arc, Mutex, Weak,
         atomic::{AtomicBool, Ordering},
     },
-    time::Instant,
 };
 
 /// The state every clone of an [`EventStream`] shares.
@@ -32,7 +31,6 @@ pub(super) struct Shared {
     registry: Registry,
     pending: Mutex<Vec<Payload>>,
     closed: AtomicBool,
-    created: Instant,
 }
 
 impl Default for Shared {
@@ -41,7 +39,6 @@ impl Default for Shared {
             registry: Registry::default(),
             pending: Mutex::default(),
             closed: AtomicBool::new(false),
-            created: Instant::now(),
         }
     }
 }
@@ -77,7 +74,7 @@ impl EventStream {
     }
 
     pub fn snapshot(&self) -> StreamSnapshot {
-        self.shared.registry.stats(self.shared.created.elapsed())
+        self.shared.registry.stats()
     }
 
     pub fn event_count(&self) -> usize {
@@ -175,9 +172,6 @@ impl EventStream {
         Ok(())
     }
 
-    /// Ticks every schedule, and builds the event only if at least one
-    /// subscription is due. If none is, the event is counted as unbuilt and
-    /// never constructed.
     pub(crate) fn lazy_publish_scoped<E: Event>(
         &self,
         f: impl FnOnce() -> E,

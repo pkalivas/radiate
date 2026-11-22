@@ -215,8 +215,8 @@ impl<C: Chromosome + Debug> Default for LayoutNode<C> {
                                     tab: DashboardTab::Events,
                                     content: Horizontal {
                                         constraints: vec![
-                                            Constraint::Percentage(60),
-                                            Constraint::Percentage(40),
+                                            Constraint::Percentage(50),
+                                            Constraint::Percentage(50),
                                         ],
                                         children: vec![
                                             Widget(|a, b, s| EventLogWidget.render(a, b, s)),

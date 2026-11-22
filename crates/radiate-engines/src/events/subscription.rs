@@ -1,4 +1,5 @@
 use crate::{SubscriptionStats, events::mailbox::MailBoxId};
+use crossbeam::utils::CachePadded;
 use radiate_core::{Expr, error::RadiateResult};
 use radiate_error::radiate_bail;
 use radiate_utils::{SmallStr, sentry_id};
@@ -8,25 +9,51 @@ use std::{
         Arc, Mutex, RwLock,
         atomic::{AtomicBool, AtomicU64, Ordering},
     },
+    time::Duration,
 };
 
 sentry_id!(SubscriptionId);
 
-/// Live counters for one subscription, updated by the stream that dispatches
-/// to it and the mailbox that handles its events.
+/// Live counters for one subscription. Two threads write them, so each
+/// side gets its own cache line: on a pool, the publisher bumps `publish` on
+/// every publish while a worker bumps `mailbox` on every handled event, and
+/// sharing a line would bounce it between their cores on every event.
 #[derive(Default)]
 struct Counters {
+    publish: CachePadded<PublishCounts>,
+    mailbox: CachePadded<MailboxCounts>,
+}
+
+/// Written by the publishing thread.
+#[derive(Default)]
+struct PublishCounts {
     delivered: AtomicU64,
     skipped: AtomicU64,
+}
+
+/// Written by whichever thread is handling the mailbox.
+#[derive(Default)]
+struct MailboxCounts {
     handled: AtomicU64,
+    inline: AtomicU64,
+    discarded: AtomicU64,
+    panicked: AtomicU64,
+    wait_ns: AtomicU64,
+    handling_ns: AtomicU64,
 }
 
 impl Counters {
     fn snapshot(&self) -> SubscriptionStats {
+        let (publish, mailbox) = (&self.publish, &self.mailbox);
         SubscriptionStats {
-            delivered: self.delivered.load(Ordering::Relaxed),
-            skipped: self.skipped.load(Ordering::Relaxed),
-            handled: self.handled.load(Ordering::Relaxed),
+            delivered: publish.delivered.load(Ordering::Relaxed),
+            skipped: publish.skipped.load(Ordering::Relaxed),
+            handled: mailbox.handled.load(Ordering::Relaxed),
+            inline: mailbox.inline.load(Ordering::Relaxed),
+            discarded: mailbox.discarded.load(Ordering::Relaxed),
+            panicked: mailbox.panicked.load(Ordering::Relaxed),
+            wait: Duration::from_nanos(mailbox.wait_ns.load(Ordering::Relaxed)),
+            handling: Duration::from_nanos(mailbox.handling_ns.load(Ordering::Relaxed)),
         }
     }
 }
@@ -83,8 +110,8 @@ impl Subscription {
         self.0.name.read().unwrap().clone()
     }
 
-    /// A snapshot of how many events this subscription has been delivered,
-    /// skipped, and handled.
+    /// Everything this subscription has been sent so far and what became of
+    /// it, including how long its events waited and how long its handler took.
     pub fn stats(&self) -> SubscriptionStats {
         self.0.counters.snapshot()
     }
@@ -117,12 +144,50 @@ impl Subscription {
 
     #[inline]
     pub(super) fn record_delivered(&self) {
-        self.0.counters.delivered.fetch_add(1, Ordering::Relaxed);
+        self.0
+            .counters
+            .publish
+            .delivered
+            .fetch_add(1, Ordering::Relaxed);
     }
 
+    /// Its handler finished a delivery published at `published_at`, having
+    /// started on it at `started`.
     #[inline]
-    pub(super) fn record_handled(&self) {
-        self.0.counters.handled.fetch_add(1, Ordering::Relaxed);
+    pub(super) fn record_handled(
+        &self,
+        published_at: quanta::Instant,
+        started: quanta::Instant,
+        ended: quanta::Instant,
+        inline: bool,
+    ) {
+        let counters = &self.0.counters.mailbox;
+        counters.handled.fetch_add(1, Ordering::Relaxed);
+        if inline {
+            counters.inline.fetch_add(1, Ordering::Relaxed);
+        }
+        let wait = started.saturating_duration_since(published_at);
+        counters.wait_ns.fetch_add(nanos(wait), Ordering::Relaxed);
+        let handling = ended.saturating_duration_since(started);
+        counters
+            .handling_ns
+            .fetch_add(nanos(handling), Ordering::Relaxed);
+    }
+
+    pub(super) fn record_panicked(&self) {
+        self.0
+            .counters
+            .mailbox
+            .panicked
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(super) fn record_discarded(&self) {
+        self.0
+            .counters
+            .mailbox
+            .discarded
+            .fetch_add(1, Ordering::Relaxed);
     }
 
     /// Advance the schedule and say whether this event is due. Called exactly
@@ -135,7 +200,11 @@ impl Subscription {
 
         let due = self.try_schedule();
         if !due {
-            self.0.counters.skipped.fetch_add(1, Ordering::Relaxed);
+            self.0
+                .counters
+                .publish
+                .skipped
+                .fetch_add(1, Ordering::Relaxed);
         }
         due
     }
@@ -157,6 +226,11 @@ impl Subscription {
         let due = expr.trigger().map(|value| value.extract_bool());
         matches!(due, Ok(Some(true)))
     }
+}
+
+#[inline]
+fn nanos(duration: Duration) -> u64 {
+    u64::try_from(duration.as_nanos()).unwrap_or(u64::MAX)
 }
 
 impl Debug for Subscription {

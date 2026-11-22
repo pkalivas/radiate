@@ -164,6 +164,7 @@ where
             }
             InputEvent::Subscription(subscription) => {
                 self.state.run.subscriptions.push(subscription);
+                return self.throttle();
             }
         }
 
@@ -171,6 +172,10 @@ where
     }
 
     fn throttle(&mut self) -> Result<bool> {
+        if !self.state.run.started {
+            return Ok(false);
+        }
+
         let now = Instant::now();
         if let Some(last) = self.state.run.last_render {
             let elapsed = now.duration_since(last);
@@ -255,6 +260,7 @@ where
         let objectives = front.read().unwrap().objective().clone();
 
         self.state.run.engine = true;
+        self.state.run.started = true;
         self.state.evo.pareto.objective = objectives.clone();
         if objectives.dims() == 2 {
             self.state.evo.pareto.charts_visible = 1;
