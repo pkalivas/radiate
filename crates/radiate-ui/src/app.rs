@@ -206,6 +206,8 @@ where
             Action::Inspect(motion) => state.inspect.scroll(motion),
 
             Action::ToggleModal => state.nav.toggle_metric_modal(),
+            Action::ToggleLogScale => state.nav.chart_view.toggle_scale(),
+            Action::CycleHistory => state.nav.chart_view.next_history(),
             Action::ObjectivePage(Dir::Next) => state.evo.next_objective_pair_page(),
             Action::ObjectivePage(Dir::Prev) => state.evo.previous_objective_pair_page(),
             Action::ObjectivePairs(Dir::Next) => state.evo.expand_objective_pairs(),

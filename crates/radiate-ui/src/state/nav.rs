@@ -1,4 +1,5 @@
 use super::{Dir, EvoState, chart::MetricChartType};
+use crate::chart::ChartView;
 use crate::state::evo::EventLogEntry;
 use radiate_engines::Chromosome;
 use radiate_engines::Metric;
@@ -113,6 +114,8 @@ pub struct NavState {
     pub dashboard_tab: DashboardTab,
     pub focus: Pane,
     pub search: SearchState,
+    /// Scale and history for every line chart.
+    pub chart_view: ChartView,
     chart_tabs: [MetricChartType; DashboardTab::ALL.len()],
 }
 
@@ -245,6 +248,7 @@ impl Default for NavState {
                 DashboardTab::Distribution => MetricChartType::BoxWhisker,
                 _ => MetricChartType::Mean,
             }),
+            chart_view: ChartView::default(),
             search: SearchState {
                 query: String::new(),
                 active: false,

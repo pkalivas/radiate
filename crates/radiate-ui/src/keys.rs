@@ -22,6 +22,8 @@ pub enum Action {
     Inspect(Motion),
 
     ToggleModal,
+    ToggleLogScale,
+    CycleHistory,
     ObjectivePage(Dir),
     ObjectivePairs(Dir),
     /// Select the objective named by the digit pressed.
@@ -174,6 +176,8 @@ pub const BINDINGS: &[Binding] = &[
     bind(&[MetricModal], &[k(Esc), c('q')], ToggleModal, CHARTS, ""),
     bind(ENGINE, &[k(KeyCode::Tab)], Cycle(Dir::Next), CHARTS, "Next chart view / chromosome"),
     bind(ENGINE, &[k(BackTab)], Cycle(Dir::Prev), CHARTS, "Previous chart view / chromosome"),
+    bind(ENGINE, &[c('L')], ToggleLogScale, CHARTS, "Toggle log scale"),
+    bind(ENGINE, &[c('z')], CycleHistory, CHARTS, "Show all / last 500 / last 100"),
     bind(&[MetricModal], &[k(Right)], Cycle(Dir::Next), CHARTS, ""),
     bind(&[MetricModal], &[k(Left)], Cycle(Dir::Prev), CHARTS, ""),
     bind(DASHBOARD, &[c(']')], ObjectivePage(Dir::Next), CHARTS, "Next objective-pair page"),

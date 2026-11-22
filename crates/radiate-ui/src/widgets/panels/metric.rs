@@ -70,6 +70,14 @@ impl<C: Chromosome + Debug> AppWidget<C> for MetricLineChartWidget {
 
         let show_x = self.show_x_axis;
 
+        // Box-whisker and distribution charts aren't drawn over history.
+        let is_history = metric.tags().has(TagType::Statistic)
+            || !metric.tags().has(TagType::Distribution)
+            || !matches!(
+                chart_type,
+                MetricChartType::BoxWhisker | MetricChartType::Distribution
+            );
+
         if metric.tags().has(TagType::Statistic) {
             render_stat_metric_chart(chart_type, metric, show_x, inner, buf, state);
         } else if metric.tags().has(TagType::Distribution) {
@@ -103,6 +111,15 @@ impl<C: Chromosome + Debug> AppWidget<C> for MetricLineChartWidget {
             } else {
                 Line::default()
             })
+            .title_bottom(
+                state
+                    .nav
+                    .chart_view
+                    .label()
+                    .filter(|_| is_history)
+                    .map(|label| Line::from(label).fg(Color::Yellow).right_aligned())
+                    .unwrap_or_default(),
+            )
             .title(
                 Line::from(Span::styled(
                     format!(" {} ", current_metric_name),
@@ -190,6 +207,7 @@ fn render_stat_metric_chart(
         .get_chart_by_key(current_metric.name(), chart_type);
 
     LineChartWidget::from(charts)
+        .with_view(state.nav.chart_view)
         .with_show_x_axis(show_x_axis)
         .with_show_boarders(false)
         .render(area, buf);
