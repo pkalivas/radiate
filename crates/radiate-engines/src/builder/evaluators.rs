@@ -5,7 +5,7 @@ use std::sync::Arc;
 #[derive(Clone, Debug, Default)]
 pub struct ExecutorParams {
     pub changed: bool,
-    pub executor: Arc<Executor>,
+    pub executor: Executor,
 }
 
 #[derive(Clone)]
@@ -41,15 +41,14 @@ where
             let num_cpus = std::thread::available_parallelism()
                 .map(|n| n.get())
                 .unwrap_or(4);
-            self.executor(Executor::FixedSizedWorkerPool(num_cpus))
+            self.executor(Executor::new_thread_pool(num_cpus))
         }
     }
 
     pub fn executor(mut self, executor: Executor) -> Self {
-        let executor = Arc::new(executor);
         let param = ExecutorParams {
             changed: true,
-            executor: Arc::clone(&executor),
+            executor,
         };
 
         self.params.evaluation_params = EvaluationParams {
@@ -62,26 +61,26 @@ where
         self
     }
 
-    pub fn fitness_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
+    pub fn fitness_executor(mut self, executor: Executor) -> Self {
         self.params.evaluation_params.fitness_executor = ExecutorParams {
             changed: true,
-            executor: executor.into(),
+            executor,
         };
         self
     }
 
-    pub fn species_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
+    pub fn species_executor(mut self, executor: Executor) -> Self {
         self.params.evaluation_params.species_executor = ExecutorParams {
             changed: true,
-            executor: executor.into(),
+            executor,
         };
         self
     }
 
-    pub fn stream_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
+    pub fn stream_executor(mut self, executor: Executor) -> Self {
         self.params.evaluation_params.event_stream_executor = ExecutorParams {
             changed: true,
-            executor: executor.into(),
+            executor,
         };
         self
     }

@@ -1,33 +1,37 @@
-use crate::sync::WaitGroup;
-use crate::sync::get_thread_pool;
+use crate::sync::{ThreadPool, WaitGroup};
 #[cfg(feature = "rayon")]
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use std::sync::Arc;
 
 #[derive(Clone, Debug, Default)]
 pub enum Executor {
     #[default]
     Serial,
+    ThreadPool(Arc<ThreadPool>),
     #[cfg(feature = "rayon")]
     WorkerPool,
-    FixedSizedWorkerPool(usize),
 }
 
 impl Executor {
+    pub fn new_thread_pool(num_workers: usize) -> Self {
+        Executor::ThreadPool(Arc::new(ThreadPool::new(num_workers)))
+    }
+
     pub fn is_parallel(&self) -> bool {
         match self {
             Executor::Serial => false,
+            Executor::ThreadPool(_) => true,
             #[cfg(feature = "rayon")]
             Executor::WorkerPool => true,
-            Executor::FixedSizedWorkerPool(_) => true,
         }
     }
 
     pub fn num_workers(&self) -> usize {
         match self {
             Executor::Serial => 1,
+            Executor::ThreadPool(pool) => pool.num_workers(),
             #[cfg(feature = "rayon")]
             Executor::WorkerPool => rayon::current_num_threads(),
-            Executor::FixedSizedWorkerPool(num_workers) => *num_workers,
         }
     }
 
@@ -38,9 +42,7 @@ impl Executor {
     {
         match self {
             Executor::Serial => f(),
-            Executor::FixedSizedWorkerPool(num_workers) => {
-                get_thread_pool(*num_workers).submit_with_result(f).result()
-            }
+            Executor::ThreadPool(pool) => pool.submit_with_result(f).result(),
             #[cfg(feature = "rayon")]
             Executor::WorkerPool => {
                 use std::sync::{Arc, Mutex};
@@ -71,21 +73,27 @@ impl Executor {
     {
         match self {
             Executor::Serial => jobs.into_iter().map(|func| func()).collect(),
-            Executor::FixedSizedWorkerPool(num_workers) => {
-                let pool = get_thread_pool(*num_workers);
+            Executor::ThreadPool(pool) => {
                 let (tx, rx) = crossbeam::channel::unbounded();
 
+                let mut count = 0;
                 for (i, job) in jobs.into_iter().enumerate() {
                     let tx = tx.clone();
                     pool.submit(move || {
                         tx.send((i, job())).unwrap();
                     });
+                    count += 1;
                 }
 
                 // so `rx` disconnects once the last job's sender is gone
                 drop(tx);
 
-                rx.iter().map(|(_, result)| result).collect::<Vec<_>>()
+                let mut slots = (0..count).map(|_| None).collect::<Vec<_>>();
+                for (i, result) in rx.iter() {
+                    slots[i] = Some(result);
+                }
+
+                slots.into_iter().map(|r| r.unwrap()).collect()
             }
             #[cfg(feature = "rayon")]
             Executor::WorkerPool => jobs
@@ -103,18 +111,13 @@ impl Executor {
     {
         match self {
             Executor::Serial => f(),
-            Executor::FixedSizedWorkerPool(num_workers) => {
-                let pool = get_thread_pool(*num_workers);
-                pool.submit(f)
-            }
+            Executor::ThreadPool(pool) => pool.submit(f),
             #[cfg(feature = "rayon")]
             Executor::WorkerPool => {
                 rayon::spawn_fifo(move || {
                     f();
                 });
-            } // Executor::Pool(pool) => {
-              //     pool.submit(f);
-              // }
+            }
         }
     }
 
@@ -129,8 +132,7 @@ impl Executor {
                     func();
                 }
             }
-            Executor::FixedSizedWorkerPool(num_workers) => {
-                let pool = get_thread_pool(*num_workers);
+            Executor::ThreadPool(pool) => {
                 let wg = WaitGroup::new();
                 for job in jobs {
                     let guard = wg.guard();
@@ -161,18 +163,7 @@ impl Executor {
                 });
 
                 wg.wait();
-            } // Executor::Pool(pool) => {
-              //     let wg = WaitGroup::new();
-              //     for job in jobs {
-              //         let guard = wg.guard();
-              //         pool.submit(move || {
-              //             job();
-              //             drop(guard);
-              //         });
-              //     }
-
-              //     wg.wait();
-              // }
+            }
         }
     }
 }
@@ -195,7 +186,7 @@ mod tests {
 
     #[test]
     fn test_executor_fixed_sized_worker_pool() {
-        let executor = Executor::FixedSizedWorkerPool(4);
+        let executor = Executor::new_thread_pool(4);
         let result = executor.execute(|| 42);
 
         let batch: Vec<Box<dyn FnOnce() -> i32 + Send>> =

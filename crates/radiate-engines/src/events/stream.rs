@@ -110,13 +110,13 @@ impl Default for Shared {
 
 #[derive(Clone, Default)]
 pub struct EventStream {
-    executor: Arc<Executor>,
+    executor: Executor,
     shared: Arc<Shared>,
     wg: Option<WaitGroup>,
 }
 
 impl EventStream {
-    pub fn new(executor: Arc<Executor>) -> Self {
+    pub fn new(executor: Executor) -> Self {
         EventStream {
             executor,
             shared: Arc::default(),
@@ -124,7 +124,7 @@ impl EventStream {
         }
     }
 
-    pub fn set_executor(&mut self, executor: Arc<Executor>) {
+    pub fn set_executor(&mut self, executor: Executor) {
         self.executor = executor;
     }
 }
@@ -155,13 +155,13 @@ impl EventStream {
 
 impl EventStream {
     pub fn attach<H: EventHandler>(&self, handler: H) -> RadiateResult<MailBox<H>> {
-        let mailbox = MailBox::new(handler, Arc::clone(&self.executor), self);
+        let mailbox = MailBox::new(handler, self.executor.clone(), self);
         mailbox.start()?;
         Ok(mailbox)
     }
 
     pub fn subscribe<E: Event>(&self, handler: impl On<E>) -> Subscription {
-        let mailbox = MailBox::new(handler, Arc::clone(&self.executor), self);
+        let mailbox = MailBox::new(handler, self.executor.clone(), self);
         self.register::<E, _>(&mailbox)
     }
 
@@ -334,9 +334,9 @@ impl EventStream {
         Arc::downgrade(&self.shared)
     }
 
-    pub(super) fn upgrade(executor: &Arc<Executor>, shared: &Weak<Shared>) -> Option<Self> {
+    pub(super) fn upgrade(executor: &Executor, shared: &Weak<Shared>) -> Option<Self> {
         shared.upgrade().map(|shared| EventStream {
-            executor: Arc::clone(executor),
+            executor: executor.clone(),
             shared,
             wg: None,
         })
@@ -371,6 +371,6 @@ impl Debug for EventStream {
 
 impl From<Executor> for EventStream {
     fn from(executor: Executor) -> Self {
-        EventStream::new(Arc::new(executor))
+        EventStream::new(executor)
     }
 }

@@ -177,7 +177,7 @@ struct Inner<H> {
     id: MailBoxId,
     handler: Mutex<H>,
     inbox: Inbox<Item<H>>,
-    executor: Arc<Executor>,
+    executor: Executor,
     stream: Weak<Shared>,
 }
 
@@ -201,7 +201,7 @@ impl<H> MailBox<H> {
 }
 
 impl<H: Send + 'static> MailBox<H> {
-    pub(super) fn new(handler: H, executor: Arc<Executor>, stream: &EventStream) -> Self {
+    pub(super) fn new(handler: H, executor: Executor, stream: &EventStream) -> Self {
         MailBox(Arc::new(Inner {
             id: MailBoxId::new(),
             handler: Mutex::new(handler),

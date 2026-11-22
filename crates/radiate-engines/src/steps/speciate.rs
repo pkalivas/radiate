@@ -15,7 +15,7 @@ where
     pub(crate) threshold: RateSet,
     pub(crate) objective: Objective,
     pub(crate) distance: Arc<dyn Distance<Phenotype<C>>>,
-    pub(crate) executor: Arc<Executor>,
+    pub(crate) executor: Executor,
     pub(crate) distances: Vec<f32>,
     pub(crate) assignments: Arc<Mutex<SpeciesAssignments>>,
 }
@@ -25,7 +25,7 @@ impl<C: Chromosome> SpeciateStep<C> {
         threshold: impl Into<RateSet>,
         objective: Objective,
         distance: Arc<dyn Distance<Phenotype<C>>>,
-        executor: Arc<Executor>,
+        executor: Executor,
     ) -> Self {
         Self {
             threshold: threshold.into(),

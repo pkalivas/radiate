@@ -219,11 +219,7 @@ where
                 ),
             );
         } else {
-            self.defer_event(
-                "Checkpoint",
-                "Registered",
-                path_without_extension,
-            );
+            self.defer_event("Checkpoint", "Registered", path_without_extension);
         }
 
         self
@@ -516,12 +512,7 @@ where
         let derer_selector = |selector: &SelectConfig<C>| {
             format!(
                 "{} - {}",
-                selector
-                    .names
-                    .0
-                    .split('.')
-                    .skip(1)
-                    .collect::<String>(),
+                selector.names.0.split('.').skip(1).collect::<String>(),
                 selector.count
             )
         };
@@ -602,11 +593,7 @@ where
     }
 
     fn add_step_event(config: &EngineConfig<C, T>, message: impl Into<String>) {
-        Self::add_builder_event(
-            &config.event_stream(),
-            "Step",
-            message.into().to_string(),
-        );
+        Self::add_builder_event(&config.event_stream(), "Step", message.into().to_string());
     }
 
     fn add_builder_event(stream: &EventStream, cat: impl AsRef<str>, message: impl Into<String>) {

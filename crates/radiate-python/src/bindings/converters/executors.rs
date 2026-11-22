@@ -36,5 +36,5 @@ fn worker_pool(_: &PyEngineInput) -> RadiateResult<Executor> {
 
 fn fixed_sized_worker_pool(input: &PyEngineInput) -> RadiateResult<Executor> {
     let num_workers = input.extract::<i64>("num_workers")?;
-    Ok(Executor::FixedSizedWorkerPool(num_workers as usize))
+    Ok(Executor::new_thread_pool(num_workers as usize))
 }

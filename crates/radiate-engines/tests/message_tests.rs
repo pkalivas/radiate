@@ -24,7 +24,7 @@ fn serial() -> EventStream {
 }
 
 fn pool() -> EventStream {
-    EventStream::from(Executor::FixedSizedWorkerPool(4))
+    EventStream::from(Executor::new_thread_pool(4))
 }
 
 /// Subscribe a closure that counts every `E` it sees.
@@ -741,7 +741,7 @@ mod pool_tests {
             handled: logger_handled.clone(),
         };
 
-        let stream = EventStream::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
+        let stream = EventStream::new(Executor::new_thread_pool(4));
         stream.attach(adder).unwrap();
         stream.attach(adder_two).unwrap();
         stream.attach(logger).unwrap();

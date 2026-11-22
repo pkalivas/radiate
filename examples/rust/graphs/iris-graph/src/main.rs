@@ -53,15 +53,15 @@ fn main() -> RadiateResult<()> {
     //     )
     //     .schedule(10)?;
 
-    engine.subscribe(|event: &StreamEvent<StreamClosed>| {
-        println!("Stream closed: {:#?}", event.0);
-        println!("{:#?}", event.throughput());
-    });
+    // engine.subscribe(|event: &StreamEvent<StreamClosed>| {
+    //     println!("Stream closed: {:#?}", event.0);
+    //     println!("{:#?}", event.throughput());
+    // });
 
     let start = Instant::now();
     let result = engine
         .iter()
-        .logging()
+        // .logging()
         .until(|epoch| epoch.score().as_f32() < MIN_SCORE || epoch.seconds() > MAX_SECONDS)
         .last()?;
     let elapsed = start.elapsed();

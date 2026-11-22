@@ -62,7 +62,7 @@ pub trait Evaluator<C: Chromosome, T>: Send + Sync {
 /// - **Parallelization**: Can utilize multiple threads through the executor
 /// - **Flexibility**: Easy to implement custom evaluation logic
 pub struct FitnessEvaluator {
-    executor: Arc<Executor>,
+    executor: Executor,
 }
 
 impl FitnessEvaluator {
@@ -73,7 +73,7 @@ impl FitnessEvaluator {
     /// Choose an executor that matches your performance requirements:
     /// - [Executor::Serial] for single-threaded execution
     /// - [Executor::ThreadPool(n)] for parallel execution with n worker threads
-    pub fn new(executor: Arc<Executor>) -> Self {
+    pub fn new(executor: Executor) -> Self {
         Self { executor }
     }
 }
@@ -145,7 +145,7 @@ where
 impl Default for FitnessEvaluator {
     fn default() -> Self {
         Self {
-            executor: Arc::new(Executor::Serial),
+            executor: Executor::Serial,
         }
     }
 }
@@ -190,7 +190,7 @@ impl Default for FitnessEvaluator {
 /// But, if your executor is [Executor::Serial], then the batch size will simply be the total number of
 /// individuals to evaluate, resulting in a single batch.
 pub struct BatchFitnessEvaluator {
-    executor: Arc<Executor>,
+    executor: Executor,
 }
 
 impl BatchFitnessEvaluator {
@@ -201,7 +201,7 @@ impl BatchFitnessEvaluator {
     /// Batch evaluation works best with parallel executors that have multiple
     /// worker threads. The evaluator will automatically divide work into optimal
     /// batch sizes based on the number of available workers.
-    pub fn new(executor: Arc<Executor>) -> Self {
+    pub fn new(executor: Executor) -> Self {
         Self { executor }
     }
 }

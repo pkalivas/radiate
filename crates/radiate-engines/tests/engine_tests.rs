@@ -99,7 +99,7 @@ mod engine_tests {
                 //       every single phenotype open to crossover/mutation (invalidation - needing a new score).
                 //          .offspring_fraction(1.0)
                 //   2.) Increase the mutation/crossover rate so more individuals are invalidated during recombination.
-                .executor(Executor::FixedSizedWorkerPool(7))
+                .executor(Executor::new_thread_pool(7))
                 .fitness_fn(|phenotypes: &[Vec<i32>]| {
                     // At a very very very base level, we expect the batch to have at least two phenotypes
                     // Realistically, with an engine configured like this one is, we'd expect anywhere from 50-70ish
