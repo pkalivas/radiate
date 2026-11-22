@@ -56,7 +56,7 @@ fn check_stagnation<T, H>(message: &EpochComplete<T>, ctx: &EventContext<'_, H>)
         .unwrap_or_default();
 
     let should_warn = if stag_count >= STAGNATION_WARNING_THRESHOLD {
-        stag_count % STAGNATION_WARNING_THRESHOLD == 0
+        stag_count.is_multiple_of(STAGNATION_WARNING_THRESHOLD)
     } else {
         false
     };
@@ -65,7 +65,7 @@ fn check_stagnation<T, H>(message: &EpochComplete<T>, ctx: &EventContext<'_, H>)
         ctx.publish(Warning(radiate_utils::three_col_format(
             "Health",
             "Stagnation",
-            &format!("{} Epochs", stag_count),
+            format!("{} Epochs", stag_count),
         )))
         .unwrap();
     }
@@ -81,7 +81,7 @@ fn check_diversity<T, H>(message: &EpochComplete<T>, ctx: &EventContext<'_, H>) 
         ctx.publish(Warning(radiate_utils::three_col_format(
             "Health",
             "Low Diversity",
-            &format!("{:.1}%", ratio * 100.0),
+            format!("{:.1}%", ratio * 100.0),
         )))
         .unwrap();
     }
@@ -97,7 +97,7 @@ fn check_species_collapse<T, H>(message: &EpochComplete<T>, ctx: &EventContext<'
         ctx.publish(Warning(radiate_utils::three_col_format(
             "Health",
             "Species Dom.",
-            &format!("Largest species {:.1}%", share * 100.0),
+            format!("Largest species {:.1}%", share * 100.0),
         )))
         .unwrap();
     }

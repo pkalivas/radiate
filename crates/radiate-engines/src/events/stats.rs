@@ -80,7 +80,7 @@ impl StreamSnapshot {
             |mut acc, sub| {
                 acc.entry(sub.mailbox_id)
                     .and_modify(|metrics| *metrics = metrics.add(&sub.stats))
-                    .or_insert_with(|| sub.stats.clone());
+                    .or_insert_with(|| sub.stats);
                 acc
             },
         )

@@ -170,7 +170,7 @@ where
         self.defer_event(
             "Checkpoint",
             "Loaded",
-            &format!("{}", path.as_ref().to_string_lossy()),
+            format!("{}", path.as_ref().to_string_lossy()),
         );
         self.generation(generation)
     }
@@ -222,7 +222,7 @@ where
             self.defer_event(
                 "Checkpoint",
                 "Registered",
-                &format!("{}", path_without_extension),
+                path_without_extension,
             );
         }
 
@@ -520,7 +520,6 @@ where
                     .names
                     .0
                     .split('.')
-                    .into_iter()
                     .skip(1)
                     .collect::<String>(),
                 selector.count
@@ -547,7 +546,7 @@ where
             filters: config.filters().to_vec(),
         };
 
-        Self::add_step_event(config, format!("FilterStep built"));
+        Self::add_step_event(config, "FilterStep built".to_string());
 
         Some(Box::new(filter_step))
     }
@@ -559,7 +558,7 @@ where
             config.exprs().clone(),
         );
 
-        Self::add_step_event(config, format!("MetricStep built"));
+        Self::add_step_event(config, "MetricStep built".to_string());
 
         Some(Box::new(step))
     }
@@ -573,7 +572,7 @@ where
             front: config.front(),
         };
 
-        Self::add_step_event(config, format!("FrontStep built"));
+        Self::add_step_event(config, "FrontStep built".to_string());
 
         Some(Box::new(front_step))
     }
@@ -597,7 +596,7 @@ where
             assignments: Arc::default(),
         };
 
-        Self::add_step_event(config, format!("SpeciateStep built"));
+        Self::add_step_event(config, "SpeciateStep built".to_string());
 
         Some(Box::new(species_step))
     }
@@ -606,14 +605,14 @@ where
         Self::add_builder_event(
             &config.event_stream(),
             "Step",
-            format!("{}", message.into()),
+            message.into().to_string(),
         );
     }
 
     fn add_builder_event(stream: &EventStream, cat: impl AsRef<str>, message: impl Into<String>) {
         stream.defer(LogEvent(
             LogLevel::Info,
-            radiate_utils::three_col_format("Builder", cat.as_ref(), &message.into()),
+            radiate_utils::three_col_format("Builder", cat.as_ref(), message.into()),
         ));
     }
 }

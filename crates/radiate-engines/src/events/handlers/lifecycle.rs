@@ -41,7 +41,7 @@ impl On<StreamEvent<SubscriptionAdded>> for StreamHandler {
     fn handle(&mut self, event: &StreamEvent<SubscriptionAdded>, ctx: &EventContext<'_, Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
-            radiate_utils::three_col_format("Sub", "Added", &event.name().unwrap_or_default()),
+            radiate_utils::three_col_format("Sub", "Added", event.name().unwrap_or_default()),
         ))
         .unwrap();
     }
@@ -51,7 +51,7 @@ impl On<StreamEvent<SubscriptionRemoved>> for StreamHandler {
     fn handle(&mut self, event: &StreamEvent<SubscriptionRemoved>, ctx: &EventContext<'_, Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
-            radiate_utils::three_col_format("Sub", "Removed", &event.name().unwrap_or_default()),
+            radiate_utils::three_col_format("Sub", "Removed", event.name().unwrap_or_default()),
         ))
         .unwrap();
     }

@@ -95,7 +95,7 @@ where
             radiate_utils::three_col_format(
                 "Checkpoint",
                 "Saved",
-                &format!("{}: {}", message.index, message.path),
+                format!("{}: {}", message.index, message.path),
             ),
         ))
         .unwrap();

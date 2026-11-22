@@ -45,7 +45,7 @@ impl<'a, C: Chromosome> Widget for SearchBarWidget<'a, C> {
             format!("{} ", metric_summary.updates).fg(Color::LightGreen),
             "| ".fg(Color::Gray).bold(),
             format!("{} ", total_renders).fg(Color::LightGreen),
-            format!("/ ").fg(Color::Gray).bold(),
+            "/ ".to_string().fg(Color::Gray).bold(),
             format!("{} ", self.state.run.event_count).fg(Color::LightGreen),
         ];
 

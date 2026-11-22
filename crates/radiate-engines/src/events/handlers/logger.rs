@@ -48,7 +48,7 @@ where
             radiate_utils::three_col_format(
                 "Engine",
                 "Limit Triggered",
-                &format!("{:?}", message.1),
+                format!("{:?}", message.1),
             ),
         ))
         .unwrap();
@@ -100,7 +100,7 @@ where
             radiate_utils::three_col_format(
                 "Engine",
                 "State Change",
-                &format!("{:?} -> {:?}", event.from, event.to),
+                format!("{:?} -> {:?}", event.from, event.to),
             ),
         ))
         .unwrap();
