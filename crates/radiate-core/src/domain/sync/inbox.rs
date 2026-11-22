@@ -1,6 +1,11 @@
 use crossbeam::channel::{self, Receiver, Sender};
 use std::sync::atomic::{AtomicBool, Ordering};
 
+pub struct DrainResult {
+    pub more: bool,
+    pub processed: usize,
+}
+
 /// An unbounded FIFO queue that at most one consumer drains at a time.
 ///
 /// Any number of threads can [`push`](Inbox::push). The push that finds the
@@ -68,7 +73,7 @@ impl<T> Inbox<T> {
     ///
     /// `process` must not panic. A panic would leave the inbox claimed forever,
     /// so catch panics inside `process` if it runs untrusted code.
-    pub fn drain(&self, budget: usize, mut process: impl FnMut(T)) -> bool {
+    pub fn drain(&self, budget: usize, mut process: impl FnMut(T)) -> DrainResult {
         debug_assert!(
             self.scheduled.load(Ordering::Acquire),
             "Inbox::drain called without holding the claim"
@@ -87,7 +92,10 @@ impl<T> Inbox<T> {
             }
 
             if processed >= budget && !self.receiver.is_empty() {
-                return true;
+                return DrainResult {
+                    more: true,
+                    processed,
+                };
             }
 
             self.scheduled.store(false, Ordering::Release);
@@ -96,11 +104,17 @@ impl<T> Inbox<T> {
             // either shows up here, or its own claim attempt succeeds.
             std::sync::atomic::fence(Ordering::SeqCst);
             if self.receiver.is_empty() || !self.try_claim() {
-                return false;
+                return DrainResult {
+                    more: false,
+                    processed,
+                };
             }
 
             if processed >= budget {
-                return true;
+                return DrainResult {
+                    more: true,
+                    processed,
+                };
             }
         }
     }
@@ -135,7 +149,7 @@ mod tests {
         assert!(!inbox.push(3));
 
         let mut seen = Vec::new();
-        assert!(!inbox.drain(usize::MAX, |x| seen.push(x)));
+        assert!(!inbox.drain(usize::MAX, |x| seen.push(x)).more);
         assert_eq!(seen, vec![1, 2, 3]);
 
         // Released: the next push claims again.
@@ -151,10 +165,10 @@ mod tests {
         }
 
         let mut seen = Vec::new();
-        assert!(inbox.drain(2, |x| seen.push(x)));
+        assert!(inbox.drain(2, |x| seen.push(x)).more);
         assert!(!inbox.push(5), "claim is still held after a budgeted drain");
-        assert!(inbox.drain(2, |x| seen.push(x)));
-        assert!(!inbox.drain(usize::MAX, |x| seen.push(x)));
+        assert!(inbox.drain(2, |x| seen.push(x)).more);
+        assert!(!inbox.drain(usize::MAX, |x| seen.push(x)).more);
         assert_eq!(seen, vec![0, 1, 2, 3, 4, 5]);
     }
 
@@ -163,7 +177,7 @@ mod tests {
         let inbox = Inbox::new();
         inbox.push(0);
         inbox.push(1);
-        assert!(!inbox.drain(2, |_| {}));
+        assert!(!inbox.drain(2, |_| {}).more);
         assert!(inbox.push(2));
     }
 
@@ -191,7 +205,7 @@ mod tests {
         assert!(!inbox.try_claim());
 
         let mut seen = Vec::new();
-        assert!(!inbox.drain(usize::MAX, |x| seen.push(x)));
+        assert!(!inbox.drain(usize::MAX, |x| seen.push(x)).more);
         assert_eq!(seen, vec![1]);
     }
 
@@ -213,11 +227,14 @@ mod tests {
                 scope.spawn(move || {
                     for i in 0..PER_THREAD {
                         if inbox.push(i) {
-                            while inbox.drain(16, |_| {
-                                assert_eq!(active.fetch_add(1, Ordering::SeqCst), 0);
-                                processed.fetch_add(1, Ordering::SeqCst);
-                                active.fetch_sub(1, Ordering::SeqCst);
-                            }) {}
+                            while inbox
+                                .drain(16, |_| {
+                                    assert_eq!(active.fetch_add(1, Ordering::SeqCst), 0);
+                                    processed.fetch_add(1, Ordering::SeqCst);
+                                    active.fetch_sub(1, Ordering::SeqCst);
+                                })
+                                .more
+                            {}
                         }
                     }
                 });

@@ -107,10 +107,16 @@ where
     }
 
     #[allow(dead_code)]
-    pub(self) fn defer_event(&mut self, message: &str) {
-        self.params
-            .event_stream
-            .defer(LogEvent(LogLevel::Info, message.to_string()));
+    pub(self) fn defer_event(
+        &mut self,
+        main: impl AsRef<str>,
+        category: impl AsRef<str>,
+        message: impl AsRef<str>,
+    ) {
+        self.params.event_stream.defer(LogEvent(
+            LogLevel::Info,
+            radiate_utils::three_col_format(main.as_ref(), category.as_ref(), message.as_ref()),
+        ));
     }
 
     /// The [ReplacementStrategy] is used to determine how a new individual is added to the [Population]
@@ -161,10 +167,11 @@ where
             self.add_error_if(|| true, &format!("Failed to read checkpoint: {}", e));
         }
         let generation = read_generation.expect("Failed to read checkpoint file");
-        self.defer_event(&format!(
-            "Checkpoint | Load | {}",
-            path.as_ref().to_string_lossy()
-        ));
+        self.defer_event(
+            "Checkpoint",
+            "Loaded",
+            &format!("{}", path.as_ref().to_string_lossy()),
+        );
         self.generation(generation)
     }
 
@@ -212,7 +219,11 @@ where
                 ),
             );
         } else {
-            self.defer_event(&format!("Checkpoint | Write | {}", path_without_extension));
+            self.defer_event(
+                "Checkpoint",
+                "Registered",
+                &format!("{}", path_without_extension),
+            );
         }
 
         self

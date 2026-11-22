@@ -60,17 +60,14 @@ impl Event for CheckpointSaved {}
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Warning(pub String);
-
 impl Event for Warning {}
 
 #[derive(Clone, Debug)]
 pub struct LimitTriggered(pub usize, pub Limit);
-
 impl Event for LimitTriggered {}
 
 #[derive(Clone, Debug)]
 pub struct EpochStart(pub usize);
-
 impl Event for EpochStart {}
 
 impl<C, T> From<&EvolutionContext<C, T>> for EpochStart

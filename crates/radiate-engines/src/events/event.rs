@@ -42,13 +42,10 @@ where
 #[derive(Clone, Default)]
 pub struct EventScope {
     id: EventId,
-    // Never read: holding it is the point. It's released once the last
-    // clone of this scope is dropped.
     _guard: Option<Arc<WaitGuard>>,
 }
 
 impl EventScope {
-    /// A new chain that nothing is waiting on.
     pub(super) fn new() -> Self {
         EventScope {
             id: EventId::new(),
@@ -56,7 +53,6 @@ impl EventScope {
         }
     }
 
-    /// A new chain that holds `guard` until it's finished.
     pub(super) fn guarded(guard: WaitGuard) -> Self {
         EventScope {
             id: EventId::new(),

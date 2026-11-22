@@ -225,7 +225,7 @@ where
     ///     .iter()
     ///     .take(10)
     ///     // Subscribe to the start of each epoch and print the event
-    ///     .subscribe::<EpochStart>(|event: &EpochStart| println!("{:?}", event))
+    ///     .subscribe(|event: &EpochStart| println!("{:?}", event))
     ///     .last();
     /// ```
     ///

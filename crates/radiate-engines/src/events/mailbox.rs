@@ -320,7 +320,7 @@ impl<H: Send + 'static> MailBox<H> {
     /// Drain one budget's worth of queued items. Must hold the claim.
     fn process_batch(&self, handler: &mut H) -> bool {
         let mut panicked = None;
-        let more = self.0.inbox.drain(self.budget(), |item| {
+        let result = self.0.inbox.drain(self.budget(), |item| {
             if panicked.is_some() {
                 // Drop the rest of this turn's items, releasing their
                 // scopes and barrier guards.
@@ -333,14 +333,14 @@ impl<H: Send + 'static> MailBox<H> {
         });
 
         if let Some(payload) = panicked {
-            if more {
+            if result.more {
                 self.discard();
             }
 
             resume_unwind(payload);
         }
 
-        more
+        result.more
     }
 
     fn process_item(&self, item: Item<H>, handler: &mut H) -> thread::Result<()> {

@@ -91,9 +91,10 @@ where
     fn handle(&mut self, message: &CheckpointSaved, ctx: &EventContext<'_, Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
-            format!(
-                "Checkpoint saved at index {}: {}",
-                message.index, message.path
+            radiate_utils::three_col_format(
+                "Checkpoint",
+                "Saved",
+                &format!("{}: {}", message.index, message.path),
             ),
         ));
     }
