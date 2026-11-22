@@ -769,6 +769,7 @@ mod pool_tests {
         stream.attach(logger).unwrap();
 
         let run = |events: usize| {
+            // stream.every(Duration::from_millis(1), || Tick(0));
             for i in 0..events {
                 stream.publish(Tick(i as i32)).unwrap();
             }

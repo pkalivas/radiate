@@ -3,6 +3,7 @@ mod handlers;
 mod mailbox;
 mod messages;
 mod registry;
+mod scheduler;
 mod stats;
 mod stream;
 mod subscription;
@@ -21,6 +22,6 @@ pub use messages::{
 pub(crate) use event::EventScope;
 pub use event::{Event, EventHandler, EventId, On};
 pub use mailbox::{EventContext, MailBoxId};
-pub use stats::{EventStats, StreamSnapshot, SubscriptionSnapshot, DeliveryMetrics};
+pub use stats::{DeliveryMetrics, EventStats, StreamSnapshot, SubscriptionSnapshot};
 pub use stream::EventStream;
 pub use subscription::{Subscription, SubscriptionId};

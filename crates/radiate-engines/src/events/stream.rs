@@ -8,6 +8,7 @@ use crate::{
             StreamClosed, StreamEvent, StreamOpened, SubscriptionAdded, SubscriptionRemoved,
         },
         registry::{Build, Registration, Registry},
+        scheduler::{Job, Scheduler, Timer},
         subscription::nanos,
     },
 };
@@ -95,6 +96,7 @@ pub(super) struct Shared {
     pending: Mutex<Vec<Payload>>,
     closed: AtomicBool,
     wall_clock: WallClock,
+    scheduler: Scheduler,
 }
 
 impl Default for Shared {
@@ -104,6 +106,7 @@ impl Default for Shared {
             pending: Mutex::default(),
             closed: AtomicBool::new(false),
             wall_clock: WallClock::default(),
+            scheduler: Scheduler::default(),
         }
     }
 }
@@ -150,6 +153,14 @@ impl EventStream {
         self.shared.registry.event_count()
     }
 
+    pub fn executor(&self) -> Arc<Executor> {
+        Arc::clone(&self.executor)
+    }
+
+    pub(super) fn scheduler(&self) -> &Scheduler {
+        &self.shared.scheduler
+    }
+
     pub fn deferred(&self) -> Vec<Payload> {
         std::mem::take(&mut *self.shared.pending.lock().unwrap())
     }
@@ -165,6 +176,18 @@ impl EventStream {
     pub fn subscribe<E: Event>(&self, handler: impl On<E>) -> Subscription {
         let mailbox = MailBox::new(handler, Arc::clone(&self.executor), self);
         self.register::<E, _>(&mailbox)
+    }
+
+    /// so it costs nothing when no subscriber is due.
+    pub fn every<E: Event>(
+        &self,
+        period: Duration,
+        make: impl Fn() -> E + Send + 'static,
+    ) -> Timer {
+        let job: Job = Box::new(move |stream| stream.lazy_publish(&make));
+        self.shared
+            .scheduler
+            .schedule(self, period, Some(period), job)
     }
 
     pub fn detach<H: EventHandler>(&self) -> bool {
@@ -291,6 +314,7 @@ impl EventStream {
 
     pub fn open(&self) -> RadiateResult<()> {
         self.shared.wall_clock.open();
+        // self.shared.scheduler.open(self);
         self.scope(|stream| {
             stream.lazy_publish(|| StreamEvent(StreamOpened(stream.snapshot())))?;
             stream.wait();
@@ -299,6 +323,7 @@ impl EventStream {
     }
 
     pub fn close(&self) -> RadiateResult<()> {
+        self.shared.scheduler.close();
         self.drain()?;
         self.shared.wall_clock.close();
         self.scope(|stream| stream.lazy_publish(|| StreamEvent(StreamClosed(stream.snapshot()))))?;

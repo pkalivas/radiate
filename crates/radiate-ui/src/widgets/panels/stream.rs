@@ -21,15 +21,25 @@ const HANDLER_HEADER: ([&str; 7], usize) = (
     ],
     2,
 );
-const EVENT_HEADER: ([&str; 5], usize) =
-    (["Event", "Published", "Cost", "Unbuilt", "Undelivered"], 1);
+const EVENT_HEADER: ([&str; 6], usize) = (
+    [
+        "Event",
+        "Published",
+        "Rate",
+        "Cost",
+        "Unbuilt",
+        "Undelivered",
+    ],
+    1,
+);
 
 /// A queue this deep is shown as a problem whether or not it's still growing.
 const QUEUED_ALERT: u64 = 1_000;
 
 /// Every live subscription on the engine's event stream: how much it has
 /// handled, how fast it could go, how long its handler takes and its events
-/// wait (averaged since it subscribed), and how far behind it is.
+/// wait (over the last window), and how far behind it is. Its title carries
+/// the whole stream's throughput and utilization.
 pub struct StreamHandlersWidget;
 
 /// Every event type on the engine's event stream: how often it's published,
@@ -65,10 +75,21 @@ impl<C: Chromosome + Debug> AppWidget<C> for StreamHandlersWidget {
             })
             .collect::<Vec<_>>();
 
+        let stream = &state.stream;
+        let summary = match (stream.throughput, stream.utilization) {
+            (Some(throughput), Some(utilization)) => Some(format!(
+                " {} · {:.1}% busy ",
+                fmt_rate(throughput),
+                utilization * 100.0
+            )),
+            _ => None,
+        };
+
         render_table(
             area,
             buf,
             " Handlers ",
+            summary,
             HANDLER_HEADER,
             rows,
             [
@@ -94,6 +115,7 @@ impl<C: Chromosome + Debug> AppWidget<C> for StreamEventsWidget {
                 Row::new(vec![
                     text_cell(&row.event),
                     number_cell(row.published),
+                    rate_cell(row.rate),
                     duration_cell(row.cost),
                     dim_zero_cell(row.unbuilt),
                     dim_zero_cell(row.undelivered),
@@ -105,11 +127,13 @@ impl<C: Chromosome + Debug> AppWidget<C> for StreamEventsWidget {
             area,
             buf,
             " Events ",
+            None,
             EVENT_HEADER,
             rows,
             [
                 Constraint::Fill(1),
                 Constraint::Length(10),
+                Constraint::Length(9),
                 Constraint::Length(9),
                 Constraint::Length(9),
                 Constraint::Length(12),
@@ -122,13 +146,21 @@ fn render_table<const N: usize>(
     area: Rect,
     buf: &mut Buffer,
     title: &'static str,
+    summary: Option<String>,
     (header, text_columns): ([&str; N], usize),
     rows: Vec<Row<'_>>,
     widths: [Constraint; N],
 ) {
     // Display only: never focused, so never highlighted.
-    let block = styles::panel_block(false)
+    let mut block = styles::panel_block(false)
         .title(Line::from(vec![Span::from(title).fg(Color::White).bold()]).centered());
+    if let Some(summary) = summary {
+        block = block.title(
+            Line::from(summary)
+                .fg(styles::TEXT_FG_COLOR)
+                .right_aligned(),
+        );
+    }
     let table = Table::default()
         .block(block)
         .header(header_row(&header, text_columns))
@@ -178,14 +210,17 @@ fn dim_zero_cell(n: u64) -> Cell<'static> {
 }
 
 fn rate_cell(rate: Option<f64>) -> Cell<'static> {
-    let text = match rate {
-        None => "-".to_string(),
-        Some(r) if r >= 1_000_000.0 => format!("{:.1}M/s", r / 1_000_000.0),
-        Some(r) if r >= 1_000.0 => format!("{:.1}k/s", r / 1_000.0),
-        Some(r) if r >= 10.0 => format!("{r:.0}/s"),
-        Some(r) => format!("{r:.1}/s"),
-    };
+    let text = rate.map_or_else(|| "-".to_string(), fmt_rate);
     Cell::from(center(text)).style(Style::default().fg(styles::TEXT_FG_COLOR))
+}
+
+fn fmt_rate(rate: f64) -> String {
+    match rate {
+        r if r >= 1_000_000.0 => format!("{:.1}M/s", r / 1_000_000.0),
+        r if r >= 1_000.0 => format!("{:.1}k/s", r / 1_000.0),
+        r if r >= 10.0 => format!("{r:.0}/s"),
+        r => format!("{r:.1}/s"),
+    }
 }
 
 /// A duration, or `-` before there's anything to measure.
