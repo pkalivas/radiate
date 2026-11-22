@@ -1,4 +1,4 @@
-use crate::{SubscriptionStats, events::mailbox::MailBoxId};
+use crate::{DeliveryMetrics, events::mailbox::MailBoxId};
 use crossbeam::utils::CachePadded;
 use radiate_core::{Expr, error::RadiateResult};
 use radiate_error::radiate_bail;
@@ -43,9 +43,9 @@ struct MailboxCounts {
 }
 
 impl Counters {
-    fn snapshot(&self) -> SubscriptionStats {
+    fn snapshot(&self) -> DeliveryMetrics {
         let (publish, mailbox) = (&self.publish, &self.mailbox);
-        SubscriptionStats {
+        DeliveryMetrics {
             delivered: publish.delivered.load(Ordering::Relaxed),
             skipped: publish.skipped.load(Ordering::Relaxed),
             handled: mailbox.handled.load(Ordering::Relaxed),
@@ -112,7 +112,7 @@ impl Subscription {
 
     /// Everything this subscription has been sent so far and what became of
     /// it, including how long its events waited and how long its handler took.
-    pub fn stats(&self) -> SubscriptionStats {
+    pub fn stats(&self) -> DeliveryMetrics {
         self.0.counters.snapshot()
     }
 

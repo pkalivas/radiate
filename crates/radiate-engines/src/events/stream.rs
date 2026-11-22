@@ -1,5 +1,5 @@
 use crate::{
-    EventHandler, EventScope, StreamSnapshot, SubscriptionInfo,
+    EventHandler, EventScope, StreamSnapshot, SubscriptionSnapshot,
     events::{
         Event, On, Subscription, SubscriptionId,
         event::Payload,
@@ -35,6 +35,7 @@ pub(super) struct Shared {
 
 impl Default for Shared {
     fn default() -> Self {
+        let _ = quanta::Instant::now();
         Shared {
             registry: Registry::default(),
             pending: Mutex::default(),
@@ -65,7 +66,7 @@ impl EventStream {
 }
 
 impl EventStream {
-    pub fn subscribers<E: Event>(&self) -> Vec<SubscriptionInfo> {
+    pub fn subscribers<E: Event>(&self) -> Vec<SubscriptionSnapshot> {
         self.shared.registry.subscribers(TypeId::of::<E>())
     }
 

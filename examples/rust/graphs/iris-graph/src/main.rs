@@ -55,6 +55,10 @@ fn main() -> RadiateResult<()> {
 
     engine.subscribe(|event: &StreamEvent<StreamClosed>| {
         println!("Stream closed: {:#?}", event.0);
+        println!("Elapsed time: {:#?}", event.0.0.stream_metrics());
+
+        println!("\n");
+        println!("{:#?}", event.0.0.mailbox_metrics());
     });
 
     let start = Instant::now();

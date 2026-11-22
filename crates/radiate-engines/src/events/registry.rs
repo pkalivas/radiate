@@ -1,5 +1,5 @@
 use crate::{
-    EventScope, EventStats, StreamSnapshot, SubscriptionInfo,
+    EventScope, EventStats, StreamSnapshot, SubscriptionSnapshot,
     events::{
         Subscription,
         event::Payload,
@@ -84,7 +84,7 @@ impl Registry {
         self.groups.load()
     }
 
-    pub(super) fn subscribers(&self, event: TypeId) -> Vec<SubscriptionInfo> {
+    pub(super) fn subscribers(&self, event: TypeId) -> Vec<SubscriptionSnapshot> {
         self.map()
             .get(&event)
             .map(|group| {
@@ -262,9 +262,9 @@ impl Group {
         }
     }
 
-    fn info(&self, registration: &Registration) -> SubscriptionInfo {
+    fn info(&self, registration: &Registration) -> SubscriptionSnapshot {
         let subscription = &registration.subscription;
-        SubscriptionInfo {
+        SubscriptionSnapshot {
             id: subscription.id(),
             mailbox_id: subscription.mailbox_id(),
             name: subscription.name(),

@@ -17,23 +17,24 @@ use std::time::Duration;
 /// numbers, and their titles are right-aligned to sit over them.
 const HANDLER_HEADER: ([&str; 7], usize) = (
     [
-        "Handler", "Event", "Handled", "Rate", "Time", "Wait", "Queued",
+        "Handler", "Event", "Handled", "Max/s", "Time", "Wait", "Queued",
     ],
     2,
 );
 const EVENT_HEADER: ([&str; 5], usize) =
-    (["Event", "Published", "Rate", "Unbuilt", "Undelivered"], 1);
+    (["Event", "Published", "Cost", "Unbuilt", "Undelivered"], 1);
 
 /// A queue this deep is shown as a problem whether or not it's still growing.
 const QUEUED_ALERT: u64 = 1_000;
 
 /// Every live subscription on the engine's event stream: how much it has
-/// handled, how fast, how long its handler takes and its events wait (both
-/// averaged over the last second), and how far behind it is.
+/// handled, how fast it could go, how long its handler takes and its events
+/// wait (averaged since it subscribed), and how far behind it is.
 pub struct StreamHandlersWidget;
 
 /// Every event type on the engine's event stream: how often it's published,
-/// and how often laziness or schedules meant nobody got it.
+/// how much handler time each publish costs, and how often laziness or
+/// schedules meant nobody got it.
 pub struct StreamEventsWidget;
 
 impl<C: Chromosome + Debug> AppWidget<C> for StreamHandlersWidget {
@@ -56,7 +57,7 @@ impl<C: Chromosome + Debug> AppWidget<C> for StreamHandlersWidget {
                     text_cell(handler),
                     text_cell(&row.event),
                     number_cell(row.handled),
-                    rate_cell(row.rate),
+                    rate_cell(row.capacity),
                     duration_cell(row.time),
                     duration_cell(row.wait),
                     queued_cell(row.queued, row.growing),
@@ -93,7 +94,7 @@ impl<C: Chromosome + Debug> AppWidget<C> for StreamEventsWidget {
                 Row::new(vec![
                     text_cell(&row.event),
                     number_cell(row.published),
-                    rate_cell(row.rate),
+                    duration_cell(row.cost),
                     dim_zero_cell(row.unbuilt),
                     dim_zero_cell(row.undelivered),
                 ])
@@ -187,7 +188,7 @@ fn rate_cell(rate: Option<f64>) -> Cell<'static> {
     Cell::from(center(text)).style(Style::default().fg(styles::TEXT_FG_COLOR))
 }
 
-/// A mean duration, or `-` before the first full window.
+/// A duration, or `-` before there's anything to measure.
 fn duration_cell(duration: Option<Duration>) -> Cell<'static> {
     let text = duration.map_or_else(|| "-".to_string(), fmt_duration);
     Cell::from(center(text)).style(Style::default().fg(styles::TEXT_FG_COLOR))

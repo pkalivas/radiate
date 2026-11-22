@@ -2,14 +2,34 @@ use crate::{MailBoxId, SubscriptionId};
 use radiate_core::SmallStr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct StreamSnapshot {
     pub event_count: usize,
     pub events: Vec<EventStats>,
-    pub subscribers: Vec<SubscriptionInfo>,
+    pub subscribers: Vec<SubscriptionSnapshot>,
+}
+
+impl StreamSnapshot {
+    pub fn stream_metrics(&self) -> DeliveryMetrics {
+        self.subscribers
+            .iter()
+            .fold(DeliveryMetrics::default(), |acc, sub| acc.add(&sub.stats))
+    }
+
+    pub fn mailbox_metrics(&self) -> HashMap<MailBoxId, DeliveryMetrics> {
+        self.subscribers.iter().fold(
+            HashMap::<MailBoxId, DeliveryMetrics>::new(),
+            |mut acc, sub| {
+                acc.entry(sub.mailbox_id)
+                    .and_modify(|metrics| *metrics = metrics.add(&sub.stats))
+                    .or_insert_with(|| sub.stats.clone());
+                acc
+            },
+        )
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -29,7 +49,7 @@ impl EventStats {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct SubscriptionStats {
+pub struct DeliveryMetrics {
     /// Events routed to its mailbox.
     pub delivered: u64,
     /// Events its schedule said weren't due.
@@ -52,8 +72,7 @@ pub struct SubscriptionStats {
     pub handling: Duration,
 }
 
-impl SubscriptionStats {
-    /// Deliveries still waiting in its mailbox.
+impl DeliveryMetrics {
     pub fn queued(&self) -> u64 {
         self.delivered
             .saturating_sub(self.handled + self.discarded + self.panicked)
@@ -71,6 +90,14 @@ impl SubscriptionStats {
         self.mean(self.wait + self.handling)
     }
 
+    /// Deliveries per second its handlers could get through if they did
+    /// nothing else: `handled / handling`. `None` until there's handling time
+    /// to divide by, which a run of very fast handlers can leave at zero.
+    pub fn capacity(&self) -> Option<f64> {
+        let seconds = self.handling.as_secs_f64();
+        (self.handled > 0 && seconds > 0.0).then(|| self.handled as f64 / seconds)
+    }
+
     fn mean(&self, total: Duration) -> Option<Duration> {
         match self.handled {
             0 => None,
@@ -82,31 +109,31 @@ impl SubscriptionStats {
         }
     }
 
-    pub fn add(&self, other: &Self) -> Self {
-        SubscriptionStats {
-            delivered: self.delivered + other.delivered,
-            skipped: self.skipped + other.skipped,
-            handled: self.handled + other.handled,
-            inline: self.inline + other.inline,
-            discarded: self.discarded + other.discarded,
-            panicked: self.panicked + other.panicked,
-            wait: self.wait + other.wait,
-            handling: self.handling + other.handling,
-        }
+    pub fn add(mut self, other: &Self) -> Self {
+        self.delivered += other.delivered;
+        self.skipped += other.skipped;
+        self.handled += other.handled;
+        self.inline += other.inline;
+        self.discarded += other.discarded;
+        self.panicked += other.panicked;
+        self.wait += other.wait;
+        self.handling += other.handling;
+
+        self
     }
 }
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct SubscriptionInfo {
+pub struct SubscriptionSnapshot {
     pub id: SubscriptionId,
     pub mailbox_id: MailBoxId,
     pub name: Option<SmallStr>,
     pub event: SmallStr,
-    pub stats: SubscriptionStats,
+    pub stats: DeliveryMetrics,
 }
 
-impl SubscriptionInfo {
+impl SubscriptionSnapshot {
     pub fn label(&self) -> &str {
         self.name.as_deref().unwrap_or(&self.event)
     }
@@ -130,7 +157,7 @@ mod tests {
 
     #[test]
     fn stats_account_for_every_delivery() {
-        let stats = SubscriptionStats {
+        let stats = DeliveryMetrics {
             delivered: 10,
             handled: 5,
             discarded: 2,

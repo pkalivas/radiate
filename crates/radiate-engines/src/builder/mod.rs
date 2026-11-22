@@ -23,9 +23,9 @@ use crate::{
 #[cfg(feature = "serde")]
 use crate::{FileWriter, io::FileReader};
 use crate::{Generation, Result};
-use crate::{On, builder::evaluators::EvaluationParams};
 use crate::{LogEvent, builder::filters::FilterParams};
 use crate::{LogLevel, builder::problem::ProblemParams};
+use crate::{On, builder::evaluators::EvaluationParams};
 use crate::{StreamHandler, builder::objectives::OptimizeParams};
 use crate::{
     builder::evaluators::ExecutorParams,
@@ -624,6 +624,7 @@ where
     T: Clone + Send + 'static,
 {
     fn default() -> Self {
+        let _ = quanta::Instant::now();
         GeneticEngineBuilder {
             params: EngineParams {
                 population_params: PopulationParams {

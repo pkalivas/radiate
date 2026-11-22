@@ -21,6 +21,6 @@ pub use messages::{
 pub(crate) use event::EventScope;
 pub use event::{Event, EventHandler, EventId, On};
 pub use mailbox::{EventContext, MailBoxId};
-pub use stats::{EventStats, StreamSnapshot, SubscriptionInfo, SubscriptionStats};
+pub use stats::{EventStats, StreamSnapshot, SubscriptionSnapshot, DeliveryMetrics};
 pub use stream::EventStream;
 pub use subscription::{Subscription, SubscriptionId};
