@@ -8,7 +8,6 @@ mod problem;
 mod selectors;
 mod species;
 
-use crate::builder::population::PopulationParams;
 use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
 use crate::events::{Event, EventStream};
@@ -33,9 +32,10 @@ use crate::{
         EngineStep, FilterStep, FrontStep, MetricStep, RecombineStep, SelectConfig, SpeciateStep,
     },
 };
+use crate::{builder::population::PopulationParams, pipeline::EvolutionStep};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
-use radiate_core::{Alterer, Ecosystem, Expr, FitnessEvaluator, Valid, metric_names};
+use radiate_core::{Alterer, Ecosystem, Expr, FitnessEvaluator, MetricSet, Valid, metric_names};
 use radiate_core::{ExprSet, ThreadSync};
 use radiate_core::{RadiateError, radiate_err};
 use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
@@ -260,18 +260,33 @@ where
 
         let mut pipeline = Pipeline::<C>::default();
 
-        pipeline.add_step(Self::build_eval_step(&config));
-        pipeline.add_step(Self::build_recombine_step(&config));
-        pipeline.add_step(Self::build_filter_step(&config));
-        pipeline.add_step(Self::build_eval_step(&config));
-        pipeline.add_step(Self::build_front_step(&config));
-        pipeline.add_step(Self::build_species_step(&config));
-        pipeline.add_step(Self::build_audit_step(&config));
+        // pipeline.add_step(Self::build_eval_step(&config));
+        // pipeline.add_step(Self::build_recombine_step(&config));
+        // pipeline.add_step(Self::build_filter_step(&config));
+        // pipeline.add_step(Self::build_eval_step(&config));
+        // pipeline.add_step(Self::build_front_step(&config));
+        // pipeline.add_step(Self::build_species_step(&config));
+        // pipeline.add_step(Self::build_audit_step(&config));
+
+        let mut steps = Vec::new();
+
+        steps.push(Self::build_eval_step2(&config));
+        steps.push(Self::build_recombine_step2(&config));
+        steps.push(Self::build_filter_step2(&config));
+        steps.push(Self::build_eval_step2(&config));
+        steps.push(Self::build_front_step2(&config));
+        steps.push(Self::build_species_step2(&config));
+        steps.push(Self::build_metric_step2(&config));
 
         let event_system = config.event_stream();
         let context = EvolutionContext::from(config);
 
-        Ok(GeneticEngine::<C, T>::new(context, pipeline, event_system))
+        Ok(GeneticEngine::<C, T>::new(
+            context,
+            pipeline,
+            event_system,
+            steps.into_iter().filter_map(|s| s).collect(),
+        ))
     }
 
     /// Build the event stream for the genetic engine. This will configure the event stream,
@@ -457,6 +472,158 @@ where
         self.params.exprs = Some(Arc::new(Mutex::new(exprs)));
 
         Ok(())
+    }
+
+    fn build_eval_step2(config: &EngineConfig<C, T>) -> Option<EvolutionStep<C, T>> {
+        const EVAL_STEP_NAME: &str = "step.evaluate";
+        let mut eval_step = EvaluateStep {
+            objective: config.objective(),
+            problem: config.problem(),
+            evaluator: config.evaluator(),
+        };
+
+        Self::add_step_event(config, EVAL_STEP_NAME);
+
+        let eval_fn = Box::new(move |context: &mut EvolutionContext<C, T>| {
+            eval_step.execute(context.index, &mut context.ecosystem, &mut context.metrics)
+        });
+
+        Some(EvolutionStep::new(EVAL_STEP_NAME, eval_fn))
+    }
+
+    fn build_recombine_step2(config: &EngineConfig<C, T>) -> Option<EvolutionStep<C, T>> {
+        const RECOMBINE_STEP_NAME: &str = "step.recombine";
+        let offspring_selector = config.offspring_selector();
+        let survivor_selector = config.survivor_selector();
+
+        let off_name = offspring_selector.name();
+        let offspring_base_name = radiate_utils::intern!(off_name);
+        let offspring_time_name = radiate_utils::intern!(format!("{}.time", offspring_base_name));
+
+        let surv_name = survivor_selector.name();
+        let survivor_base_name = radiate_utils::intern!(surv_name);
+        let survivor_time_name = radiate_utils::intern!(format!("{}.time", survivor_base_name));
+
+        let survivor_select = SelectConfig {
+            selector: survivor_selector,
+            count: config.survivor_count(),
+            names: (survivor_base_name, survivor_time_name),
+        };
+
+        let offspring_select = SelectConfig {
+            selector: offspring_selector,
+            count: config.offspring_count(),
+            names: (offspring_base_name, offspring_time_name),
+        };
+
+        let mut recombine_step = RecombineStep {
+            survivor: crate::steps::SurvivorConfig {
+                select: survivor_select.clone(),
+            },
+            offspring: crate::steps::OffspringConfig {
+                select: offspring_select.clone(),
+                alters: config.alters().to_vec(),
+            },
+            objective: config.objective(),
+            survivor_counts: VersionedCounts::new(),
+            offspring_counts: VersionedCounts::new(),
+        };
+
+        Self::add_step_event(config, RECOMBINE_STEP_NAME);
+
+        let recombine_fn = Box::new(move |context: &mut EvolutionContext<C, T>| -> Result<()> {
+            recombine_step.execute(context.index, &mut context.ecosystem, &mut context.metrics)
+        });
+
+        Some(EvolutionStep::new(RECOMBINE_STEP_NAME, recombine_fn))
+    }
+
+    fn build_filter_step2(config: &EngineConfig<C, T>) -> Option<EvolutionStep<C, T>> {
+        const FILTER_STEP_NAME: &str = "step.filter";
+        let mut filter_step = FilterStep {
+            replacer: config.replacement_strategy(),
+            encoder: config.encoder(),
+            max_age: config.max_age(),
+            max_species_age: config.max_species_age(),
+            filters: config.filters().to_vec(),
+        };
+
+        Self::add_step_event(config, FILTER_STEP_NAME);
+
+        Some(EvolutionStep::new(
+            FILTER_STEP_NAME,
+            Box::new(move |context: &mut EvolutionContext<C, T>| -> Result<()> {
+                filter_step.execute(context.index, &mut context.ecosystem, &mut context.metrics)
+            }),
+        ))
+    }
+
+    fn build_metric_step2(config: &EngineConfig<C, T>) -> Option<EvolutionStep<C, T>> {
+        const METRIC_STEP_NAME: &str = "step.metric";
+        let mut step = MetricStep::new(
+            config.objective().clone(),
+            config.population_size(),
+            config.exprs().clone(),
+        );
+
+        Self::add_step_event(config, METRIC_STEP_NAME);
+
+        Some(EvolutionStep::new(
+            METRIC_STEP_NAME,
+            Box::new(move |context: &mut EvolutionContext<C, T>| -> Result<()> {
+                step.execute(context.index, &mut context.ecosystem, &mut context.metrics)
+            }),
+        ))
+    }
+
+    fn build_front_step2(config: &EngineConfig<C, T>) -> Option<EvolutionStep<C, T>> {
+        const FRONT_STEP_NAME: &str = "step.front";
+        if config.objective().is_single() {
+            return None;
+        }
+
+        let mut front_step = FrontStep {
+            front: config.front(),
+        };
+
+        Self::add_step_event(config, FRONT_STEP_NAME);
+
+        Some(EvolutionStep::new(
+            FRONT_STEP_NAME,
+            Box::new(move |context: &mut EvolutionContext<C, T>| -> Result<()> {
+                front_step.execute(context.index, &mut context.ecosystem, &mut context.metrics)
+            }),
+        ))
+    }
+
+    fn build_species_step2(config: &EngineConfig<C, T>) -> Option<EvolutionStep<C, T>> {
+        const SPECIES_STEP_NAME: &str = "step.species";
+        let distance = config.distance()?;
+        let threshold_expr = config.exprs().and_then(|exprs| {
+            exprs
+                .lock()
+                .unwrap()
+                .get(metric_names::SPECIES_THRESHOLD)
+                .cloned()
+        })?;
+
+        let mut species_step = SpeciateStep {
+            threshold: RateSet::new(threshold_expr),
+            distance,
+            executor: config.species_executor(),
+            objective: config.objective(),
+            distances: Vec::new(),
+            assignments: Arc::default(),
+        };
+
+        Self::add_step_event(config, SPECIES_STEP_NAME);
+
+        Some(EvolutionStep::new(
+            SPECIES_STEP_NAME,
+            Box::new(move |context: &mut EvolutionContext<C, T>| -> Result<()> {
+                species_step.execute(context.index, &mut context.ecosystem, &mut context.metrics)
+            }),
+        ))
     }
 
     fn build_eval_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
@@ -658,3 +825,664 @@ where
         }
     }
 }
+
+// mod alters;
+// pub(crate) mod config;
+// mod evaluators;
+// mod filters;
+// mod objectives;
+// mod population;
+// mod problem;
+// mod selectors;
+// mod species;
+
+// use crate::builder::population::PopulationParams;
+// use crate::builder::selectors::SelectionParams;
+// use crate::builder::species::SpeciesParams;
+// use crate::events::{Event, EventStream};
+// use crate::genome::phenotype::Phenotype;
+// use crate::objectives::{Objective, Optimize};
+// use crate::pipeline::Pipeline;
+// use crate::{Chromosome, EvaluateStep, GeneticEngine};
+// use crate::{
+//     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
+//     TournamentSelector, context::EvolutionContext,
+// };
+// #[cfg(feature = "serde")]
+// use crate::{FileWriter, io::FileReader};
+// use crate::{Generation, Result};
+// use crate::{LogEvent, builder::filters::FilterParams};
+// use crate::{LogLevel, builder::problem::ProblemParams};
+// use crate::{On, builder::evaluators::EvaluationParams};
+// use crate::{StreamHandler, builder::objectives::OptimizeParams};
+// use crate::{
+//     builder::evaluators::ExecutorParams,
+//     steps::{
+//         EngineStep, FilterStep, FrontStep, MetricStep, RecombineStep, SelectConfig, SpeciateStep,
+//     },
+// };
+// use config::EngineConfig;
+// use radiate_alters::{UniformCrossover, UniformMutator};
+// use radiate_core::{Alterer, Ecosystem, Expr, FitnessEvaluator, Valid, metric_names};
+// use radiate_core::{ExprSet, ThreadSync};
+// use radiate_core::{RadiateError, radiate_err};
+// use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
+// use radiate_core::{
+//     expr,
+//     problem::{EngineProblem, FitnessKind},
+// };
+// use radiate_utils::VersionedCounts;
+// #[cfg(feature = "serde")]
+// use serde::Deserialize;
+// #[cfg(feature = "serde")]
+// use serde::Serialize;
+// use std::sync::{Arc, Mutex};
+
+// #[derive(Clone)]
+// pub struct EngineParams<C, T>
+// where
+//     C: Chromosome + 'static,
+//     T: Clone + 'static,
+// {
+//     pub population_params: PopulationParams<C>,
+//     pub evaluation_params: EvaluationParams<C, T>,
+//     pub species_params: SpeciesParams<C>,
+//     pub selection_params: SelectionParams<C>,
+//     pub optimization_params: OptimizeParams<C>,
+//     pub problem_params: ProblemParams<C, T>,
+//     pub filter_params: FilterParams<C>,
+
+//     pub alterers: Vec<Alterer<C>>,
+//     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
+//     pub event_stream: EventStream,
+//     pub generation: Option<Generation<C, T>>,
+//     pub exprs: Option<Arc<Mutex<ExprSet>>>,
+// }
+
+// /// Parameters for the genetic engine.
+// /// This struct is used to configure the genetic engine before it is created.
+// ///
+// /// When the `GeneticEngineBuilder`  calls the `build` method, it will create a new instance
+// /// of the [GeneticEngine] with the given parameters. If any of the required parameters are not
+// /// set, the `build` method will panic. At a minimum, the `codec` and `fitness_fn` must be set.
+// /// The `GeneticEngineBuilder` struct is a builder pattern that allows you to set the parameters of
+// /// the [GeneticEngine] in a fluent and functional way.
+// ///
+// /// # Type Parameters
+// /// - `C`: The type of chromosome used in the genotype, which must implement the [Chromosome] trait.
+// /// - `T`: The type of the best individual in the population.
+// pub struct GeneticEngineBuilder<C, T>
+// where
+//     C: Chromosome + 'static,
+//     T: Clone + 'static,
+// {
+//     params: EngineParams<C, T>,
+//     errors: Vec<RadiateError>,
+// }
+
+// impl<C, T> GeneticEngineBuilder<C, T>
+// where
+//     C: Chromosome + PartialEq + Clone,
+//     T: Clone + Send,
+// {
+//     pub(self) fn add_error_if<F>(&mut self, condition: F, message: &str)
+//     where
+//         F: Fn() -> bool,
+//     {
+//         if condition() {
+//             self.errors.push(radiate_err!(Builder: "{}", message));
+//         }
+//     }
+
+//     pub(self) fn defer_event(
+//         &mut self,
+//         main: impl AsRef<str>,
+//         category: impl AsRef<str>,
+//         message: impl AsRef<str>,
+//     ) {
+//         self.params.event_stream.defer(LogEvent(
+//             LogLevel::Info,
+//             radiate_utils::three_col_format(main.as_ref(), category.as_ref(), message.as_ref()),
+//         ));
+//     }
+
+//     /// The [ReplacementStrategy] is used to determine how a new individual is added to the [Population]
+//     /// if an individual is deemed to be either invalid or reaches the maximum age.
+//     ///
+//     /// Default is [EncodeReplace], which means that a new individual will be created
+//     /// be using the `Codec` to encode a new individual from scratch.
+//     pub fn replace_strategy<R: ReplacementStrategy<C> + 'static>(mut self, replace: R) -> Self {
+//         self.params.replacement_strategy = Arc::new(replace);
+//         self
+//     }
+
+//     /// Set the generation for the engine. This is typically used
+//     /// when resuming a previously paused or stopped engine.
+//     pub fn generation(mut self, generation: Generation<C, T>) -> Self {
+//         self.params.generation = Some(generation);
+//         self
+//     }
+
+//     /// Set the metrics for the engine. This allows you to define custom metrics
+//     /// that will be calculated during the evolution process.
+//     pub fn metrics(mut self, exprs: impl Into<ExprSet>) -> Self {
+//         self.params.exprs = Some(Arc::new(Mutex::new(exprs.into())));
+//         self
+//     }
+
+//     /// Subscribe to an event of type `E` with the given event handler.
+//     pub fn subscribe<E: Event>(self, handler: impl On<E>) -> Self {
+//         self.params.event_stream.subscribe(handler);
+//         self
+//     }
+
+//     /// Load a checkpoint from the given file path. This will
+//     /// load the generation from the file and set it as the current generation
+//     /// for the engine.
+//     #[cfg(feature = "serde")]
+//     pub fn load_checkpoint<P: AsRef<std::path::Path>>(
+//         mut self,
+//         path: P,
+//         reader: impl FileReader<Generation<C, T>>,
+//     ) -> Self
+//     where
+//         C: for<'de> Deserialize<'de>,
+//         T: for<'de> Deserialize<'de>,
+//     {
+//         let read_generation = reader.read(path.as_ref().to_path_buf());
+//         if let Err(e) = &read_generation {
+//             self.add_error_if(|| true, &format!("Failed to read checkpoint: {}", e));
+//         }
+//         let generation = read_generation.expect("Failed to read checkpoint file");
+//         self.defer_event(
+//             "Checkpoint",
+//             "Loaded",
+//             format!("{}", path.as_ref().to_string_lossy()),
+//         );
+//         self.generation(generation)
+//     }
+
+//     #[cfg(feature = "serde")]
+//     pub fn checkpoint(self, interval: usize, path: impl AsRef<std::path::Path>) -> Self
+//     where
+//         C: Serialize + 'static,
+//         T: Clone + Send + Sync + Serialize + 'static,
+//     {
+//         use crate::JsonWriter;
+
+//         self.checkpoint_with(interval, path, JsonWriter)
+//     }
+
+//     #[cfg(feature = "serde")]
+//     pub fn checkpoint_with<F>(
+//         mut self,
+//         interval: usize,
+//         path: impl AsRef<std::path::Path>,
+//         writer: F,
+//     ) -> Self
+//     where
+//         C: Serialize + 'static,
+//         T: Clone + Send + Sync + Serialize + 'static,
+//         F: FileWriter<Generation<C, T>> + Send + Sync + 'static,
+//     {
+//         use crate::events::CheckpointWriterHandler;
+
+//         let path_without_extension = path
+//             .as_ref()
+//             .to_str()
+//             .and_then(|s| s.rsplit('.').nth(1))
+//             .unwrap_or(path.as_ref().to_str().unwrap_or("checkpoints"));
+
+//         let handler =
+//             CheckpointWriterHandler::<C, T>::new(interval, path_without_extension.into(), writer);
+//         let attached = self.params.event_stream.attach(handler);
+
+//         if attached.is_err() {
+//             self.add_error_if(
+//                 || true,
+//                 &format!(
+//                     "Failed to attach checkpoint handler: {}",
+//                     attached.err().unwrap()
+//                 ),
+//             );
+//         } else {
+//             self.defer_event("Checkpoint", "Registered", path_without_extension);
+//         }
+
+//         self
+//     }
+// }
+
+// /// Static step builder for the genetic engine.
+// impl<C, T> GeneticEngineBuilder<C, T>
+// where
+//     C: Chromosome + Clone + PartialEq + 'static,
+//     T: Clone + Send + Sync + 'static,
+// {
+//     /// Build the genetic engine with the given parameters. This will create a new
+//     /// instance of the [GeneticEngine] with the given parameters.
+//     pub fn build(self) -> GeneticEngine<C, T> {
+//         match self.try_build() {
+//             Ok(engine) => engine,
+//             Err(e) => panic!("{e}"),
+//         }
+//     }
+
+//     pub fn try_build(mut self) -> Result<GeneticEngine<C, T>> {
+//         if !self.errors.is_empty() {
+//             return Err(radiate_err!(
+//                 Builder: "Failed to build GeneticEngine: {:?}",
+//                 self.errors
+//             ));
+//         }
+
+//         self.build_event_stream()?;
+//         self.build_problem()?;
+//         self.build_evaluator();
+//         self.build_population()?;
+//         self.build_alterer()?;
+//         self.build_front()?;
+//         self.build_rates()?;
+
+//         let config = EngineConfig::<C, T>::from(&self.params);
+
+//         let mut pipeline = Pipeline::<C>::default();
+
+//         pipeline.add_step(Self::build_eval_step(&config));
+//         pipeline.add_step(Self::build_recombine_step(&config));
+//         pipeline.add_step(Self::build_filter_step(&config));
+//         pipeline.add_step(Self::build_eval_step(&config));
+//         pipeline.add_step(Self::build_front_step(&config));
+//         pipeline.add_step(Self::build_species_step(&config));
+//         pipeline.add_step(Self::build_audit_step(&config));
+
+//         let event_system = config.event_stream();
+//         let context = EvolutionContext::from(config);
+
+//         Ok(GeneticEngine::<C, T>::new(context, pipeline, event_system))
+//     }
+
+//     /// Build the event stream for the genetic engine. This will configure the event stream,
+//     /// set its executor, and spawn the necessary event handlers such as the engine logger
+//     /// and health monitor. The configured event stream is then stored back in the builder's
+//     /// parameters.
+//     fn build_event_stream(&mut self) -> Result<()> {
+//         let mut stream = self.params.event_stream.clone();
+//         let stream_executor = self.params.evaluation_params.event_stream_executor.clone();
+
+//         stream.set_executor(stream_executor.executor);
+
+//         stream.attach(StreamHandler)?;
+
+//         self.params.event_stream = stream;
+
+//         Ok(())
+//     }
+
+//     /// Build the problem of the genetic engine. If a problem is already set, this does
+//     /// nothing. Otherwise it creates an [EngineProblem] from the codec and the fitness
+//     /// function.
+//     fn build_problem(&mut self) -> Result<()> {
+//         if self.params.problem_params.problem.is_some() {
+//             return Ok(());
+//         }
+
+//         let Some(codec) = self.params.problem_params.codec.clone() else {
+//             return Err(radiate_err!(Builder: "Codec not set"));
+//         };
+
+//         let Some(fitness_kind) = self.params.problem_params.fitness_kind.clone() else {
+//             return Err(radiate_err!(Builder: "Fitness function not set"));
+//         };
+
+//         self.params.problem_params.problem = Some(Arc::new(EngineProblem {
+//             objective: self.params.optimization_params.objectives.clone(),
+//             codec,
+//             fitness_kind,
+//         }));
+
+//         Ok(())
+//     }
+
+//     /// Build the evaluator of the genetic engine. If an evaluator is already set, this
+//     /// does nothing. Otherwise it picks a [BatchFitnessEvaluator] for a batch fitness
+//     /// function and a [FitnessEvaluator] for everything else, both on the fitness executor.
+//     fn build_evaluator(&mut self) {
+//         if self.params.evaluation_params.evaluator.is_some() {
+//             return;
+//         }
+
+//         let executor = self
+//             .params
+//             .evaluation_params
+//             .fitness_executor
+//             .executor
+//             .clone();
+//         let is_batch = self
+//             .params
+//             .problem_params
+//             .fitness_kind
+//             .as_ref()
+//             .is_some_and(FitnessKind::is_batch);
+
+//         self.params.evaluation_params.evaluator = Some(if is_batch {
+//             Arc::new(BatchFitnessEvaluator::new(executor))
+//         } else {
+//             Arc::new(FitnessEvaluator::new(executor))
+//         });
+//     }
+
+//     /// Build the population of the genetic engine. This will create a new population
+//     /// using the codec if the population is not set.
+//     fn build_population(&mut self) -> Result<()> {
+//         if self.params.population_params.ecosystem.is_some() {
+//             return Ok(());
+//         }
+
+//         let ecosystem = match &self.params.population_params.ecosystem {
+//             None => Some(match self.params.problem_params.problem.as_ref() {
+//                 Some(problem) => {
+//                     let size = self.params.population_params.population_size;
+//                     let mut phenotypes = Vec::with_capacity(size);
+
+//                     for _ in 0..size {
+//                         let genotype = problem.encode();
+
+//                         if !genotype.is_valid() {
+//                             return Err(radiate_err!(
+//                                 Builder: "Encoded genotype is not valid",
+//                             ));
+//                         }
+
+//                         phenotypes.push(Phenotype::from((genotype, 0)));
+//                     }
+
+//                     Ecosystem::from(phenotypes)
+//                 }
+//                 None => return Err(radiate_err!(Builder: "Codec not set")),
+//             }),
+//             Some(ecosystem) => Some(ecosystem.clone()),
+//         };
+
+//         if let Some(ecosystem) = ecosystem {
+//             self.params.population_params.ecosystem = Some(ecosystem);
+//         }
+
+//         Ok(())
+//     }
+
+//     /// Build the alterer of the genetic engine. This will create a
+//     /// new `UniformCrossover` and `UniformMutator` if the alterer is not set.
+//     /// with a 0.5 crossover rate and a 0.1 mutation rate.
+//     fn build_alterer(&mut self) -> Result<()> {
+//         if !self.params.alterers.is_empty() {
+//             return Ok(());
+//         }
+
+//         let crossover = UniformCrossover::new(0.5).into_alterer();
+//         let mutator = UniformMutator::new(0.1).into_alterer();
+
+//         self.params.alterers.push(crossover);
+//         self.params.alterers.push(mutator);
+
+//         Ok(())
+//     }
+
+//     /// Build the pareto front of the genetic engine. This will create a new `Front`
+//     /// if the front is not set. The `Front` is used to store the best individuals
+//     /// in the population and is used for multi-objective optimization problems.
+//     fn build_front(&mut self) -> Result<()> {
+//         if self.params.optimization_params.front.is_some() {
+//             return Ok(());
+//         } else if let Some(generation) = &self.params.generation
+//             && let Some(front) = generation.front()
+//         {
+//             self.params.optimization_params.front = Some(front.clone());
+//             return Ok(());
+//         }
+
+//         let front_obj = self.params.optimization_params.objectives.clone();
+//         self.params.optimization_params.front = Some(Front::new(
+//             self.params.optimization_params.front_range.clone(),
+//             front_obj,
+//         ));
+
+//         Ok(())
+//     }
+
+//     fn build_rates(&mut self) -> Result<()> {
+//         let mut exprs = ExprSet::default();
+
+//         if self.params.species_params.distance.is_some() {
+//             let curr_threshold = &self.params.species_params.species_threshold;
+//             let threshold = if let Some(count) = self.params.species_params.target_species_count {
+//                 let first_val = f32::try_from(curr_threshold.clone()).unwrap_or(0.5);
+//                 expr::species_target_control(count, first_val)
+//             } else {
+//                 curr_threshold
+//                     .clone()
+//                     .alias(metric_names::SPECIES_THRESHOLD)
+//             };
+
+//             exprs.push(threshold);
+//         }
+
+//         if let Some(others) = &self.params.exprs {
+//             let others = others.lock().unwrap();
+//             for (name, expr) in others.iter() {
+//                 exprs.insert(name.clone(), expr.clone());
+//             }
+//         }
+
+//         for alter in self.params.alterers.iter() {
+//             let rates = alter.rates();
+//             exprs.push(rates.control.clone());
+//             for inner in rates.internal.iter() {
+//                 exprs.push(inner.clone());
+//             }
+//         }
+
+//         self.params.exprs = Some(Arc::new(Mutex::new(exprs)));
+
+//         Ok(())
+//     }
+
+//     fn build_eval_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+//         let eval_step = EvaluateStep {
+//             objective: config.objective(),
+//             problem: config.problem(),
+//             evaluator: config.evaluator(),
+//         };
+
+//         Self::add_step_event(config, "EvaluateStep built");
+
+//         Some(Box::new(eval_step))
+//     }
+
+//     fn build_recombine_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+//         let offspring_selector = config.offspring_selector();
+//         let survivor_selector = config.survivor_selector();
+
+//         let off_name = offspring_selector.name();
+//         let offspring_base_name = radiate_utils::intern!(off_name);
+//         let offspring_time_name = radiate_utils::intern!(format!("{}.time", offspring_base_name));
+
+//         let surv_name = survivor_selector.name();
+//         let survivor_base_name = radiate_utils::intern!(surv_name);
+//         let survivor_time_name = radiate_utils::intern!(format!("{}.time", survivor_base_name));
+
+//         let survivor_select = SelectConfig {
+//             selector: survivor_selector,
+//             count: config.survivor_count(),
+//             names: (survivor_base_name, survivor_time_name),
+//         };
+
+//         let offspring_select = SelectConfig {
+//             selector: offspring_selector,
+//             count: config.offspring_count(),
+//             names: (offspring_base_name, offspring_time_name),
+//         };
+
+//         let recombine_step = RecombineStep {
+//             survivor: crate::steps::SurvivorConfig {
+//                 select: survivor_select.clone(),
+//             },
+//             offspring: crate::steps::OffspringConfig {
+//                 select: offspring_select.clone(),
+//                 alters: config.alters().to_vec(),
+//             },
+//             objective: config.objective(),
+//             survivor_counts: VersionedCounts::new(),
+//             offspring_counts: VersionedCounts::new(),
+//         };
+
+//         let derer_selector = |selector: &SelectConfig<C>| {
+//             format!(
+//                 "{} - {}",
+//                 selector.names.0.split('.').skip(1).collect::<String>(),
+//                 selector.count
+//             )
+//         };
+
+//         let step_message = format!(
+//             "RecombineStep: [Offspring {}] [Survivor {}]",
+//             derer_selector(&offspring_select),
+//             derer_selector(&survivor_select)
+//         );
+
+//         Self::add_step_event(config, step_message);
+
+//         Some(Box::new(recombine_step))
+//     }
+
+//     fn build_filter_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+//         let filter_step = FilterStep {
+//             replacer: config.replacement_strategy(),
+//             encoder: config.encoder(),
+//             max_age: config.max_age(),
+//             max_species_age: config.max_species_age(),
+//             filters: config.filters().to_vec(),
+//         };
+
+//         Self::add_step_event(config, "FilterStep built".to_string());
+
+//         Some(Box::new(filter_step))
+//     }
+
+//     fn build_audit_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+//         let step = MetricStep::new(
+//             config.objective().clone(),
+//             config.population_size(),
+//             config.exprs().clone(),
+//         );
+
+//         Self::add_step_event(config, "MetricStep built".to_string());
+
+//         Some(Box::new(step))
+//     }
+
+//     fn build_front_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+//         if config.objective().is_single() {
+//             return None;
+//         }
+
+//         let front_step = FrontStep {
+//             front: config.front(),
+//         };
+
+//         Self::add_step_event(config, "FrontStep built".to_string());
+
+//         Some(Box::new(front_step))
+//     }
+
+//     fn build_species_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+//         let distance = config.distance()?;
+//         let threshold_expr = config.exprs().and_then(|exprs| {
+//             exprs
+//                 .lock()
+//                 .unwrap()
+//                 .get(metric_names::SPECIES_THRESHOLD)
+//                 .cloned()
+//         })?;
+
+//         let species_step = SpeciateStep {
+//             threshold: RateSet::new(threshold_expr),
+//             distance,
+//             executor: config.species_executor(),
+//             objective: config.objective(),
+//             distances: Vec::new(),
+//             assignments: Arc::default(),
+//         };
+
+//         Self::add_step_event(config, "SpeciateStep built".to_string());
+
+//         Some(Box::new(species_step))
+//     }
+
+//     fn add_step_event(config: &EngineConfig<C, T>, message: impl Into<String>) {
+//         Self::add_builder_event(&config.event_stream(), "Step", message.into().to_string());
+//     }
+
+//     fn add_builder_event(stream: &EventStream, cat: impl AsRef<str>, message: impl Into<String>) {
+//         stream.defer(LogEvent(
+//             LogLevel::Info,
+//             radiate_utils::three_col_format("Builder", cat.as_ref(), message.into()),
+//         ));
+//     }
+// }
+
+// impl<C, T> Default for GeneticEngineBuilder<C, T>
+// where
+//     C: Chromosome + 'static,
+//     T: Clone + Send + 'static,
+// {
+//     fn default() -> Self {
+//         GeneticEngineBuilder {
+//             params: EngineParams {
+//                 population_params: PopulationParams {
+//                     population_size: 100,
+//                     max_age: 20,
+//                     ecosystem: None,
+//                 },
+//                 species_params: SpeciesParams {
+//                     distance: None,
+//                     species_threshold: Expr::lit(0.5),
+//                     max_species_age: 25,
+//                     target_species_count: None,
+//                 },
+//                 evaluation_params: EvaluationParams {
+//                     evaluator: None,
+//                     fitness_executor: ExecutorParams::default(),
+//                     species_executor: ExecutorParams::default(),
+//                     event_stream_executor: ExecutorParams::default(),
+//                     sync: ThreadSync::new(),
+//                 },
+//                 selection_params: SelectionParams {
+//                     offspring_fraction: 0.8,
+//                     survivor_selector: Arc::new(TournamentSelector::new(3)),
+//                     offspring_selector: Arc::new(RouletteSelector::new()),
+//                 },
+//                 optimization_params: OptimizeParams {
+//                     objectives: Objective::Single(Optimize::Maximize),
+//                     front_range: 800..900,
+//                     front: None,
+//                 },
+//                 problem_params: ProblemParams {
+//                     codec: None,
+//                     problem: None,
+//                     fitness_kind: None,
+//                 },
+//                 filter_params: FilterParams {
+//                     filters: Vec::new(),
+//                 },
+
+//                 replacement_strategy: Arc::new(EncodeReplace),
+//                 alterers: Vec::new(),
+//                 event_stream: EventStream::default(),
+//                 exprs: None,
+//                 generation: None,
+//             },
+//             errors: Vec::new(),
+//         }
+//     }
+// }

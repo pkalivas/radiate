@@ -123,6 +123,14 @@ impl EventStream {
         self.shared.registry.subscribers(TypeId::of::<E>())
     }
 
+    pub fn has_subscribers<E: Event>(&self) -> bool {
+        !self
+            .shared
+            .registry
+            .subscribers(TypeId::of::<E>())
+            .is_empty()
+    }
+
     pub fn handler_registered<H: 'static>(&self) -> bool {
         self.shared.registry.has_handler(TypeId::of::<H>())
     }

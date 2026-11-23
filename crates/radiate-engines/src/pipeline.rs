@@ -2,16 +2,19 @@ use crate::{context::EvolutionContext, steps::EngineStep};
 use radiate_core::{Chromosome, Ecosystem, MetricSet, SmallStr, metric_names};
 use radiate_error::Result;
 
-type EvolutionAction<C> = Box<dyn FnMut(usize, &mut Ecosystem<C>, &mut MetricSet) -> Result<()>>;
+type EvolutionAction<C, T> = Box<dyn FnMut(&mut EvolutionContext<C, T>) -> Result<()> + Send>;
 
-pub(crate) struct EvolutionStep<C: Chromosome> {
+pub(crate) struct EvolutionStep<C: Chromosome, T> {
     pub(crate) name: SmallStr,
-    pub(crate) action: EvolutionAction<C>,
+    pub(crate) action: EvolutionAction<C, T>,
 }
 
-impl<C: Chromosome> EvolutionStep<C> {
-    pub fn new(name: SmallStr, action: EvolutionAction<C>) -> Self {
-        Self { name, action }
+impl<C: Chromosome, T> EvolutionStep<C, T> {
+    pub fn new(name: impl Into<SmallStr>, action: EvolutionAction<C, T>) -> Self {
+        Self {
+            name: name.into(),
+            action,
+        }
     }
 }
 

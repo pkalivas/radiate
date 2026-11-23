@@ -1,4 +1,4 @@
-use crate::pipeline::Pipeline;
+use crate::pipeline::{EvolutionStep, Pipeline};
 use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
 use crate::{GenerationView, builder::GeneticEngineBuilder};
 use crate::{
@@ -6,7 +6,7 @@ use crate::{
     events::{EngineStart, EngineStop, EpochComplete, EpochStart, EventStream, Subscription},
 };
 use crate::{context::EvolutionContext, events::Event};
-use radiate_core::{Engine, EngineState};
+use radiate_core::{Engine, EngineState, metric_names};
 use radiate_core::{EngineStream, error::Result};
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
@@ -63,6 +63,7 @@ where
     context: EvolutionContext<C, T>,
     pipeline: Pipeline<C>,
     stream: EventStream,
+    steps: Vec<EvolutionStep<C, T>>,
 }
 
 impl<C, T> GeneticEngine<C, T>
@@ -78,11 +79,13 @@ where
         context: EvolutionContext<C, T>,
         pipeline: Pipeline<C>,
         stream: EventStream,
+        steps: Vec<EvolutionStep<C, T>>,
     ) -> Self {
         GeneticEngine {
             context,
             pipeline,
             stream,
+            steps,
         }
     }
 
@@ -213,7 +216,18 @@ where
         self.stream
             .lazy_publish(|| EpochStart::from(&self.context))?;
 
-        self.pipeline.run(&mut self.context)?;
+        let timer = std::time::Instant::now();
+
+        for step in self.steps.iter_mut() {
+            let start_time = timer.elapsed();
+            (step.action)(&mut self.context)?;
+            let elapsed = timer.elapsed() - start_time;
+            self.context.metrics.upsert(&step.name, elapsed);
+        }
+
+        let elapsed = timer.elapsed();
+        self.context.metrics.upsert(metric_names::TIME, elapsed);
+
         self.context.finalize()?;
 
         self.stream
