@@ -8,7 +8,6 @@ mod problem;
 mod selectors;
 mod species;
 
-use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
 use crate::events::{Event, EventStream};
 use crate::genome::phenotype::Phenotype;
@@ -33,6 +32,7 @@ use crate::{
     },
 };
 use crate::{builder::population::PopulationParams, pipeline::EvolutionStep};
+use crate::{builder::selectors::SelectionParams, steps::metric};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::{Alterer, Ecosystem, Expr, FitnessEvaluator, MetricSet, Valid, metric_names};
@@ -258,7 +258,7 @@ where
 
         let config = EngineConfig::<C, T>::from(&self.params);
 
-        let mut pipeline = Pipeline::<C>::default();
+        let mut pipeline = Pipeline::<C, T>::default();
 
         // pipeline.add_step(Self::build_eval_step(&config));
         // pipeline.add_step(Self::build_recombine_step(&config));
@@ -532,7 +532,7 @@ where
         Self::add_step_event(config, RECOMBINE_STEP_NAME);
 
         let recombine_fn = Box::new(move |context: &mut EvolutionContext<C, T>| -> Result<()> {
-            recombine_step.execute(context.index, &mut context.ecosystem, &mut context.metrics)
+            recombine_step.run_step(context)
         });
 
         Some(EvolutionStep::new(RECOMBINE_STEP_NAME, recombine_fn))
@@ -553,7 +553,7 @@ where
         Some(EvolutionStep::new(
             FILTER_STEP_NAME,
             Box::new(move |context: &mut EvolutionContext<C, T>| -> Result<()> {
-                filter_step.execute(context.index, &mut context.ecosystem, &mut context.metrics)
+                filter_step.run_step(context)
             }),
         ))
     }
@@ -571,7 +571,7 @@ where
         Some(EvolutionStep::new(
             METRIC_STEP_NAME,
             Box::new(move |context: &mut EvolutionContext<C, T>| -> Result<()> {
-                step.execute(context.index, &mut context.ecosystem, &mut context.metrics)
+                step.run_step(context)
             }),
         ))
     }
@@ -591,7 +591,7 @@ where
         Some(EvolutionStep::new(
             FRONT_STEP_NAME,
             Box::new(move |context: &mut EvolutionContext<C, T>| -> Result<()> {
-                front_step.execute(context.index, &mut context.ecosystem, &mut context.metrics)
+                front_step.run_step(context)
             }),
         ))
     }
@@ -621,12 +621,12 @@ where
         Some(EvolutionStep::new(
             SPECIES_STEP_NAME,
             Box::new(move |context: &mut EvolutionContext<C, T>| -> Result<()> {
-                species_step.execute(context.index, &mut context.ecosystem, &mut context.metrics)
+                species_step.run_step(context)
             }),
         ))
     }
 
-    fn build_eval_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+    fn build_eval_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C, T>>> {
         let eval_step = EvaluateStep {
             objective: config.objective(),
             problem: config.problem(),
@@ -638,7 +638,7 @@ where
         Some(Box::new(eval_step))
     }
 
-    fn build_recombine_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+    fn build_recombine_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C, T>>> {
         let offspring_selector = config.offspring_selector();
         let survivor_selector = config.survivor_selector();
 
@@ -694,7 +694,7 @@ where
         Some(Box::new(recombine_step))
     }
 
-    fn build_filter_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+    fn build_filter_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C, T>>> {
         let filter_step = FilterStep {
             replacer: config.replacement_strategy(),
             encoder: config.encoder(),
@@ -708,7 +708,7 @@ where
         Some(Box::new(filter_step))
     }
 
-    fn build_audit_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+    fn build_audit_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C, T>>> {
         let step = MetricStep::new(
             config.objective().clone(),
             config.population_size(),
@@ -720,7 +720,7 @@ where
         Some(Box::new(step))
     }
 
-    fn build_front_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+    fn build_front_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C, T>>> {
         if config.objective().is_single() {
             return None;
         }
@@ -734,7 +734,7 @@ where
         Some(Box::new(front_step))
     }
 
-    fn build_species_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+    fn build_species_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C, T>>> {
         let distance = config.distance()?;
         let threshold_expr = config.exprs().and_then(|exprs| {
             exprs

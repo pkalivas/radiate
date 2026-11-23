@@ -22,13 +22,13 @@ impl<C: Chromosome, T> EvolutionStep<C, T> {
 /// Each step is represented by an implementation of the [EngineStep] trait.
 /// The pipeline is responsible for managing the execution of these steps,
 /// ensuring that they are run in the correct order and that the necessary data is passed between them.
-pub(crate) struct Pipeline<C: Chromosome> {
-    steps: Vec<Box<dyn EngineStep<C>>>,
+pub(crate) struct Pipeline<C: Chromosome, T> {
+    steps: Vec<Box<dyn EngineStep<C, T>>>,
     names: Vec<SmallStr>,
 }
 
-impl<C: Chromosome> Pipeline<C> {
-    pub fn add_step(&mut self, step: Option<Box<dyn EngineStep<C>>>) {
+impl<C: Chromosome, T> Pipeline<C, T> {
+    pub fn add_step(&mut self, step: Option<Box<dyn EngineStep<C, T>>>) {
         if let Some(step) = step {
             let first_part = step.name();
             let name = SmallStr::from_string(format!("{}.time", first_part));
@@ -38,7 +38,7 @@ impl<C: Chromosome> Pipeline<C> {
     }
 
     #[inline]
-    pub fn run<T>(&mut self, context: &mut EvolutionContext<C, T>) -> Result<()> {
+    pub fn run(&mut self, context: &mut EvolutionContext<C, T>) -> Result<()> {
         let timer = std::time::Instant::now();
 
         for (step, name) in self.steps.iter_mut().zip(self.names.iter()) {
@@ -56,7 +56,7 @@ impl<C: Chromosome> Pipeline<C> {
     }
 }
 
-impl<C: Chromosome> Default for Pipeline<C> {
+impl<C: Chromosome, T> Default for Pipeline<C, T> {
     fn default() -> Self {
         Pipeline {
             steps: Vec::new(),

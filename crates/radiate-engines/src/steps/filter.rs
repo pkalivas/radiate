@@ -14,7 +14,7 @@ pub struct FilterStep<C: Chromosome> {
     pub(crate) max_species_age: usize,
 }
 
-impl<C: Chromosome> EngineStep<C> for FilterStep<C> {
+impl<C: Chromosome, T> EngineStep<C, T> for FilterStep<C> {
     #[inline]
     fn execute(
         &mut self,

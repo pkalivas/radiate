@@ -236,7 +236,7 @@ where
     }
 }
 
-impl<C> EngineStep<C> for SpeciateStep<C>
+impl<C, T> EngineStep<C, T> for SpeciateStep<C>
 where
     C: Chromosome + PartialEq + Clone + 'static,
 {

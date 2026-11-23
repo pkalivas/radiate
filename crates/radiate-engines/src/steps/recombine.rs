@@ -81,7 +81,7 @@ impl<C: Chromosome> RecombineStep<C> {
     }
 }
 
-impl<C> EngineStep<C> for RecombineStep<C>
+impl<C, T> EngineStep<C, T> for RecombineStep<C>
 where
     C: Chromosome + PartialEq + Clone,
 {

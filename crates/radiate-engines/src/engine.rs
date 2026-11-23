@@ -61,7 +61,7 @@ where
     T: Clone + Send + Sync + 'static,
 {
     context: EvolutionContext<C, T>,
-    pipeline: Pipeline<C>,
+    pipeline: Pipeline<C, T>,
     stream: EventStream,
     steps: Vec<EvolutionStep<C, T>>,
 }
@@ -77,7 +77,7 @@ where
     /// Users should create engines using `GeneticEngine::builder()`.
     pub(crate) fn new(
         context: EvolutionContext<C, T>,
-        pipeline: Pipeline<C>,
+        pipeline: Pipeline<C, T>,
         stream: EventStream,
         steps: Vec<EvolutionStep<C, T>>,
     ) -> Self {
@@ -217,18 +217,14 @@ where
             .lazy_publish(|| EpochStart::from(&self.context))?;
 
         let timer = std::time::Instant::now();
-
         for step in self.steps.iter_mut() {
             let start_time = timer.elapsed();
             (step.action)(&mut self.context)?;
             let elapsed = timer.elapsed() - start_time;
-            self.context.metrics.upsert(&step.name, elapsed);
+            self.context.upsert(&step.name, elapsed);
         }
 
-        let elapsed = timer.elapsed();
-        self.context.metrics.upsert(metric_names::TIME, elapsed);
-
-        self.context.finalize()?;
+        self.context.upsert(metric_names::TIME, timer.elapsed());
 
         self.stream
             .lazy_publish(|| EpochComplete::from(&self.context))?;

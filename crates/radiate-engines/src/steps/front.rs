@@ -9,7 +9,7 @@ pub struct FrontStep<C: Chromosome> {
     pub(crate) front: Arc<RwLock<Front<Phenotype<C>>>>,
 }
 
-impl<C> EngineStep<C> for FrontStep<C>
+impl<C, T> EngineStep<C, T> for FrontStep<C>
 where
     C: Chromosome + PartialEq + Clone + 'static,
 {

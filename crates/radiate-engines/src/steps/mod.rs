@@ -17,7 +17,9 @@ use radiate_utils::ToSnakeCase;
 pub use recombine::*;
 pub use speciate::*;
 
-pub trait EngineStep<C>: Send + Sync
+use crate::EvolutionContext;
+
+pub trait EngineStep<C, T>: Send + Sync
 where
     C: Chromosome,
 {
@@ -43,10 +45,33 @@ where
         radiate_utils::intern!(result)
     }
 
+    fn run_step(&mut self, ctx: &mut EvolutionContext<C, T>) -> Result<()> {
+        self.execute(ctx.index, &mut ctx.ecosystem, &mut ctx.metrics)
+    }
+
     fn execute(
         &mut self,
         generation: usize,
         ecosystem: &mut Ecosystem<C>,
         metrics: &mut MetricSet,
     ) -> Result<()>;
+}
+
+impl<C, T, F> EngineStep<C, T> for F
+where
+    C: Chromosome,
+    F: FnMut(&mut EvolutionContext<C, T>) -> Result<()> + Send + Sync,
+{
+    fn run_step(&mut self, ctx: &mut EvolutionContext<C, T>) -> Result<()> {
+        (self)(ctx)
+    }
+
+    fn execute(
+        &mut self,
+        generation: usize,
+        ecosystem: &mut Ecosystem<C>,
+        metrics: &mut MetricSet,
+    ) -> Result<()> {
+        Err(radiate_error::radiate_err!("Step",))
+    }
 }
