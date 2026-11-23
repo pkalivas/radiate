@@ -1,13 +1,10 @@
-use crate::pipeline::Pipeline;
-use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
+use crate::{Chromosome, EngineRuntime, Generation, ThreadSync, steps::EvolutionStep};
 use crate::{GenerationView, builder::GeneticEngineBuilder};
-use crate::{
-    On,
-    events::{EngineStart, EngineStop, EpochComplete, EpochStart, EventStream, Subscription},
-};
+use crate::{On, events::Subscription};
 use crate::{context::EvolutionContext, events::Event};
 use radiate_core::{Engine, EngineState};
 use radiate_core::{EngineStream, error::Result};
+use std::time::Instant;
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -61,8 +58,7 @@ where
     T: Clone + Send + Sync + 'static,
 {
     context: EvolutionContext<C, T>,
-    pipeline: Pipeline<C>,
-    stream: EventStream,
+    steps: Vec<EvolutionStep<C, T>>,
 }
 
 impl<C, T> GeneticEngine<C, T>
@@ -74,16 +70,8 @@ where
     ///
     /// This constructor is primarily used internally by the builder pattern.
     /// Users should create engines using `GeneticEngine::builder()`.
-    pub(crate) fn new(
-        context: EvolutionContext<C, T>,
-        pipeline: Pipeline<C>,
-        stream: EventStream,
-    ) -> Self {
-        GeneticEngine {
-            context,
-            pipeline,
-            stream,
-        }
+    pub(crate) fn new(context: EvolutionContext<C, T>, steps: Vec<EvolutionStep<C, T>>) -> Self {
+        GeneticEngine { context, steps }
     }
 
     /// Creates a new builder for configuring and constructing a genetic engine.
@@ -137,7 +125,10 @@ where
     /// how to handle events of type `E`. You can use this to listen for events
     /// such as epoch completions, improvements, or custom messages emitted during the evolutionary process.
     pub fn subscribe<E: Event>(&self, handler: impl On<E>) -> Subscription {
-        self.stream.subscribe(handler).with_name(E::name())
+        self.context
+            .stream()
+            .subscribe(handler)
+            .with_name(E::name())
     }
 }
 
@@ -184,43 +175,33 @@ where
     }
 
     fn start(&mut self) -> Result<()> {
-        self.stream.open()?;
-        self.context.set_running();
-        self.stream
-            .lazy_publish(|| EngineStart::from(&self.context))
+        self.context.start()
     }
 
     fn stop(&mut self) -> Result<()> {
-        self.context.set_stopped();
-        self.stream
-            .lazy_publish(|| EngineStop::from(&self.context))?;
-        self.stream.close()
+        self.context.stop()
     }
 
     #[inline]
     fn step(&mut self) -> Result<()> {
         match self.state() {
             EngineState::PreStart => self.start()?,
-            EngineState::Running => {
-                if !self.context.can_continue() {
-                    return self.stop();
-                }
-            }
             EngineState::Stopped => return Ok(()),
             _ => {}
         }
 
-        self.stream
-            .lazy_publish(|| EpochStart::from(&self.context))?;
+        self.context.process(|ctx: &mut EvolutionContext<C, T>| {
+            let now = Instant::now();
+            for step in self.steps.iter_mut() {
+                let start_time = now.elapsed();
+                step.call(ctx)?;
+                let end_time = now.elapsed();
 
-        self.pipeline.run(&mut self.context)?;
-        self.context.finalize()?;
+                ctx.upsert(&step.name, end_time - start_time);
+            }
 
-        self.stream
-            .lazy_publish(|| EpochComplete::from(&self.context))?;
-
-        self.context.roll()?;
-        Ok(())
+            Ok(now.elapsed())
+        })
     }
 }
 

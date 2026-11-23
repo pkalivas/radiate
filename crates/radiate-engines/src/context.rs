@@ -1,12 +1,18 @@
-use crate::{Chromosome, GenerationSnapshot, Improvement, ThreadSync, events::EngineStateChange};
+use crate::{
+    Chromosome, EngineStart, EngineStop, EpochComplete, EpochStart, GenerationSnapshot,
+    Improvement, ThreadSync, events::EngineStateChange,
+};
 use crate::{builder::config::EngineConfig, events::EventStream};
-use radiate_core::ExprSet;
 use radiate_core::error::RadiateResult;
 use radiate_core::{
     Ecosystem, EngineState, Front, Gate, MetricSet, Objective, Phenotype, Problem, Score, metric,
     metric_names,
 };
-use std::sync::{Arc, Mutex, RwLock};
+use radiate_core::{ExprSet, MetricUpdate};
+use std::{
+    sync::{Arc, Mutex, RwLock},
+    time::Duration,
+};
 
 pub struct EvolutionContext<C: Chromosome, T> {
     pub(crate) ecosystem: Ecosystem<C>,
@@ -20,7 +26,7 @@ pub struct EvolutionContext<C: Chromosome, T> {
     pub(crate) front: Arc<RwLock<Front<Phenotype<C>>>>,
     pub(crate) problem: Arc<dyn Problem<C, T>>,
     pub(crate) exprs: Option<Arc<Mutex<ExprSet>>>,
-    pub(crate) events: EventStream,
+    pub(crate) stream: EventStream,
     pub(crate) state: EngineState,
 }
 
@@ -46,7 +52,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
     }
 
     pub fn stream(&self) -> &EventStream {
-        &self.events
+        &self.stream
     }
 
     pub fn sync(&self) -> ThreadSync {
@@ -55,6 +61,10 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
 
     pub fn state(&self) -> EngineState {
         self.state
+    }
+
+    pub(crate) fn upsert<'a>(&mut self, name: impl AsRef<str>, value: impl Into<MetricUpdate<'a>>) {
+        self.metrics.upsert(name, value);
     }
 
     pub(crate) fn set_running(&mut self) {
@@ -73,7 +83,76 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.change_state(EngineState::Stopped);
     }
 
-    pub(crate) fn can_continue(&mut self) -> bool {
+    pub(crate) fn start(&mut self) -> RadiateResult<()>
+    where
+        C: Chromosome + Clone + 'static,
+        T: Clone + Send + Sync + 'static,
+    {
+        if self.state == EngineState::PreStart {
+            self.stream.open()?;
+            self.set_running();
+            self.stream.lazy_publish(|| EngineStart::from(&*self))?;
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn stop(&mut self) -> RadiateResult<()>
+    where
+        C: Chromosome + Clone + 'static,
+        T: Clone + Send + Sync + 'static,
+    {
+        self.set_stopped();
+        self.stream.lazy_publish(|| EngineStop::from(&*self))?;
+        self.stream.close()
+    }
+
+    pub(crate) fn process(
+        &mut self,
+        mut scope: impl FnMut(&mut Self) -> RadiateResult<Duration>,
+    ) -> RadiateResult<()>
+    where
+        C: Chromosome + Clone + 'static,
+        T: Clone + Send + Sync + 'static,
+    {
+        if !self.can_continue() {
+            return self.stop();
+        }
+
+        self.stream.lazy_publish(|| EpochStart::from(&*self))?;
+
+        let duration = scope(self)?;
+
+        let best = self.ecosystem.get_phenotype(0);
+        let best_improved = self
+            .metrics
+            .improvements()
+            .map(|m| m.last_value() > 0.0)
+            .unwrap_or(false);
+
+        if best_improved && let Some(best) = best {
+            self.previous_score = self.score.clone();
+            self.score = best.score().cloned();
+            self.best = self.problem.decode(best.genotype());
+
+            self.stream().lazy_publish(|| Improvement::from(&*self))?;
+        }
+
+        self.index += 1;
+        self.metrics
+            .replace(metric!(metric_names::INDEX, self.index));
+        self.metrics.upsert(metric_names::TIME, duration);
+        self.metrics.bump(self.index);
+
+        self.stream.lazy_publish(|| EpochComplete::from(&*self))?;
+        self.stream
+            .lazy_publish(|| GenerationSnapshot::from(&*self))?;
+        self.stream.flush_deferred()?;
+
+        Ok(())
+    }
+
+    fn can_continue(&mut self) -> bool {
         match self.sync.gate() {
             Gate::Open => return true,
             Gate::Stopped => return false,
@@ -91,53 +170,12 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         }
     }
 
-    pub(crate) fn finalize(&mut self) -> RadiateResult<()>
-    where
-        C: Chromosome + Clone + 'static,
-        T: Clone + Send + Sync + 'static,
-    {
-        let best = self.ecosystem.get_phenotype(0);
-        let best_improved = self
-            .metrics
-            .improvements()
-            .map(|m| m.last_value() > 0.0)
-            .unwrap_or(false);
-
-        if best_improved && let Some(best) = best {
-            self.previous_score = self.score.clone();
-            self.score = best.score().cloned();
-            self.best = self.problem.decode(best.genotype());
-
-            self.stream().lazy_publish(|| Improvement::from(&*self))?;
-        }
-
-        Ok(())
-    }
-
-    pub(crate) fn roll(&mut self) -> RadiateResult<()>
-    where
-        C: Chromosome + Clone + 'static,
-        T: Clone + Send + Sync + 'static,
-    {
-        let stream = self.stream();
-
-        stream.lazy_publish(|| GenerationSnapshot::from(&*self))?;
-        stream.flush_deferred()?;
-
-        self.index += 1;
-        self.metrics
-            .replace(metric!(metric_names::INDEX, self.index));
-        self.metrics.bump(self.index);
-
-        Ok(())
-    }
-
     fn change_state(&mut self, state: EngineState) {
         if self.state == state {
             return;
         }
 
-        self.events
+        self.stream
             .publish(EngineStateChange {
                 from: self.state,
                 to: state,
@@ -168,7 +206,7 @@ where
                 problem: config.problem().clone(),
                 sync: config.sync(),
                 exprs: generation.exprs(),
-                events: config.event_stream(),
+                stream: config.event_stream(),
                 state: EngineState::PreStart,
             };
         }
@@ -190,7 +228,7 @@ where
             problem: config.problem().clone(),
             sync: config.sync(),
             exprs: config.exprs(),
-            events: config.event_stream(),
+            stream: config.event_stream(),
             state: EngineState::PreStart,
         }
     }

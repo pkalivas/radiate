@@ -8,13 +8,11 @@ mod problem;
 mod selectors;
 mod species;
 
-use crate::builder::population::PopulationParams;
 use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
 use crate::events::{Event, EventStream};
 use crate::genome::phenotype::Phenotype;
 use crate::objectives::{Objective, Optimize};
-use crate::pipeline::Pipeline;
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
@@ -33,6 +31,7 @@ use crate::{
         EngineStep, FilterStep, FrontStep, MetricStep, RecombineStep, SelectConfig, SpeciateStep,
     },
 };
+use crate::{builder::population::PopulationParams, steps::EvolutionStep};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::{Alterer, Ecosystem, Expr, FitnessEvaluator, Valid, metric_names};
@@ -257,21 +256,20 @@ where
         self.build_rates()?;
 
         let config = EngineConfig::<C, T>::from(&self.params);
+        let steps = vec![
+            Self::build_eval_step(&config),
+            Self::build_recombine_step(&config),
+            Self::build_filter_step(&config),
+            Self::build_eval_step(&config),
+            Self::build_front_step(&config),
+            Self::build_species_step(&config),
+            Self::build_metric_step(&config),
+        ];
 
-        let mut pipeline = Pipeline::<C>::default();
-
-        pipeline.add_step(Self::build_eval_step(&config));
-        pipeline.add_step(Self::build_recombine_step(&config));
-        pipeline.add_step(Self::build_filter_step(&config));
-        pipeline.add_step(Self::build_eval_step(&config));
-        pipeline.add_step(Self::build_front_step(&config));
-        pipeline.add_step(Self::build_species_step(&config));
-        pipeline.add_step(Self::build_audit_step(&config));
-
-        let event_system = config.event_stream();
         let context = EvolutionContext::from(config);
+        let steps = steps.into_iter().flatten().collect::<Vec<_>>();
 
-        Ok(GeneticEngine::<C, T>::new(context, pipeline, event_system))
+        Ok(GeneticEngine::<C, T>::new(context, steps))
     }
 
     /// Build the event stream for the genetic engine. This will configure the event stream,
@@ -459,19 +457,26 @@ where
         Ok(())
     }
 
-    fn build_eval_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        let eval_step = EvaluateStep {
+    fn build_eval_step(config: &EngineConfig<C, T>) -> Option<EvolutionStep<C, T>> {
+        const EVAL_STEP_NAME: &str = "step.evaluate";
+        let mut eval_step = EvaluateStep {
             objective: config.objective(),
             problem: config.problem(),
             evaluator: config.evaluator(),
         };
 
-        Self::add_step_event(config, "EvaluateStep built");
+        Self::add_step_event(config, EVAL_STEP_NAME);
 
-        Some(Box::new(eval_step))
+        Some(EvolutionStep::new(
+            EVAL_STEP_NAME,
+            Box::new(move |ctx: &mut EvolutionContext<C, T>| {
+                eval_step.execute(ctx.index, &mut ctx.ecosystem, &mut ctx.metrics)
+            }),
+        ))
     }
 
-    fn build_recombine_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+    fn build_recombine_step(config: &EngineConfig<C, T>) -> Option<EvolutionStep<C, T>> {
+        const RECOMBINE_STEP_NAME: &str = "step.recombine";
         let offspring_selector = config.offspring_selector();
         let survivor_selector = config.survivor_selector();
 
@@ -495,7 +500,7 @@ where
             names: (offspring_base_name, offspring_time_name),
         };
 
-        let recombine_step = RecombineStep {
+        let mut recombine_step = RecombineStep {
             survivor: crate::steps::SurvivorConfig {
                 select: survivor_select.clone(),
             },
@@ -508,27 +513,18 @@ where
             offspring_counts: VersionedCounts::new(),
         };
 
-        let derer_selector = |selector: &SelectConfig<C>| {
-            format!(
-                "{} - {}",
-                selector.names.0.split('.').skip(1).collect::<String>(),
-                selector.count
-            )
-        };
+        Self::add_step_event(config, RECOMBINE_STEP_NAME);
 
-        let step_message = format!(
-            "RecombineStep: [Offspring {}] [Survivor {}]",
-            derer_selector(&offspring_select),
-            derer_selector(&survivor_select)
-        );
+        let recombine_fn = Box::new(move |ctx: &mut EvolutionContext<C, T>| -> Result<()> {
+            recombine_step.execute(ctx.index, &mut ctx.ecosystem, &mut ctx.metrics)
+        });
 
-        Self::add_step_event(config, step_message);
-
-        Some(Box::new(recombine_step))
+        Some(EvolutionStep::new(RECOMBINE_STEP_NAME, recombine_fn))
     }
 
-    fn build_filter_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        let filter_step = FilterStep {
+    fn build_filter_step(config: &EngineConfig<C, T>) -> Option<EvolutionStep<C, T>> {
+        const FILTER_STEP_NAME: &str = "step.filter";
+        let mut filter_step = FilterStep {
             replacer: config.replacement_strategy(),
             encoder: config.encoder(),
             max_age: config.max_age(),
@@ -536,38 +532,56 @@ where
             filters: config.filters().to_vec(),
         };
 
-        Self::add_step_event(config, "FilterStep built".to_string());
+        Self::add_step_event(config, FILTER_STEP_NAME);
 
-        Some(Box::new(filter_step))
+        Some(EvolutionStep::new(
+            FILTER_STEP_NAME,
+            Box::new(move |ctx: &mut EvolutionContext<C, T>| -> Result<()> {
+                filter_step.execute(ctx.index, &mut ctx.ecosystem, &mut ctx.metrics)
+            }),
+        ))
     }
 
-    fn build_audit_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        let step = MetricStep::new(
+    fn build_metric_step(config: &EngineConfig<C, T>) -> Option<EvolutionStep<C, T>> {
+        const METRIC_STEP_NAME: &str = "step.metric";
+        let mut step = MetricStep::new(
             config.objective().clone(),
             config.population_size(),
             config.exprs().clone(),
         );
 
-        Self::add_step_event(config, "MetricStep built".to_string());
+        Self::add_step_event(config, METRIC_STEP_NAME);
 
-        Some(Box::new(step))
+        Some(EvolutionStep::new(
+            METRIC_STEP_NAME,
+            Box::new(move |context: &mut EvolutionContext<C, T>| -> Result<()> {
+                step.execute(context.index, &mut context.ecosystem, &mut context.metrics)
+            }),
+        ))
     }
 
-    fn build_front_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+    fn build_front_step(config: &EngineConfig<C, T>) -> Option<EvolutionStep<C, T>> {
+        const FRONT_STEP_NAME: &str = "step.front";
         if config.objective().is_single() {
             return None;
         }
 
-        let front_step = FrontStep {
+        let mut front_step = FrontStep {
             front: config.front(),
         };
 
-        Self::add_step_event(config, "FrontStep built".to_string());
+        Self::add_step_event(config, FRONT_STEP_NAME);
 
-        Some(Box::new(front_step))
+        Some(EvolutionStep::new(
+            FRONT_STEP_NAME,
+            Box::new(move |context: &mut EvolutionContext<C, T>| -> Result<()> {
+                front_step.execute(context.index, &mut context.ecosystem, &mut context.metrics)
+            }),
+        ))
     }
 
-    fn build_species_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+    fn build_species_step(config: &EngineConfig<C, T>) -> Option<EvolutionStep<C, T>> {
+        const SPECIES_STEP_NAME: &str = "step.species";
         let distance = config.distance()?;
         let threshold_expr = config.exprs().and_then(|exprs| {
             exprs
@@ -577,7 +591,7 @@ where
                 .cloned()
         })?;
 
-        let species_step = SpeciateStep {
+        let mut species_step = SpeciateStep {
             threshold: RateSet::new(threshold_expr),
             distance,
             executor: config.species_executor(),
@@ -586,9 +600,14 @@ where
             assignments: Arc::default(),
         };
 
-        Self::add_step_event(config, "SpeciateStep built".to_string());
+        Self::add_step_event(config, SPECIES_STEP_NAME);
 
-        Some(Box::new(species_step))
+        Some(EvolutionStep::new(
+            SPECIES_STEP_NAME,
+            Box::new(move |context: &mut EvolutionContext<C, T>| -> Result<()> {
+                species_step.execute(context.index, &mut context.ecosystem, &mut context.metrics)
+            }),
+        ))
     }
 
     fn add_step_event(config: &EngineConfig<C, T>, message: impl Into<String>) {

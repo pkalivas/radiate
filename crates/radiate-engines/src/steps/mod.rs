@@ -10,43 +10,42 @@ pub use filter::*;
 pub use front::*;
 pub use metric::*;
 
-use radiate_core::{Chromosome, Ecosystem, MetricSet};
+use radiate_core::{Chromosome, Ecosystem, MetricSet, SmallStr};
 use radiate_error::Result;
 
-use radiate_utils::ToSnakeCase;
 pub use recombine::*;
 pub use speciate::*;
+
+use crate::EvolutionContext;
+
+type EvolutionAction<C, T> = Box<dyn FnMut(&mut EvolutionContext<C, T>) -> Result<()> + Send>;
 
 pub trait EngineStep<C>: Send + Sync
 where
     C: Chromosome,
 {
-    fn name(&self) -> &'static str {
-        let name = std::any::type_name::<Self>()
-            .split("<")
-            .next()
-            .unwrap_or(std::any::type_name::<Self>())
-            .split("::")
-            .last()
-            .unwrap_or("Unknown Step");
-
-        let snake_case = name.to_snake_case();
-
-        let mut parts = snake_case
-            .split('_')
-            .filter(|part| !part.is_empty() && !part.contains("step"))
-            .collect::<Vec<_>>();
-
-        parts.insert(0, "step");
-        let result = parts.join(".");
-
-        radiate_utils::intern!(result)
-    }
-
     fn execute(
         &mut self,
         generation: usize,
         ecosystem: &mut Ecosystem<C>,
         metrics: &mut MetricSet,
     ) -> Result<()>;
+}
+
+pub(crate) struct EvolutionStep<C: Chromosome, T> {
+    pub(crate) name: SmallStr,
+    pub(crate) action: EvolutionAction<C, T>,
+}
+
+impl<C: Chromosome, T> EvolutionStep<C, T> {
+    pub fn new(name: impl Into<SmallStr>, action: EvolutionAction<C, T>) -> Self {
+        Self {
+            name: name.into(),
+            action,
+        }
+    }
+
+    pub fn call(&mut self, context: &mut EvolutionContext<C, T>) -> Result<()> {
+        (self.action)(context)
+    }
 }
