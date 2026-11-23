@@ -5,7 +5,7 @@ use crate::{
 use crate::{builder::config::EngineConfig, events::EventStream};
 use radiate_core::error::RadiateResult;
 use radiate_core::{
-    Ecosystem, EngineState, Front, Gate, MetricSet, Objective, Phenotype, Problem, Score, metric,
+    Ecosystem, EngineState, Front, Gate, MetricSet, Objective, Phenotype, Problem, Score,
     metric_names,
 };
 use radiate_core::{ExprSet, MetricUpdate};
@@ -139,8 +139,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         }
 
         self.index += 1;
-        self.metrics
-            .replace(metric!(metric_names::INDEX, self.index));
+        self.metrics.replace(metric_names::INDEX, self.index);
         self.metrics.upsert(metric_names::TIME, duration);
         self.metrics.bump(self.index);
 
@@ -148,6 +147,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.stream
             .lazy_publish(|| GenerationSnapshot::from(&*self))?;
         self.stream.flush_deferred()?;
+        self.stream.send_snapshot()?;
 
         Ok(())
     }

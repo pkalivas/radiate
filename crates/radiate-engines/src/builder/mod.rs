@@ -105,6 +105,7 @@ where
         }
     }
 
+    #[allow(dead_code)]
     pub(self) fn defer_event(
         &mut self,
         main: impl AsRef<str>,

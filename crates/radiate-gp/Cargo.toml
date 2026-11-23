@@ -16,12 +16,12 @@ radiate-core = { workspace = true }
 radiate-utils = { workspace = true }
 smallvec = { workspace = true }
 serde = { workspace = true, optional = true }
-serde_json = { workspace = true, optional = true }
 
 [dev-dependencies]
 radiate-test = { workspace = true }
+serde_json = { workspace = true }
 
 [features]
 default = []
-serde = ["dep:serde", "dep:serde_json", "radiate-utils/serde", "radiate-core/serde"]
+serde = ["dep:serde", "radiate-utils/serde", "radiate-core/serde"]
 

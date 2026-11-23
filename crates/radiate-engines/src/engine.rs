@@ -190,7 +190,7 @@ where
             _ => {}
         }
 
-        self.context.process(|ctx: &mut EvolutionContext<C, T>| {
+        self.context.process(|ctx| {
             let now = Instant::now();
             for step in self.steps.iter_mut() {
                 let start_time = now.elapsed();
