@@ -200,13 +200,14 @@ where
     #[inline]
     fn step(&mut self) -> Result<()> {
         match self.state() {
-            EngineState::Stopped => return Ok(()),
             EngineState::PreStart => self.start()?,
+            EngineState::Running => {
+                if !self.context.can_continue() {
+                    return self.stop();
+                }
+            }
+            EngineState::Stopped => return Ok(()),
             _ => {}
-        }
-
-        if !self.context.can_continue() {
-            return self.stop();
         }
 
         self.stream

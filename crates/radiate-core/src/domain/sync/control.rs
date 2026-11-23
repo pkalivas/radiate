@@ -6,7 +6,8 @@ use std::{
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Gate {
-    Proceed,
+    Open,
+    Closed,
     Stopped,
 }
 
@@ -105,41 +106,43 @@ impl ThreadSync {
         self.step_n(1);
     }
 
-    pub fn poll(&self) -> Option<ControlFlow<()>> {
-        self.poll_internal(&mut self.inner.lock())
+    pub fn gate(&self) -> Gate {
+        self.poll(&mut self.inner.lock())
     }
 
     pub fn wait(&self) -> ControlFlow<()> {
         let mut st = self.inner.lock();
         loop {
-            if let Some(gate) = self.poll_internal(&mut st) {
-                return gate;
+            match self.poll(&mut st) {
+                Gate::Open => return ControlFlow::Continue(()),
+                Gate::Stopped => return ControlFlow::Break(()),
+                Gate::Closed => {
+                    st = self
+                        .inner
+                        .cv
+                        .wait(st)
+                        .unwrap_or_else(PoisonError::into_inner);
+                }
             }
-
-            st = self
-                .inner
-                .cv
-                .wait(st)
-                .unwrap_or_else(PoisonError::into_inner);
         }
     }
 
     #[inline]
-    fn poll_internal(&self, state: &mut State) -> Option<ControlFlow<()>> {
+    fn poll(&self, state: &mut State) -> Gate {
         if self.inner.stopped.is_raised() {
-            return Some(ControlFlow::Break(()));
+            return Gate::Stopped;
         }
 
         if !self.inner.paused.is_raised() {
-            return Some(ControlFlow::Continue(()));
+            return Gate::Open;
         }
 
         if state.permits > 0 {
             state.permits -= 1;
-            return Some(ControlFlow::Continue(()));
+            return Gate::Open;
         }
 
-        None
+        Gate::Closed
     }
 }
 
@@ -205,13 +208,13 @@ mod tests {
     #[test]
     fn try_wait_consumes_permits_then_would_block() {
         let ctl = ThreadSync::new();
-        assert_eq!(ctl.poll(), Some(ControlFlow::Continue(())));
+        assert_eq!(ctl.gate(), Gate::Open);
         ctl.step_n(2);
-        assert_eq!(ctl.poll(), Some(ControlFlow::Continue(())));
-        assert_eq!(ctl.poll(), Some(ControlFlow::Continue(())));
-        assert_eq!(ctl.poll(), None);
+        assert_eq!(ctl.gate(), Gate::Open);
+        assert_eq!(ctl.gate(), Gate::Open);
+        assert_eq!(ctl.gate(), Gate::Closed);
         ctl.stop();
-        assert_eq!(ctl.poll(), Some(ControlFlow::Break(())));
+        assert_eq!(ctl.gate(), Gate::Stopped);
     }
 
     #[test]

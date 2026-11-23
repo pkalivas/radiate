@@ -1,6 +1,19 @@
 use crate::{context::EvolutionContext, steps::EngineStep};
-use radiate_core::{Chromosome, SmallStr, metric_names};
+use radiate_core::{Chromosome, Ecosystem, MetricSet, SmallStr, metric_names};
 use radiate_error::Result;
+
+type EvolutionAction<C> = Box<dyn FnMut(usize, &mut Ecosystem<C>, &mut MetricSet) -> Result<()>>;
+
+pub(crate) struct EvolutionStep<C: Chromosome> {
+    pub(crate) name: SmallStr,
+    pub(crate) action: EvolutionAction<C>,
+}
+
+impl<C: Chromosome> EvolutionStep<C> {
+    pub fn new(name: SmallStr, action: EvolutionAction<C>) -> Self {
+        Self { name, action }
+    }
+}
 
 /// A [Pipeline] is a sequence of steps that are executed in order during each epoch of the engine.
 /// Each step is represented by an implementation of the [EngineStep] trait.

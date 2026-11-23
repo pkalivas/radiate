@@ -3,7 +3,7 @@ use crate::{builder::config::EngineConfig, events::EventStream};
 use radiate_core::ExprSet;
 use radiate_core::error::RadiateResult;
 use radiate_core::{
-    Ecosystem, EngineState, Front, MetricSet, Objective, Phenotype, Problem, Score, metric,
+    Ecosystem, EngineState, Front, Gate, MetricSet, Objective, Phenotype, Problem, Score, metric,
     metric_names,
 };
 use std::sync::{Arc, Mutex, RwLock};
@@ -53,18 +53,6 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.sync.clone()
     }
 
-    pub fn request_stop(&self) {
-        self.sync.stop();
-    }
-
-    pub fn stop_requested(&self) -> bool {
-        self.sync.is_stopped()
-    }
-
-    pub fn pause_requested(&self) -> bool {
-        self.sync.is_paused()
-    }
-
     pub fn state(&self) -> EngineState {
         self.state
     }
@@ -86,21 +74,21 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
     }
 
     pub(crate) fn can_continue(&mut self) -> bool {
-        if let Some(flow) = self.sync.poll() {
-            return flow.is_continue();
+        match self.sync.gate() {
+            Gate::Open => return true,
+            Gate::Stopped => return false,
+            Gate::Closed => {
+                // If sync.poll() returned None, the sync was paused from an external
+                // request, so we change the state to paused then park.
+                self.set_paused();
+                if self.sync.wait().is_continue() {
+                    self.set_running();
+                    return true;
+                }
+
+                return false;
+            }
         }
-
-        // If sync.poll() returned None, the sync was paused from an external
-        // request, so we change the state to paused then park.
-        self.set_paused();
-
-        let flow = self.sync.wait();
-        if flow.is_continue() {
-            self.set_running();
-            return true;
-        }
-
-        false
     }
 
     pub(crate) fn finalize(&mut self) -> RadiateResult<()>
