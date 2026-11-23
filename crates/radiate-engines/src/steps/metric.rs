@@ -1,7 +1,7 @@
-use crate::{EvolutionContext, Improvement, steps::EngineStep};
+use crate::{EventStream, EvolutionContext, Improvement, steps::EngineStep};
 use radiate_core::{
-    Chromosome, Ecosystem, ExprSet, MetricSet, MetricUpdate, Objective, Score, SmallStr, TagType,
-    math::distribution, metric_names, phenotype::PhenotypeId, radiate_err,
+    Chromosome, Ecosystem, ExprSet, MetricSet, MetricUpdate, Objective, Problem, Score, SmallStr,
+    TagType, math::distribution, metric_names, phenotype::PhenotypeId, radiate_err,
 };
 use radiate_error::Result;
 use radiate_utils::Matrix;
@@ -219,35 +219,40 @@ impl<C: Chromosome, T> EngineStep<C, T> for MetricStep
 where
     T: Clone + Send + Sync + 'static,
 {
-    fn run_step(&mut self, ctx: &mut EvolutionContext<C, T>) -> Result<()> {
-        EngineStep::<C, T>::execute(self, ctx.index(), &mut ctx.ecosystem, &mut ctx.metrics)?;
+    type View<'a>
+        = MetricView<'a, C, T>
+    where
+        C: 'a,
+        T: 'a;
 
-        if ctx.index == 0 {
-            self.has_improvement_subs = ctx.stream().has_subscribers::<Improvement<T>>();
+    fn view<'a>(ctx: &'a mut EvolutionContext<C, T>) -> Self::View<'a> {
+        MetricView {
+            index: ctx.index,
+            ecosystem: &ctx.ecosystem,
+            metrics: &mut ctx.metrics,
+            objective: &ctx.objective,
+            score: &mut ctx.score,
+            previous_score: &mut ctx.previous_score,
+            best: &mut ctx.best,
+            problem: &ctx.problem,
+            stream: &ctx.events,
         }
-
-        if self.stagnation_count == 0 {
-            ctx.previous_score = ctx.score.clone();
-            ctx.score = self.best_score.clone();
-            if let Some(geno) = ctx.ecosystem().get_genotype(0) {
-                ctx.best = ctx.problem.decode(geno);
-            }
-
-            if self.has_improvement_subs {
-                ctx.stream().lazy_publish(|| Improvement::from(&*ctx))?;
-            }
-        }
-
-        Ok(())
     }
 
     #[inline]
-    fn execute(
-        &mut self,
-        generation: usize,
-        ecosystem: &mut Ecosystem<C>,
-        metrics: &mut MetricSet,
-    ) -> Result<()> {
+    fn execute(&mut self, view: MetricView<'_, C, T>) -> Result<()> {
+        let MetricView {
+            index: generation,
+            ecosystem,
+            metrics,
+            objective,
+            score: ctx_score,
+            previous_score,
+            best,
+            problem,
+            stream,
+        } = view;
+
         self.ensure_per_dim_names();
         self.clear_state();
 
@@ -367,8 +372,44 @@ where
         self.calc_improvement_metrics(metrics, ecosystem);
         self.calc_expression_metrics(metrics)?;
 
+        if generation == 0 {
+            self.has_improvement_subs = stream.has_subscribers::<Improvement<T>>();
+        }
+
+        if self.stagnation_count == 0 {
+            *previous_score = ctx_score.clone();
+            *ctx_score = self.best_score.clone();
+            if let Some(geno) = ecosystem.get_genotype(0) {
+                *best = problem.decode(geno);
+            }
+
+            if self.has_improvement_subs {
+                stream.lazy_publish(|| Improvement {
+                    index: generation,
+                    objective: objective.clone(),
+                    best: best.clone(),
+                    score: ctx_score.clone().unwrap_or_default(),
+                    previous_score: previous_score.clone(),
+                })?;
+            }
+        }
+
         Ok(())
     }
+}
+
+/// What [MetricStep] may touch: it reads the ecosystem, writes metrics, and
+/// rolls the context's best score/phenotype forward when the best improves.
+pub struct MetricView<'a, C: Chromosome, T> {
+    pub index: usize,
+    pub ecosystem: &'a Ecosystem<C>,
+    pub metrics: &'a mut MetricSet,
+    pub objective: &'a Objective,
+    pub score: &'a mut Option<Score>,
+    pub previous_score: &'a mut Option<Score>,
+    pub best: &'a mut T,
+    pub problem: &'a Arc<dyn Problem<C, T>>,
+    pub stream: &'a EventStream,
 }
 
 fn per_dim_names(base: &SmallStr, dims: usize) -> Vec<SmallStr> {

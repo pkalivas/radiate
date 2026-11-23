@@ -8,16 +8,16 @@ mod problem;
 mod selectors;
 mod species;
 
-use crate::builder::species::SpeciesParams;
 use crate::events::{Event, EventStream};
 use crate::genome::phenotype::Phenotype;
 use crate::objectives::{Objective, Optimize};
-use crate::pipeline::Pipeline;
+// use crate::pipeline::Pipeline;
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
     TournamentSelector, context::EvolutionContext,
 };
+use crate::{EpochStart, builder::species::SpeciesParams};
 #[cfg(feature = "serde")]
 use crate::{FileWriter, io::FileReader};
 use crate::{Generation, Result};
@@ -258,7 +258,7 @@ where
 
         let config = EngineConfig::<C, T>::from(&self.params);
 
-        let mut pipeline = Pipeline::<C, T>::default();
+        // let mut pipeline = Pipeline::<C, T>::default();
 
         // pipeline.add_step(Self::build_eval_step(&config));
         // pipeline.add_step(Self::build_recombine_step(&config));
@@ -283,7 +283,7 @@ where
 
         Ok(GeneticEngine::<C, T>::new(
             context,
-            pipeline,
+            // pipeline,
             event_system,
             steps.into_iter().filter_map(|s| s).collect(),
         ))
@@ -484,9 +484,8 @@ where
 
         Self::add_step_event(config, EVAL_STEP_NAME);
 
-        let eval_fn = Box::new(move |context: &mut EvolutionContext<C, T>| {
-            eval_step.execute(context.index, &mut context.ecosystem, &mut context.metrics)
-        });
+        let eval_fn =
+            Box::new(move |context: &mut EvolutionContext<C, T>| eval_step.run_step(context));
 
         Some(EvolutionStep::new(EVAL_STEP_NAME, eval_fn))
     }
@@ -626,137 +625,137 @@ where
         ))
     }
 
-    fn build_eval_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C, T>>> {
-        let eval_step = EvaluateStep {
-            objective: config.objective(),
-            problem: config.problem(),
-            evaluator: config.evaluator(),
-        };
+    //     fn build_eval_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C, T>>> {
+    //         let eval_step = EvaluateStep {
+    //             objective: config.objective(),
+    //             problem: config.problem(),
+    //             evaluator: config.evaluator(),
+    //         };
 
-        Self::add_step_event(config, "EvaluateStep built");
+    //         Self::add_step_event(config, "EvaluateStep built");
 
-        Some(Box::new(eval_step))
-    }
+    //         Some(Box::new(eval_step))
+    //     }
 
-    fn build_recombine_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C, T>>> {
-        let offspring_selector = config.offspring_selector();
-        let survivor_selector = config.survivor_selector();
+    //     fn build_recombine_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C, T>>> {
+    //         let offspring_selector = config.offspring_selector();
+    //         let survivor_selector = config.survivor_selector();
 
-        let off_name = offspring_selector.name();
-        let offspring_base_name = radiate_utils::intern!(off_name);
-        let offspring_time_name = radiate_utils::intern!(format!("{}.time", offspring_base_name));
+    //         let off_name = offspring_selector.name();
+    //         let offspring_base_name = radiate_utils::intern!(off_name);
+    //         let offspring_time_name = radiate_utils::intern!(format!("{}.time", offspring_base_name));
 
-        let surv_name = survivor_selector.name();
-        let survivor_base_name = radiate_utils::intern!(surv_name);
-        let survivor_time_name = radiate_utils::intern!(format!("{}.time", survivor_base_name));
+    //         let surv_name = survivor_selector.name();
+    //         let survivor_base_name = radiate_utils::intern!(surv_name);
+    //         let survivor_time_name = radiate_utils::intern!(format!("{}.time", survivor_base_name));
 
-        let survivor_select = SelectConfig {
-            selector: survivor_selector,
-            count: config.survivor_count(),
-            names: (survivor_base_name, survivor_time_name),
-        };
+    //         let survivor_select = SelectConfig {
+    //             selector: survivor_selector,
+    //             count: config.survivor_count(),
+    //             names: (survivor_base_name, survivor_time_name),
+    //         };
 
-        let offspring_select = SelectConfig {
-            selector: offspring_selector,
-            count: config.offspring_count(),
-            names: (offspring_base_name, offspring_time_name),
-        };
+    //         let offspring_select = SelectConfig {
+    //             selector: offspring_selector,
+    //             count: config.offspring_count(),
+    //             names: (offspring_base_name, offspring_time_name),
+    //         };
 
-        let recombine_step = RecombineStep {
-            survivor: crate::steps::SurvivorConfig {
-                select: survivor_select.clone(),
-            },
-            offspring: crate::steps::OffspringConfig {
-                select: offspring_select.clone(),
-                alters: config.alters().to_vec(),
-            },
-            objective: config.objective(),
-            survivor_counts: VersionedCounts::new(),
-            offspring_counts: VersionedCounts::new(),
-        };
+    //         let recombine_step = RecombineStep {
+    //             survivor: crate::steps::SurvivorConfig {
+    //                 select: survivor_select.clone(),
+    //             },
+    //             offspring: crate::steps::OffspringConfig {
+    //                 select: offspring_select.clone(),
+    //                 alters: config.alters().to_vec(),
+    //             },
+    //             objective: config.objective(),
+    //             survivor_counts: VersionedCounts::new(),
+    //             offspring_counts: VersionedCounts::new(),
+    //         };
 
-        let derer_selector = |selector: &SelectConfig<C>| {
-            format!(
-                "{} - {}",
-                selector.names.0.split('.').skip(1).collect::<String>(),
-                selector.count
-            )
-        };
+    //         let derer_selector = |selector: &SelectConfig<C>| {
+    //             format!(
+    //                 "{} - {}",
+    //                 selector.names.0.split('.').skip(1).collect::<String>(),
+    //                 selector.count
+    //             )
+    //         };
 
-        let step_message = format!(
-            "RecombineStep: [Offspring {}] [Survivor {}]",
-            derer_selector(&offspring_select),
-            derer_selector(&survivor_select)
-        );
+    //         let step_message = format!(
+    //             "RecombineStep: [Offspring {}] [Survivor {}]",
+    //             derer_selector(&offspring_select),
+    //             derer_selector(&survivor_select)
+    //         );
 
-        Self::add_step_event(config, step_message);
+    //         Self::add_step_event(config, step_message);
 
-        Some(Box::new(recombine_step))
-    }
+    //         Some(Box::new(recombine_step))
+    //     }
 
-    fn build_filter_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C, T>>> {
-        let filter_step = FilterStep {
-            replacer: config.replacement_strategy(),
-            encoder: config.encoder(),
-            max_age: config.max_age(),
-            max_species_age: config.max_species_age(),
-            filters: config.filters().to_vec(),
-        };
+    //     fn build_filter_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C, T>>> {
+    //         let filter_step = FilterStep {
+    //             replacer: config.replacement_strategy(),
+    //             encoder: config.encoder(),
+    //             max_age: config.max_age(),
+    //             max_species_age: config.max_species_age(),
+    //             filters: config.filters().to_vec(),
+    //         };
 
-        Self::add_step_event(config, "FilterStep built".to_string());
+    //         Self::add_step_event(config, "FilterStep built".to_string());
 
-        Some(Box::new(filter_step))
-    }
+    //         Some(Box::new(filter_step))
+    //     }
 
-    fn build_audit_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C, T>>> {
-        let step = MetricStep::new(
-            config.objective().clone(),
-            config.population_size(),
-            config.exprs().clone(),
-        );
+    //     fn build_audit_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C, T>>> {
+    //         let step = MetricStep::new(
+    //             config.objective().clone(),
+    //             config.population_size(),
+    //             config.exprs().clone(),
+    //         );
 
-        Self::add_step_event(config, "MetricStep built".to_string());
+    //         Self::add_step_event(config, "MetricStep built".to_string());
 
-        Some(Box::new(step))
-    }
+    //         Some(Box::new(step))
+    //     }
 
-    fn build_front_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C, T>>> {
-        if config.objective().is_single() {
-            return None;
-        }
+    //     fn build_front_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C, T>>> {
+    //         if config.objective().is_single() {
+    //             return None;
+    //         }
 
-        let front_step = FrontStep {
-            front: config.front(),
-        };
+    //         let front_step = FrontStep {
+    //             front: config.front(),
+    //         };
 
-        Self::add_step_event(config, "FrontStep built".to_string());
+    //         Self::add_step_event(config, "FrontStep built".to_string());
 
-        Some(Box::new(front_step))
-    }
+    //         Some(Box::new(front_step))
+    //     }
 
-    fn build_species_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C, T>>> {
-        let distance = config.distance()?;
-        let threshold_expr = config.exprs().and_then(|exprs| {
-            exprs
-                .lock()
-                .unwrap()
-                .get(metric_names::SPECIES_THRESHOLD)
-                .cloned()
-        })?;
+    //     fn build_species_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C, T>>> {
+    //         let distance = config.distance()?;
+    //         let threshold_expr = config.exprs().and_then(|exprs| {
+    //             exprs
+    //                 .lock()
+    //                 .unwrap()
+    //                 .get(metric_names::SPECIES_THRESHOLD)
+    //                 .cloned()
+    //         })?;
 
-        let species_step = SpeciateStep {
-            threshold: RateSet::new(threshold_expr),
-            distance,
-            executor: config.species_executor(),
-            objective: config.objective(),
-            distances: Vec::new(),
-            assignments: Arc::default(),
-        };
+    //         let species_step = SpeciateStep {
+    //             threshold: RateSet::new(threshold_expr),
+    //             distance,
+    //             executor: config.species_executor(),
+    //             objective: config.objective(),
+    //             distances: Vec::new(),
+    //             assignments: Arc::default(),
+    //         };
 
-        Self::add_step_event(config, "SpeciateStep built".to_string());
+    //         Self::add_step_event(config, "SpeciateStep built".to_string());
 
-        Some(Box::new(species_step))
-    }
+    //         Some(Box::new(species_step))
+    //     }
 
     fn add_step_event(config: &EngineConfig<C, T>, message: impl Into<String>) {
         Self::add_builder_event(&config.event_stream(), "Step", message.into().to_string());

@@ -1,7 +1,7 @@
-use crate::steps::EngineStep;
+use crate::EvolutionContext;
+use crate::steps::{EcosystemView, EngineStep};
 use radiate_core::{
-    Chromosome, Ecosystem, EcosystemFilter, Genotype, MetricSet, Phenotype, ReplacementStrategy,
-    Valid, metric_names,
+    Chromosome, EcosystemFilter, Genotype, Phenotype, ReplacementStrategy, Valid, metric_names,
 };
 use radiate_error::Result;
 use std::sync::{Arc, Mutex};
@@ -15,13 +15,24 @@ pub struct FilterStep<C: Chromosome> {
 }
 
 impl<C: Chromosome, T> EngineStep<C, T> for FilterStep<C> {
+    type View<'a>
+        = EcosystemView<'a, C>
+    where
+        C: 'a,
+        T: 'a;
+
+    fn view<'a>(ctx: &'a mut EvolutionContext<C, T>) -> Self::View<'a> {
+        EcosystemView::new(ctx)
+    }
+
     #[inline]
-    fn execute(
-        &mut self,
-        generation: usize,
-        ecosystem: &mut Ecosystem<C>,
-        metrics: &mut MetricSet,
-    ) -> Result<()> {
+    fn execute(&mut self, view: EcosystemView<'_, C>) -> Result<()> {
+        let EcosystemView {
+            index: generation,
+            ecosystem,
+            metrics,
+        } = view;
+
         let mut age_count = 0;
         let mut invalid_count = 0;
         for i in 0..ecosystem.population.len() {

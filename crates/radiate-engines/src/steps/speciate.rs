@@ -1,4 +1,5 @@
-use crate::steps::EngineStep;
+use crate::EvolutionContext;
+use crate::steps::{EcosystemView, EngineStep};
 use radiate_core::{
     Chromosome, Ecosystem, Executor, MetricSet, Objective, Phenotype, Population, RateSet, Species,
     distance::Distance, math::distribution, metric_names, random_provider,
@@ -240,13 +241,24 @@ impl<C, T> EngineStep<C, T> for SpeciateStep<C>
 where
     C: Chromosome + PartialEq + Clone + 'static,
 {
+    type View<'a>
+        = EcosystemView<'a, C>
+    where
+        C: 'a,
+        T: 'a;
+
+    fn view<'a>(ctx: &'a mut EvolutionContext<C, T>) -> Self::View<'a> {
+        EcosystemView::new(ctx)
+    }
+
     #[inline]
-    fn execute(
-        &mut self,
-        generation: usize,
-        ecosystem: &mut Ecosystem<C>,
-        metrics: &mut MetricSet,
-    ) -> Result<()> {
+    fn execute(&mut self, view: EcosystemView<'_, C>) -> Result<()> {
+        let EcosystemView {
+            index: generation,
+            ecosystem,
+            metrics,
+        } = view;
+
         let pop_len = ecosystem.population().len();
         if pop_len == 0 {
             return Ok(());

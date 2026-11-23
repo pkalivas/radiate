@@ -1,4 +1,5 @@
-use crate::pipeline::{EvolutionStep, Pipeline};
+use crate::pipeline::EvolutionStep;
+// use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
 use crate::{GenerationView, builder::GeneticEngineBuilder};
 use crate::{
@@ -61,7 +62,7 @@ where
     T: Clone + Send + Sync + 'static,
 {
     context: EvolutionContext<C, T>,
-    pipeline: Pipeline<C, T>,
+    // pipeline: Pipeline<C, T>,
     stream: EventStream,
     steps: Vec<EvolutionStep<C, T>>,
 }
@@ -77,13 +78,13 @@ where
     /// Users should create engines using `GeneticEngine::builder()`.
     pub(crate) fn new(
         context: EvolutionContext<C, T>,
-        pipeline: Pipeline<C, T>,
+        // pipeline: Pipeline<C, T>,
         stream: EventStream,
         steps: Vec<EvolutionStep<C, T>>,
     ) -> Self {
         GeneticEngine {
             context,
-            pipeline,
+            // pipeline,
             stream,
             steps,
         }

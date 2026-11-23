@@ -1,5 +1,6 @@
-use crate::steps::EngineStep;
-use radiate_core::{Chromosome, Ecosystem, Evaluator, MetricSet, Objective, Problem, metric_names};
+use crate::EvolutionContext;
+use crate::steps::{EcosystemView, EngineStep};
+use radiate_core::{Chromosome, Evaluator, Objective, Problem, metric_names};
 use radiate_error::Result;
 use std::sync::Arc;
 
@@ -27,13 +28,22 @@ impl<C, T> EngineStep<C, T> for EvaluateStep<C, T>
 where
     C: Chromosome + PartialEq,
 {
+    type View<'a>
+        = EcosystemView<'a, C>
+    where
+        C: 'a,
+        T: 'a;
+
+    fn view<'a>(ctx: &'a mut EvolutionContext<C, T>) -> Self::View<'a> {
+        EcosystemView::new(ctx)
+    }
+
     #[inline]
-    fn execute(
-        &mut self,
-        _: usize,
-        ecosystem: &mut Ecosystem<C>,
-        metrics: &mut MetricSet,
-    ) -> Result<()> {
+    fn execute(&mut self, view: EcosystemView<'_, C>) -> Result<()> {
+        let EcosystemView {
+            ecosystem, metrics, ..
+        } = view;
+
         let count = self.evaluator.eval(ecosystem, Arc::clone(&self.problem))?;
 
         if count > 0 {

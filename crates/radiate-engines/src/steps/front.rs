@@ -1,5 +1,6 @@
-use crate::steps::EngineStep;
-use radiate_core::{Chromosome, Ecosystem, Front, MetricSet, Phenotype, metric_names};
+use crate::EvolutionContext;
+use crate::steps::{EcosystemView, EngineStep};
+use radiate_core::{Chromosome, Front, Phenotype, metric_names};
 use radiate_error::Result;
 use std::sync::{Arc, RwLock};
 
@@ -13,13 +14,24 @@ impl<C, T> EngineStep<C, T> for FrontStep<C>
 where
     C: Chromosome + PartialEq + Clone + 'static,
 {
+    type View<'a>
+        = EcosystemView<'a, C>
+    where
+        C: 'a,
+        T: 'a;
+
+    fn view<'a>(ctx: &'a mut EvolutionContext<C, T>) -> Self::View<'a> {
+        EcosystemView::new(ctx)
+    }
+
     #[inline]
-    fn execute(
-        &mut self,
-        generation: usize,
-        ecosystem: &mut Ecosystem<C>,
-        metrics: &mut MetricSet,
-    ) -> Result<()> {
+    fn execute(&mut self, view: EcosystemView<'_, C>) -> Result<()> {
+        let EcosystemView {
+            index: generation,
+            ecosystem,
+            metrics,
+        } = view;
+
         let phenotypes = ecosystem
             .population()
             .iter()

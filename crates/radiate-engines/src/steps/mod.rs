@@ -45,16 +45,38 @@ where
         radiate_utils::intern!(result)
     }
 
+    /// The slice of the [EvolutionContext] this step is allowed to touch.
+    type View<'a>
+    where
+        C: 'a,
+        T: 'a;
+
+    /// Borrow exactly what this step needs out of the context. This is the
+    /// only place a step sees the whole context.
+    fn view<'a>(ctx: &'a mut EvolutionContext<C, T>) -> Self::View<'a>;
+
     fn run_step(&mut self, ctx: &mut EvolutionContext<C, T>) -> Result<()> {
-        self.execute(ctx.index, &mut ctx.ecosystem, &mut ctx.metrics)
+        self.execute(Self::view(ctx))
     }
 
-    fn execute(
-        &mut self,
-        generation: usize,
-        ecosystem: &mut Ecosystem<C>,
-        metrics: &mut MetricSet,
-    ) -> Result<()>;
+    fn execute(&mut self, view: Self::View<'_>) -> Result<()>;
+}
+
+/// The view most steps need: the generation index, the ecosystem and the metrics.
+pub struct EcosystemView<'a, C: Chromosome> {
+    pub index: usize,
+    pub ecosystem: &'a mut Ecosystem<C>,
+    pub metrics: &'a mut MetricSet,
+}
+
+impl<'a, C: Chromosome> EcosystemView<'a, C> {
+    pub fn new<T>(ctx: &'a mut EvolutionContext<C, T>) -> Self {
+        EcosystemView {
+            index: ctx.index,
+            ecosystem: &mut ctx.ecosystem,
+            metrics: &mut ctx.metrics,
+        }
+    }
 }
 
 impl<C, T, F> EngineStep<C, T> for F
@@ -62,16 +84,17 @@ where
     C: Chromosome,
     F: FnMut(&mut EvolutionContext<C, T>) -> Result<()> + Send + Sync,
 {
-    fn run_step(&mut self, ctx: &mut EvolutionContext<C, T>) -> Result<()> {
-        (self)(ctx)
+    type View<'a>
+        = &'a mut EvolutionContext<C, T>
+    where
+        C: 'a,
+        T: 'a;
+
+    fn view<'a>(ctx: &'a mut EvolutionContext<C, T>) -> Self::View<'a> {
+        ctx
     }
 
-    fn execute(
-        &mut self,
-        generation: usize,
-        ecosystem: &mut Ecosystem<C>,
-        metrics: &mut MetricSet,
-    ) -> Result<()> {
-        Err(radiate_error::radiate_err!("Step",))
+    fn execute(&mut self, ctx: &mut EvolutionContext<C, T>) -> Result<()> {
+        (self)(ctx)
     }
 }
