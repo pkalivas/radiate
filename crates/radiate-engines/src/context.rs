@@ -135,7 +135,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
             self.score = best.score().cloned();
             self.best = self.problem.decode(best.genotype());
 
-            self.stream().lazy_publish(|| Improvement::from(&*self))?;
+            self.stream.lazy_publish(|| Improvement::from(&*self))?;
         }
 
         self.index += 1;
@@ -154,8 +154,8 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
 
     fn can_continue(&mut self) -> bool {
         match self.sync.gate() {
-            Gate::Open => return true,
-            Gate::Stopped => return false,
+            Gate::Open => true,
+            Gate::Stopped => false,
             Gate::Closed => {
                 // If sync.poll() returned None, the sync was paused from an external
                 // request, so we change the state to paused then park.
@@ -165,7 +165,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
                     return true;
                 }
 
-                return false;
+                false
             }
         }
     }

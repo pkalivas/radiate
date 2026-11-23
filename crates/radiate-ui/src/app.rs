@@ -5,8 +5,8 @@ use color_eyre::Result;
 use crossbeam::channel;
 use crossterm::event::{Event, KeyCode, KeyEvent};
 use radiate_engines::{
-    Chromosome, CommandChannel, Ecosystem, Front, GenerationSnapshot, Improvement, MetricSet,
-    Objective, Phenotype, Score, StreamSnapshot, Subscription, ThreadSync, events::LogLevel,
+    Chromosome, CommandChannel, Ecosystem, Front, GenerationSnapshot, Improvement, LogEvent,
+    MetricSet, Objective, Phenotype, Score, StreamSnapshot, Subscription, ThreadSync,
 };
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -83,7 +83,7 @@ where
     EngineStart(Arc<RwLock<Front<Phenotype<C>>>>),
     EngineStop,
     EpochComplete(GenerationEvent<C>),
-    Log(LogLevel, String),
+    Log(LogEvent),
     Improvement(ImprovementEvent),
     Stream(StreamSnapshot),
     Subscription(Subscription),
@@ -151,9 +151,8 @@ where
                 self.handle_engine_epoch(event);
                 return self.throttle();
             }
-            InputEvent::Log(level, message) => {
-                self.state.run.event_count += 1;
-                self.state.evo.push_event_log_entry(level, message);
+            InputEvent::Log(event) => {
+                self.handle_log(event);
                 return self.throttle();
             }
             InputEvent::Improvement(event) => {
@@ -161,11 +160,11 @@ where
                 return self.throttle();
             }
             InputEvent::Stream(snapshot) => {
-                self.state.stream.update(snapshot);
+                self.handle_stream(snapshot);
                 return self.throttle();
             }
             InputEvent::Subscription(subscription) => {
-                self.state.run.subscriptions.push(subscription);
+                self.handle_subscription(subscription);
                 return self.throttle();
             }
         }
@@ -174,6 +173,8 @@ where
     }
 
     fn throttle(&mut self) -> Result<bool> {
+        self.state.run.event_count += 1;
+
         if !self.state.run.started {
             return Ok(false);
         }
@@ -256,12 +257,22 @@ where
         self.state.evo.update_metrics(event.metrics);
 
         self.state.nav.ensure_tab_available(&self.state.evo);
-        self.state.run.event_count += 1;
     }
 
     pub fn handle_improvement(&mut self, event: ImprovementEvent) {
         self.state.evo.update_improvement(event);
-        self.state.run.event_count += 1;
+    }
+
+    pub fn handle_log(&mut self, event: LogEvent) {
+        self.state.evo.push_event_log_entry(event.0, event.1);
+    }
+
+    pub fn handle_stream(&mut self, event: StreamSnapshot) {
+        self.state.stream.update(event);
+    }
+
+    pub fn handle_subscription(&mut self, event: Subscription) {
+        self.state.run.subscriptions.push(event);
     }
 
     pub fn handle_engine_start(&mut self, front: Arc<RwLock<Front<Phenotype<C>>>>) {
@@ -283,8 +294,6 @@ where
         } else {
             self.state.evo.pareto.chart_start_index = 0;
         }
-
-        self.state.run.event_count += 1;
     }
 }
 

@@ -137,7 +137,7 @@ where
 {
     fn handle(&mut self, event: &LogEvent, _: &EventContext<'_, Self>) {
         self.dispatcher
-            .send(InputEvent::Log(event.0, event.1.clone()))
+            .send(InputEvent::Log(event.clone()))
             .context("Failed to send LogEvent")
             .unwrap();
     }
