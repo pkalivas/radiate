@@ -1,10 +1,8 @@
+use crate::{Flag, FlagReader};
 use std::{
     cmp::Ordering as Cmp,
     collections::BinaryHeap,
-    sync::{
-        Arc, Condvar, Mutex,
-        atomic::{AtomicBool, Ordering},
-    },
+    sync::{Arc, Condvar, Mutex},
     thread::{self, JoinHandle},
     time::Duration,
 };
@@ -21,18 +19,26 @@ pub enum Next {
 
 pub type Job = Box<dyn FnMut() -> Next + Send>;
 
+/// Handle to a scheduled job. Holding a `Timer` lets you cancel the job;
+/// [`reader`](Self::reader) lends out a read-only view of that cancellation
+/// (e.g. to the job itself, or to whatever it feeds) without the power to cancel.
 #[derive(Clone, Debug, Default)]
-pub struct Timer(Arc<AtomicBool>);
+pub struct Timer(Flag);
 
 impl Timer {
     /// Stop the job from running again. A run already in progress finishes.
     pub fn cancel(&self) {
-        self.0.store(true, Ordering::Relaxed);
+        self.0.raise();
     }
 
     /// Cancelled, or refused because the scheduler was already closed.
     pub fn is_cancelled(&self) -> bool {
-        self.0.load(Ordering::Relaxed)
+        self.0.is_raised()
+    }
+
+    /// Read-only cancellation signal.
+    pub fn reader(&self) -> FlagReader {
+        self.0.reader()
     }
 }
 
@@ -40,11 +46,10 @@ struct Entry {
     due: quanta::Instant,
     period: Option<Duration>,
     seq: u64,
-    timer: Timer,
+    cancelled: FlagReader,
     job: Job,
 }
 
-// BinaryHeap is a max-heap. Reverse the order so the earliest deadline is on top.
 impl Ord for Entry {
     fn cmp(&self, other: &Self) -> Cmp {
         (other.due, other.seq).cmp(&(self.due, self.seq))
@@ -106,14 +111,10 @@ impl Scheduler {
         )
     }
 
-    /// Run `job` every `period`, starting one period from now, until it
-    /// returns [`Next::Stop`] or its timer is cancelled.
     pub fn every(&self, period: Duration, job: impl FnMut() -> Next + Send + 'static) -> Timer {
         self.schedule(period, Some(period), Box::new(job))
     }
 
-    /// Once the scheduler is closed, this returns an already cancelled timer
-    /// and drops `job` without running it.
     fn schedule(&self, delay: Duration, period: Option<Duration>, job: Job) -> Timer {
         let timer = Timer::default();
         {
@@ -129,7 +130,7 @@ impl Scheduler {
                 due: quanta::Instant::now() + delay,
                 period,
                 seq,
-                timer: timer.clone(),
+                cancelled: timer.reader(),
                 job,
             });
 
@@ -196,7 +197,7 @@ fn run(inner: Arc<Inner>) {
         }
 
         let mut entry = state.entries.pop().unwrap();
-        if entry.timer.is_cancelled() {
+        if entry.cancelled.is_raised() {
             continue;
         }
         drop(state);
@@ -209,7 +210,7 @@ fn run(inner: Arc<Inner>) {
         // be undone by putting the job back.
         if let (Some(period), Next::Continue) = (entry.period, next)
             && !state.closed
-            && !entry.timer.is_cancelled()
+            && !entry.cancelled.is_raised()
         {
             // Skip missed runs: after a stall, run once now rather than
             // catching up with a burst. Measured from after the job, so a
@@ -305,5 +306,15 @@ mod tests {
             tx.send(()).unwrap();
         });
         rx.recv_timeout(GENEROUS).expect("drop returned");
+    }
+
+    #[test]
+    fn a_lent_reader_sees_cancellation() {
+        let scheduler = Scheduler::default();
+        let timer = scheduler.every(Duration::from_secs(3600), || Next::Continue);
+        let reader = timer.reader();
+        assert!(!reader.is_raised());
+        timer.cancel();
+        assert!(reader.is_raised());
     }
 }

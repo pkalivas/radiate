@@ -49,10 +49,6 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         &self.events
     }
 
-    pub fn wait(&self) {
-        self.sync.wait();
-    }
-
     pub fn sync(&self) -> ThreadSync {
         self.sync.clone()
     }
@@ -87,6 +83,24 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
 
     pub(crate) fn set_stopped(&mut self) {
         self.change_state(EngineState::Stopped);
+    }
+
+    pub(crate) fn can_continue(&mut self) -> bool {
+        if let Some(flow) = self.sync.poll() {
+            return flow.is_continue();
+        }
+
+        // If sync.poll() returned None, the sync was paused from an external
+        // request, so we change the state to paused then park.
+        self.set_paused();
+
+        let flow = self.sync.wait();
+        if flow.is_continue() {
+            self.set_running();
+            return true;
+        }
+
+        false
     }
 
     pub(crate) fn finalize(&mut self) -> RadiateResult<()>

@@ -6,7 +6,7 @@ use radiate_engines::{
     StreamClosed, StreamEvent, StreamSnapshot, error::RadiateResult, sync::IntoPair,
 };
 use radiate_engines::{LogEvent, ThreadSync};
-use std::{fmt::Debug, sync::atomic::Ordering, time::Duration};
+use std::{fmt::Debug, time::Duration};
 
 const KEY_REPEAT_DELAY: Duration = Duration::from_millis(100);
 const STREAM_SNAPSHOT_INTERVAL: usize = 10;
@@ -16,7 +16,7 @@ where
     C: Chromosome,
     T: Clone + Send + Sync + 'static,
 {
-    control: ThreadSync,
+    sync: ThreadSync,
     dispatcher: channel::Sender<InputEvent<C>>,
     app_thread: Option<std::thread::JoinHandle<Result<()>>>,
     key_thread: Option<std::thread::JoinHandle<Result<()>>>,
@@ -28,11 +28,11 @@ where
     C: Chromosome + Debug + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
-    pub fn new(control: ThreadSync) -> Self {
+    pub fn new(sync: ThreadSync) -> Self {
         radiate_engines::disable_logging();
-        let app = App::new(control.clone());
+        let app = App::new(sync.clone());
         let (dispatch_one, dispatch_two) = app.dispatcher().into_pair();
-        let stop_flag = control.stop_flag();
+        let stop_flag = sync.stop_flag();
 
         let app_thread = std::thread::spawn(move || {
             let terminal = ratatui::init();
@@ -42,7 +42,7 @@ where
         });
 
         let key_thread = std::thread::spawn(move || {
-            while !stop_flag.load(Ordering::Relaxed) {
+            while !stop_flag.is_raised() {
                 if crossterm::event::poll(KEY_REPEAT_DELAY)? {
                     let event = crossterm::event::read()?;
                     dispatch_two
@@ -55,7 +55,7 @@ where
         });
 
         Self {
-            control,
+            sync,
             dispatcher: dispatch_one,
             app_thread: Some(app_thread),
             key_thread: Some(key_thread),
@@ -175,11 +175,11 @@ where
     T: Clone + Send + Sync + 'static,
 {
     fn drop(&mut self) {
-        if !self.control.is_stopped() {
+        if !self.sync.is_stopped() {
             self.dispatcher.send(InputEvent::EngineStop).unwrap();
         }
 
-        self.control.set_paused(false);
+        self.sync.set_paused(false);
 
         if let Some(event_listener) = self.app_thread.take()
             && let Err(e) = event_listener.join()
@@ -187,7 +187,7 @@ where
             eprintln!("Error joining app thread: {:?}", e);
         }
 
-        self.control.stop();
+        self.sync.stop();
 
         if let Some(key_listener) = self.key_thread.take()
             && let Err(e) = key_listener.join()

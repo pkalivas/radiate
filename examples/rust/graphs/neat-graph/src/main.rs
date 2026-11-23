@@ -30,7 +30,12 @@ fn main() -> RadiateResult<()> {
         ))
         .build();
 
-    let result = engine.iter().ui().until_score(MIN_SCORE).last()?;
+    let result = engine
+        .iter()
+        .ui()
+        .pause_every(10)
+        .until_score(MIN_SCORE)
+        .last()?;
 
     display(&data, &result);
 

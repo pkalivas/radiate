@@ -93,7 +93,7 @@ pub(crate) struct App<C>
 where
     C: Chromosome,
 {
-    control: ThreadSync,
+    sync: ThreadSync,
     channel: CommandChannel<InputEvent<C>>,
     state: AppState<C>,
     layout: LayoutNode<C>,
@@ -103,9 +103,9 @@ impl<C> App<C>
 where
     C: Chromosome + Debug + Clone,
 {
-    pub fn new(control: ThreadSync) -> Self {
+    pub fn new(sync: ThreadSync) -> Self {
         Self {
-            control,
+            sync,
             channel: CommandChannel::new(),
             state: AppState {
                 run: RunState {
@@ -179,6 +179,12 @@ where
         }
 
         let now = Instant::now();
+
+        if self.sync.is_paused() {
+            self.state.run.last_render = Some(now);
+            return Ok(true);
+        }
+
         if let Some(last) = self.state.run.last_render {
             let elapsed = now.duration_since(last);
             if elapsed < self.state.run.render_interval {
@@ -194,16 +200,16 @@ where
         let state = &mut self.state;
         match action {
             Action::Quit => {
-                self.control.stop();
+                self.sync.stop();
                 for subscription in state.run.subscriptions.drain(..) {
                     subscription.unsubscribe();
                 }
                 state.run.ui = false;
             }
             Action::ToggleHelp => state.nav.toggle_help(),
-            Action::TogglePause => state.run.paused = self.control.toggle_pause(),
+            Action::TogglePause => state.run.paused = self.sync.toggle_pause(),
             Action::Step => {
-                self.control.step_once();
+                self.sync.step_once();
                 state.run.paused = true;
             }
 

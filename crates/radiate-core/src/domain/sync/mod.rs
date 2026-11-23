@@ -1,5 +1,6 @@
 mod channel;
 mod control;
+mod flag;
 mod group;
 mod inbox;
 mod scheduler;
@@ -8,7 +9,8 @@ mod thread_pool;
 use std::sync::Arc;
 
 pub use channel::{CommandChannel, IntoPair};
-pub use control::ThreadSync;
+pub use control::{Gate, ThreadSync};
+pub use flag::{Flag, FlagReader};
 pub use group::{WaitGroup, WaitGuard};
 pub use inbox::Inbox;
 pub use scheduler::{Next, Scheduler, Timer};

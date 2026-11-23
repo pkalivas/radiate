@@ -200,24 +200,13 @@ where
     #[inline]
     fn step(&mut self) -> Result<()> {
         match self.state() {
-            EngineState::PreStart => self.start()?,
             EngineState::Stopped => return Ok(()),
-            _ => {
-                if self.context.stop_requested() {
-                    return self.stop();
-                }
+            EngineState::PreStart => self.start()?,
+            _ => {}
+        }
 
-                if self.context.pause_requested() {
-                    self.context.set_paused();
-                    self.context.wait();
-
-                    if self.context.stop_requested() {
-                        return self.stop();
-                    }
-
-                    self.context.set_running();
-                }
-            }
+        if !self.context.can_continue() {
+            return self.stop();
         }
 
         self.stream
@@ -230,7 +219,6 @@ where
             .lazy_publish(|| EpochComplete::from(&self.context))?;
 
         self.context.roll()?;
-
         Ok(())
     }
 }
