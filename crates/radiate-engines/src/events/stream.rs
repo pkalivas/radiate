@@ -313,6 +313,12 @@ impl EventStream {
         }
     }
 
+    pub fn roll(&self) -> RadiateResult<()> {
+        self.flush_deferred()?;
+        self.send_snapshot()?;
+        Ok(())
+    }
+
     pub fn flush_deferred(&self) -> RadiateResult<()> {
         if self.shared.has_pending.load(Ordering::Relaxed) {
             self.shared.has_pending.store(false, Ordering::Relaxed);

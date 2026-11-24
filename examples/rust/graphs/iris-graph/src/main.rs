@@ -1,6 +1,5 @@
-use std::time::Instant;
-
 use radiate::prelude::*;
+use std::time::Instant;
 
 const MIN_SCORE: f32 = 0.1;
 const MAX_SECONDS: f64 = 5.0;
@@ -44,19 +43,6 @@ fn main() -> RadiateResult<()> {
             GraphMutator::new(0.02, 0.02)
         ))
         .build();
-
-    engine
-        .subscribe(
-            |event: &GenerationSnapshot<GraphChromosome<Op<f32>>, Graph<Op<f32>>>| {
-                println!("{:?}", event.generation.index());
-            },
-        )
-        .schedule(10)?;
-
-    engine.subscribe(|event: &StreamEvent<StreamClosed>| {
-        println!("Stream closed: {:#?}", event.0);
-        println!("{:#?}", event.throughput());
-    });
 
     let start = Instant::now();
     let result = engine

@@ -146,10 +146,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.stream.lazy_publish(|| EpochComplete::from(&*self))?;
         self.stream
             .lazy_publish(|| GenerationSnapshot::from(&*self))?;
-        self.stream.flush_deferred()?;
-        self.stream.send_snapshot()?;
-
-        Ok(())
+        self.stream.roll()
     }
 
     fn can_continue(&mut self) -> bool {
