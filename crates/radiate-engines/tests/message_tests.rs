@@ -710,7 +710,6 @@ mod pool_tests {
     // [pool_logger_to_adder] 40000 deliveries in 28.807167ms = 1,388,543/s
     // [pool_logger_to_adder] 120000 deliveries in 38.944333ms = 3,081,321/s
     // [pool_logger_to_adder] 120000 deliveries in 14.414625ms = 8,324,878/s
-    // 2,792,282
     fn pool_logger_to_adder() {
         const N: usize = 10_000;
 

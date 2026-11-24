@@ -81,18 +81,20 @@ impl Default for WallClock {
 /// would ever be dropped.
 pub(super) struct Shared {
     registry: Registry,
+    wall_clock: WallClock,
     pending: Mutex<Vec<Payload>>,
     closed: AtomicBool,
-    wall_clock: WallClock,
+    has_pending: AtomicBool,
 }
 
 impl Default for Shared {
     fn default() -> Self {
         Shared {
             registry: Registry::default(),
+            wall_clock: WallClock::default(),
             pending: Mutex::default(),
             closed: AtomicBool::new(false),
-            wall_clock: WallClock::default(),
+            has_pending: AtomicBool::new(false),
         }
     }
 }
@@ -196,6 +198,7 @@ impl EventStream {
 // --- Publishing ---
 impl EventStream {
     pub fn defer<E: Event>(&self, event: E) {
+        self.shared.has_pending.store(true, Ordering::Relaxed);
         self.shared.pending.lock().unwrap().push(Arc::new(event));
     }
 
@@ -252,6 +255,7 @@ impl EventStream {
         if self.shared.closed.load(Ordering::Relaxed) {
             radiate_bail!("EventStream is closed, dropping event");
         }
+
         Ok(())
     }
 }
@@ -309,10 +313,24 @@ impl EventStream {
         }
     }
 
+    pub fn roll(&self) -> RadiateResult<()> {
+        self.flush_deferred()?;
+        self.send_snapshot()?;
+        Ok(())
+    }
+
     pub fn flush_deferred(&self) -> RadiateResult<()> {
-        self.deferred()
-            .into_iter()
-            .try_for_each(|payload| self.publish_payload(payload))?;
+        if self.shared.has_pending.load(Ordering::Relaxed) {
+            self.shared.has_pending.store(false, Ordering::Relaxed);
+            self.deferred()
+                .into_iter()
+                .try_for_each(|payload| self.publish_payload(payload))?;
+        }
+
+        Ok(())
+    }
+
+    pub fn send_snapshot(&self) -> RadiateResult<()> {
         self.lazy_publish(|| StreamEvent(self.snapshot()))
     }
 }

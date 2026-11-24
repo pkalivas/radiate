@@ -5,7 +5,6 @@ pub mod events;
 mod generation;
 mod io;
 mod limit;
-mod pipeline;
 pub mod runtime;
 mod steps;
 

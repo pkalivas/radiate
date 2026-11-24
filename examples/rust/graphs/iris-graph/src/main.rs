@@ -1,6 +1,5 @@
-use std::time::Instant;
-
 use radiate::prelude::*;
+use std::time::Instant;
 
 const MIN_SCORE: f32 = 0.1;
 const MAX_SECONDS: f64 = 5.0;
@@ -37,7 +36,7 @@ fn main() -> RadiateResult<()> {
         .fitness_fn(Regression::new(train.clone(), Loss::XEnt))
         .offspring_selector(TournamentSelector::new(4))
         .minimizing()
-        .parallel()
+        // .parallel()
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.02, 0.05),
@@ -45,23 +44,10 @@ fn main() -> RadiateResult<()> {
         ))
         .build();
 
-    // engine
-    //     .subscribe(
-    //         |event: &GenerationSnapshot<GraphChromosome<Op<f32>>, Graph<Op<f32>>>| {
-    //             println!("{:?}", event.generation.index());
-    //         },
-    //     )
-    //     .schedule(10)?;
-
-    // engine.subscribe(|event: &StreamEvent<StreamClosed>| {
-    //     println!("Stream closed: {:#?}", event.0);
-    //     println!("{:#?}", event.throughput());
-    // });
-
     let start = Instant::now();
     let result = engine
         .iter()
-        // .logging()
+        .logging()
         .until(|epoch| epoch.score().as_f32() < MIN_SCORE || epoch.seconds() > MAX_SECONDS)
         .last()?;
     let elapsed = start.elapsed();
