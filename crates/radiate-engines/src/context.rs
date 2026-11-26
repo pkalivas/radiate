@@ -154,7 +154,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
             Gate::Open => true,
             Gate::Stopped => false,
             Gate::Closed => {
-                // If sync.poll() returned None, the sync was paused from an external
+                // If sync.gate() returned Closed, the sync was paused from an external
                 // request, so we change the state to paused then park.
                 self.set_paused();
                 if self.sync.wait().is_continue() {
