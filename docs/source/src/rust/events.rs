@@ -24,7 +24,7 @@ fn main() {
         // ... other parameters ...
         .build();
 
-    engine.subscribe::<EpochComplete<Vec<f32>>>(|event: &EpochComplete<Vec<f32>>| {
+    engine.subscribe(|event: &EpochComplete<Vec<f32>>| {
         println!(
             "Printing from event handler! [ {:?} ]: {:?}",
             event.index, event.score

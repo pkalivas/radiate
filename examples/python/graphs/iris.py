@@ -39,7 +39,7 @@ engine = (
 )
 
 
-result = engine.run(ui=True)
+result = engine.run(log=True)
 
 
 print(result.metrics.dashboard())

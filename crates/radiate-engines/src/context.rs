@@ -173,7 +173,7 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         }
 
         self.stream
-            .publish(EngineStateChange {
+            .lazy_publish(|| EngineStateChange {
                 from: self.state,
                 to: state,
                 index: self.index,

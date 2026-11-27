@@ -164,7 +164,7 @@ where
     }
 
     /// Subscribe to a specific event in the engine's event stream every time it
-    /// fires. Certain events are 'lazy', meaning they are only generated and published
+    /// fires. Most events are 'lazy', meaning they are only generated and published
     /// when there is an active subscription to that event. Others are only fired when certain
     /// actions are attached to the engine. The event system in the engine acts as a message passing
     /// system, allowing different handlers to react to events as they occur. See [EngineLogger]
@@ -172,12 +172,12 @@ where
     ///
     /// The events that the GeneticEngine emits are:
     ///
-    /// * [`EngineStart`](crate::events::EngineStart) - emitted when the engine starts
-    /// * [`EngineStop`](crate::events::EngineStop) - emitted when the engine stops
-    /// * [`EngineStateChange`](crate::events::EngineStateChange) - emitted when the engine's state changes.
-    /// * [`EpochStart`](crate::events::EpochStart) - emitted at the start of each epoch.
+    /// * [`EngineStart`](crate::events::EngineStart) **LAZY** - emitted when the engine starts
+    /// * [`EngineStop`](crate::events::EngineStop) **LAZY** - emitted when the engine stops
+    /// * [`EngineStateChange`](crate::events::EngineStateChange) **LAZY** - emitted when the engine's state changes.
+    /// * [`EpochStart`](crate::events::EpochStart) **LAZY** - emitted at the start of each epoch.
     /// * [`Improvement`](crate::events::Improvement) **LAZY** - When the engine finds a new best solution.
-    /// * [`EpochComplete`](crate::events::EpochComplete) - emitted at the end of each epoch
+    /// * [`EpochComplete`](crate::events::EpochComplete) **LAZY** - emitted at the end of each epoch
     /// * [`CheckpointSaved`](crate::events::CheckpointSaved) - emitted when a checkpoint is saved
     ///     * Only published when Checkpointing is enabled through the [engine's configuration](super::GeneticEngineBuilder::checkpoint).
     /// * [`Warning`](crate::events::Warning) - emitted when a warning occurs through the health monitor
@@ -185,6 +185,7 @@ where
     /// * [`LimitTriggered`](crate::events::LimitTriggered) - emitted when a stopping limit is triggered
     /// * [`GenerationSnapshot`](crate::events::GenerationSnapshot) **LAZY** - emitted for each generation snapshot
     ///     * This is a heavy clone (clones the entire `Ecosystem` and possibly the `Front` if it exists) so use it judiciously.
+    ///     * Also note that if checkpointing is enabled, this is the event that triggers the saving of a checkpoint.
     /// * [`LogEvent`](crate::events::LogEvent) - emitted for logging purposes.
     ///     * Only emitted when [logging](Self::logging) is enabled. Produces a struct containing
     ///       the appropriate [LogLevel](crate::events::LogLevel) and a message of what occurred. Logs can contain
@@ -193,6 +194,9 @@ where
     ///       having to manually subscribe to each individual event.
     ///
     /// ## Simple fn subscriber
+    ///
+    /// Both the engine and the runtime support subscribing to events.
+    ///
     /// ```rust
     /// use radiate_engines::*;
     ///
@@ -201,6 +205,10 @@ where
     ///     .fitness_fn(|vals: Vec<f32>| vals.iter().sum::<f32>())
     ///     .build();
     ///
+    /// // Subscribe on the engine
+    /// engine.subscribe(|event: &LimitTriggered| println!("{:?}", event));
+    ///
+    /// // Subscribe on the runtime
     /// let result = engine
     ///     .iter()
     ///     .take(10)
@@ -219,7 +227,7 @@ where
     ///
     /// struct MyHandler;
     ///
-    /// impl Handler<EpochStart> for MyHandler {
+    /// impl On<EpochStart> for MyHandler {
     ///     fn handle(&mut self, event: &EpochStart, ctx: &EventContext<'_, Self>) {
     ///         println!("Received epoch start: {:?}", event);
     ///         // Publish a log event indicating the epoch has started

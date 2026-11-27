@@ -71,7 +71,7 @@ impl StreamSnapshot {
     pub fn stream_metrics(&self) -> DeliveryMetrics {
         self.subscribers
             .iter()
-            .fold(DeliveryMetrics::default(), |acc, sub| acc.add(&sub.stats))
+            .fold(DeliveryMetrics::default(), |acc, sub| acc.merge(&sub.stats))
     }
 
     pub fn mailbox_metrics(&self) -> HashMap<MailBoxId, DeliveryMetrics> {
@@ -79,7 +79,7 @@ impl StreamSnapshot {
             HashMap::<MailBoxId, DeliveryMetrics>::new(),
             |mut acc, sub| {
                 acc.entry(sub.mailbox_id)
-                    .and_modify(|metrics| *metrics = metrics.add(&sub.stats))
+                    .and_modify(|metrics| *metrics = metrics.merge(&sub.stats))
                     .or_insert_with(|| sub.stats);
                 acc
             },
@@ -193,7 +193,7 @@ impl DeliveryMetrics {
         }
     }
 
-    pub fn add(mut self, other: &Self) -> Self {
+    pub fn merge(mut self, other: &Self) -> Self {
         self.delivered += other.delivered;
         self.skipped += other.skipped;
         self.handled += other.handled;

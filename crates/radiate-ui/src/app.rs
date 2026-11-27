@@ -135,6 +135,7 @@ where
     }
 
     fn throttle_next(&mut self) -> Result<bool> {
+        self.state.run.event_count += 1;
         match self.channel.next()? {
             InputEvent::Crossterm(event) => {
                 if let Event::Key(key) = event
@@ -173,8 +174,6 @@ where
     }
 
     fn throttle(&mut self) -> Result<bool> {
-        self.state.run.event_count += 1;
-
         if !self.state.run.started {
             return Ok(false);
         }
