@@ -296,6 +296,14 @@ fn rollup<'a>(op: &RollupOp, values: &[AnyValue<'a>], dtype: DataType) -> ExprRe
         RollupOp::Max => AnyValue::Float32(stats.max()),
         RollupOp::Sum => AnyValue::Float32(stats.sum()),
         RollupOp::Count => AnyValue::UInt64(stats.count() as u64),
+        RollupOp::Skew => stats
+            .skewness()
+            .map(AnyValue::Float32)
+            .unwrap_or(AnyValue::Null),
+        RollupOp::Var => stats
+            .variance()
+            .map(AnyValue::Float32)
+            .unwrap_or(AnyValue::Null),
         _ => AnyValue::Null,
     };
 

@@ -60,6 +60,13 @@ impl MetricSet {
         self.meta.generation
     }
 
+    #[inline(always)]
+    pub fn upsert<'a>(&mut self, key: impl AsRef<str>, metric: impl Into<MetricUpdate<'a>>) {
+        let metric_update = metric.into();
+        let idx = self.resolve(&key);
+        self.upsert_at(idx, metric_update);
+    }
+
     #[inline]
     pub(crate) fn upsert_at<'a>(&mut self, idx: MetricIdx, update: impl Into<MetricUpdate<'a>>) {
         let generation = self.meta.generation;
@@ -69,13 +76,6 @@ impl MetricSet {
         metric.apply_update(update.into());
 
         self.meta.update_count += 1;
-    }
-
-    #[inline(always)]
-    pub fn upsert<'a>(&mut self, key: impl AsRef<str>, metric: impl Into<MetricUpdate<'a>>) {
-        let metric_update = metric.into();
-        let idx = self.resolve(&key);
-        self.upsert_at(idx, metric_update);
     }
 
     #[inline(always)]

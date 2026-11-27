@@ -22,7 +22,7 @@ vertices = [
     rd.Op.relu(),
 ]
 
-limit = rd.Expr.select("count.evaluation").sum() >= 1000
+limit = (rd.Expr.select("count.evaluation").sum() >= 1000).alias("eval limit")
 
 engine = (
     rd.Engine.graph(
@@ -37,7 +37,7 @@ engine = (
         rd.Mutate.op(0.02, 0.05),
         rd.Mutate.graph(0.008, 0.002),
     )
-    .limit(rd.Limit.score(0.1), rd.Limit.seconds(1), rd.Limit.expr(limit))
+    .limit(rd.Limit.score(0.1), rd.Limit.seconds(1), limit)
 )
 
 

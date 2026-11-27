@@ -1,5 +1,5 @@
 use crate::{
-    Event, On, Warning,
+    Event, Limit, On, Warning,
     events::{EngineStateChange, EventContext, EventHandler},
 };
 use crate::{LimitTriggered, events::EpochComplete};
@@ -43,13 +43,14 @@ where
     T: Send + Sync + 'static,
 {
     fn handle(&mut self, message: &LimitTriggered, ctx: &EventContext<'_, Self>) {
+        let name = match &message.1 {
+            Limit::Expr(inner) => inner.name().into(),
+            _ => format!("{:?}", message.1),
+        };
+
         ctx.publish(LogEvent(
             LogLevel::Info,
-            radiate_utils::three_col_format(
-                "Engine",
-                "Limit Triggered",
-                format!("{:?}", message.1),
-            ),
+            radiate_utils::three_col_format("Engine", "Limit Triggered", name),
         ))
         .unwrap();
     }

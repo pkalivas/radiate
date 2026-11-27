@@ -44,10 +44,16 @@ fn main() -> RadiateResult<()> {
         ))
         .build();
 
+    let lim = Expr::select("count.evaluation")
+        .attr("sum")
+        .gte(1000)
+        .alias("eval limit");
+
     let start = Instant::now();
     let result = engine
         .iter()
         .logging()
+        .limit(lim)
         .until(|epoch| epoch.score().as_f32() < MIN_SCORE || epoch.seconds() > MAX_SECONDS)
         .last()?;
     let elapsed = start.elapsed();
