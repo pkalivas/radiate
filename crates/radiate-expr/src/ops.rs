@@ -288,6 +288,68 @@ mod tests {
         assert_eq!(eval(expr).unwrap(), AnyValue::Float32(10.0));
     }
 
+    fn warmup_sequence(period: usize, calls: usize) -> Vec<bool> {
+        let mut expr: Expr = Expr::warmup(period).then(true).otherwise(false);
+        let metrics = NullMetrics;
+        (0..calls)
+            .map(|_| match expr.evaluate(&metrics).unwrap() {
+                AnyValue::Bool(b) => b,
+                other => panic!("expected Bool, got {:?}", other),
+            })
+            .collect()
+    }
+
+    #[test]
+    fn warmup_zero_never_blocks() {
+        assert_eq!(warmup_sequence(0, 3), vec![true, true, true]);
+    }
+
+    #[test]
+    fn warmup_blocks_exactly_period_calls() {
+        assert_eq!(warmup_sequence(1, 3), vec![false, true, true]);
+        assert_eq!(warmup_sequence(2, 4), vec![false, false, true, true]);
+    }
+
+    fn vec_lit(values: Vec<AnyValue<'static>>) -> Expr {
+        Expr::lit(AnyValue::Vector(values))
+    }
+
+    #[test]
+    fn moment_rollups_on_no_numeric_values_return_null() {
+        let nulls = || vec_lit(vec![AnyValue::Null, AnyValue::Null, AnyValue::Null]);
+        assert_eq!(eval(nulls().stddev()).unwrap(), AnyValue::Null);
+        assert_eq!(eval(nulls().var()).unwrap(), AnyValue::Null);
+        assert_eq!(eval(nulls().skew()).unwrap(), AnyValue::Null);
+    }
+
+    #[test]
+    fn var_and_stddev_compute_values() {
+        let xs = || vec_lit(vec![2.0_f32.into(), 4.0_f32.into(), 6.0_f32.into()]);
+        assert_eq!(eval(xs().var()).unwrap(), AnyValue::Float32(4.0));
+        assert_eq!(eval(xs().stddev()).unwrap(), AnyValue::Float32(2.0));
+    }
+
+    #[test]
+    fn skew_below_three_samples_is_null_not_nan() {
+        let two = vec_lit(vec![1.0_f32.into(), 5.0_f32.into()]);
+        assert_eq!(eval(two.skew()).unwrap(), AnyValue::Null);
+
+        let three = vec_lit(vec![1.0_f32.into(), 2.0_f32.into(), 9.0_f32.into()]);
+        match eval(three.skew()).unwrap() {
+            AnyValue::Float32(v) => assert!(v.is_finite()),
+            other => panic!("expected Float32 skew, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn mean_of_integers_is_not_truncated() {
+        let ints = vec_lit(vec![AnyValue::UInt32(1), AnyValue::UInt32(2)]);
+        assert_eq!(eval(ints.mean()).unwrap(), AnyValue::Float32(1.5));
+
+        let ints = vec_lit(vec![AnyValue::UInt32(1), AnyValue::UInt32(2)]);
+        assert_eq!(eval(ints.sum()).unwrap(), AnyValue::UInt32(3));
+    }
+
     #[test]
     fn clamp_falls_back_to_floor_on_nan() {
         let expr = Expr::lit(f32::NAN).clamp(1.0_f32, 10.0_f32);

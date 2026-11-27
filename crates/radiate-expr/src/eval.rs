@@ -31,7 +31,7 @@ pub(crate) fn try_schedule(op: &mut ScheduleOp) -> ExprResult<'static> {
             }
         }
         ScheduleOp::Warmup { period, current } => {
-            if *current <= *period {
+            if *current < *period {
                 *current += 1;
                 Ok(AnyValue::Bool(false))
             } else {
@@ -295,24 +295,18 @@ fn rollup<'a>(op: &RollupOp, values: &[AnyValue<'a>], dtype: DataType) -> ExprRe
         RollupOp::Max => AnyValue::Float32(stats.max()),
         RollupOp::Sum => AnyValue::Float32(stats.sum()),
         RollupOp::Count => AnyValue::UInt64(stats.count() as u64),
-        RollupOp::StdDev => match stats.std_dev() {
-            Some(std_dev) => AnyValue::Float32(std_dev),
-            None => radiate_bail!(Expr: format!("Failed to compute standard deviation")),
-        },
+        RollupOp::StdDev => stats.std_dev().map_or(AnyValue::Null, AnyValue::Float32),
+        RollupOp::Var => stats.variance().map_or(AnyValue::Null, AnyValue::Float32),
         RollupOp::Skew => match stats.skewness() {
-            Some(skew) => AnyValue::Float32(skew),
-            None => radiate_bail!(Expr: format!("Failed to compute skewness")),
-        },
-        RollupOp::Var => match stats.variance() {
-            Some(var) => AnyValue::Float32(var),
-            None => radiate_bail!(Expr: format!("Failed to compute variance")),
+            Some(skew) if stats.count() >= 3 && skew.is_finite() => AnyValue::Float32(skew),
+            _ => AnyValue::Null,
         },
         _ => AnyValue::Null,
     };
 
     match op {
-        RollupOp::Mean | RollupOp::Min | RollupOp::Max | RollupOp::Sum => {
-            return Ok(result.cast(&dtype).unwrap_or(AnyValue::Null));
+        RollupOp::Min | RollupOp::Max | RollupOp::Sum => {
+            Ok(result.cast(&dtype).unwrap_or(AnyValue::Null))
         }
         _ => Ok(result),
     }
