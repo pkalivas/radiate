@@ -88,13 +88,22 @@ pub fn render_dashboard(metrics: &MetricSet) -> io::Result<String> {
     })
 }
 
-fn render_table_header(mut out: String) -> io::Result<String> {
-    writeln!(
-        out,
-        "{:<26} | {:<6} | {:<10} | {:<10} | {:<10} | {:<6} | {:<12} | {:<10} | {:<10} | {:<10}",
-        "Name", "Type", "Mean", "Min", "Max", "N", "Total", "StdDev", "Skew", "Kurt"
-    )
-    .unwrap();
+fn render_table_header(mut out: String, is_k: bool) -> io::Result<String> {
+    if is_k {
+        writeln!(
+            out,
+            "{:<26} | {:<6} | {:<10} | {:<10} | {:<10} | {:<6} | {:<12} | {:<10} | {:<10} | {:<10}",
+            "Name", "Type", "Mean", "Min", "Max", "N", "Total(k)", "StdDev", "Skew", "Kurt"
+        )
+        .unwrap();
+    } else {
+        writeln!(
+            out,
+            "{:<26} | {:<6} | {:<10} | {:<10} | {:<10} | {:<6} | {:<12} | {:<10} | {:<10} | {:<10}",
+            "Name", "Type", "Mean", "Min", "Max", "N", "Total", "StdDev", "Skew", "Kurt"
+        )
+        .unwrap();
+    }
     writeln!(out, "{}", "-".repeat(135)).unwrap();
     Ok(out)
 }
@@ -173,7 +182,11 @@ pub fn render_metric_rows_full(
 fn render_tagged(ms: &MetricSet, tag: TagType, title: &str) -> io::Result<String> {
     let mut out = String::new();
     writeln!(out, "== {} ==", title).unwrap();
-    out = render_table_header(out)?;
+    let is_k = match tag {
+        TagType::Distribution | TagType::Statistic => true,
+        _ => false,
+    };
+    out = render_table_header(out, is_k)?;
 
     let mut items: Vec<_> = ms.iter_tagged(tag).collect();
     items.sort_by(|a, b| a.name().cmp(b.name()));

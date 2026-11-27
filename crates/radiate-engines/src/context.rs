@@ -3,12 +3,12 @@ use crate::{
     Improvement, ThreadSync, events::EngineStateChange,
 };
 use crate::{builder::config::EngineConfig, events::EventStream};
+use radiate_core::ExprSet;
 use radiate_core::error::RadiateResult;
 use radiate_core::{
     Ecosystem, EngineState, Front, Gate, MetricSet, Objective, Phenotype, Problem, Score,
     metric_names,
 };
-use radiate_core::{ExprSet, MetricUpdate};
 use std::{
     sync::{Arc, Mutex, RwLock},
     time::Duration,
@@ -61,10 +61,6 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
 
     pub fn state(&self) -> EngineState {
         self.state
-    }
-
-    pub(crate) fn upsert<'a>(&mut self, name: impl AsRef<str>, value: impl Into<MetricUpdate<'a>>) {
-        self.metrics.upsert(name, value);
     }
 
     pub(crate) fn set_running(&mut self) {

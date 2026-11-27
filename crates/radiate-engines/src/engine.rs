@@ -197,7 +197,7 @@ where
                 step.call(ctx)?;
                 let end_time = now.elapsed();
 
-                ctx.upsert(&step.name, end_time - start_time);
+                ctx.metrics.upsert(&step.name, end_time - start_time);
             }
 
             Ok(now.elapsed())
