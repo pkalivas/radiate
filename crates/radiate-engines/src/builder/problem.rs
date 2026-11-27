@@ -39,30 +39,4 @@ where
         self.params.problem_params.fitness_kind = Some(fitness_kind);
         self
     }
-
-    /// Set a batch fitness function. Deprecated: [fitness_fn](Self::fitness_fn) now infers
-    /// the fitness kind from the function's shape, so a `Fn(&[T]) -> Vec<S>` closure or a
-    /// [BatchFitnessFunction](radiate_core::BatchFitnessFunction) type passed there is evaluated as a batch.
-    #[deprecated(note = "Use `fitness_fn` instead", since = "1.3.2")]
-    pub fn batch_fitness_fn<M>(self, fitness_func: impl IntoFitness<C, T, M> + 'static) -> Self {
-        self.fitness_fn(fitness_func)
-    }
-
-    /// Set a fitness function over the raw [Genotype](radiate_core::Genotype). Deprecated: a `Fn(&Genotype<C>) -> S`
-    /// closure passed to [fitness_fn](Self::fitness_fn) is evaluated on the genotype directly.
-    #[deprecated(note = "Use `fitness_fn` instead", since = "1.3.2")]
-    pub fn raw_fitness_fn<M>(self, fitness_func: impl IntoFitness<C, T, M> + 'static) -> Self {
-        self.fitness_fn(fitness_func)
-    }
-
-    /// Set a batch fitness function over raw [Genotype](radiate_core::Genotype)s. Deprecated: a
-    /// `Fn(&[&Genotype<C>]) -> Vec<S>` closure passed to [fitness_fn](Self::fitness_fn) is
-    /// evaluated as a raw batch.
-    #[deprecated(note = "Use `fitness_fn` instead", since = "1.3.2")]
-    pub fn raw_batch_fitness_fn<M>(
-        self,
-        fitness_func: impl IntoFitness<C, T, M> + 'static,
-    ) -> Self {
-        self.fitness_fn(fitness_func)
-    }
 }

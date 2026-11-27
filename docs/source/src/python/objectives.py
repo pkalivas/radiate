@@ -72,3 +72,37 @@ engine = (
     # ... other parameters ...
 )
 # --8<-- [end:multi_objective_selectors]
+
+# --8<-- [start:front_reading]
+import radiate as rd
+
+codec = rd.FloatCodec(shape=10, init_range=(0.0, 1.0))
+
+engine = (
+    rd.Engine(codec)
+    .fitness(lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)])
+    .objective(rd.MIN, rd.MIN)  # conflicting: obj1 pulls genes to 0.0, obj2 to 0.5
+    .front_range(800, 900)
+    .limit(rd.Limit.generations(200))
+)
+
+result = engine.run()
+
+# The archive of the best trade-offs found over the whole run
+front = result.front
+print(f"{len(front)} solutions on the front")
+
+for member in front:
+    scores = member.score  # one value per objective
+    params = codec.decode(member.genotype())  # back to the problem's representation
+# --8<-- [end:front_reading]
+
+# --8<-- [start:front_analysis]
+# Reference point: worse than every member on every objective
+hypervolume = front.hypervolume([10.0, 3.0])
+entropy = front.entropy()
+crowding = front.crowding_distance()
+
+# Drop the 2% most isolated members
+removed = front.remove_outliers(0.02)
+# --8<-- [end:front_analysis]

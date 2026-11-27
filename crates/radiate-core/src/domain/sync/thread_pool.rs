@@ -1,39 +1,6 @@
 use crossbeam::channel;
+use std::fmt::Debug;
 use std::thread;
-use std::{
-    fmt::Debug,
-    sync::{Arc, OnceLock},
-};
-
-/// A fixed-size thread pool implementation. This thread pool will create a fixed number of worker threads
-/// that will be reused for executing jobs. This is useful for limiting the number of concurrent threads
-/// in the application.
-///
-/// The thread pool within the `FixedThreadPool` is created only once and will be reused for the lifetime of the program.
-/// Meaning that the first time you request a thread pool with a specific number of workers, that number will be used.
-/// Subsequent requests with different numbers will be ignored.
-struct FixedThreadPool {
-    inner: Arc<ThreadPool>,
-}
-
-impl FixedThreadPool {
-    /// Returns the global instance of the threadpool.
-    ///
-    /// This thread pool is fixed in size and will be created only once. This means that
-    /// the first time you call this method with a specific number of workers, that number will be used
-    /// for the lifetime of the program. Subsequent calls with different numbers will be ignored.
-    pub(self) fn instance(num_workers: usize) -> &'static FixedThreadPool {
-        static INSTANCE: OnceLock<FixedThreadPool> = OnceLock::new();
-
-        INSTANCE.get_or_init(|| FixedThreadPool {
-            inner: Arc::new(ThreadPool::new(num_workers)),
-        })
-    }
-}
-
-pub fn get_thread_pool(num_workers: usize) -> Arc<ThreadPool> {
-    Arc::clone(&FixedThreadPool::instance(num_workers).inner)
-}
 
 /// [WorkResult] is a simple wrapper around a `Receiver` that allows the user to get
 /// the result of a job that was executed in the thread pool. It kinda acts like
@@ -146,6 +113,15 @@ impl ThreadPool {
     }
 }
 
+impl Debug for ThreadPool {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ThreadPool")
+            .field("num_workers", &self.workers.len())
+            .field("is_alive", &self.is_alive())
+            .finish()
+    }
+}
+
 /// Drop implementation for ThreadPool. This will terminate all workers when the ThreadPool is dropped.
 /// We need to make sure that all workers are terminated before the ThreadPool is dropped.
 impl Drop for ThreadPool {
@@ -220,7 +196,7 @@ mod tests {
     use super::*;
     use crate::WaitGroup;
     use std::{
-        sync::{Mutex, mpsc},
+        sync::{Arc, Mutex, mpsc},
         time::{Duration, Instant},
     };
 

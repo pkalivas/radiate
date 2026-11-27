@@ -1,4 +1,7 @@
-use super::chart::MetricChartType;
+use super::{Dir, EvoState, chart::MetricChartType};
+use crate::chart::ChartView;
+use crate::state::evo::EventLogEntry;
+use radiate_engines::Chromosome;
 use radiate_engines::Metric;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -9,46 +12,77 @@ pub enum UiMode {
     Help,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DashboardTab {
     Stats,
     Time,
     Distribution,
+    Events,
+    Population,
     Species,
     Log,
     Front,
-    Events,
 }
 
 impl DashboardTab {
-    pub fn next(self) -> Self {
+    /// Every tab, in the order the tab bar shows them. This is the only place
+    /// the order is written down.
+    pub const ALL: [DashboardTab; 8] = [
+        DashboardTab::Stats,
+        DashboardTab::Time,
+        DashboardTab::Distribution,
+        DashboardTab::Events,
+        DashboardTab::Population,
+        DashboardTab::Species,
+        DashboardTab::Log,
+        DashboardTab::Front,
+    ];
+
+    pub fn index(self) -> usize {
+        Self::ALL.iter().position(|&tab| tab == self).unwrap_or(0)
+    }
+
+    pub fn title(self) -> &'static str {
         match self {
-            DashboardTab::Stats => DashboardTab::Time,
-            DashboardTab::Time => DashboardTab::Distribution,
-            DashboardTab::Distribution => DashboardTab::Species,
-            DashboardTab::Species => DashboardTab::Log,
-            DashboardTab::Log => DashboardTab::Front,
-            DashboardTab::Front => DashboardTab::Events,
-            DashboardTab::Events => DashboardTab::Stats,
+            DashboardTab::Stats => "Stats",
+            DashboardTab::Time => "Time",
+            DashboardTab::Distribution => "Distribution",
+            DashboardTab::Events => "Events",
+            DashboardTab::Population => "Population",
+            DashboardTab::Species => "Species",
+            DashboardTab::Log => "Improvements",
+            DashboardTab::Front => "Front",
         }
     }
 
-    pub fn previous(self) -> Self {
+    /// Whether the run has anything to show on this tab. Stats is always
+    /// available, which is what lets [`NavState::step_tab`] terminate.
+    pub fn available<C: Chromosome>(self, evo: &EvoState<C>) -> bool {
         match self {
-            DashboardTab::Stats => DashboardTab::Events,
-            DashboardTab::Time => DashboardTab::Stats,
-            DashboardTab::Distribution => DashboardTab::Time,
-            DashboardTab::Species => DashboardTab::Distribution,
-            DashboardTab::Log => DashboardTab::Species,
-            DashboardTab::Front => DashboardTab::Log,
-            DashboardTab::Events => DashboardTab::Front,
+            DashboardTab::Species => evo.has_species(),
+            DashboardTab::Log => !evo.is_multi(),
+            DashboardTab::Front => evo.is_multi(),
+            _ => true,
         }
+    }
+
+    fn step(self, dir: Dir) -> Self {
+        let n = Self::ALL.len();
+        let i = match dir {
+            Dir::Next => (self.index() + 1) % n,
+            Dir::Prev => (self.index() + n - 1) % n,
+        };
+        Self::ALL[i]
     }
 
     pub fn supports_metric_modal(self) -> bool {
         !matches!(
             self,
-            DashboardTab::Species | DashboardTab::Log | DashboardTab::Front | DashboardTab::Events
+            DashboardTab::Species
+                | DashboardTab::Log
+                | DashboardTab::Front
+                | DashboardTab::Events
+                | DashboardTab::Population
         )
     }
 
@@ -80,7 +114,9 @@ pub struct NavState {
     pub dashboard_tab: DashboardTab,
     pub focus: Pane,
     pub search: SearchState,
-    chart_tabs: [MetricChartType; 7],
+    /// Scale and history for every line chart.
+    pub chart_view: ChartView,
+    chart_tabs: [MetricChartType; DashboardTab::ALL.len()],
 }
 
 impl NavState {
@@ -90,13 +126,12 @@ impl NavState {
 
     /// The chart view remembered for the active dashboard tab.
     pub fn chart_tab(&self) -> MetricChartType {
-        self.chart_tabs[self.dashboard_tab_index()]
+        self.chart_tabs[self.dashboard_tab.index()]
     }
 
     /// Remember `view` for the active dashboard tab.
     pub fn set_chart_tab(&mut self, view: MetricChartType) {
-        let idx = self.dashboard_tab_index();
-        self.chart_tabs[idx] = view;
+        self.chart_tabs[self.dashboard_tab.index()] = view;
     }
 
     fn clamp_focus(&mut self) {
@@ -157,44 +192,20 @@ impl NavState {
         }
     }
 
-    pub fn next_tab(&mut self, has_species: bool, is_multi: bool) {
-        if let UiMode::Dashboard = self.mode {
-            let mut next = self.dashboard_tab.next();
-            while !tab_available(next, has_species, is_multi) {
-                next = next.next();
-            }
-            self.dashboard_tab = next;
-            self.clamp_focus();
+    /// Move to the next available tab in `dir`.
+    pub fn step_tab<C: Chromosome>(&mut self, dir: Dir, evo: &EvoState<C>) {
+        let mut tab = self.dashboard_tab.step(dir);
+        while !tab.available(evo) {
+            tab = tab.step(dir);
         }
+        self.dashboard_tab = tab;
+        self.clamp_focus();
     }
 
-    pub fn previous_tab(&mut self, has_species: bool, is_multi: bool) {
-        if let UiMode::Dashboard = self.mode {
-            let mut prev = self.dashboard_tab.previous();
-            while !tab_available(prev, has_species, is_multi) {
-                prev = prev.previous();
-            }
-            self.dashboard_tab = prev;
-            self.clamp_focus();
-        }
-    }
-
-    pub fn ensure_tab_available(&mut self, has_species: bool, is_multi: bool) {
-        if !tab_available(self.dashboard_tab, has_species, is_multi) {
+    pub fn ensure_tab_available<C: Chromosome>(&mut self, evo: &EvoState<C>) {
+        if !self.dashboard_tab.available(evo) {
             self.dashboard_tab = DashboardTab::Stats;
             self.clamp_focus();
-        }
-    }
-
-    pub fn dashboard_tab_index(&self) -> usize {
-        match self.dashboard_tab {
-            DashboardTab::Stats => 0,
-            DashboardTab::Time => 1,
-            DashboardTab::Distribution => 2,
-            DashboardTab::Species => 3,
-            DashboardTab::Log => 4,
-            DashboardTab::Front => 5,
-            DashboardTab::Events => 6,
         }
     }
 
@@ -215,6 +226,16 @@ impl NavState {
                 .iter_tags()
                 .any(|tag| tag.as_str().to_lowercase().contains(&q))
     }
+
+    pub fn log_matches_search(&self, log: &EventLogEntry) -> bool {
+        let query = self.search.query.trim();
+        if query.is_empty() {
+            return true;
+        }
+        let q = query.to_lowercase();
+        log.message.to_lowercase().contains(&q)
+            || format!("{:?}", log.level).to_lowercase().contains(&q)
+    }
 }
 
 impl Default for NavState {
@@ -223,31 +244,16 @@ impl Default for NavState {
             mode: UiMode::Dashboard,
             dashboard_tab: DashboardTab::Stats,
             focus: Pane::List,
-            chart_tabs: [
-                MetricChartType::Mean,
-                MetricChartType::Mean,
-                MetricChartType::BoxWhisker,
-                MetricChartType::Mean,
-                MetricChartType::Mean,
-                MetricChartType::Mean,
-                MetricChartType::Mean,
-            ],
+            chart_tabs: DashboardTab::ALL.map(|tab| match tab {
+                DashboardTab::Distribution => MetricChartType::BoxWhisker,
+                _ => MetricChartType::Mean,
+            }),
+            chart_view: ChartView::default(),
             search: SearchState {
                 query: String::new(),
                 active: false,
             },
         }
-    }
-}
-
-/// Whether a tab can currently be shown given current run state.
-/// Stats/Time/Distribution are always available (guarantees the skip-loops terminate).
-fn tab_available(tab: DashboardTab, has_species: bool, is_multi: bool) -> bool {
-    match tab {
-        DashboardTab::Species => has_species,
-        DashboardTab::Log => !is_multi,
-        DashboardTab::Front => is_multi,
-        _ => true,
     }
 }
 

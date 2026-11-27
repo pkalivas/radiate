@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use super::tables::{header_row, render_scrollable_table, striped_rows};
 use crate::widgets::AppWidget;
 use crate::{
@@ -21,7 +23,7 @@ pub struct ImprovementLogWidget;
 pub struct FrontEventLogWidget;
 pub struct EventLogWidget;
 
-impl<C: Chromosome> AppWidget<C> for ImprovementLogWidget {
+impl<C: Chromosome + Debug> AppWidget<C> for ImprovementLogWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let log = &state.evo.improvement_log;
 
@@ -83,7 +85,7 @@ impl<C: Chromosome> AppWidget<C> for ImprovementLogWidget {
     }
 }
 
-impl<C: Chromosome> AppWidget<C> for FrontEventLogWidget {
+impl<C: Chromosome + Debug> AppWidget<C> for FrontEventLogWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let log = &state.evo.front_event_log;
 
@@ -185,9 +187,14 @@ impl<C: Chromosome> AppWidget<C> for FrontEventLogWidget {
     }
 }
 
-impl<C: Chromosome> AppWidget<C> for EventLogWidget {
+impl<C: Chromosome + Debug> AppWidget<C> for EventLogWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
-        let log = &state.evo.event_log;
+        let log = &state
+            .evo
+            .event_log
+            .iter()
+            .filter(|log| state.nav.log_matches_search(log))
+            .collect::<Vec<_>>();
 
         state
             .tables
@@ -234,7 +241,7 @@ impl<C: Chromosome> AppWidget<C> for EventLogWidget {
 
 pub struct DeltaBarChartWidget;
 
-impl<C: Chromosome> AppWidget<C> for DeltaBarChartWidget {
+impl<C: Chromosome + Debug> AppWidget<C> for DeltaBarChartWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let log = &state.evo.improvement_log;
         let entries = log.as_slice();
@@ -250,7 +257,7 @@ impl<C: Chromosome> AppWidget<C> for DeltaBarChartWidget {
         }
 
         let max_delta = entries.iter().map(|e| e.delta).fold(0.0_f32, f32::max);
-        let selected_row = state.tables.log.selected_row;
+        let selected_row = state.tables.log.selection.selected_row;
 
         // Log is newest-first; in the bar chart, oldest is leftmost (chart pos 0).
         // selected_row is the log index (0 = newest), which maps to chart pos = total-1-selected_row.

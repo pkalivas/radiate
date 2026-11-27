@@ -1,15 +1,15 @@
 use super::chart::{ChartState, MetricChartType};
-use crate::chart::RollingLineChart;
 use crate::widgets::num_pairs;
+use crate::{app::ImprovementEvent, chart::RollingLineChart};
 use radiate_engines::{
-    Chromosome, Ecosystem, Front, MetricSet, Objective, Optimize, Phenotype, Score, Species,
-    events::LogLevel,
+    Chromosome, Ecosystem, Front, MetricSet, Objective, Optimize, Phenotype, Population, Score,
+    Species, events::LogLevel,
 };
 use radiate_utils::WindowBuffer;
 use std::sync::{Arc, RwLock};
 
 const MAX_IMPROVEMENT_LOG: usize = 100;
-const MAX_EVENT_LOG: usize = 200;
+const MAX_EVENT_LOG: usize = 500;
 
 pub struct ImprovementEntry {
     pub generation: usize,
@@ -62,25 +62,30 @@ impl<C: Chromosome> EvoState<C> {
             return;
         }
 
+        self.score = new_score;
+    }
+
+    pub fn update_improvement(&mut self, event: ImprovementEvent) {
+        let Some(previous_score) = &event.previous_score else {
+            return;
+        };
+
         if self.pareto.objective.is_single() {
-            let prev = self.score.as_f32();
-            let next = new_score.as_f32();
-            let delta = match &self.pareto.objective {
-                Objective::Single(Optimize::Minimize) => prev - next,
-                _ => next - prev,
-            };
+            let next = event.score.as_f32();
+            let delta = previous_score
+                .delta(&event.score, &event.objective)
+                .map(|val| val.as_f32())
+                .unwrap_or(0.0);
 
             if delta > 0.0 {
-                self.best_score = new_score.clone();
+                self.best_score = event.score.clone();
                 self.improvement_log.push_front(ImprovementEntry {
-                    generation: self.index,
+                    generation: event.index,
                     score: next,
                     delta,
                 });
             }
         }
-
-        self.score = new_score;
     }
 
     pub fn update_index(&mut self, index: usize) {
@@ -175,6 +180,10 @@ impl<C: Chromosome> EvoState<C> {
 
     pub fn get_species(&self) -> Option<&Vec<Species<C>>> {
         self.ecosystem.as_ref().and_then(|eco| eco.species())
+    }
+
+    pub fn get_population(&self) -> Option<&Population<C>> {
+        self.ecosystem.as_ref().map(|eco| eco.population())
     }
 
     pub fn is_multi(&self) -> bool {

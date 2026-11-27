@@ -98,15 +98,15 @@ impl MetricSet {
         self.metrics.iter().map(|m| m.name().clone())
     }
 
-    #[inline(always)]
-    pub fn replace(&mut self, metric: impl Into<Metric>) {
-        let metric = metric.into();
-        if let Some(&idx) = self.name_lookup.get(metric.name().as_str()) {
-            self.metrics[idx.as_usize()] = metric;
+    pub fn replace<'a>(&mut self, key: impl AsRef<str>, metric: impl Into<MetricUpdate<'a>>) {
+        let metric_update = metric.into();
+        let idx = self.resolve(&key);
+
+        if let Some(metric) = self.metrics.get_mut(idx.as_usize()) {
+            metric.clear_values();
+            metric.apply_update(metric_update);
         } else {
-            let idx = MetricIdx::new(self.metrics.len() as u32);
-            self.name_lookup.insert(metric.name().clone(), idx);
-            self.metrics.push(metric);
+            self.upsert_at(idx, metric_update);
         }
     }
 
@@ -126,11 +126,6 @@ impl MetricSet {
     #[inline(always)]
     pub fn iter(&self) -> impl Iterator<Item = &Metric> {
         self.metrics.iter()
-    }
-
-    #[inline(always)]
-    pub fn add(&mut self, metric: Metric) {
-        self.replace(metric);
     }
 
     #[inline(always)]

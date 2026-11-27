@@ -1,4 +1,5 @@
 use radiate::prelude::*;
+use std::time::Instant;
 
 const MIN_SCORE: f32 = 0.1;
 const MAX_SECONDS: f64 = 5.0;
@@ -27,15 +28,15 @@ fn main() -> RadiateResult<()> {
         Input => Op::vars(0..in_dim),
         Edge => [Op::identity(), Op::weight()],
         Vertex => vertices,
-        Output => Op::sigmoid()
+        Output => Op::sum()
     };
 
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(in_dim, out_dim, other)?)
-        .fitness_fn(Regression::new(train.clone(), Loss::MSE))
+        .fitness_fn(Regression::new(train.clone(), Loss::XEnt))
         .offspring_selector(TournamentSelector::new(4))
         .minimizing()
-        .parallel()
+        // .parallel()
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.02, 0.05),
@@ -43,11 +44,14 @@ fn main() -> RadiateResult<()> {
         ))
         .build();
 
+    let start = Instant::now();
     let result = engine
         .iter()
         .logging()
         .until(|epoch| epoch.score().as_f32() < MIN_SCORE || epoch.seconds() > MAX_SECONDS)
         .last()?;
+    let elapsed = start.elapsed();
+    println!("Elapsed time: {:?}", elapsed);
 
     display(&train, &test, &result);
 
@@ -64,21 +68,16 @@ fn display(
     let train_acc = Accuracy::default()
         .named("train")
         .on(train)
-        .loss(Loss::MSE)
+        .loss(Loss::XEnt)
         .eval(result.value());
 
     let test_acc = Accuracy::default()
         .named("test")
         .on(test)
-        .loss(Loss::MSE)
+        .loss(Loss::XEnt)
         .eval(result.value());
 
     println!("{:?}", result);
     println!("{:?}", train_acc);
     println!("{:?}", test_acc);
-
-    // let dot = result.value().to_dot();
-    // // save the dot representation to a file
-    // let curr_dir = std::env::current_dir().expect("Unable to get current directory");
-    // std::fs::write(curr_dir.join("graph.dot"), dot).expect("Unable to write file");
 }

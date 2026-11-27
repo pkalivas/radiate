@@ -24,7 +24,7 @@ fn main() {
         // ... other parameters ...
         .build();
 
-    engine.subscribe::<EpochComplete<Vec<f32>>>(|event: &EpochComplete<Vec<f32>>| {
+    engine.subscribe(|event: &EpochComplete<Vec<f32>>| {
         println!(
             "Printing from event handler! [ {:?} ]: {:?}",
             event.index, event.score
@@ -38,7 +38,7 @@ fn main() {
     // --8<-- [start:handler]
     struct MyHandler;
 
-    impl Handler<EpochComplete<Vec<f32>>> for MyHandler {
+    impl On<EpochComplete<Vec<f32>>> for MyHandler {
         fn handle(&mut self, event: &EpochComplete<Vec<f32>>, _ctx: &EventContext<'_, Self>) {
             println!(
                 "Printing from event handler! [ {:?} ]: {:?}",

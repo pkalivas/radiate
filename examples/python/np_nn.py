@@ -71,7 +71,7 @@ engine = (
     .limit(
         rd.Limit.score(0.01),
         rd.Limit.generations(500),
-        rd.Limit.seconds(30),
+        rd.Limit.seconds(1),
     )
 )
 

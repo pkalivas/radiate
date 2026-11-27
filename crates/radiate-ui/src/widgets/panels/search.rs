@@ -43,8 +43,10 @@ impl<'a, C: Chromosome> Widget for SearchBarWidget<'a, C> {
             format!("{}", metric_summary.metrics).fg(Color::LightGreen),
             ", ".fg(Color::Gray).bold(),
             format!("{} ", metric_summary.updates).fg(Color::LightGreen),
-            "| Renders: ".fg(Color::Gray).bold(),
+            "| ".fg(Color::Gray).bold(),
             format!("{} ", total_renders).fg(Color::LightGreen),
+            "/ ".to_string().fg(Color::Gray).bold(),
+            format!("{} ", self.state.run.event_count).fg(Color::LightGreen),
         ];
 
         Paragraph::new(self.state.nav.search.query.as_str())
@@ -109,7 +111,7 @@ pub fn help_text<C: Chromosome>(state: &AppState<C>) -> Line<'static> {
 }
 
 /// One `[key] description` footer chip.
-fn kv(key: &str, desc: &str) -> [Span<'static>; 2] {
+pub fn kv(key: &str, desc: &str) -> [Span<'static>; 2] {
     [
         Span::from(format!("[{key}]")).fg(Color::LightGreen).bold(),
         Span::from(format!(" {desc} ")).fg(Color::Gray),

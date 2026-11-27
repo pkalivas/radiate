@@ -51,7 +51,7 @@ fn main() {
     let engine = GeneticEngine::builder()
         .codec(IntChromosome::from((5, 0..100)))
         // The batch fitness function will receive 7 batches of individuals during each generation's evaluation
-        .executor(Executor::FixedSizedWorkerPool(7))
+        .executor(Executor::new_thread_pool(7))
         .fitness_fn(|phenotypes: &[Vec<i32>]| {
             phenotypes
                 .iter()

@@ -90,7 +90,7 @@ where
             };
         }
 
-        Genotype::new(vec![])
+        Genotype::default()
     }
 
     fn decode(&self, genotype: &Genotype<TreeChromosome<T>>) -> Tree<T> {

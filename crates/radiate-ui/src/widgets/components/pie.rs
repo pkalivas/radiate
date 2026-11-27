@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::{
     state::AppState, styles::COLOR_WHEEL_400, widgets::AppWidget,
     widgets::panels::tables::tagged_metrics,
@@ -20,7 +22,7 @@ impl SpeciesPieChartComponent {
     }
 }
 
-impl<C: Chromosome> AppWidget<C> for SpeciesPieChartComponent {
+impl<C: Chromosome + Debug> AppWidget<C> for SpeciesPieChartComponent {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let Some(species) = &state.evo.get_species() else {
             let block = Block::bordered().title(Line::from(" No Data ").centered());
@@ -105,7 +107,7 @@ impl TimePieChartComponent {
     }
 }
 
-impl<C: Chromosome> AppWidget<C> for TimePieChartComponent {
+impl<C: Chromosome + Debug> AppWidget<C> for TimePieChartComponent {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let items = tagged_metrics(&state.evo.metrics, state, TagType::Time)
             .iter()

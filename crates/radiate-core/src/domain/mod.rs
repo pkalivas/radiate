@@ -9,4 +9,7 @@ pub mod tracker;
 pub use executor::Executor;
 pub use math::fill_subset;
 pub use random_provider::RdRand;
-pub use sync::{CommandChannel, ThreadSync, WaitGroup, WaitGuard, get_thread_pool};
+pub use sync::{
+    CommandChannel, Flag, FlagReader, Gate, Inbox, Scheduler, ThreadSync, Timer, WaitGroup,
+    WaitGuard,
+};

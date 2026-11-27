@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::{state::AppState, widgets::AppWidget};
 use radiate_engines::Chromosome;
 use ratatui::{
@@ -75,7 +77,7 @@ where
 
 impl<C, W> AppWidget<C> for ModalWidget<W>
 where
-    C: Chromosome,
+    C: Chromosome + Debug,
     W: AppWidget<C>,
 {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {

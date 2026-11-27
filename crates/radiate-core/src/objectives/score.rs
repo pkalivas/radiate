@@ -1,4 +1,4 @@
-use crate::error::RadiateResult;
+use crate::{Objective, Optimize, error::RadiateResult};
 use radiate_error::{RadiateError, radiate_bail};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -111,6 +111,30 @@ impl Score {
             Score::Single(v) => *v as usize,
             Score::Multi(v) => v[0] as usize,
         }
+    }
+
+    pub fn delta(&self, other: &Score, obj: &Objective) -> RadiateResult<Score> {
+        let a = self.as_slice();
+        let b = other.as_slice();
+
+        if obj.is_single() {
+            return Ok(Score::from(match obj.as_ref()[0] {
+                Optimize::Minimize => a[0] - b[0],
+                _ => b[0] - a[0],
+            }));
+        }
+
+        let mut deltas = Vec::with_capacity(a.len());
+        for (i, obj) in obj.as_ref().iter().enumerate() {
+            let delta = match &obj {
+                Optimize::Minimize => a[i] - b[i],
+                _ => b[i] - a[i],
+            };
+
+            deltas.push(delta);
+        }
+
+        Ok(Score::from(deltas))
     }
 
     pub fn scale<F>(&self, func: F) -> Score

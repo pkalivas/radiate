@@ -11,6 +11,6 @@ fn main() {
         .build();
 
     // Wrap the engine with the UI
-    let final_generation = radiate::ui(engine).iter().take(10).last().unwrap();
+    let final_generation = engine.iter().ui().take(10).last().unwrap();
     // --8<-- [end:ui]
 }

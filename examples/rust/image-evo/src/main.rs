@@ -35,7 +35,7 @@ fn main() {
         ))
         .build();
 
-    let result = radiate::ui(engine).iter().take(1000).last().unwrap();
+    let result = engine.iter().ui().take(1000).last().unwrap();
 
     println!("{}", result.metrics().dashboard());
 

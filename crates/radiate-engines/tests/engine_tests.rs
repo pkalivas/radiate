@@ -99,7 +99,7 @@ mod engine_tests {
                 //       every single phenotype open to crossover/mutation (invalidation - needing a new score).
                 //          .offspring_fraction(1.0)
                 //   2.) Increase the mutation/crossover rate so more individuals are invalidated during recombination.
-                .executor(Executor::FixedSizedWorkerPool(7))
+                .executor(Executor::new_thread_pool(7))
                 .fitness_fn(|phenotypes: &[Vec<i32>]| {
                     // At a very very very base level, we expect the batch to have at least two phenotypes
                     // Realistically, with an engine configured like this one is, we'd expect anywhere from 50-70ish
@@ -189,8 +189,8 @@ mod engine_tests {
         use std::thread;
         use std::time::Duration;
 
-        let mut engine = onemax_engine(5);
-        let control = engine.control();
+        let engine = onemax_engine(5);
+        let control = engine.sync();
 
         let handle = thread::spawn(move || {
             let result = engine.iter().until_seconds(1_f64).last().unwrap();
@@ -213,8 +213,8 @@ mod engine_tests {
         use std::thread;
         use std::time::Duration;
 
-        let mut engine = onemax_engine(5);
-        let control = engine.control();
+        let engine = onemax_engine(5);
+        let control = engine.sync();
         control.step_n(10);
 
         let last_index = Arc::new(AtomicUsize::new(0));
@@ -244,8 +244,8 @@ mod engine_tests {
         use std::thread;
         use std::time::Duration;
 
-        let mut engine = onemax_engine(5);
-        let control = engine.control();
+        let engine = onemax_engine(5);
+        let control = engine.sync();
 
         let handle = thread::spawn(move || {
             let result = engine.iter().last().unwrap();

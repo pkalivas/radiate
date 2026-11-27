@@ -1,12 +1,18 @@
-use crate::{Chromosome, ThreadSync, events::EngineStateChange};
+use crate::{
+    Chromosome, EngineStart, EngineStop, EpochComplete, EpochStart, GenerationSnapshot,
+    Improvement, ThreadSync, events::EngineStateChange,
+};
 use crate::{builder::config::EngineConfig, events::EventStream};
 use radiate_core::ExprSet;
 use radiate_core::error::RadiateResult;
 use radiate_core::{
-    Ecosystem, EngineState, Front, MetricSet, Objective, Phenotype, Problem, Score, metric,
+    Ecosystem, EngineState, Front, Gate, MetricSet, Objective, Phenotype, Problem, Score,
     metric_names,
 };
-use std::sync::{Arc, Mutex, RwLock};
+use std::{
+    sync::{Arc, Mutex, RwLock},
+    time::Duration,
+};
 
 pub struct EvolutionContext<C: Chromosome, T> {
     pub(crate) ecosystem: Ecosystem<C>,
@@ -16,10 +22,11 @@ pub struct EvolutionContext<C: Chromosome, T> {
     pub(crate) objective: Objective,
     pub(crate) sync: ThreadSync,
     pub(crate) score: Option<Score>,
+    pub(crate) previous_score: Option<Score>,
     pub(crate) front: Arc<RwLock<Front<Phenotype<C>>>>,
     pub(crate) problem: Arc<dyn Problem<C, T>>,
     pub(crate) exprs: Option<Arc<Mutex<ExprSet>>>,
-    pub(crate) events: EventStream,
+    pub(crate) stream: EventStream,
     pub(crate) state: EngineState,
 }
 
@@ -44,28 +51,12 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         Arc::clone(&self.front)
     }
 
-    pub fn event_stream(&self) -> &EventStream {
-        &self.events
+    pub fn stream(&self) -> &EventStream {
+        &self.stream
     }
 
-    pub fn wait(&self) {
-        self.sync.wait()
-    }
-
-    pub fn get_or_create_sync(&mut self) -> ThreadSync {
+    pub fn sync(&self) -> ThreadSync {
         self.sync.clone()
-    }
-
-    pub fn request_stop(&self) {
-        self.sync.stop();
-    }
-
-    pub fn stop_requested(&self) -> bool {
-        self.sync.is_stopped()
-    }
-
-    pub fn pause_requested(&self) -> bool {
-        self.sync.is_paused()
     }
 
     pub fn state(&self) -> EngineState {
@@ -73,6 +64,10 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
     }
 
     pub(crate) fn set_running(&mut self) {
+        if self.index == 0 && self.state == EngineState::PreStart {
+            self.metrics.upsert(metric_names::INDEX, self.index);
+        }
+
         self.change_state(EngineState::Running);
     }
 
@@ -84,8 +79,45 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.change_state(EngineState::Stopped);
     }
 
-    pub(crate) fn try_advance_one(&mut self) -> RadiateResult<bool> {
-        self.index += 1;
+    pub(crate) fn start(&mut self) -> RadiateResult<()>
+    where
+        C: Chromosome + Clone + 'static,
+        T: Clone + Send + Sync + 'static,
+    {
+        if self.state == EngineState::PreStart {
+            self.stream.open()?;
+            self.set_running();
+            self.stream.lazy_publish(|| EngineStart::from(&*self))?;
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn stop(&mut self) -> RadiateResult<()>
+    where
+        C: Chromosome + Clone + 'static,
+        T: Clone + Send + Sync + 'static,
+    {
+        self.set_stopped();
+        self.stream.lazy_publish(|| EngineStop::from(&*self))?;
+        self.stream.close()
+    }
+
+    pub(crate) fn process(
+        &mut self,
+        mut scope: impl FnMut(&mut Self) -> RadiateResult<Duration>,
+    ) -> RadiateResult<()>
+    where
+        C: Chromosome + Clone + 'static,
+        T: Clone + Send + Sync + 'static,
+    {
+        if !self.can_continue() {
+            return self.stop();
+        }
+
+        self.stream.lazy_publish(|| EpochStart::from(&*self))?;
+
+        let duration = scope(self)?;
 
         let best = self.ecosystem.get_phenotype(0);
         let best_improved = self
@@ -95,15 +127,40 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
             .unwrap_or(false);
 
         if best_improved && let Some(best) = best {
+            self.previous_score = self.score.clone();
             self.score = best.score().cloned();
             self.best = self.problem.decode(best.genotype());
+
+            self.stream.lazy_publish(|| Improvement::from(&*self))?;
         }
 
-        self.metrics
-            .replace(metric!(metric_names::INDEX, self.index));
+        self.index += 1;
+        self.metrics.replace(metric_names::INDEX, self.index);
+        self.metrics.upsert(metric_names::TIME, duration);
         self.metrics.bump(self.index);
 
-        Ok(best_improved)
+        self.stream.lazy_publish(|| EpochComplete::from(&*self))?;
+        self.stream
+            .lazy_publish(|| GenerationSnapshot::from(&*self))?;
+        self.stream.roll()
+    }
+
+    fn can_continue(&mut self) -> bool {
+        match self.sync.gate() {
+            Gate::Open => true,
+            Gate::Stopped => false,
+            Gate::Closed => {
+                // If sync.gate() returned Closed, the sync was paused from an external
+                // request, so we change the state to paused then park.
+                self.set_paused();
+                if self.sync.wait().is_continue() {
+                    self.set_running();
+                    return true;
+                }
+
+                false
+            }
+        }
     }
 
     fn change_state(&mut self, state: EngineState) {
@@ -111,11 +168,13 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
             return;
         }
 
-        self.events.publish(EngineStateChange {
-            from: self.state,
-            to: state,
-            index: self.index,
-        });
+        self.stream
+            .lazy_publish(|| EngineStateChange {
+                from: self.state,
+                to: state,
+                index: self.index,
+            })
+            .unwrap();
 
         self.state = state;
     }
@@ -134,12 +193,13 @@ where
                 index: generation.index(),
                 metrics: generation.metrics().clone(),
                 score: Some(generation.score().clone()),
+                previous_score: None,
                 front: config.front(),
                 objective: config.objective().clone(),
                 problem: config.problem().clone(),
                 sync: config.sync(),
                 exprs: generation.exprs(),
-                events: config.event_stream(),
+                stream: config.event_stream(),
                 state: EngineState::PreStart,
             };
         }
@@ -155,12 +215,13 @@ where
             index: 0,
             metrics: MetricSet::default(),
             score: None,
+            previous_score: None,
             front: config.front(),
             objective: config.objective().clone(),
             problem: config.problem().clone(),
             sync: config.sync(),
             exprs: config.exprs(),
-            events: config.event_stream(),
+            stream: config.event_stream(),
             state: EngineState::PreStart,
         }
     }

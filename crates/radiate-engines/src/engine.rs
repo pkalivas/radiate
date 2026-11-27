@@ -1,15 +1,10 @@
-use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
+use crate::{Chromosome, EngineRuntime, Generation, ThreadSync, steps::EvolutionStep};
 use crate::{GenerationView, builder::GeneticEngineBuilder};
-use crate::{
-    Handler,
-    events::{
-        EngineStart, EngineStop, EpochComplete, EpochStart, EventStream, Improvement, Subscription,
-    },
-};
+use crate::{On, events::Subscription};
 use crate::{context::EvolutionContext, events::Event};
-use crate::{events::GenerationSnapshot, pipeline::Pipeline};
 use radiate_core::{Engine, EngineState};
 use radiate_core::{EngineStream, error::Result};
+use std::time::Instant;
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -63,8 +58,7 @@ where
     T: Clone + Send + Sync + 'static,
 {
     context: EvolutionContext<C, T>,
-    pipeline: Pipeline<C>,
-    stream: EventStream,
+    steps: Vec<EvolutionStep<C, T>>,
 }
 
 impl<C, T> GeneticEngine<C, T>
@@ -76,16 +70,8 @@ where
     ///
     /// This constructor is primarily used internally by the builder pattern.
     /// Users should create engines using `GeneticEngine::builder()`.
-    pub(crate) fn new(
-        context: EvolutionContext<C, T>,
-        pipeline: Pipeline<C>,
-        stream: EventStream,
-    ) -> Self {
-        GeneticEngine {
-            context,
-            pipeline,
-            stream,
-        }
+    pub(crate) fn new(context: EvolutionContext<C, T>, steps: Vec<EvolutionStep<C, T>>) -> Self {
+        GeneticEngine { context, steps }
     }
 
     /// Creates a new builder for configuring and constructing a genetic engine.
@@ -102,8 +88,8 @@ where
     /// The control interface allows for pausing, resuming, and stopping the engine's execution
     /// from external contexts. If the control interface has not been initialized yet, this method
     /// will create a new instance.
-    pub fn control(&mut self) -> ThreadSync {
-        self.context.get_or_create_sync()
+    pub fn sync(&self) -> ThreadSync {
+        self.context.sync()
     }
 
     /// Converts the engine into an iterator that yields generations.
@@ -138,8 +124,11 @@ where
     /// This method returns a [Subscription] that allows you to define
     /// how to handle events of type `E`. You can use this to listen for events
     /// such as epoch completions, improvements, or custom messages emitted during the evolutionary process.
-    pub fn subscribe<E: Event>(&self, handler: impl Handler<E>) -> Subscription {
-        self.stream.subscribe(handler)
+    pub fn subscribe<E: Event>(&self, handler: impl On<E>) -> Subscription {
+        self.context
+            .stream()
+            .subscribe(handler)
+            .with_name(E::name())
     }
 }
 
@@ -185,52 +174,34 @@ where
         self.context.state
     }
 
-    fn start(&mut self) {
-        self.context.set_running();
-        self.stream.publish(EngineStart);
+    fn start(&mut self) -> Result<()> {
+        self.context.start()
     }
 
-    fn stop(&mut self) {
-        self.context.set_stopped();
-        self.stream.publish(EngineStop::from(&self.context));
+    fn stop(&mut self) -> Result<()> {
+        self.context.stop()
     }
 
     #[inline]
     fn step(&mut self) -> Result<()> {
         match self.state() {
-            EngineState::PreStart => self.start(),
+            EngineState::PreStart => self.start()?,
             EngineState::Stopped => return Ok(()),
-            _ => {
-                if self.context.stop_requested() {
-                    self.stop();
-                    return Ok(());
-                }
+            _ => {}
+        }
 
-                if self.context.pause_requested() {
-                    self.context.set_paused();
-                    self.context.wait();
+        self.context.process(|ctx| {
+            let now = Instant::now();
+            for step in self.steps.iter_mut() {
+                let start_time = now.elapsed();
+                step.call(ctx)?;
+                let end_time = now.elapsed();
 
-                    if self.context.stop_requested() {
-                        self.stop();
-                        return Ok(());
-                    }
-
-                    self.context.set_running();
-                }
+                ctx.metrics.upsert(&step.name, end_time - start_time);
             }
-        }
 
-        self.stream.publish(EpochStart::from(&self.context));
-        self.pipeline.run(&mut self.context)?;
-        if self.context.try_advance_one()? {
-            self.stream
-                .lazy_publish(|| Improvement::from(&self.context))?;
-        }
-        self.stream.publish(EpochComplete::from(&self.context));
-        self.stream
-            .lazy_publish(|| GenerationSnapshot::from(&self.context))?;
-
-        Ok(())
+            Ok(now.elapsed())
+        })
     }
 }
 

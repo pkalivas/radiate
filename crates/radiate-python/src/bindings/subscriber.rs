@@ -4,8 +4,7 @@ use pyo3::{
     types::{PyAnyMethods, PyDict},
 };
 use radiate::{
-    Chromosome, EngineStart, EpochComplete, EventContext, GeneticEngineBuilder, Handler,
-    LimitTriggered,
+    Chromosome, EngineStart, EpochComplete, EventContext, GeneticEngineBuilder, LimitTriggered, On,
     events::{CheckpointSaved, EngineStop, EpochStart, Improvement, LogEvent, LogLevel},
 };
 use std::fmt::Debug;
@@ -56,8 +55,8 @@ impl Debug for PySubscriber {
     }
 }
 
-impl Handler<EngineStart> for PySubscriber {
-    fn handle(&mut self, _: &EngineStart, _: &EventContext<'_, Self>) {
+impl<C: Chromosome + 'static> On<EngineStart<C>> for PySubscriber {
+    fn handle(&mut self, _: &EngineStart<C>, _: &EventContext<'_, Self>) {
         Python::attach(|py| {
             let rd = radiate(py).bind(py);
             let py_event = rd
@@ -78,7 +77,7 @@ impl Handler<EngineStart> for PySubscriber {
     }
 }
 
-impl<T> Handler<EngineStop<T>> for PySubscriber
+impl<T> On<EngineStop<T>> for PySubscriber
 where
     T: IntoPyAnyObject + Clone + Send + Sync + 'static,
 {
@@ -122,7 +121,7 @@ where
     }
 }
 
-impl Handler<EpochStart> for PySubscriber {
+impl On<EpochStart> for PySubscriber {
     fn handle(&mut self, event: &EpochStart, _: &EventContext<'_, Self>) {
         Python::attach(|py| {
             let rd = radiate(py).bind(py);
@@ -144,7 +143,7 @@ impl Handler<EpochStart> for PySubscriber {
     }
 }
 
-impl<T> Handler<EpochComplete<T>> for PySubscriber
+impl<T> On<EpochComplete<T>> for PySubscriber
 where
     T: IntoPyAnyObject + Clone + Send + Sync + 'static,
 {
@@ -191,7 +190,7 @@ where
     }
 }
 
-impl<T> Handler<Improvement<T>> for PySubscriber
+impl<T> On<Improvement<T>> for PySubscriber
 where
     T: IntoPyAnyObject + Clone + Send + Sync + 'static,
 {
@@ -223,7 +222,7 @@ where
     }
 }
 
-impl Handler<LimitTriggered> for PySubscriber {
+impl On<LimitTriggered> for PySubscriber {
     fn handle(&mut self, event: &LimitTriggered, _: &EventContext<'_, Self>) {
         Python::attach(|py| {
             let rd = radiate(py).bind(py);
@@ -252,7 +251,7 @@ impl Handler<LimitTriggered> for PySubscriber {
     }
 }
 
-impl Handler<LogEvent> for PySubscriber {
+impl On<LogEvent> for PySubscriber {
     fn handle(&mut self, event: &LogEvent, _: &EventContext<'_, Self>) {
         Python::attach(|py| {
             let rd = radiate(py).bind(py);
@@ -290,7 +289,7 @@ impl Handler<LogEvent> for PySubscriber {
     }
 }
 
-impl Handler<CheckpointSaved> for PySubscriber {
+impl On<CheckpointSaved> for PySubscriber {
     fn handle(&mut self, event: &CheckpointSaved, _: &EventContext<'_, Self>) {
         Python::attach(|py| {
             let rd = radiate(py).bind(py);
@@ -342,7 +341,7 @@ where
             builder = if equals_or_all(&event_type, event_name) {
                 match event_name {
                     event_types::START_EVENT => {
-                        builder.subscribe::<EngineStart>(subscriber.clone())
+                        builder.subscribe::<EngineStart<C>>(subscriber.clone())
                     }
                     event_types::STOP_EVENT => {
                         builder.subscribe::<EngineStop<T>>(subscriber.clone())

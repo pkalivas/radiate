@@ -1,6 +1,6 @@
 use crate::events::EpochComplete;
 use crate::{
-    Handler,
+    On,
     events::{EventContext, EventHandler, Warning},
 };
 use radiate_core::Objective;
@@ -33,7 +33,7 @@ where
     }
 }
 
-impl<T> Handler<EpochComplete<T>> for HealthMonitor<T>
+impl<T> On<EpochComplete<T>> for HealthMonitor<T>
 where
     T: Send + Sync + 'static,
 {
@@ -55,11 +55,19 @@ fn check_stagnation<T, H>(message: &EpochComplete<T>, ctx: &EventContext<'_, H>)
         .map(|met| met.last_value() as usize)
         .unwrap_or_default();
 
-    if stag_count >= STAGNATION_WARNING_THRESHOLD {
-        ctx.publish(Warning(format!(
-            "Stagnation detected: {} epochs without improvement",
-            stag_count
-        )));
+    let should_warn = if stag_count >= STAGNATION_WARNING_THRESHOLD {
+        stag_count.is_multiple_of(STAGNATION_WARNING_THRESHOLD)
+    } else {
+        false
+    };
+
+    if should_warn {
+        ctx.publish(Warning(radiate_utils::three_col_format(
+            "Health",
+            "Stagnation",
+            format!("{} Epochs", stag_count),
+        )))
+        .unwrap();
     }
 }
 
@@ -70,10 +78,12 @@ fn check_diversity<T, H>(message: &EpochComplete<T>, ctx: &EventContext<'_, H>) 
 
     let ratio = ratio.last_value();
     if ratio < DIVERSITY_WARNING_THRESHOLD {
-        ctx.publish(Warning(format!(
-            "Diversity collapse: only {:.1}% of the population is genetically distinct",
-            ratio * 100.0
-        )));
+        ctx.publish(Warning(radiate_utils::three_col_format(
+            "Health",
+            "Low Diversity",
+            format!("{:.1}%", ratio * 100.0),
+        )))
+        .unwrap();
     }
 }
 
@@ -84,9 +94,11 @@ fn check_species_collapse<T, H>(message: &EpochComplete<T>, ctx: &EventContext<'
 
     let share = share.last_value();
     if share >= LARGEST_SPECIES_SHARE_WARNING_THRESHOLD {
-        ctx.publish(Warning(format!(
-            "Species collapse: the largest species holds {:.1}% of the population",
-            share * 100.0
-        )));
+        ctx.publish(Warning(radiate_utils::three_col_format(
+            "Health",
+            "Species Dom.",
+            format!("Largest species {:.1}%", share * 100.0),
+        )))
+        .unwrap();
     }
 }

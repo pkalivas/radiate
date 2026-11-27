@@ -64,6 +64,16 @@ pub struct WaitGuard {
     wg: WaitGroup,
 }
 
+impl WaitGuard {
+    pub fn done(self) {
+        drop(self);
+    }
+
+    pub fn new_guard(&self) -> WaitGuard {
+        self.wg.guard()
+    }
+}
+
 impl Drop for WaitGuard {
     fn drop(&mut self) {
         if self.wg.inner.counter.fetch_sub(1, Ordering::AcqRel) == 1 {

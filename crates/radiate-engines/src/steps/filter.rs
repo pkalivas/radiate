@@ -69,7 +69,7 @@ impl<C: Chromosome> EngineStep<C> for FilterStep<C> {
             metrics.upsert(metric_names::REPLACE_INVALID, invalid_count);
         }
 
-        for filter in &mut self.filters {
+        for filter in self.filters.iter_mut() {
             let mut filter = filter.lock().unwrap();
             filter.filter(
                 generation,

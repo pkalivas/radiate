@@ -188,7 +188,7 @@ def test_engine_graph_recurrent_with_np(memory_dataset, random_seed):
             ],
             edge=rd.Op.weight(),
             output=rd.Op.sigmoid(),
-            graph_type=rd.GraphType.LSTM,
+            graph_type=rd.GraphType.GRU,
         )
         .regression(inputs, outputs, loss=rd.MSE)
         .alter(

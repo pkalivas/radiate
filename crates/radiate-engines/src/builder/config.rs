@@ -86,8 +86,8 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         (self.ecosystem.population().len() as f32 * self.offspring_fraction) as usize
     }
 
-    pub fn species_executor(&self) -> Arc<Executor> {
-        Arc::clone(&self.executor.species_executor.executor)
+    pub fn species_executor(&self) -> Executor {
+        self.executor.species_executor.executor.clone()
     }
 
     pub fn event_stream(&self) -> EventStream {

@@ -1,12 +1,12 @@
 #![cfg(feature = "serde")]
 
-use crate::Generation;
 use crate::{
-    FileWriter,
+    FileWriter, LogLevel,
     events::{CheckpointSaved, Warning},
 };
+use crate::{Generation, LogEvent};
 use crate::{
-    Handler,
+    On,
     events::{EventContext, EventHandler, GenerationSnapshot},
 };
 use radiate_core::{Chromosome, error::RadiateResult};
@@ -49,11 +49,12 @@ where
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
         ctx.subscribe::<GenerationSnapshot<C, T>>()
             .schedule(self.interval)?;
+        ctx.subscribe::<CheckpointSaved>();
         Ok(())
     }
 }
 
-impl<C, T> Handler<GenerationSnapshot<C, T>> for CheckpointWriterHandler<C, T>
+impl<C, T> On<GenerationSnapshot<C, T>> for CheckpointWriterHandler<C, T>
 where
     C: Chromosome + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,
@@ -73,11 +74,30 @@ where
                 ctx.publish(CheckpointSaved {
                     index: generation.index(),
                     path: file_path.into_string().unwrap_or_default(),
-                });
+                })
+                .unwrap();
             }
             Err(err) => {
-                ctx.publish(Warning(err.to_string()));
+                ctx.publish(Warning(err.to_string())).unwrap();
             }
         };
+    }
+}
+
+impl<C, T> On<CheckpointSaved> for CheckpointWriterHandler<C, T>
+where
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    fn handle(&mut self, message: &CheckpointSaved, ctx: &EventContext<'_, Self>) {
+        ctx.publish(LogEvent(
+            LogLevel::Info,
+            radiate_utils::three_col_format(
+                "Checkpoint",
+                "Saved",
+                format!("{}: {}", message.index, message.path),
+            ),
+        ))
+        .unwrap();
     }
 }

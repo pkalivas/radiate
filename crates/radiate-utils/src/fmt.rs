@@ -18,6 +18,24 @@ pub fn short_type_name<T: ?Sized>() -> String {
     out
 }
 
+pub fn type_name_from_str(name: &str) -> String {
+    let mut out = String::with_capacity(name.len());
+    let mut segment = String::new();
+    for c in name.chars() {
+        if c.is_alphanumeric() || c == '_' {
+            segment.push(c);
+        } else if c == ':' {
+            segment.clear();
+        } else {
+            out.push_str(&segment);
+            segment.clear();
+            out.push(c);
+        }
+    }
+    out.push_str(&segment);
+    out
+}
+
 fn strip_path(segment: &str) -> &str {
     match segment.rfind("::") {
         Some(idx) => &segment[idx + 2..],
@@ -81,6 +99,19 @@ impl ToSnakeCase<String> for String {
         }
         snake_case
     }
+}
+
+pub fn three_col_format(
+    left: impl AsRef<str>,
+    middle: impl AsRef<str>,
+    right: impl AsRef<str>,
+) -> String {
+    format!(
+        "{:<10} | {:<15} | {:<10}",
+        left.as_ref(),
+        middle.as_ref(),
+        right.as_ref()
+    )
 }
 
 pub fn generate_metric_key<T: ?Sized>(category: &str) -> String {

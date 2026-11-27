@@ -130,11 +130,15 @@ pub trait Engine {
 
     /// Starts the engine, initializing any necessary state or resources.
     /// This is typically called before entering the main execution loop.
-    fn start(&mut self) {}
+    fn start(&mut self) -> Result<()> {
+        Ok(())
+    }
 
     /// Stops the engine, performing any necessary cleanup or finalization.
     /// This is typically called after exiting the main execution loop.
-    fn stop(&mut self) {}
+    fn stop(&mut self) -> Result<()> {
+        Ok(())
+    }
 
     /// Returns the current state of the engine.
     /// This allows external systems to query the engine's status without modifying it.

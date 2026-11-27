@@ -1,6 +1,77 @@
-use crate::{Generation, Limit, context::EvolutionContext};
-use radiate_core::{Chromosome, EngineState, MetricSet, Objective, Score};
-use std::{fmt::Debug, sync::Arc};
+use crate::{Event, Generation, Limit, StreamSnapshot, Subscription, context::EvolutionContext};
+use radiate_core::{
+    Chromosome, EngineState, Front, MetricSet, Objective, Phenotype, Score, SmallStr,
+};
+use radiate_utils::generate_metric_key;
+use std::{
+    fmt::Debug,
+    ops::Deref,
+    sync::{Arc, RwLock},
+};
+
+#[derive(Clone, Debug)]
+pub struct StreamEvent<T>(pub T);
+impl<T> Event for StreamEvent<T>
+where
+    T: Send + Sync + 'static,
+{
+    fn name() -> radiate_core::SmallStr {
+        const NAME: &str = "event";
+        SmallStr::from_string(generate_metric_key::<T>(NAME))
+    }
+}
+
+impl<T> Deref for StreamEvent<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct StreamOpened(pub StreamSnapshot);
+
+impl Deref for StreamOpened {
+    type Target = StreamSnapshot;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct StreamClosed(pub StreamSnapshot);
+
+impl Deref for StreamClosed {
+    type Target = StreamSnapshot;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SubscriptionAdded(pub Subscription);
+
+impl Deref for SubscriptionAdded {
+    type Target = Subscription;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SubscriptionRemoved(pub Subscription);
+
+impl Deref for SubscriptionRemoved {
+    type Target = Subscription;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct EngineStateChange {
@@ -9,20 +80,27 @@ pub struct EngineStateChange {
     pub to: EngineState,
 }
 
+impl Event for EngineStateChange {}
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CheckpointSaved {
     pub index: usize,
     pub path: String,
 }
 
+impl Event for CheckpointSaved {}
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Warning(pub String);
+impl Event for Warning {}
 
 #[derive(Clone, Debug)]
 pub struct LimitTriggered(pub usize, pub Limit);
+impl Event for LimitTriggered {}
 
 #[derive(Clone, Debug)]
 pub struct EpochStart(pub usize);
+impl Event for EpochStart {}
 
 impl<C, T> From<&EvolutionContext<C, T>> for EpochStart
 where
@@ -37,9 +115,13 @@ where
 #[derive(Clone)]
 pub struct Improvement<T> {
     pub index: usize,
+    pub objective: Objective,
     pub best: T,
     pub score: Score,
+    pub previous_score: Option<Score>,
 }
+
+impl<T> Event for Improvement<T> where T: Send + Sync + 'static {}
 
 impl<T> Debug for Improvement<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -55,8 +137,10 @@ where
     fn from(ctx: &EvolutionContext<C, T>) -> Self {
         Improvement {
             index: ctx.index,
+            objective: ctx.objective.clone(),
             best: ctx.best.clone(),
             score: ctx.score.clone().unwrap_or_default(),
+            previous_score: ctx.previous_score.clone(),
         }
     }
 }
@@ -69,6 +153,8 @@ pub struct EpochComplete<T> {
     pub score: Score,
     pub objective: Objective,
 }
+
+impl<T> Event for EpochComplete<T> where T: Send + Sync + 'static {}
 
 impl<C, T> From<&EvolutionContext<C, T>> for EpochComplete<T>
 where
@@ -96,8 +182,27 @@ impl<T> Debug for EpochComplete<T> {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct EngineStart;
+#[derive(Clone)]
+pub struct EngineStart<C: Chromosome> {
+    pub front: Arc<RwLock<Front<Phenotype<C>>>>,
+}
+
+impl<C: Chromosome + 'static> Event for EngineStart<C> {}
+
+impl<C: Chromosome, T> From<&EvolutionContext<C, T>> for EngineStart<C>
+where
+    T: Clone,
+{
+    fn from(ctx: &EvolutionContext<C, T>) -> Self {
+        EngineStart { front: ctx.front() }
+    }
+}
+
+impl<C: Chromosome> Debug for EngineStart<C> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "EngineStart")
+    }
+}
 
 #[derive(Clone)]
 pub struct EngineStop<T> {
@@ -106,6 +211,8 @@ pub struct EngineStop<T> {
     pub metrics: MetricSet,
     pub score: Score,
 }
+
+impl<T> Event for EngineStop<T> where T: Send + Sync + 'static {}
 
 impl<C, T> From<&EvolutionContext<C, T>> for EngineStop<T>
 where
@@ -139,6 +246,13 @@ where
     T: Clone + Send + Sync + 'static,
 {
     pub generation: Arc<Generation<C, T>>,
+}
+
+impl<C, T> Event for GenerationSnapshot<C, T>
+where
+    C: Chromosome + 'static,
+    T: Clone + Send + Sync + 'static,
+{
 }
 
 impl<C, T> From<&EvolutionContext<C, T>> for GenerationSnapshot<C, T>

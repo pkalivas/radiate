@@ -21,6 +21,7 @@ fn main() -> RadiateResult<()> {
         .fitness_fn(Regression::new(data.clone(), Loss::MSE))
         .minimizing()
         .diversity(NeatDistance::default())
+        .parallel()
         .target_species(TARGET_SPECIES)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
@@ -29,9 +30,10 @@ fn main() -> RadiateResult<()> {
         ))
         .build();
 
-    let result = radiate::ui(engine)
+    let result = engine
         .iter()
-        .logging()
+        .ui()
+        .pause_every(10)
         .until_score(MIN_SCORE)
         .last()?;
 

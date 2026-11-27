@@ -10,6 +10,12 @@ fn objective2(genotype: &[f32]) -> f32 {
     genotype.iter().map(|g| g * g).sum::<f32>()
 }
 
+// Pulls every gene toward 0.5, so it conflicts with `objective1` (which pulls toward 0.0)
+// when both are minimized.
+fn distance_from_half(genotype: &[f32]) -> f32 {
+    genotype.iter().map(|g| (g - 0.5).powi(2)).sum::<f32>()
+}
+
 fn main() {
     // --8<-- [start:minimizing]
     let engine = GeneticEngine::builder()
@@ -74,4 +80,42 @@ fn main() {
         })
         .build();
     // --8<-- [end:multi_objective_selectors]
+
+    // --8<-- [start:front_reading]
+    let codec = FloatCodec::vector(10, 0.0..1.0);
+
+    let engine = GeneticEngine::builder()
+        .codec(codec.clone())
+        .multi_objective(vec![Optimize::Minimize, Optimize::Minimize])
+        .front_size(800..900)
+        .fitness_fn(|genotype: Vec<f32>| {
+            vec![objective1(&genotype), distance_from_half(&genotype)]
+        })
+        .build();
+
+    let result = engine.iter().take(200).last().unwrap();
+
+    // The archive of the best trade-offs found over the whole run
+    let front = result.front().expect("multi-objective runs always have a front");
+    println!("{} solutions on the front", front.len());
+
+    for member in front.values() {
+        let scores = member.score().unwrap().as_slice(); // one value per objective
+        let params: Vec<f32> = codec.decode(member.genotype()); // back to the problem's representation
+        println!("{scores:?} <- {params:?}");
+    }
+    // --8<-- [end:front_reading]
+
+    // --8<-- [start:front_analysis]
+    // The analysis methods cache their results, so they need an owned, mutable front
+    let mut front = front.clone();
+
+    // Reference point: worse than every member on every objective
+    let hypervolume = front.hypervolume(&[10.0, 3.0]);
+    let entropy = front.entropy();
+    let crowding = front.crowding_distance().map(|d| d.to_vec());
+
+    // Drop the 2% most isolated members
+    let removed = front.remove_outliers(0.02);
+    // --8<-- [end:front_analysis]
 }

@@ -835,7 +835,7 @@ impl PyEngineBuilder {
 
         let executor = Self::get_input_of_type(inputs, PyEngineInputType::Executor)
             .map(PyEngineInput::convert)
-            .unwrap_or(Ok(Executor::Serial))?;
+            .unwrap_or(Ok(Executor::Inline))?;
 
         if executor.is_parallel()
             && gil_enabled

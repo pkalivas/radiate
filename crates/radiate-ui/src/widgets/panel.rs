@@ -12,7 +12,9 @@ pub struct Panel<W: Widget> {
     title: Option<Line<'static>>,
     title_bottom: Option<Line<'static>>,
     top_right_title: Option<Line<'static>>,
+    top_left_title: Option<Line<'static>>,
     block: Block<'static>,
+    title_bottom_left: Option<Line<'static>>,
     render_inside_block: bool,
 }
 
@@ -23,6 +25,8 @@ impl<W: Widget> Panel<W> {
             child: Some(child),
             title_bottom: None,
             top_right_title: None,
+            top_left_title: None,
+            title_bottom_left: None,
             render_inside_block: true,
             block: Block::default()
                 .borders(Borders::ALL)
@@ -49,16 +53,28 @@ impl<W: Widget> Panel<W> {
     //     self
     // }
 
-    // pub fn titled_bottom(mut self, title: impl Into<Line<'static>>) -> Self {
-    //     self.title_bottom = Some(title.into());
-    //     self
-    // }
+    pub fn titled_bottom(mut self, title: impl Into<Line<'static>>) -> Self {
+        self.title_bottom = Some(title.into());
+        self
+    }
 
-    // pub fn title_top_right(mut self, title: impl Into<Line<'static>>) -> Self {
-    //     let line = title.into();
-    //     self.top_right_title = Some(line);
-    //     self
-    // }
+    pub fn title_bottom_left(mut self, title: impl Into<Line<'static>>) -> Self {
+        let line = title.into();
+        self.title_bottom_left = Some(line);
+        self
+    }
+
+    pub fn title_top_right(mut self, title: impl Into<Line<'static>>) -> Self {
+        let line = title.into();
+        self.top_right_title = Some(line);
+        self
+    }
+
+    pub fn title_top_left(mut self, title: impl Into<Line<'static>>) -> Self {
+        let line = title.into();
+        self.top_left_title = Some(line);
+        self
+    }
 
     #[allow(dead_code)]
     pub fn render_inside_block(mut self, render_inside: bool) -> Self {
@@ -74,6 +90,8 @@ impl Panel<Empty> {
             title: None,
             title_bottom: None,
             top_right_title: None,
+            top_left_title: None,
+            title_bottom_left: None,
             render_inside_block: true,
             block: Block::default()
                 .borders(Borders::ALL)
@@ -92,6 +110,8 @@ where
             title: None,
             title_bottom: None,
             top_right_title: None,
+            top_left_title: None,
+            title_bottom_left: None,
             render_inside_block: true,
             block: Block::default()
                 .borders(Borders::ALL)
@@ -133,6 +153,14 @@ where
 
             if let Some(top_right_title) = self.top_right_title {
                 block = block.title(top_right_title.right_aligned())
+            }
+
+            if let Some(top_left_title) = self.top_left_title {
+                block = block.title(top_left_title.left_aligned())
+            }
+
+            if let Some(title_bottom_left) = self.title_bottom_left {
+                block = block.title_bottom(title_bottom_left.left_aligned());
             }
 
             if self.render_inside_block {

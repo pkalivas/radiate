@@ -22,9 +22,8 @@ rand = { workspace = true }
 dotenvy = { workspace = true }
 smallvec = { workspace = true }
 serde = { workspace = true, optional = true }
-serde_json = { workspace = true, optional = true }
 radiate-error = { workspace = true }
 
 [features]
 default = []
-serde = ["dep:serde", "dep:serde_json"]
+serde = ["dep:serde"]

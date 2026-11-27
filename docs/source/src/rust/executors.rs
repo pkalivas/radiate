@@ -19,12 +19,12 @@ fn main() {
     let codec = FloatCodec::vector(2, -1.0..1.0).with_bounds(-10.0..10.0);
 
     // Define the executor - here we use a fixed size worker pool with 4 threads
-    let executor = Executor::FixedSizedWorkerPool(4);
+    let executor = Executor::new_thread_pool(4);
     // Alternatively, you can use a WorkerPool (which uses rayon's global thread pool).
     // Requires the `rayon` feature to be enabled in your Cargo.toml.
     let executor = Executor::WorkerPool;
     // Or for single-threaded execution, use Serial - this is the default if none is specified
-    let executor = Executor::Serial;
+    let executor = Executor::Inline;
 
     let engine = GeneticEngine::builder()
         .codec(codec)

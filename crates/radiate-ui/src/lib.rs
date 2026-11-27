@@ -1,55 +1,54 @@
 mod app;
 mod chart;
-mod runtime;
+mod keys;
 mod state;
 mod styles;
+mod tui;
 mod widgets;
 
-use crate::runtime::TuiEngine;
-use radiate_engines::{Chromosome, GeneticEngine, disable_logging};
-use std::time::Duration;
+pub use crate::tui::Tui;
+use radiate_engines::{Chromosome, EngineRuntime, EpochComplete, Expr, GeneticEngine};
+use std::fmt::Debug;
 
-pub const DEFAULT_RENDER_INTERVAL: Duration = Duration::from_millis(100);
-
-pub fn ui<C, T>(engine: impl Into<UiInput<C, T>>) -> TuiEngine<C, T>
-where
-    C: Chromosome + Clone + 'static,
-    T: Clone + Send + Sync,
-{
-    disable_logging();
-    let (engine, render_interval) = match engine.into() {
-        UiInput::Engine(e) => (e, DEFAULT_RENDER_INTERVAL),
-        UiInput::EngineRenderInterval(e, d) => (e, d),
-    };
-
-    TuiEngine::new(engine, render_interval)
+pub trait TuiRuntimeExt {
+    fn ui(self) -> Self;
+    fn pause_every(self, interval: usize) -> Self;
 }
 
-pub enum UiInput<C, T>
+impl<C, T> TuiRuntimeExt for EngineRuntime<GeneticEngine<C, T>>
 where
-    C: Chromosome,
+    C: Chromosome + Debug + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
-    Engine(GeneticEngine<C, T>),
-    EngineRenderInterval(GeneticEngine<C, T>, Duration),
-}
+    fn ui(self) -> Self {
+        let context = self.context();
 
-impl<C, T> From<GeneticEngine<C, T>> for UiInput<C, T>
-where
-    C: Chromosome,
-    T: Clone + Send + Sync,
-{
-    fn from(engine: GeneticEngine<C, T>) -> Self {
-        UiInput::Engine(engine)
+        let handle = Tui::<C, T>::new(context.sync());
+
+        self.attach(handle).logging()
     }
-}
 
-impl<C, T> From<(GeneticEngine<C, T>, Duration)> for UiInput<C, T>
-where
-    C: Chromosome,
-    T: Clone + Send + Sync,
-{
-    fn from(input: (GeneticEngine<C, T>, Duration)) -> Self {
-        UiInput::EngineRenderInterval(input.0, input.1)
+    fn pause_every(self, interval: usize) -> Self {
+        assert!(
+            interval > 0,
+            "pause_every interval must be greater than zero"
+        );
+        let guarded_interval = interval.max(1);
+        let context = self.context();
+        let control = context.sync();
+        let stream = context.stream();
+
+        if !stream.handler_registered::<Tui<C, T>>() {
+            panic!("Cannot call 'pause_every' before attaching the Tui handler");
+        }
+
+        stream
+            .subscribe(move |_: &EpochComplete<T>| {
+                control.set_paused(true);
+            })
+            .schedule(Expr::every(guarded_interval))
+            .unwrap();
+
+        self
     }
 }

@@ -1,4 +1,4 @@
-use crate::chart::LineChart;
+use crate::chart::{ChartView, LineChart};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -13,6 +13,7 @@ pub struct LineChartWidget<'a, T: LineChart> {
     bg_color: Color,
     show_x_axis: bool,
     show_boarders: bool,
+    view: ChartView,
 }
 
 impl<'a, T: LineChart> LineChartWidget<'a, T> {
@@ -22,6 +23,7 @@ impl<'a, T: LineChart> LineChartWidget<'a, T> {
             bg_color: crate::styles::ALT_BG_COLOR,
             show_x_axis: false,
             show_boarders: true,
+            view: ChartView::default(),
         }
     }
 
@@ -32,6 +34,11 @@ impl<'a, T: LineChart> LineChartWidget<'a, T> {
 
     pub fn with_show_boarders(mut self, show: bool) -> Self {
         self.show_boarders = show;
+        self
+    }
+
+    pub fn with_view(mut self, view: ChartView) -> Self {
+        self.view = view;
         self
     }
 }
@@ -72,98 +79,104 @@ impl<'a, T: LineChart> Widget for LineChartWidget<'a, T> {
             return;
         }
 
-        let mut min_y = f64::MAX;
-        let mut max_y = f64::MIN;
-        let mut min_x = f64::MAX;
-        let mut max_x = f64::MIN;
+        // Bounds come from the points actually drawn, so a shorter history
+        // or a log scale rescales the axes to fit.
+        let visible = self
+            .charts
+            .iter()
+            .map(|chart| self.view.visible(chart.values()))
+            .collect::<Vec<_>>();
+        let transform = self
+            .view
+            .transform(visible.iter().flat_map(|v| v.iter().map(|&(_, y)| y)));
+        let series = visible
+            .iter()
+            .map(|points| {
+                points
+                    .iter()
+                    .map(|&(x, y)| (x, transform.to_chart(y)))
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
 
-        for chart in &self.charts {
-            if chart.min_y() < min_y {
-                min_y = chart.min_y();
-            }
-            if chart.min_x() < min_x {
-                min_x = chart.min_x();
-            }
-            if chart.max_y() > max_y {
-                max_y = chart.max_y();
-            }
-            if chart.max_x() > max_x {
-                max_x = chart.max_x();
-            }
+        let (mut min_x, mut max_x) = (f64::MAX, f64::MIN);
+        let (mut min_y, mut max_y) = (f64::MAX, f64::MIN);
+        for &(x, y) in series.iter().flatten() {
+            min_x = min_x.min(x);
+            max_x = max_x.max(x);
+            min_y = min_y.min(y);
+            max_y = max_y.max(y);
         }
 
-        let x_bounds = (min_x, max_x);
-        let y_bounds = (min_y, max_y);
+        if min_x > max_x {
+            (min_x, max_x, min_y, max_y) = (0.0, 1.0, 0.0, 1.0);
+        }
+        if min_y == max_y {
+            // avoid zero range
+            min_y -= 0.5;
+            max_y += 0.5;
+        }
 
-        let chart = chart_widget(
-            x_bounds,
-            y_bounds,
-            self.charts,
-            self.bg_color,
-            self.show_x_axis,
-            self.show_boarders,
-        );
+        let datasets = self
+            .charts
+            .iter()
+            .zip(&series)
+            .map(|(chart, points)| {
+                Dataset::default()
+                    .marker(symbols::Marker::Braille)
+                    .style(Style::default().fg(chart.color()))
+                    .graph_type(GraphType::Line)
+                    .data(points)
+            })
+            .collect::<Vec<_>>();
 
-        chart.render(area, buf);
+        let x_axis = Axis::default()
+            .style(Style::default().gray())
+            .bounds([min_x, max_x]);
+        let x_axis = if self.show_x_axis {
+            x_axis.labels(Line::from(vec![
+                format!("{:.2}", min_x).bold(),
+                format!("{:.2}", (min_x + max_x) / 2.0).into(),
+                format!("{:.2}", max_x).bold(),
+            ]))
+        } else {
+            x_axis
+        };
+
+        // Labels show real values, whatever the scale.
+        let label = |y: f64| format_value(transform.to_value(y));
+        let y_axis = Axis::default()
+            .style(Style::default().fg(self.bg_color))
+            .bounds([min_y, max_y])
+            .labels(Line::from(vec![
+                label(min_y).bold(),
+                label((min_y + max_y) / 2.0).into(),
+                label(max_y).bold(),
+            ]));
+
+        let chart = Chart::new(datasets)
+            .bg(self.bg_color)
+            .x_axis(x_axis)
+            .y_axis(y_axis);
+
+        if self.show_boarders {
+            let title = format!(" {} ", self.charts[0].title());
+            chart
+                .block(Block::bordered().title(Line::from(title).centered()))
+                .render(area, buf);
+        } else {
+            chart.render(area, buf);
+        }
     }
 }
 
-fn chart_widget<'a, T: LineChart>(
-    x_bounds: (f64, f64),
-    y_bounds: (f64, f64),
-    charts: Vec<&'a T>,
-    bg_color: Color,
-    show_x_axis: bool,
-    show_boarders: bool,
-) -> ratatui::widgets::Chart<'a> {
-    let (min_x, max_x) = x_bounds;
-    let (min_y, max_y) = y_bounds;
-
-    let mid_y = (min_y + max_y) / 2.0;
-    let mid_x = (min_x + max_x) / 2.0;
-
-    let datasets = charts
-        .iter()
-        .map(|dim| {
-            Dataset::default()
-                .marker(symbols::Marker::Braille)
-                .style(Style::default().fg(dim.color()))
-                .graph_type(GraphType::Line)
-                .data(dim.values())
-        })
-        .collect::<Vec<_>>();
-
-    let x_axis = if show_x_axis {
-        Axis::default()
-            .style(Style::default().gray())
-            .bounds([min_x, max_x])
-            .labels(Line::from(vec![
-                format!("{:.2}", min_x).bold(),
-                format!("{:.2}", mid_x).into(),
-                format!("{:.2}", max_x).bold(),
-            ]))
+/// Two decimals, switching to scientific notation where that would show
+/// nothing useful (very large, or small but not zero).
+fn format_value(v: f64) -> String {
+    let abs = v.abs();
+    if abs != 0.0 && !(0.01..1e6).contains(&abs) {
+        format!("{v:.2e}")
     } else {
-        Axis::default()
-            .style(Style::default().gray())
-            .bounds([min_x, max_x])
-    };
-
-    let result = Chart::new(datasets).bg(bg_color).x_axis(x_axis).y_axis(
-        Axis::default()
-            .style(Style::default().fg(bg_color))
-            .bounds([min_y, max_y])
-            .labels(Line::from(vec![
-                format!("{:.2}", min_y).bold(),
-                format!("{:.2}", mid_y).into(),
-                format!("{:.2}", max_y).bold(),
-            ])),
-    );
-
-    if show_boarders {
-        result.block(
-            Block::bordered().title(Line::from(format!(" {} ", charts[0].title())).centered()),
-        )
-    } else {
-        result
+        format!("{v:.2}")
     }
 }

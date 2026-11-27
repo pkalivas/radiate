@@ -1,6 +1,6 @@
 use crate::{
-    Handler,
-    events::{CheckpointSaved, EngineStateChange, EventContext, EventHandler},
+    Event, On, Warning,
+    events::{EngineStateChange, EventContext, EventHandler},
 };
 use crate::{LimitTriggered, events::EpochComplete};
 use radiate_core::Objective;
@@ -31,41 +31,31 @@ where
 {
     fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
         ctx.subscribe::<LimitTriggered>();
-        ctx.subscribe::<CheckpointSaved>();
         ctx.subscribe::<EpochComplete<T>>();
         ctx.subscribe::<EngineStateChange>();
+        ctx.subscribe::<Warning>();
         Ok(())
     }
 }
 
-impl<T> Handler<LimitTriggered> for EngineLogger<T>
+impl<T> On<LimitTriggered> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
     fn handle(&mut self, message: &LimitTriggered, ctx: &EventContext<'_, Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
-            format!("Limit triggered: {:?}", message.1),
-        ));
-    }
-}
-
-impl<T> Handler<CheckpointSaved> for EngineLogger<T>
-where
-    T: Send + Sync + 'static,
-{
-    fn handle(&mut self, message: &CheckpointSaved, ctx: &EventContext<'_, Self>) {
-        ctx.publish(LogEvent(
-            LogLevel::Info,
-            format!(
-                "Checkpoint saved at index {}: {}",
-                message.index, message.path
+            radiate_utils::three_col_format(
+                "Engine",
+                "Limit Triggered",
+                format!("{:?}", message.1),
             ),
-        ));
+        ))
+        .unwrap();
     }
 }
 
-impl<T> Handler<EpochComplete<T>> for EngineLogger<T>
+impl<T> On<EpochComplete<T>> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
@@ -96,19 +86,34 @@ where
             }
         };
 
-        ctx.publish(LogEvent(LogLevel::Info, msg));
+        ctx.publish(LogEvent(LogLevel::Info, msg)).unwrap();
     }
 }
 
-impl<T> Handler<EngineStateChange> for EngineLogger<T>
+impl<T> On<EngineStateChange> for EngineLogger<T>
 where
     T: Send + Sync + 'static,
 {
     fn handle(&mut self, event: &EngineStateChange, ctx: &EventContext<'_, Self>) {
         ctx.publish(LogEvent(
             LogLevel::Info,
-            format!("State Change: {:?} -> {:?}", event.from, event.to),
-        ));
+            radiate_utils::three_col_format(
+                "Engine",
+                "State Change",
+                format!("{:?} -> {:?}", event.from, event.to),
+            ),
+        ))
+        .unwrap();
+    }
+}
+
+impl<T> On<Warning> for EngineLogger<T>
+where
+    T: Send + Sync + 'static,
+{
+    fn handle(&mut self, event: &Warning, ctx: &EventContext<'_, Self>) {
+        ctx.publish(LogEvent(LogLevel::Warn, event.0.clone()))
+            .unwrap();
     }
 }
 
@@ -121,6 +126,8 @@ pub enum LogLevel {
 #[derive(Clone, Debug)]
 pub struct LogEvent(pub LogLevel, pub String);
 
+impl Event for LogEvent {}
+
 #[derive(Clone, Default)]
 pub struct LoggingHandler(bool);
 
@@ -130,8 +137,15 @@ impl LoggingHandler {
     }
 }
 
-impl Handler<LogEvent> for LoggingHandler {
-    fn handle(&mut self, message: &LogEvent, _ctx: &EventContext<'_, Self>) {
+impl EventHandler for LoggingHandler {
+    fn start(&mut self, ctx: &EventContext<'_, Self>) -> RadiateResult<()> {
+        ctx.subscribe::<LogEvent>();
+        Ok(())
+    }
+}
+
+impl On<LogEvent> for LoggingHandler {
+    fn handle(&mut self, message: &LogEvent, _: &EventContext<'_, Self>) {
         if !self.0 {
             return;
         }
