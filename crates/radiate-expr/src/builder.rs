@@ -247,7 +247,7 @@ impl Expr {
     pub fn error(self, target: f32) -> Expr {
         // (x - target) / target == x * (1/target) + (-1)
         self.binary(Expr::from(1.0 / target), BinaryOp::Mul)
-            .add(Expr::from(-1.0))
+            .add(Expr::from(-1.0_f32))
             .compile()
     }
 

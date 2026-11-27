@@ -250,6 +250,23 @@ mod test {
     }
 
     #[test]
+    fn test_uncompiled_mixed_type_arithmetic_does_not_panic() {
+        // Limits and replacement filters evaluate uncompiled, so Float32 metric
+        // values meet integer literals directly in AnyValue arithmetic.
+        let mut metrics = MetricSet::default();
+        metrics.upsert("a", 9.0);
+
+        let mut div = Expr::select("a").div(3_i32);
+        assert!((f32_of(div.evaluate(&metrics).unwrap()) - 3.0).abs() < 1e-6);
+
+        let mut mul = Expr::select("a").mul(2_i64);
+        assert!((f32_of(mul.evaluate(&metrics).unwrap()) - 18.0).abs() < 1e-6);
+
+        let mut div_zero = Expr::select("a").div(0_i32);
+        assert_eq!(div_zero.evaluate(&metrics).unwrap(), AnyValue::Null);
+    }
+
+    #[test]
     fn test_neg_expr() {
         let mut expr = Expr::select("a").neg();
         let mut metrics = MetricSet::default();

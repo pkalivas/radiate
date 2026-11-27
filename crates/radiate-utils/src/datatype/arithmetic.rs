@@ -1,347 +1,330 @@
 use radiate_error::radiate_bail;
 
 use crate::AnyValue;
-use std::ops::{Add, Div, Mul, Rem, Sub};
-use std::ops::{BitAnd, BitOr, Not};
+use std::ops::{Add, BitAnd, BitOr, Div, Mul, Not, Rem, Sub};
+use std::time::Duration;
 
-/// Internal helper: perform `lhs <op> rhs` for all numeric AnyValue variants.
-/// On type mismatch, returns `AnyValue::Null`.
-macro_rules! bin_numeric_op {
-    ($lhs:expr, $rhs:expr, $op:tt) => {{
-        use AnyValue::*;
-        match ($lhs, $rhs) {
-            (Int8(a),    Int8(b))    => Int8(a $op b),
-            (Int8(a),   Int16(b))   => Int16(i16::from(a) $op b),
-            (Int8(a),   Int32(b))   => Int32(i32::from(a) $op b),
-            (Int8(a),   Int64(b))   => Int64(i64::from(a) $op b),
-            (Int8(a),   Int128(b))  => Int128(i128::from(a) $op b),
+// Arithmetic on `AnyValue` follows one set of rules:
+//
+// - Numeric operands are promoted to a common type, then a single checked
+//   operation runs:
+//     - either side a float  → that float width (the wider one if both are)
+//     - both integers        → the wider width, signed if either side is
+//                              signed (`Usize` is treated as `u64`)
+//   Integer overflow, and division or remainder by zero (int or float),
+//   produce `Null`.
+// - Durations: `Duration ± Duration → Duration`, `Duration × number`,
+//   `number × Duration` and `Duration ÷ number → Duration`, and
+//   `Duration ÷ Duration → Float32` (a ratio). Negative or overflowing
+//   results produce `Null`.
+// - `Vector`/`Vector` and `Dict`/`Dict` apply elementwise.
+// - Every other combination (Null, Bool, strings, nested with scalar) → `Null`.
 
-            (Int16(a),   Int8(b))   => Int16(i16::from(a) $op i16::from(b)),
-            (Int16(a),   Int16(b))   => Int16(a $op b),
-            (Int16(a),   Int32(b))   => Int32(i32::from(a) $op b),
-            (Int16(a),   Int64(b))   => Int64(i64::from(a) $op b),
-            (Int16(a),   Int128(b))  => Int128(i128::from(a) $op b),
-
-            (Int32(a),   Int8(b))   => Int32(a $op i32::from(b)),
-            (Int32(a),   Int16(b))   => Int32(a $op i32::from(b)),
-            (Int32(a),   Int32(b))   => Int32(a $op b),
-            (Int32(a),   Int64(b))   => Int64(i64::from(a) $op b),
-            (Int32(a),   Int128(b))  => Int128(i128::from(a) $op b),
-
-            (Int64(a),   Int8(b))   => Int64(a $op i64::from(b)),
-            (Int64(a),   Int16(b))   => Int64(a $op i64::from(b)),
-            (Int64(a),   Int32(b))   => Int64(a $op i64::from(b)),
-            (Int64(a),   Int64(b))   => Int64(a $op b),
-            (Int64(a),   Int128(b))  => Int128(i128::from(a) $op b),
-
-            (Int128(a),   Int8(b))   => Int128(a $op i128::from(b)),
-            (Int128(a),   Int16(b))   => Int128(a $op i128::from(b)),
-            (Int128(a),   Int32(b))   => Int128(a $op i128::from(b)),
-            (Int128(a),   Int64(b))   => Int128(a $op i128::from(b)),
-            (Int128(a),  Int128(b))  => Int128(a $op b),
-
-            (UInt8(a),   UInt8(b))   => UInt8(a $op b),
-            (UInt8(a),  UInt16(b))  => UInt16(u16::from(a) $op b),
-            (UInt8(a),  UInt32(b))  => UInt32(u32::from(a) $op b),
-            (UInt8(a),  UInt64(b))  => UInt64(u64::from(a) $op b),
-            (UInt8(a),  UInt128(b)) => UInt128(u128::from(a) $op b),
-
-            (UInt16(a),  UInt8(b))  => UInt16(a $op u16::from(b)),
-            (UInt16(a),  UInt16(b))  => UInt16(a $op b),
-            (UInt16(a),  UInt32(b))  => UInt32(u32::from(a) $op b),
-            (UInt16(a),  UInt64(b))  => UInt64(u64::from(a) $op b),
-            (UInt16(a),  UInt128(b)) => UInt128(u128::from(a) $op b),
-
-            (UInt32(a),  UInt8(b))  => UInt32(a $op u32::from(b)),
-            (UInt32(a),  UInt16(b))  => UInt32(a $op u32::from(b)),
-            (UInt32(a),  UInt32(b))  => UInt32(a $op b),
-            (UInt32(a),  UInt64(b))  => UInt64(u64::from(a) $op b),
-            (UInt32(a),  UInt128(b)) => UInt128(u128::from(a) $op b),
-
-            (UInt64(a),  UInt8(b))  => UInt64(a $op u64::from(b)),
-            (UInt64(a),  UInt16(b))  => UInt64(a $op u64::from(b)),
-            (UInt64(a),  UInt32(b))  => UInt64(a $op u64::from(b)),
-            (UInt64(a),  UInt64(b))  => UInt64(a $op b),
-            (UInt64(a),  UInt128(b)) => UInt128(u128::from(a) $op b),
-
-            (Float32(a), Float32(b)) => Float32(a $op b),
-            (Float64(a), Float32(b)) => Float64(a $op b as f64),
-
-            (Float64(a), Float64(b)) => Float64(a $op b),
-            (Float32(a), Float64(b)) => Float64(a as f64 $op b),
-            _ => Null,
-        }
-    }};
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Op {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Rem,
 }
 
-macro_rules! bin_numeric_div {
-    ($lhs:expr, $rhs:expr) => {{
-        use AnyValue::*;
-        match ($lhs, $rhs) {
-            (Int8(a), Int8(b)) => Int8(if b == 0 { a } else { a / b }),
-            (Int16(a), Int8(b)) => Int16(if b == 0 { a } else { a / i16::from(b) }),
-            (Int32(a), Int8(b)) => Int32(if b == 0 { a } else { a / i32::from(b) }),
-            (Int64(a), Int8(b)) => Int64(if b == 0 { a } else { a / i64::from(b) }),
-            (Int128(a), Int8(b)) => Int128(if b == 0 { a } else { a / i128::from(b) }),
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum NumKind {
+    Int { signed: bool, bits: u8 },
+    Float { bits: u8 },
+}
 
-            (Int16(a), Int16(b)) => Int16(if b == 0 { a } else { a / b }),
-            (Int32(a), Int16(b)) => Int32(if b == 0 { a } else { a / i32::from(b) }),
-            (Int64(a), Int16(b)) => Int64(if b == 0 { a } else { a / i64::from(b) }),
-            (Int128(a), Int16(b)) => Int128(if b == 0 { a } else { a / i128::from(b) }),
+/// A numeric operand widened into a carrier every source type fits in.
+#[derive(Clone, Copy, Debug)]
+enum Num {
+    I(i128),
+    U(u128),
+    F(f64),
+}
 
-            (Int32(a), Int32(b)) => Int32(if b == 0 { a } else { a / b }),
-            (Int64(a), Int32(b)) => Int64(if b == 0 { a } else { a / i64::from(b) }),
-            (Int128(a), Int32(b)) => Int128(if b == 0 { a } else { a / i128::from(b) }),
-
-            (Int64(a), Int64(b)) => Int64(if b == 0 { a } else { a / b }),
-            (Int128(a), Int64(b)) => Int128(if b == 0 { a } else { a / i128::from(b) }),
-
-            (Int128(a), Int128(b)) => Int128(if b == 0 { a } else { a / b }),
-
-            (UInt8(a), UInt8(b)) => UInt8(if b == 0 { a } else { a / b }),
-            (UInt8(a), UInt16(b)) => UInt16(if b == 0 { a as u16 } else { (a as u16) / b }),
-            (UInt8(a), UInt32(b)) => UInt32(if b == 0 { a as u32 } else { (a as u32) / b }),
-            (UInt8(a), UInt64(b)) => UInt64(if b == 0 { a as u64 } else { (a as u64) / b }),
-            (UInt8(a), UInt128(b)) => UInt128(if b == 0 { a as u128 } else { (a as u128) / b }),
-
-            (UInt16(a), UInt16(b)) => UInt16(if b == 0 { a } else { a / b }),
-            (UInt16(a), UInt32(b)) => UInt32(if b == 0 { a as u32 } else { (a as u32) / b }),
-            (UInt16(a), UInt64(b)) => UInt64(if b == 0 { a as u64 } else { (a as u64) / b }),
-            (UInt16(a), UInt128(b)) => UInt128(if b == 0 { a as u128 } else { (a as u128) / b }),
-
-            (UInt32(a), UInt32(b)) => UInt32(if b == 0 { a } else { a / b }),
-            (UInt32(a), UInt64(b)) => UInt64(if b == 0 { a as u64 } else { (a as u64) / b }),
-            (UInt32(a), UInt128(b)) => UInt128(if b == 0 { a as u128 } else { (a as u128) / b }),
-
-            (UInt64(a), UInt64(b)) => UInt64(if b == 0 { a } else { a / b }),
-            (UInt64(a), UInt128(b)) => UInt128(if b == 0 { a as u128 } else { (a as u128) / b }),
-
-            (Float32(a), Float32(b)) => {
-                if b == 0.0 {
-                    Null
-                } else {
-                    Float32(a / b)
-                }
-            }
-            (Float64(a), Float64(b)) => {
-                if b == 0.0 {
-                    Null
-                } else {
-                    Float64(a / b)
-                }
-            }
-            (Float32(a), Float64(b)) => {
-                if b == 0.0 {
-                    Null
-                } else {
-                    Float64((a as f64) / b)
-                }
-            }
-            (Float64(a), Float32(b)) => {
-                if b == 0.0 {
-                    Null
-                } else {
-                    Float64(a / (b as f64))
-                }
-            }
-            _ => panic!("Division is only supported for numeric types"),
+impl Num {
+    #[inline]
+    fn as_f64(self) -> f64 {
+        match self {
+            Num::I(x) => x as f64,
+            Num::U(x) => x as f64,
+            Num::F(x) => x,
         }
-    }};
+    }
+
+    #[inline]
+    fn as_i128(self) -> Option<i128> {
+        match self {
+            Num::I(x) => Some(x),
+            Num::U(x) => i128::try_from(x).ok(),
+            Num::F(_) => None,
+        }
+    }
+
+    #[inline]
+    fn as_u128(self) -> Option<u128> {
+        match self {
+            Num::U(x) => Some(x),
+            Num::I(x) => u128::try_from(x).ok(),
+            Num::F(_) => None,
+        }
+    }
+}
+
+#[inline]
+fn classify(value: &AnyValue<'_>) -> Option<(NumKind, Num)> {
+    use AnyValue::*;
+    let uint = |bits| NumKind::Int {
+        signed: false,
+        bits,
+    };
+    let int = |bits| NumKind::Int { signed: true, bits };
+
+    Some(match value {
+        UInt8(x) => (uint(8), Num::U(u128::from(*x))),
+        UInt16(x) => (uint(16), Num::U(u128::from(*x))),
+        UInt32(x) => (uint(32), Num::U(u128::from(*x))),
+        UInt64(x) => (uint(64), Num::U(u128::from(*x))),
+        UInt128(x) => (uint(128), Num::U(*x)),
+        Usize(x) => (uint(64), Num::U(*x as u128)),
+
+        Int8(x) => (int(8), Num::I(i128::from(*x))),
+        Int16(x) => (int(16), Num::I(i128::from(*x))),
+        Int32(x) => (int(32), Num::I(i128::from(*x))),
+        Int64(x) => (int(64), Num::I(i128::from(*x))),
+        Int128(x) => (int(128), Num::I(*x)),
+
+        Float32(x) => (NumKind::Float { bits: 32 }, Num::F(f64::from(*x))),
+        Float64(x) => (NumKind::Float { bits: 64 }, Num::F(*x)),
+        _ => return None,
+    })
+}
+
+#[inline]
+fn promote(a: NumKind, b: NumKind) -> NumKind {
+    use NumKind::*;
+    match (a, b) {
+        (Float { bits: x }, Float { bits: y }) => Float { bits: x.max(y) },
+        (Float { .. }, Int { .. }) => a,
+        (Int { .. }, Float { .. }) => b,
+        (
+            Int {
+                signed: s1,
+                bits: b1,
+            },
+            Int {
+                signed: s2,
+                bits: b2,
+            },
+        ) => Int {
+            signed: s1 || s2,
+            bits: b1.max(b2),
+        },
+    }
+}
+
+#[inline]
+fn narrow_unsigned(value: u128, bits: u8) -> Option<AnyValue<'static>> {
+    use AnyValue::*;
+    Some(match bits {
+        8 => UInt8(u8::try_from(value).ok()?),
+        16 => UInt16(u16::try_from(value).ok()?),
+        32 => UInt32(u32::try_from(value).ok()?),
+        64 => UInt64(u64::try_from(value).ok()?),
+        _ => UInt128(value),
+    })
+}
+
+#[inline]
+fn narrow_signed(value: i128, bits: u8) -> Option<AnyValue<'static>> {
+    use AnyValue::*;
+    Some(match bits {
+        8 => Int8(i8::try_from(value).ok()?),
+        16 => Int16(i16::try_from(value).ok()?),
+        32 => Int32(i32::try_from(value).ok()?),
+        64 => Int64(i64::try_from(value).ok()?),
+        _ => Int128(value),
+    })
+}
+
+#[inline]
+fn narrow_float(value: f64, bits: u8) -> AnyValue<'static> {
+    if bits == 32 {
+        AnyValue::Float32(value as f32)
+    } else {
+        AnyValue::Float64(value)
+    }
+}
+
+#[inline]
+fn numeric_op(lhs: &AnyValue<'_>, rhs: &AnyValue<'_>, op: Op) -> Option<AnyValue<'static>> {
+    let (lhs_kind, a) = classify(lhs)?;
+    let (rhs_kind, b) = classify(rhs)?;
+
+    match promote(lhs_kind, rhs_kind) {
+        NumKind::Float { bits } => {
+            let (x, y) = (a.as_f64(), b.as_f64());
+            if matches!(op, Op::Div | Op::Rem) && y == 0.0 {
+                return None;
+            }
+
+            // For f32 operands, computing in f64 and rounding once is exact
+            // for + - * / % (f64 has more than 2×24+2 mantissa bits).
+            let result = match op {
+                Op::Add => x + y,
+                Op::Sub => x - y,
+                Op::Mul => x * y,
+                Op::Div => x / y,
+                Op::Rem => x % y,
+            };
+
+            Some(narrow_float(result, bits))
+        }
+        NumKind::Int {
+            signed: false,
+            bits,
+        } => {
+            let (x, y) = (a.as_u128()?, b.as_u128()?);
+            let result = match op {
+                Op::Add => x.checked_add(y),
+                Op::Sub => x.checked_sub(y),
+                Op::Mul => x.checked_mul(y),
+                Op::Div => x.checked_div(y),
+                Op::Rem => x.checked_rem(y),
+            }?;
+
+            narrow_unsigned(result, bits)
+        }
+        NumKind::Int { signed: true, bits } => {
+            let (x, y) = (a.as_i128()?, b.as_i128()?);
+            let result = match op {
+                Op::Add => x.checked_add(y),
+                Op::Sub => x.checked_sub(y),
+                Op::Mul => x.checked_mul(y),
+                Op::Div => x.checked_div(y),
+                Op::Rem => x.checked_rem(y),
+            }?;
+
+            narrow_signed(result, bits)
+        }
+    }
+}
+
+#[inline]
+fn scale_duration(duration: &Duration, factor: f64) -> Option<AnyValue<'static>> {
+    if !factor.is_finite() || factor < 0.0 {
+        return None;
+    }
+
+    Duration::try_from_secs_f64(duration.as_secs_f64() * factor)
+        .ok()
+        .map(AnyValue::Duration)
+}
+
+#[inline]
+fn duration_op(lhs: &AnyValue<'_>, rhs: &AnyValue<'_>, op: Op) -> Option<AnyValue<'static>> {
+    use AnyValue::Duration as Dur;
+
+    match (lhs, rhs, op) {
+        (Dur(a), Dur(b), Op::Add) => a.checked_add(*b).map(Dur),
+        (Dur(a), Dur(b), Op::Sub) => a.checked_sub(*b).map(Dur),
+        (Dur(a), Dur(b), Op::Div) => {
+            if b.is_zero() {
+                None
+            } else {
+                Some(AnyValue::Float32(
+                    (a.as_secs_f64() / b.as_secs_f64()) as f32,
+                ))
+            }
+        }
+        (Dur(d), n, Op::Mul) if classify(n).is_some() => scale_duration(d, n.extract::<f64>()?),
+        (n, Dur(d), Op::Mul) if classify(n).is_some() => scale_duration(d, n.extract::<f64>()?),
+        (Dur(d), n, Op::Div) if classify(n).is_some() => {
+            let divisor = n.extract::<f64>()?;
+            if divisor == 0.0 {
+                None
+            } else {
+                scale_duration(d, 1.0 / divisor)
+            }
+        }
+        _ => None,
+    }
+}
+
+fn arith<'a>(lhs: AnyValue<'a>, rhs: AnyValue<'a>, op: Op) -> AnyValue<'a> {
+    use AnyValue::*;
+
+    match (lhs, rhs) {
+        (Vector(a), Vector(b)) => {
+            Vector(a.into_iter().zip(b).map(|(x, y)| arith(x, y, op)).collect())
+        }
+        (Dict(a), Dict(b)) => {
+            if a.len() != b.len() {
+                return Null;
+            }
+
+            Dict(
+                a.into_iter()
+                    .zip(b)
+                    .map(|(one, two)| {
+                        if one.0 != two.0 {
+                            return (one.0, one.1, Null);
+                        }
+
+                        (one.0, one.1, arith(one.2, two.2, op))
+                    })
+                    .collect(),
+            )
+        }
+        (l, r) => numeric_op(&l, &r, op)
+            .or_else(|| duration_op(&l, &r, op))
+            .unwrap_or(Null),
+    }
 }
 
 impl Add for AnyValue<'_> {
     type Output = Self;
 
-    #[inline(always)]
+    #[inline]
     fn add(self, other: Self) -> Self {
-        use AnyValue::*;
-        let is_numeric = self.dtype().is_numeric() && other.dtype().is_numeric();
-        let is_nested = self.is_nested() && other.is_nested();
-
-        if !is_numeric && !is_nested {
-            return self;
-        }
-
-        match (self, other) {
-            (Bool(a), Bool(b)) => Bool(a || b),
-            (Vector(a), Vector(b)) => Vector(a.into_iter().zip(b).map(|(x, y)| x + y).collect()),
-            (Dict(a), Dict(b)) => {
-                if a.len() != b.len() {
-                    return Null;
-                }
-
-                Dict(
-                    a.into_iter()
-                        .zip(b)
-                        .map(|(one, two)| {
-                            if one.0 != two.0 {
-                                return (one.0, one.1, Null);
-                            }
-
-                            (one.0, one.1, one.2 + two.2)
-                        })
-                        .collect(),
-                )
-            }
-            (lhs, rhs) => bin_numeric_op!(lhs, rhs, +),
-        }
+        arith(self, other, Op::Add)
     }
 }
 
 impl Sub for AnyValue<'_> {
     type Output = Self;
 
-    #[inline(always)]
+    #[inline]
     fn sub(self, other: Self) -> Self {
-        use AnyValue::*;
-
-        let is_numeric = self.dtype().is_numeric() && other.dtype().is_numeric();
-        let is_nested = self.is_nested() && other.is_nested();
-
-        if !is_numeric && !is_nested {
-            return self;
-        }
-
-        match (self, other) {
-            (Bool(a), Bool(b)) => Bool(a ^ b),
-            (Vector(a), Vector(b)) => Vector(a.into_iter().zip(b).map(|(x, y)| x - y).collect()),
-            (Dict(a), Dict(b)) => {
-                if a.len() != b.len() {
-                    return Null;
-                }
-
-                Dict(
-                    a.into_iter()
-                        .zip(b)
-                        .map(|(one, two)| {
-                            if one.0 != two.0 {
-                                return (one.0, one.1, Null);
-                            }
-
-                            (one.0, one.1, one.2 - two.2)
-                        })
-                        .collect(),
-                )
-            }
-            (lhs, rhs) => bin_numeric_op!(lhs, rhs, -),
-        }
+        arith(self, other, Op::Sub)
     }
 }
 
 impl Mul for AnyValue<'_> {
     type Output = Self;
 
-    #[inline(always)]
+    #[inline]
     fn mul(self, other: Self) -> Self {
-        use AnyValue::*;
-
-        let is_numeric = self.dtype().is_numeric() && other.dtype().is_numeric();
-        let is_nested = self.is_nested() && other.is_nested();
-
-        if !is_numeric && !is_nested {
-            return self;
-        }
-
-        match (self, other) {
-            (Bool(a), Bool(b)) => Bool(a && b),
-            (Vector(a), Vector(b)) => Vector(a.into_iter().zip(b).map(|(x, y)| x * y).collect()),
-            (Dict(a), Dict(b)) => {
-                if a.len() != b.len() {
-                    return Null;
-                }
-
-                Dict(
-                    a.into_iter()
-                        .zip(b)
-                        .map(|(one, two)| {
-                            if one.0 != two.0 {
-                                return (one.0, one.1, Null);
-                            }
-
-                            (one.0, one.1, one.2 * two.2)
-                        })
-                        .collect(),
-                )
-            }
-            (lhs, rhs) => bin_numeric_op!(lhs, rhs, *),
-        }
+        arith(self, other, Op::Mul)
     }
 }
 
 impl Div for AnyValue<'_> {
     type Output = Self;
 
-    #[inline(always)]
+    #[inline]
     fn div(self, other: Self) -> Self {
-        use AnyValue::*;
-
-        let is_numeric = self.dtype().is_numeric() && other.dtype().is_numeric();
-        let is_nested = self.is_nested() && other.is_nested();
-
-        if !is_numeric && !is_nested {
-            return self;
-        }
-
-        match (self, other) {
-            (Vector(a), Vector(b)) => Vector(a.into_iter().zip(b).map(|(x, y)| x / y).collect()),
-            (Dict(a), Dict(b)) => {
-                if a.len() != b.len() {
-                    return Null;
-                }
-
-                Dict(
-                    a.into_iter()
-                        .zip(b)
-                        .map(|(one, two)| {
-                            if one.0 != two.0 {
-                                return (one.0, one.1, Null);
-                            }
-
-                            (one.0, one.1, one.2 / two.2)
-                        })
-                        .collect(),
-                )
-            }
-            (lhs, rhs) => bin_numeric_div!(lhs, rhs),
-        }
+        arith(self, other, Op::Div)
     }
 }
 
 impl Rem for AnyValue<'_> {
     type Output = Self;
 
-    #[inline(always)]
+    #[inline]
     fn rem(self, other: Self) -> Self {
-        use AnyValue::*;
-
-        let is_numeric = self.dtype().is_numeric() && other.dtype().is_numeric();
-
-        if !is_numeric {
-            return self;
-        }
-
-        match (self, other) {
-            (Vector(a), Vector(b)) => Vector(a.into_iter().zip(b).map(|(x, y)| x % y).collect()),
-            (Dict(a), Dict(b)) => {
-                if a.len() != b.len() {
-                    return Null;
-                }
-
-                Dict(
-                    a.into_iter()
-                        .zip(b)
-                        .map(|(one, two)| {
-                            if one.0 != two.0 {
-                                return (one.0, one.1, Null);
-                            }
-
-                            (one.0, one.1, one.2 % two.2)
-                        })
-                        .collect(),
-                )
-            }
-            (lhs, rhs) => bin_numeric_op!(lhs, rhs, %),
-        }
+        arith(self, other, Op::Rem)
     }
 }
 
@@ -378,55 +361,39 @@ impl<'a> Not for AnyValue<'a> {
     }
 }
 
+/// `base ^ exp` under the same promotion rules as the arithmetic operators.
+///
+/// Non-numeric operands are an error. Integer overflow, or a negative /
+/// out-of-range integer exponent, produce `Null`.
 #[inline]
 pub fn pow_anyvalue(
     base: &AnyValue<'_>,
     exp: &AnyValue<'_>,
 ) -> Result<AnyValue<'static>, radiate_error::RadiateError> {
-    use AnyValue::*;
-    match (base, exp) {
-        (Int8(a), Int8(b)) => Ok(Int8(a.pow(*b as u32))),
-        (Int16(a), Int8(b)) => Ok(Int16(a.pow(*b as u32))),
-        (Int32(a), Int8(b)) => Ok(Int32(a.pow(*b as u32))),
-        (Int64(a), Int8(b)) => Ok(Int64(a.pow(*b as u32))),
-        (Int128(a), Int8(b)) => Ok(Int128(a.pow(*b as u32))),
+    let (Some((base_kind, b)), Some((exp_kind, e))) = (classify(base), classify(exp)) else {
+        radiate_bail!(Expr: "Exponentiation is only supported for numeric types, got base {:?} and exponent {:?}", base, exp)
+    };
 
-        (Int16(a), Int16(b)) => Ok(Int16(a.pow(*b as u32))),
-        (Int32(a), Int16(b)) => Ok(Int32(a.pow(*b as u32))),
-        (Int64(a), Int16(b)) => Ok(Int64(a.pow(*b as u32))),
-        (Int128(a), Int16(b)) => Ok(Int128(a.pow(*b as u32))),
-
-        (Int32(a), Int32(b)) => Ok(Int32(a.pow(*b as u32))),
-        (Int64(a), Int32(b)) => Ok(Int64(a.pow(*b as u32))),
-        (Int128(a), Int32(b)) => Ok(Int128(a.pow(*b as u32))),
-
-        (Int64(a), Int64(b)) => Ok(Int64(a.pow(*b as u32))),
-        (Int128(a), Int64(b)) => Ok(Int128(a.pow(*b as u32))),
-
-        (Int128(a), Int128(b)) => Ok(Int128(a.pow(*b as u32))),
-
-        (UInt8(a), UInt8(b)) => Ok(UInt8(a.pow(*b as u32))),
-        (UInt8(a), UInt16(b)) => Ok(UInt16((u16::from(*a)).pow(u32::from(*b)))),
-        (UInt8(a), UInt32(b)) => Ok(UInt32((u32::from(*a)).pow(*b))),
-
-        (UInt16(a), UInt16(b)) => Ok(UInt16(a.pow(*b as u32))),
-        (UInt16(a), UInt32(b)) => Ok(UInt32((u32::from(*a)).pow(*b))),
-
-        (UInt32(a), UInt32(b)) => Ok(UInt32(a.pow(*b))),
-
-        (UInt64(a), UInt64(b)) => Ok(UInt64(a.pow(*b as u32))),
-
-        (UInt128(a), UInt128(b)) => Ok(UInt128(a.pow(*b as u32))),
-
-        (Float32(a), Float32(b)) => Ok(Float32(a.powf(*b))),
-        (Float32(a), Float64(b)) => Ok(Float64((*a as f64).powf(*b))),
-
-        (Float64(a), Float32(b)) => Ok(Float64(a.powf(*b as f64))),
-        (Float64(a), Float64(b)) => Ok(Float64(a.powf(*b))),
-        _ => {
-            radiate_bail!(Expr: "Exponentiation is only supported for numeric types, got base {:?} and exponent {:?}", base, exp)
+    let result = match promote(base_kind, exp_kind) {
+        NumKind::Float { bits } => Some(narrow_float(b.as_f64().powf(e.as_f64()), bits)),
+        NumKind::Int { signed, bits } => {
+            e.as_u128()
+                .and_then(|e| u32::try_from(e).ok())
+                .and_then(|e| {
+                    if signed {
+                        b.as_i128()?
+                            .checked_pow(e)
+                            .and_then(|r| narrow_signed(r, bits))
+                    } else {
+                        b.as_u128()?
+                            .checked_pow(e)
+                            .and_then(|r| narrow_unsigned(r, bits))
+                    }
+                })
         }
-    }
+    };
+
+    Ok(result.unwrap_or(AnyValue::Null))
 }
 
 #[inline]
@@ -496,7 +463,7 @@ mod tests {
     // ---------- Numeric: happy paths (same-type) ----------
     #[test]
     fn numeric_add_same_type() {
-        assert_eq!(Bool(true) + Bool(false), Bool(true));
+        assert_eq!(Bool(true) + Bool(false), Null);
 
         assert_eq!(UInt8(10) + UInt8(5), UInt8(15));
         assert_eq!(UInt16(10) + UInt16(5), UInt16(15));
@@ -515,7 +482,7 @@ mod tests {
 
     #[test]
     fn numeric_sub_same_type() {
-        assert_eq!(Bool(true) - Bool(false), Bool(true));
+        assert_eq!(Bool(true) - Bool(false), Null);
 
         assert_eq!(UInt8(10) - UInt8(3), UInt8(7));
         assert_eq!(UInt16(10) - UInt16(3), UInt16(7));
@@ -534,7 +501,7 @@ mod tests {
 
     #[test]
     fn numeric_mul_same_type() {
-        assert_eq!(Bool(true) * Bool(false), Bool(true));
+        assert_eq!(Bool(true) * Bool(false), Null);
 
         assert_eq!(UInt8(7) * UInt8(6), UInt8(42));
         assert_eq!(UInt16(7) * UInt16(6), UInt16(42));
@@ -553,7 +520,7 @@ mod tests {
 
     #[test]
     fn numeric_div_same_type() {
-        assert_eq!(Bool(true) / Bool(false), Bool(true));
+        assert_eq!(Bool(true) / Bool(false), Null);
 
         assert_eq!(UInt8(42) / UInt8(6), UInt8(7));
         assert_eq!(UInt16(42) / UInt16(6), UInt16(7));
@@ -572,8 +539,8 @@ mod tests {
 
     #[test]
     fn int_div_by_zero_yields_null() {
-        assert_eq!(Int32(5) / Int32(0), Int32(5));
-        assert_eq!(UInt64(7) / UInt64(0), UInt64(7));
+        assert_eq!(Int32(5) / Int32(0), Null);
+        assert_eq!(UInt64(7) / UInt64(0), Null);
     }
 
     // ---------- Vector elementwise ----------
@@ -630,8 +597,99 @@ mod tests {
     #[test]
     fn null_propagation() {
         assert_eq!(Null + Int32(5), Null);
-        assert_eq!(Float64(2.0) * Null, Float64(2.0));
+        assert_eq!(Float64(2.0) * Null, Null);
         assert_eq!(Null / Null, Null);
+    }
+
+    // ---------- Mixed-type promotion ----------
+    #[test]
+    fn int_with_float_promotes_to_the_float() {
+        assert_eq!(Float32(1.5) * Int32(2), Float32(3.0));
+        assert_eq!(Int64(2) * Float32(1.5), Float32(3.0));
+        assert_eq!(Float32(9.0) / Int32(3), Float32(3.0));
+        assert_eq!(UInt64(3) + Float64(0.5), Float64(3.5));
+        assert_eq!(Float32(1.0) + Float64(0.5), Float64(1.5));
+    }
+
+    #[test]
+    fn mixed_int_widths_promote_to_wider() {
+        assert_eq!(Int8(1) + Int64(2), Int64(3));
+        assert_eq!(UInt8(1) + UInt32(2), UInt32(3));
+        assert_eq!(Usize(4) + UInt8(1), UInt64(5));
+    }
+
+    #[test]
+    fn signed_with_unsigned_promotes_to_signed() {
+        assert_eq!(UInt64(3) - Int32(5), Int64(-2));
+        assert_eq!(Int8(-1) + UInt32(1), Int32(0));
+    }
+
+    #[test]
+    fn int_division_still_truncates() {
+        assert_eq!(Int32(7) / Int32(2), Int32(3));
+        assert_eq!(UInt64(7) / Int32(2), Int64(3));
+    }
+
+    #[test]
+    fn mixed_division_never_panics() {
+        assert_eq!(Float32(1.0) / Int32(0), Null);
+        assert_eq!(Usize(5) / Float32(2.0), Float32(2.5));
+        assert_eq!(UInt64(5) / Float32(0.0), Null);
+    }
+
+    // ---------- Overflow ----------
+    #[test]
+    fn integer_overflow_yields_null() {
+        assert_eq!(UInt64(3) - UInt64(5), Null);
+        assert_eq!(UInt8(255) + UInt8(1), Null);
+        assert_eq!(Int8(-128) * Int8(-1), Null);
+        assert_eq!(Int32(i32::MIN) / Int32(-1), Null);
+        assert_eq!(Int32(5) % Int32(0), Null);
+    }
+
+    // ---------- Duration ----------
+    #[test]
+    fn duration_arithmetic() {
+        use std::time::Duration as D;
+        let s = |x: f64| Duration(D::from_secs_f64(x));
+
+        assert_eq!(s(1.0) + s(0.5), s(1.5));
+        assert_eq!(s(1.0) - s(0.25), s(0.75));
+        assert_eq!(s(0.5) - s(1.0), Null);
+
+        assert_eq!(s(1.5) * Int32(2), s(3.0));
+        assert_eq!(Float32(2.0) * s(1.5), s(3.0));
+        assert_eq!(s(3.0) / Int32(2), s(1.5));
+        assert_eq!(s(3.0) / Float32(0.0), Null);
+        assert_eq!(s(1.0) * Float32(-1.0), Null);
+
+        assert_eq!(s(3.0) / s(1.5), Float32(2.0));
+        assert_eq!(s(3.0) / s(0.0), Null);
+
+        assert_eq!(s(1.0) + Int32(1), Null);
+        assert_eq!(Int32(1) / s(1.0), Null);
+    }
+
+    // ---------- Non-numeric ----------
+    #[test]
+    fn non_numeric_operands_yield_null_regardless_of_side() {
+        assert_eq!(Int32(5) + Null, Null);
+        assert_eq!(Null + Int32(5), Null);
+        assert_eq!(Str("a") + Int32(1), Null);
+        assert_eq!(make_vec(vec![Int32(1)]) + Int32(1), Null);
+    }
+
+    // ---------- Pow ----------
+    #[test]
+    fn pow_promotes_and_checks() {
+        assert_eq!(
+            pow_anyvalue(&Float32(2.0), &Int32(3)).unwrap(),
+            Float32(8.0)
+        );
+        assert_eq!(pow_anyvalue(&Int32(2), &Int8(10)).unwrap(), Int32(1024));
+        assert_eq!(pow_anyvalue(&Int32(2), &Int32(-1)).unwrap(), Null);
+        assert_eq!(pow_anyvalue(&UInt8(2), &UInt8(8)).unwrap(), Null);
+        assert!(pow_anyvalue(&Str("a"), &Int32(2)).is_err());
     }
 
     // ---------- Mean ----------

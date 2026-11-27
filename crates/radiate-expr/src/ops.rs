@@ -49,11 +49,21 @@ pub enum UnaryOp {
     Abs,
     Cast(DataType),
     Debug,
-    /// Fused affine: `scale * child + bias`. Replaces the `.mul(lit).add(lit)`
-    /// pattern with a single node. Chains collapse via [`fuse_affine`].
+    /// Fused affine: `child * scale (+ bias)`, produced by `compile()` from
+    /// chains of `+ - * /` with *float* literals. Evaluated through `AnyValue`
+    /// arithmetic, so it follows the same promotion rules as the unfused
+    /// chain: an f32 child with only f32 literals stays f32, any f64 (child or
+    /// literal) gives f64, an integer child becomes a float, and a Duration
+    /// child is scaled (and is `Null` if any `+`/`-` was fused in).
+    ///
+    /// - `bias` is `None` when no `+`/`-` was fused, so a Duration child is
+    ///   scaled rather than nulled by a phantom `+ 0`.
+    /// - `wide` is true when any fused literal was f64; scale and bias are
+    ///   then applied as f64 literals, otherwise as f32.
     Affine {
-        scale: f32,
-        bias: f32,
+        scale: f64,
+        bias: Option<f64>,
+        wide: bool,
     },
     Stagnation {
         epsilon: f32,

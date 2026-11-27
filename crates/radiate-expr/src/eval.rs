@@ -68,10 +68,21 @@ pub(crate) fn unary_eval<'a>(
             println!("{:?}", value);
             Ok(value)
         }
-        UnaryOp::Affine { scale, bias } => match value.extract::<f32>() {
-            Some(x) if x.is_finite() => Ok(AnyValue::Float32(*scale * x + *bias)),
-            _ => Ok(AnyValue::Null),
-        },
+        UnaryOp::Affine { scale, bias, wide } => {
+            let lit = |v: f64| {
+                if *wide {
+                    AnyValue::Float64(v)
+                } else {
+                    AnyValue::Float32(v as f32)
+                }
+            };
+
+            let scaled = value * lit(*scale);
+            Ok(match bias {
+                Some(b) => scaled + lit(*b),
+                None => scaled,
+            })
+        }
         UnaryOp::Stagnation {
             epsilon,
             last_value,
