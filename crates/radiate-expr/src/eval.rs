@@ -291,21 +291,29 @@ fn rollup<'a>(op: &RollupOp, values: &[AnyValue<'a>], dtype: DataType) -> ExprRe
 
     let result = match op {
         RollupOp::Mean => AnyValue::Float32(stats.mean()),
-        RollupOp::StdDev => AnyValue::Float32(stats.std_dev().unwrap()),
         RollupOp::Min => AnyValue::Float32(stats.min()),
         RollupOp::Max => AnyValue::Float32(stats.max()),
         RollupOp::Sum => AnyValue::Float32(stats.sum()),
         RollupOp::Count => AnyValue::UInt64(stats.count() as u64),
-        RollupOp::Skew => stats
-            .skewness()
-            .map(AnyValue::Float32)
-            .unwrap_or(AnyValue::Null),
-        RollupOp::Var => stats
-            .variance()
-            .map(AnyValue::Float32)
-            .unwrap_or(AnyValue::Null),
+        RollupOp::StdDev => match stats.std_dev() {
+            Some(std_dev) => AnyValue::Float32(std_dev),
+            None => radiate_bail!(Expr: format!("Failed to compute standard deviation")),
+        },
+        RollupOp::Skew => match stats.skewness() {
+            Some(skew) => AnyValue::Float32(skew),
+            None => radiate_bail!(Expr: format!("Failed to compute skewness")),
+        },
+        RollupOp::Var => match stats.variance() {
+            Some(var) => AnyValue::Float32(var),
+            None => radiate_bail!(Expr: format!("Failed to compute variance")),
+        },
         _ => AnyValue::Null,
     };
 
-    Ok(result.cast(&dtype).unwrap_or(AnyValue::Null))
+    match op {
+        RollupOp::Mean | RollupOp::Min | RollupOp::Max | RollupOp::Sum => {
+            return Ok(result.cast(&dtype).unwrap_or(AnyValue::Null));
+        }
+        _ => Ok(result),
+    }
 }
