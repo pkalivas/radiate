@@ -11,8 +11,11 @@ use std::{hash::Hash, time::Duration};
 
 const DTYPE_NULL: u8 = 0;
 const DTYPE_FLOAT32: u8 = 1;
-const DTYPE_DURATION: u8 = 2;
-const DTYPE_LIST: u8 = 3;
+const DTYPE_FLOAT64: u8 = 2;
+const DTYPE_USIZE: u8 = 3;
+const DTYPE_BOOL: u8 = 4;
+const DTYPE_DURATION: u8 = 5;
+const DTYPE_LIST: u8 = 6;
 
 #[macro_export]
 macro_rules! metric {
@@ -84,6 +87,9 @@ impl Metric {
         match self.dtype {
             DTYPE_NULL => DataType::Null,
             DTYPE_FLOAT32 => DataType::Float32,
+            DTYPE_FLOAT64 => DataType::Float64,
+            DTYPE_USIZE => DataType::Usize,
+            DTYPE_BOOL => DataType::Boolean,
             DTYPE_DURATION => DataType::Duration,
             DTYPE_LIST => DataType::List(Box::new(DataType::Float32)),
             _ => DataType::Null,
@@ -173,10 +179,10 @@ impl Metric {
         let update = update.into();
         match update {
             MetricUpdate::Float(value) => {
-                self.update_statistic(value);
+                self.update_statistic(value, DTYPE_FLOAT32);
             }
             MetricUpdate::Usize(value) => {
-                self.update_statistic(value as f32);
+                self.update_statistic(value as f32, DTYPE_USIZE);
             }
             MetricUpdate::Duration(value) => {
                 self.update_time_statistic(value);
@@ -196,19 +202,19 @@ impl Metric {
                 self.meta.update_count += 1;
             }
             MetricUpdate::Bool(value) => {
-                self.update_statistic(if value { 1.0 } else { 0.0 });
+                self.update_statistic(if value { 1.0 } else { 0.0 }, DTYPE_BOOL);
             }
         }
     }
 
-    fn update_statistic(&mut self, value: f32) {
+    fn update_statistic(&mut self, value: f32, dtype: u8) {
         self.inner.add(value);
         self.add_tag(TagType::Statistic);
 
         self.meta.update_count += 1;
 
         if self.dtype == DTYPE_NULL {
-            self.dtype = DTYPE_FLOAT32;
+            self.dtype = dtype;
         }
     }
 
@@ -313,7 +319,7 @@ impl<'a> ProjectExpr<'a> for Metric {
     #[inline]
     fn select(&self, sel: &SelectOp) -> Result<AnyValue<'a>, RadiateError> {
         let wrap = |v: f32| match self.dtype {
-            DTYPE_FLOAT32 | DTYPE_LIST => AnyValue::Float32(v),
+            DTYPE_FLOAT32 | DTYPE_LIST | DTYPE_BOOL | DTYPE_FLOAT64 | DTYPE_USIZE => AnyValue::Float32(v),
             DTYPE_DURATION => AnyValue::Duration(Duration::from_secs_f32(v)),
             _ => AnyValue::Null,
         };
