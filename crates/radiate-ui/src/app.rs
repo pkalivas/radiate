@@ -104,12 +104,14 @@ where
     C: Chromosome + Debug + Clone,
 {
     pub fn new(sync: ThreadSync) -> Self {
+        let pause_flag = sync.pause_flag();
         Self {
             sync,
             channel: CommandChannel::new(),
             state: AppState {
                 run: RunState {
                     render_interval: DEFAULT_RENDER_INTERVAL,
+                    pause_flag: Some(pause_flag),
                     ..Default::default()
                 },
                 ..Default::default()
@@ -207,10 +209,11 @@ where
                 state.run.ui = false;
             }
             Action::ToggleHelp => state.nav.toggle_help(),
-            Action::TogglePause => state.run.paused = self.sync.toggle_pause(),
+            Action::TogglePause => {
+                self.sync.toggle_pause();
+            }
             Action::Step => {
                 self.sync.step_once();
-                state.run.paused = true;
             }
 
             Action::Select(motion) => state.move_selection(motion),

@@ -69,7 +69,11 @@ impl<'a, C: Chromosome> Widget for SearchBarWidget<'a, C> {
 /// behind the `?` help overlay.
 pub fn help_text<C: Chromosome>(state: &AppState<C>) -> Line<'static> {
     let nav = &state.nav;
-    let pause = if state.run.paused { "resume" } else { "pause" };
+    let pause = if state.run.is_paused() {
+        "resume"
+    } else {
+        "pause"
+    };
 
     let mut chips = match nav.mode {
         UiMode::Dashboard => {

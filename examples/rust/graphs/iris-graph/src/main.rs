@@ -35,7 +35,6 @@ fn main() -> RadiateResult<()> {
         .fitness_fn(Regression::new(train.clone(), Loss::XEnt))
         .offspring_selector(TournamentSelector::new(4))
         .minimizing()
-        // .parallel()
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.02, 0.05),

@@ -20,8 +20,8 @@ fn main() -> RadiateResult<()> {
         .codec(GraphCodec::directed(in_dim, out_dim, store)?)
         .fitness_fn(Regression::new(data.clone(), Loss::MSE))
         .minimizing()
-        .diversity(NeatDistance::default())
         .parallel()
+        .diversity(NeatDistance::default())
         .target_species(TARGET_SPECIES)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),

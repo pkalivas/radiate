@@ -60,7 +60,7 @@ impl<C: Chromosome + Debug> AppWidget<C> for EngineStatusPanelWidget {
             .widths([Constraint::Fill(1), Constraint::Fill(1)]);
 
         let engine_state = if state.run.engine {
-            if state.run.paused {
+            if state.run.is_paused() {
                 " Paused ".fg(Color::Yellow).bold()
             } else {
                 " Running ".fg(Color::LightGreen).bold()
