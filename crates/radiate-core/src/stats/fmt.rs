@@ -182,10 +182,7 @@ pub fn render_metric_rows_full(
 fn render_tagged(ms: &MetricSet, tag: TagType, title: &str) -> io::Result<String> {
     let mut out = String::new();
     writeln!(out, "== {} ==", title).unwrap();
-    let is_k = match tag {
-        TagType::Distribution | TagType::Statistic => true,
-        _ => false,
-    };
+    let is_k = matches!(tag, TagType::Distribution | TagType::Statistic);
     out = render_table_header(out, is_k)?;
 
     let mut items: Vec<_> = ms.iter_tagged(tag).collect();
